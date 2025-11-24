@@ -1,9 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
 import user from "../modules/views/user/view/user.vue";
-import driver from "../modules/views/user/view/driver.vue";
 import Login from '../modules/views/login/view/login.vue'
 import forgetPassword from '../modules/views/forgetPassword/view/forgetPassword.vue'
-import '../assets/main.css'
+// import '../assets/main.css'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,17 +15,6 @@ const router = createRouter({
       path: "/user",
       name: "User",
       component: user,
-      meta: {
-        title: "User Table",
-        Artitle: "لوحة المستخدمين",
-        hideLayout: true,
-        requireAuth: false,
-      },
-    },
-    {
-      path: "/driver",
-      name: "Driver",
-      component: driver,
       meta: {
         title: "User Table",
         Artitle: "لوحة المستخدمين",

@@ -1,84 +1,72 @@
 <template>
-  <div class="dropdown group-filter" ref="dropdownRef">
-    <button
-      @click="isOpen = !isOpen"
-      class="btn btn-outline-secondary dropdown-toggle d-flex align-items-start"
-      type="button"
-    >
-      <!-- Chips container (when groups selected) -->
-      <div
-        v-if="selectedGroups.length > 0"
-        class="chips-container d-flex flex-column gap-2 w-100"
-      >
-        <span
-          v-for="group in selectedGroups"
-          :key="group"
-          class="chip d-inline-flex align-items-center gap-2 bg-primary text-white px-2 py-1 rounded"
-        >
-          {{ group }}
-          <button
-            @click.stop="removeGroup(group)"
-            class="chip-remove"
-            type="button"
-          >
-            ×
-          </button>
-        </span>
-      </div>
-
-      <!-- Default label (when nothing selected) -->
-      <span v-else>{{ displayLabel }}</span>
-    </button>
-
-    <!-- Dropdown menu -->
-    <div
-      class="dropdown-menu dropdown-menu-end p-3 shadow border rounded-3 mt-2"
-      :class="{ show: isOpen }"
-    >
-      <!-- Available groups (not selected) -->
-      <div
-        v-for="group in availableGroups"
-        :key="group"
-        class="dropdown-item py-2 d-flex align-items-center"
-      >
-        <input
-          type="checkbox"
-          :id="`group-${group}`"
-          :value="group"
-          @change="addGroup(group)"
-          class="form-check-input"
-        />
-        <label
-          :for="`group-${group}`"
-          class="form-check-label ms-2 user-select-none flex-fill"
-        >
-          {{ group }}
-        </label>
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-if="availableGroups.length === 0 && selectedGroups.length > 0"
-        class="text-muted text-center py-2"
-      >
-        All groups selected
-      </div>
-      <!-- Clear All button -->
+  <BaseDropdown menuPosition="end" :class="{ rtl: isRTL }">
+    <template #trigger>
       <button
-        v-if="selectedGroups.length > 0"
-        @click="clearAll"
-        class="btn btn-sm btn-outline-danger w-100 mb-2"
+        class="btn btn-outline-secondary d-flex align-items-center gap-2"
         type="button"
+        style="white-space: nowrap"
       >
-        Clear All
+        <span v-if="selectedGroups.length > 0">
+          {{ displayLabel }} ({{ selectedGroups.length }})
+        </span>
+        <span v-else>{{ displayLabel }}</span>
+        <img
+          src="/src/assets/dropdown.svg"
+          alt="Dropdown"
+          width="12"
+          height="12"
+        />
       </button>
-    </div>
-  </div>
+    </template>
+
+    <template #menu>
+      <div class="p-2" style="min-width: 200px" :dir="isRTL ? 'rtl' : 'ltr'">
+        <div
+          v-for="group in availableGroups"
+          :key="group"
+          class="form-check"
+          :class="{ 'text-end': isRTL }"
+        >
+          <input
+            type="checkbox"
+            :id="`group-${group}`"
+            :value="group"
+            @change="addGroup(group)"
+            class="form-check-input"
+            :class="{ 'float-end': isRTL, 'ms-2': isRTL }"
+          />
+          <label :for="`group-${group}`" class="form-check-label">
+            {{ group }}
+          </label>
+        </div>
+
+        <div
+          v-if="availableGroups.length === 0 && selectedGroups.length > 0"
+          class="text-muted text-center py-2 small"
+        >
+          {{ $t("filters.allGroupsSelected") }}
+        </div>
+
+        <button
+          v-if="selectedGroups.length > 0"
+          @click="clearAll"
+          class="btn btn-sm btn-link text-danger w-100 mt-2"
+          type="button"
+        >
+          {{ $t("filters.clearAll") }}
+        </button>
+      </div>
+    </template>
+  </BaseDropdown>
 </template>
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
+import BaseDropdown from "@/components/shared/BaseDropdown.vue";
 
-// ---------------------- Props and Emits ----------------
+const { locale } = useI18n();
+const isRTL = computed(() => locale.value === "ar");
+
 const props = defineProps({
   data: Array,
   groupKey: String,
@@ -87,17 +75,11 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue"]);
 
-// ----------------------- Refs ---------------------
-const dropdownRef = ref(null);
-const isOpen = ref(false);
 const selectedGroups = ref([]);
 
-// ------------------------ Computed -------------------
 const uniqueValues = computed(() => {
   if (!props.data || !props.groupKey) return [];
-
   const values = props.data.map((item) => item[props.groupKey]);
-
   const unique = [...new Set(values)];
   return unique.sort();
 });
@@ -109,15 +91,14 @@ const availableGroups = computed(() => {
 });
 
 const displayLabel = computed(() => {
+  const { t } = useI18n();
   if (props.label) {
     return props.label;
   }
   const formatted =
     props.groupKey.charAt(0).toUpperCase() + props.groupKey.slice(1);
-  return `Filter By ${formatted}`;
+  return `${t("filters.filterBy")} ${formatted}`;
 });
-
-// --------------- Methods --------------------
 
 const addGroup = (group) => {
   selectedGroups.value.push(group);
@@ -131,26 +112,12 @@ const clearAll = () => {
   selectedGroups.value = [];
 };
 
-const handleClickOutside = (event) => {
-  if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
-    isOpen.value = false;
-  }
-};
-
-// -------------------- LifeCycle --------------
 onMounted(() => {
   if (props.modelValue && props.modelValue.length) {
     selectedGroups.value = [...props.modelValue];
   }
-
-  document.addEventListener("click", handleClickOutside);
 });
 
-onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
-
-// -------------------- Watchers --------------------
 watch(
   selectedGroups,
   (newValue) => {
@@ -159,39 +126,3 @@ watch(
   { deep: true }
 );
 </script>
-<style scoped>
-.group-filter button {
-  min-height: 42px;
-  max-height: 42px;
-}
-.chips-container {
-  max-height: 32px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 0.5rem;
-}
-
-.chip {
-  font-size: 0.75rem;
-  flex-shrink: 0;
-}
-.chip-remove {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.125rem;
-  line-height: 1;
-  padding: 0;
-  margin-left: 0.25rem;
-  cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.2s;
-}
-.chip-remove:hover {
-  opacity: 1;
-}
-
-.dropdown-menu {
-  min-width: 220px;
-}
-</style>
