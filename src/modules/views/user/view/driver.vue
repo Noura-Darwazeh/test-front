@@ -1,16 +1,13 @@
 <!-- src/modules/views/user/view/driver.vue -->
 <template>
-  <GenericTablePage
-    :data="drivers"
-    :columns="driverColumns"
-    searchPlaceholder="Search drivers..."
-    groupKey="status"
-    groupLabel="Filter by Status"
-  />
+  <Table :data="drivers" :columns="driverColumns" searchPlaceholder="Search drivers..." groupKey="status"
+    groupLabel="Filter by Status" />
 </template>
 
 <script setup>
-import GenericTablePage from "./user.vue";
+import Table from "./generalTable.vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 
 const drivers = [
   {
@@ -22,16 +19,34 @@ const drivers = [
     vehicle_number: '125746',
     created_by: 'ali'
   },
-  // ... rest of drivers
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },
+
 ];
 
 const driverColumns = [
-  { key: "id", label: "ID", sortable: true },
-  { key: "location", label: "LOCATION", sortable: true },
-  { key: "status", label: "STATUS", sortable: false },
-  { key: "type", label: "TYPE", sortable: false },
-  { key: "branch_id", label: "BRANCH", sortable: false },
-  { key: "vehicle_number", label: "VEHICLE NUMBER", sortable: true },
-  { key: "created_by", label: "CREATE BY", sortable: false },
+  { key: "id", label: t("driver.id"), sortable: true },
+  { key: "location", label: t("driver.location"), sortable: true },
+  { key: "status", label: t("driver.status"), sortable: false },
+  { key: "type", label: t("driver.type"), sortable: false },
+  { key: "branch_id", label: t("driver.branchId"), sortable: false },
+  { key: "vehicle_number", label:t("driver.vehicleNumber"), sortable: true },
+  { key: "created_by", label: t("driver.createdBy"), sortable: false },
 ];
 </script>

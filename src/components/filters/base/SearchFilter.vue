@@ -1,5 +1,5 @@
 <template>
-  <div class="search-filter position-relative" style="max-width: 300px">
+  <div class="search-filter position-relative shadow-sm" style="max-width: 300px">
     <span
       class="search-icon position-absolute"
       :class="isRTL ? 'end-0' : 'start-0'"

@@ -11,41 +11,42 @@
       <ul class="pagination pagination-sm mb-0">
         <li class="page-item" :class="{ disabled: currentPage === 1 }">
           <button
-            class="page-link"
+            class="page-link rounded-circle pagination-arrow me-1"
             @click="goToPage(currentPage - 1)"
             :disabled="currentPage === 1"
           >
-            {{ $t("pagination.previous") }}
+            &lt;
           </button>
         </li>
         <li
           v-for="page in pageNumbers"
           :key="page"
-          class="page-item"
+          class="page-item mx-1"
           :class="{ active: page === currentPage }"
         >
           <button
             v-if="page !== '...'"
-            class="page-link"
+            class="page-link rounded-circle"
             @click="goToPage(page)"
           >
             {{ page }}
           </button>
-          <span v-else class="page-link">...</span>
+          <span v-else class="page-link border-0 bg-transparent">...</span>
         </li>
         <li class="page-item" :class="{ disabled: currentPage === totalPages }">
           <button
-            class="page-link"
+            class="page-link rounded-circle pagination-arrow ms-1"
             @click="goToPage(currentPage + 1)"
             :disabled="currentPage === totalPages"
           >
-            {{ $t("pagination.next") }}
+            &gt;
           </button>
         </li>
       </ul>
     </nav>
   </div>
 </template>
+
 <script setup>
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
@@ -99,3 +100,45 @@ const goToPage = (page) => {
   }
 };
 </script>
+
+<style scoped>
+.page-link {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+
+
+.page-item.active .page-link {
+  background-color: var(--primary-color, #1e40af);
+  color: white;
+  border: none;
+  font-weight: 600;
+  z-index: 1;
+}
+
+.pagination-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-item.disabled .page-link {
+  opacity: 0.4;
+  background: transparent;
+}
+
+.page-link:focus {
+  box-shadow: none;
+  z-index: 0;
+}
+</style>

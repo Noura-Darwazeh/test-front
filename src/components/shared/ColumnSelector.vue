@@ -2,7 +2,7 @@
   <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" :class="{ rtl: isRTL }">
     <template #trigger>
       <button
-        class="btn btn-outline-secondary d-flex align-items-center gap-2"
+        class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm"
         type="button"
       >
         <img
@@ -106,3 +106,9 @@ watch(visibleKeys, (newValue) => {
   emit("update:modelValue", newValue);
 });
 </script>
+<style>
+.btn-outline-secondary :hover{
+  color: #6c757d !important
+}
+
+</style>

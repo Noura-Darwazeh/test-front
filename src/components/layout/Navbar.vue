@@ -1,26 +1,16 @@
 <template>
-  <nav
-    class="navbar navbar-light bg-white border-bottom"
-    :class="{ rtl: isRTL }"
-  >
-    <div class="container-fluid px-4">
+  <nav class="navbar navbar-light bg-white border-bottom p-2" :class="{ rtl: isRTL }">
+    <div class="container-fluid px-3 py-2">
       <div class="d-flex align-items-center justify-content-between w-100">
-        <h5 class="mb-0 fw-semibold text-dark">
+        <h4 class="mb-0 fw-semibold text-dark">
           {{ displayTitle }}
-        </h5>
+        </h4>
 
         <div class="d-flex align-items-center gap-3">
           <button class="btn btn-link p-0 position-relative" type="button">
-            <img
-              src="/src/assets/Navbar/Bell.svg"
-              alt="Notifications"
-              width="20"
-              height="20"
-            />
-            <span
-              v-if="notificationCount > 0"
-              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-            >
+            <img src="/src/assets/Navbar/Bell.svg" alt="Notifications" width="25" height="25" />
+            <span v-if="notificationCount > 0"
+              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
               {{ notificationCount }}
             </span>
           </button>
@@ -28,37 +18,22 @@
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
               <button class="btn btn-link p-0" type="button">
-                <img
-                  src="/src/assets/Navbar/Globe.svg"
-                  alt="Language"
-                  width="20"
-                  height="20"
-                />
+                <img src="/src/assets/Navbar/Globe.svg" alt="Language" width="25" height="25" />
               </button>
             </template>
             <template #menu="{ close }">
               <ul class="list-unstyled mb-0">
                 <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    @click.prevent="
-                      switchLanguage('EN');
-                      close();
-                    "
-                    >English</a
-                  >
+                  <a class="dropdown-item" href="#" @click.prevent="
+                    switchLanguage('EN');
+                  close();
+                  ">English</a>
                 </li>
                 <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    @click.prevent="
-                      switchLanguage('AR');
-                      close();
-                    "
-                    >العربية</a
-                  >
+                  <a class="dropdown-item" href="#" @click.prevent="
+                    switchLanguage('AR');
+                  close();
+                  ">العربية</a>
                 </li>
               </ul>
             </template>
@@ -66,60 +41,30 @@
 
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
-              <button
-                class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none"
-                type="button"
-              >
-                <img
-                  :src="userAvatar"
-                  alt="User profile picture"
-                  class="rounded-circle"
-                  width="36"
-                  height="36"
-                />
+              <button class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none" type="button">
+                <img :src="userAvatar" alt="User profile picture" class="rounded-circle" width="36" height="36" />
                 <span class="d-none d-md-inline text-dark">{{ userName }}</span>
-                <img
-                  src="/src/assets/Navbar/DropDown.svg"
-                  alt="Dropdown"
-                  width="16"
-                  height="16"
-                />
+                <img src="/src/assets/Navbar/DropDown.svg" alt="Dropdown" width="16" height="16" />
               </button>
             </template>
             <template #menu="{ close }">
               <ul class="list-unstyled mb-0">
                 <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    @click.prevent="handleProfile(close)"
-                    >{{ $t("navbar.profile") }}</a
-                  >
+                  <a class="dropdown-item" href="#" @click.prevent="handleProfile(close)">{{ $t("navbar.profile") }}</a>
                 </li>
                 <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    @click.prevent="handleSettings(close)"
-                    >{{ $t("navbar.settings") }}</a
-                  >
-                </li>
-                <li><hr class="dropdown-divider" /></li>
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    @click.prevent="handleSwitchUser(close)"
-                    >{{ $t("navbar.SwitchUser") }}</a
-                  >
+                  <a class="dropdown-item" href="#" @click.prevent="handleSettings(close)">{{ $t("navbar.settings")
+                  }}</a>
                 </li>
                 <li>
-                  <a
-                    class="dropdown-item text-danger"
-                    href="#"
-                    @click.prevent="handleLogout(close)"
-                    >{{ $t("navbar.logout") }}</a
-                  >
+                  <hr class="dropdown-divider" />
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" @click.prevent="handleSwitchUser(close)">{{ $t("navbar.SwitchUser")
+                  }}</a>
+                </li>
+                <li>
+                  <a class="dropdown-item " href="#" @click.prevent="handleLogout(close)">{{ $t("navbar.logout") }}</a>
                 </li>
               </ul>
             </template>
@@ -197,10 +142,16 @@ const handleLogout = (close) => {
 }
 
 .btn-link:hover {
-  color: #0d6efd;
+  color: var(--primary-color);
 }
 
 .btn-link:focus {
   box-shadow: none;
+}
+
+.dropdown-item:active,
+.dropdown-item.active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
 }
 </style>

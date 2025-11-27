@@ -1,58 +1,32 @@
 <template>
   <BaseDropdown menuPosition="end" :class="{ rtl: isRTL }">
     <template #trigger>
-      <button
-        class="btn btn-outline-secondary d-flex align-items-center gap-2"
-        type="button"
-        style="white-space: nowrap"
-      >
+      <button class="btn btn-outline-secondary shadow-sm d-flex align-items-center gap-2" type="button"
+        style="white-space: nowrap">
         <span v-if="selectedGroups.length > 0">
           {{ displayLabel }} ({{ selectedGroups.length }})
         </span>
         <span v-else>{{ displayLabel }}</span>
-        <img
-          src="/src/assets/dropdown.svg"
-          alt="Dropdown"
-          width="12"
-          height="12"
-        />
+        <img src="/src/assets/dropdown.svg" alt="Dropdown" width="12" height="12" />
       </button>
     </template>
 
     <template #menu>
       <div class="p-2" style="min-width: 200px" :dir="isRTL ? 'rtl' : 'ltr'">
-        <div
-          v-for="group in availableGroups"
-          :key="group"
-          class="form-check"
-          :class="{ 'text-end': isRTL }"
-        >
-          <input
-            type="checkbox"
-            :id="`group-${group}`"
-            :value="group"
-            @change="addGroup(group)"
-            class="form-check-input"
-            :class="{ 'float-end': isRTL, 'ms-2': isRTL }"
-          />
+        <div v-for="group in availableGroups" :key="group" class="form-check" :class="{ 'text-end': isRTL }">
+          <input type="checkbox" :id="`group-${group}`" :value="group" @change="addGroup(group)"
+            class="form-check-input" :class="{ 'float-end': isRTL, 'ms-2': isRTL }" />
           <label :for="`group-${group}`" class="form-check-label">
             {{ group }}
           </label>
         </div>
 
-        <div
-          v-if="availableGroups.length === 0 && selectedGroups.length > 0"
-          class="text-muted text-center py-2 small"
-        >
+        <div v-if="availableGroups.length === 0 && selectedGroups.length > 0" class="text-muted text-center py-2 small">
           {{ $t("filters.allGroupsSelected") }}
         </div>
 
-        <button
-          v-if="selectedGroups.length > 0"
-          @click="clearAll"
-          class="btn btn-sm btn-link text-danger w-100 mt-2"
-          type="button"
-        >
+        <button v-if="selectedGroups.length > 0" @click="clearAll" class="btn btn-sm btn-link text-danger w-100 mt-2"
+          type="button">
           {{ $t("filters.clearAll") }}
         </button>
       </div>
@@ -126,3 +100,17 @@ watch(
   { deep: true }
 );
 </script>
+
+<style>
+.btn-outline-secondary {
+  background-color: white !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.btn-outline-secondary:hover {
+  background-color: white !important;
+  color: inherit !important;
+  border-color: var(--border-color) !important;
+  box-shadow: none !important;
+}
+</style>

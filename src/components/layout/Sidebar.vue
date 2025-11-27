@@ -1,75 +1,35 @@
 <template>
   <!-- Overlay for mobile -->
-  <div
-    v-if="isMobileMenuOpen"
-    class="sidebar-overlay"
-    @click="closeMobileMenu"
-  ></div>
+  <div v-if="isMobileMenuOpen" class="sidebar-overlay" @click="closeMobileMenu"></div>
 
   <!-- Mobile menu toggle button (positioned on left edge) -->
-  <button
-    v-if="isMobile && !isMobileMenuOpen"
-    @click="toggleSidebar"
-    class="btn btn-sm btn-light mobile-toggle-btn shadow-sm"
-    :class="{ rtl: isRTL }"
-    type="button"
-  >
-    <img
-      src="/src/assets/SelectorLines.svg"
-      alt="Menu"
-      width="16"
-      height="16"
-    />
+  <button v-if="isMobile && !isMobileMenuOpen" @click="toggleSidebar"
+    class="btn btn-sm btn-light mobile-toggle-btn shadow-sm" :class="{ rtl: isRTL }" type="button">
+    <img src="/src/assets/SelectorLines.svg" alt="Menu" width="16" height="16" />
   </button>
 
-  <aside
-    class="sidebar bg-white border-end"
-    :class="{
-      collapsed: isCollapsed,
-      'mobile-open': isMobileMenuOpen,
-      rtl: isRTL,
-    }"
-  >
-    <div
-      class="sidebar-header p-3 border-bottom d-flex align-items-center justify-content-between"
-    >
+  <aside class="sidebar bg-white border-end" :class="{
+    collapsed: isCollapsed,
+    'mobile-open': isMobileMenuOpen,
+    rtl: isRTL,
+  }">
+    <div class="sidebar-header p-3  d-flex align-items-center justify-content-between">
       <div class="logo-container">
         <h4 v-if="!isCollapsed" class="logo-text mb-0 fw-bold text-primary">
           {{ $t("sidebar.logoText") }}
         </h4>
-        <span v-else class="logo-icon fw-bold text-primary">P</span>
       </div>
 
-      <button
-        @click="toggleSidebar"
-        class="btn btn-sm btn-light toggle-btn"
-        type="button"
-      >
-        <img
-          src="/src/assets/SelectorLines.svg"
-          alt="Toggle"
-          width="16"
-          height="16"
-        />
+      <button @click="toggleSidebar" class="btn btn-sm btn-light toggle-btn" type="button">
+        <img src="/src/assets/SelectorLines.svg" alt="Toggle" width="16" height="16" />
       </button>
     </div>
 
     <nav class="sidebar-nav p-2">
-      <router-link
-        v-for="item in menuItems"
-        :key="item.path"
-        :to="item.path"
+      <router-link v-for="item in menuItems" :key="item.path" :to="item.path"
         class="nav-item d-flex align-items-center gap-3 px-3 py-2 mb-1 rounded text-decoration-none"
-        :class="{ active: isActive(item.path) }"
-      >
-        <img
-          v-if="item.icon"
-          :src="item.icon"
-          :alt="item.label"
-          width="20"
-          height="20"
-          class="nav-icon"
-        />
+        :class="{ active: isActive(item.path) }">
+        <img v-if="item.icon" :src="item.icon" :alt="item.label" width="25" height="25" class="nav-icon" />
         <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
       </router-link>
     </nav>
@@ -181,12 +141,16 @@ onUnmounted(() => {
 
 .nav-item:hover {
   background-color: #f8f9fa;
-  color: #0d6efd;
+  color: var(--primary-color);
 }
 
 .nav-item.active {
-  background-color: #0d6efd;
+  background-color: var(--primary-color);
   color: white;
+}
+
+.nav-item.active .nav-icon {
+  filter: brightness(0) invert(1);
 }
 
 @media (max-width: 770px) {
@@ -208,6 +172,10 @@ onUnmounted(() => {
   .sidebar.rtl.mobile-open {
     right: 0;
     left: auto;
+  }
+
+  .text-primary {
+    color: var(--primary-color) !important;
   }
 }
 </style>
