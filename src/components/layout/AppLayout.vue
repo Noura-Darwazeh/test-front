@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="app-layout d-flex"
-    :class="{ rtl: isRTL, 'sidebar-collapsed': isCollapsed }"
-  >
+  <div class="app-layout d-flex" :class="{ rtl: isRTL, 'sidebar-collapsed': isCollapsed }">
     <Sidebar />
     <div class="layout-body flex-grow-1 d-flex flex-column">
       <Navbar />

@@ -1,61 +1,32 @@
 <template>
-  <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" :class="{ rtl: isRTL }">
+  <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" menuClass="custom-dropdown" :class="{ rtl: isRTL }">
     <template #trigger>
-      <button
-        class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm"
-        type="button"
-      >
-        <img
-          src="/src/assets/SelectorLines.svg"
-          alt="Columns"
-          width="16"
-          height="16"
-        />
+      <button class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm" type="button">
+        <img src="/src/assets/SelectorLines.svg" alt="Columns" width="16" height="16" />
         {{ $t("user.columns") }}
-        <img
-          src="/src/assets/dropdown.svg"
-          alt="Dropdown"
-          width="12"
-          height="12"
-        />
+        <img src="/src/assets/dropdown.svg" alt="Dropdown" width="12" height="12" />
       </button>
     </template>
+
     <template #menu>
       <div class="p-2" style="min-width: 200px" :dir="isRTL ? 'rtl' : 'ltr'">
-        <div
-          class="fw-semibold py-1 text-muted small"
-          :class="{ 'text-end': isRTL }"
-        >
+        <div class="fw-semibold py-1 text-muted small" :class="{ 'text-end': isRTL }">
           {{ $t("filters.manageColumns") }}
         </div>
+
         <div class="form-check py-1" :class="{ 'text-end': isRTL }">
-          <input
-            type="checkbox"
-            id="selectAll"
-            class="form-check-input"
-            :class="{ 'float-end': isRTL, 'ms-2': isRTL }"
-            :checked="allSelected"
-            @change="toggleAll"
-          />
+          <input type="checkbox" id="selectAll" class="form-check-input" :class="{ 'float-end': isRTL, 'ms-2': isRTL }"
+            :checked="allSelected" @change="toggleAll" />
           <label for="selectAll" class="form-check-label">
             {{ $t("filters.selectAll") }}
           </label>
         </div>
+
         <hr class="dropdown-divider my-1" />
-        <div
-          v-for="col in columns"
-          :key="col.key"
-          class="form-check py-1"
-          :class="{ 'text-end': isRTL }"
-        >
-          <input
-            type="checkbox"
-            v-model="visibleKeys"
-            v-bind:value="col.key"
-            :id="col.key"
-            class="form-check-input"
-            :class="{ 'float-end': isRTL, 'ms-2': isRTL }"
-          />
+
+        <div v-for="col in columns" :key="col.key" class="form-check py-1" :class="{ 'text-end': isRTL }">
+          <input type="checkbox" v-model="visibleKeys" v-bind:value="col.key" :id="col.key" class="form-check-input"
+            :class="{ 'float-end': isRTL, 'ms-2': isRTL }" />
           <label :for="col.key" class="form-check-label">
             {{ col.label }}
           </label>
@@ -82,33 +53,30 @@ const emit = defineEmits(["update:modelValue"]);
 
 const visibleKeys = ref([]);
 
-const allSelected = computed(() => {
-  return visibleKeys.value.length === props.columns.length;
-});
+const allSelected = computed(() => visibleKeys.value.length === props.columns.length);
 
 const toggleAll = () => {
-  if (allSelected.value) {
-    visibleKeys.value = [];
-  } else {
-    visibleKeys.value = props.columns.map((col) => col.key);
-  }
+  visibleKeys.value = allSelected.value ? [] : props.columns.map(c => c.key);
 };
 
 onMounted(() => {
-  if (props.modelValue && props.modelValue.length) {
-    visibleKeys.value = props.modelValue;
-  } else {
-    visibleKeys.value = props.columns.map((col) => col.key);
-  }
+  visibleKeys.value = props.modelValue?.length ? props.modelValue : props.columns.map(c => c.key);
 });
 
-watch(visibleKeys, (newValue) => {
-  emit("update:modelValue", newValue);
-});
+watch(visibleKeys, newVal => emit("update:modelValue", newVal));
 </script>
+
 <style>
-.btn-outline-secondary :hover{
-  color: #6c757d !important
+.btn-outline-secondary:hover {
+  color: #6c757d !important;
 }
 
+@media (max-width: 767px) {
+  .custom-dropdown {
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
 </style>

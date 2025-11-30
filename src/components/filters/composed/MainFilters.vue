@@ -1,13 +1,8 @@
 <template>
   <div class="main-filters d-flex gap-2 align-items-center">
     <SearchFilter v-model="searchText" :placeholder="placeholder" />
-    <GroupFilter
-      v-if="groupKey && data"
-      :data="data"
-      :groupKey="groupKey"
-      v-model="selectedGroups"
-      :label="groupLabel"
-    />
+    <GroupFilter v-if="groupKey && data" :data="data" :groupKey="groupKey" v-model="selectedGroups"
+      :label="groupLabel" />
   </div>
 </template>
 <script setup>

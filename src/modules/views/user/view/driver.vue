@@ -1,6 +1,5 @@
-<!-- src/modules/views/user/view/driver.vue -->
 <template>
-  <Table :data="drivers" :columns="driverColumns" searchPlaceholder="Search drivers..." groupKey="status"
+  <Table :data="drivers" :columns="driverColumns" :searchPlaceholder="$t('driver.searchPlaceholder')" groupKey="status"
     groupLabel="Filter by Status" />
 </template>
 
