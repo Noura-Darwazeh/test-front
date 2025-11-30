@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="d-flex justify-content-between align-items-center mt-3"
-    :class="{ rtl: isRTL }"
-  >
+  <div class="d-flex justify-content-between align-items-center mt-3" :class="{ rtl: isRTL }">
     <div class="text-muted small">
       {{ $t("pagination.showing") }} {{ startItem }} - {{ endItem }}
       {{ $t("pagination.of") }} {{ totalItems }}
@@ -10,35 +7,20 @@
     <nav>
       <ul class="pagination pagination-sm mb-0">
         <li class="page-item" :class="{ disabled: currentPage === 1 }">
-          <button
-            class="page-link rounded-circle pagination-arrow me-1"
-            @click="goToPage(currentPage - 1)"
-            :disabled="currentPage === 1"
-          >
+          <button class="page-link rounded-circle pagination-arrow me-1" @click="goToPage(currentPage - 1)"
+            :disabled="currentPage === 1">
             &lt;
           </button>
         </li>
-        <li
-          v-for="page in pageNumbers"
-          :key="page"
-          class="page-item mx-1"
-          :class="{ active: page === currentPage }"
-        >
-          <button
-            v-if="page !== '...'"
-            class="page-link rounded-circle"
-            @click="goToPage(page)"
-          >
+        <li v-for="page in pageNumbers" :key="page" class="page-item mx-1" :class="{ active: page === currentPage }">
+          <button v-if="page !== '...'" class="page-link rounded-circle" @click="goToPage(page)">
             {{ page }}
           </button>
           <span v-else class="page-link border-0 bg-transparent">...</span>
         </li>
         <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-          <button
-            class="page-link rounded-circle pagination-arrow ms-1"
-            @click="goToPage(currentPage + 1)"
-            :disabled="currentPage === totalPages"
-          >
+          <button class="page-link rounded-circle pagination-arrow ms-1" @click="goToPage(currentPage + 1)"
+            :disabled="currentPage === totalPages">
             &gt;
           </button>
         </li>

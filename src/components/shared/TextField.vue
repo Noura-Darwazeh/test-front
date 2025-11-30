@@ -14,7 +14,6 @@
       :disabled="disabled"
     />
 
-    <!-- Eye Icon for Password Toggle -->
     <button
       v-if="type === 'password'"
       type="button"

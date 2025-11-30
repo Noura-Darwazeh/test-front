@@ -5,40 +5,18 @@
       <table class="table table-hover align-middle" :dir="isRTL ? 'rtl' : 'ltr'">
         <thead class="table-light">
           <tr>
-            <th
-              v-for="col in columns"
-              :key="col.key"
-              @click="col.sortable ? handleSort(col.key) : null"
-              :class="{
-                'sortable-header': col.sortable,
-                'user-select-none': col.sortable,
-              }"
-              class="text-muted fw-normal small text-uppercase"
-            >
+            <th v-for="col in columns" :key="col.key" @click="col.sortable ? handleSort(col.key) : null" :class="{
+              'sortable-header': col.sortable,
+              'user-select-none': col.sortable,
+            }" class="text-muted fw-normal small text-uppercase">
               <div class="d-flex align-items-center gap-2">
                 <span>{{ col.label }}</span>
                 <span v-if="col.sortable" class="sort-icon">
-                  <img
-                    v-if="sortKey !== col.key"
-                    src="/src/assets/table/arrowsBothWays.svg"
-                    alt="Sort"
-                    width="14"
-                    height="14"
-                  />
-                  <img
-                    v-else-if="sortDirection === 'asc'"
-                    src="/src/assets/table/arrowUp.svg"
-                    alt="Sort ascending"
-                    width="14"
-                    height="14"
-                  />
-                  <img
-                    v-else
-                    src="/src/assets/table/arrowDown.svg"
-                    alt="Sort descending"
-                    width="14"
-                    height="14"
-                  />
+                  <img v-if="sortKey !== col.key" src="/src/assets/table/arrowsBothWays.svg" alt="Sort" width="14"
+                    height="14" />
+                  <img v-else-if="sortDirection === 'asc'" src="/src/assets/table/arrowUp.svg" alt="Sort ascending"
+                    width="14" height="14" />
+                  <img v-else src="/src/assets/table/arrowDown.svg" alt="Sort descending" width="14" height="14" />
                 </span>
               </div>
             </th>
@@ -55,19 +33,11 @@
     </div>
 
     <!-- Mobile Cards View -->
-    <div class="d-md-none">
-      <div
-        v-for="row in sortedData"
-        :key="row.id"
-        class="card mb-3 border shadow-sm"
-      >
+    <div class="d-md-none bg-light ">
+      <div v-for="row in sortedData" :key="row.id" class="card mb-3 border shadow-sm">
         <div class="card-body p-3">
-          <div
-            v-for="col in columns"
-            :key="col.key"
-            class="row mb-2 pb-2 border-bottom"
-            :class="{ 'border-0 mb-0 pb-0': col === columns[columns.length - 1] }"
-          >
+          <div v-for="col in columns" :key="col.key" class="row mb-2 pb-2 border-bottom"
+            :class="{ 'border-0 mb-0 pb-0': col === columns[columns.length - 1] }">
             <div class="col-5 pe-2" :class="{ 'text-end': isRTL }">
               <small class="text-muted fw-semibold text-uppercase d-block">
                 {{ col.label }}
@@ -83,10 +53,7 @@
       </div>
 
       <!-- No Data Message for Mobile -->
-      <div
-        v-if="sortedData.length === 0"
-        class="text-center text-muted py-5"
-      >
+      <div v-if="sortedData.length === 0" class="text-center text-muted py-5">
         <p class="mb-0">No data available</p>
       </div>
     </div>
@@ -134,4 +101,7 @@ const handleSort = (columnKey) => {
   margin: 0 !important;
 }
 
+.card:last-child {
+  margin-bottom: 0 !important;
+}
 </style>

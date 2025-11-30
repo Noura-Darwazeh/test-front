@@ -1,5 +1,5 @@
 <template>
-  <Table :data="users" :columns="userColumns" searchPlaceholder="Search users..." groupKey="role"
+  <Table :data="users" :columns="userColumns" :searchPlaceholder="$t('user.searchPlaceholder')" groupKey="role"
     groupLabel="Filter by Role" />
 </template>
 
