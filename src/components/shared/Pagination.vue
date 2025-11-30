@@ -96,7 +96,7 @@ const pageNumbers = computed(() => {
 
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
-    emit("update:currentPage", [page]);
+    emit("update:currentPage", page);
   }
 };
 </script>

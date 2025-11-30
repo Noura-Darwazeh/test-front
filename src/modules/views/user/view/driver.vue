@@ -37,6 +37,377 @@ const drivers = [
     created_by: 'ahmed'
   },
 
+    {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },
+    {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },
+
+    {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },
+    {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },
+
+    {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },  {
+    id: 1,
+    location: "Nablus",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '125746',
+    created_by: 'ali'
+  },
+  {
+    id: 2,
+    location: "Ramallah",
+    status: 'busy',
+    type: 'freelance',
+    branch_id: '2',
+    vehicle_number: '789012',
+    created_by: 'sara'
+  },
+  {
+    id: 3,
+    location: "Hebron",
+    status: 'available',
+    type: 'delivery company',
+    branch_id: '1',
+    vehicle_number: '345678',
+    created_by: 'ahmed'
+  },
 ];
 
 const driverColumns = [

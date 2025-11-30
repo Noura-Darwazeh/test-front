@@ -24,7 +24,7 @@
             :totalItems="filteredData.length" 
             :itemsPerPage="itemsPerPage" 
             :currentPage="currentPage"
-            @update:currentPage="currentPage = $event" 
+            @update:currentPage="(page) => currentPage = page"
           />
         </div>
       </div>
@@ -64,7 +64,7 @@ const props = defineProps({
   },
   defaultItemsPerPage: {
     type: Number,
-    default: 25
+    default: 5
   }
 });
 
