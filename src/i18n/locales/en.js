@@ -37,6 +37,7 @@ export default {
     noData: "No data available",
     rowsPerPate: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
+    filterByRole: "Filter by Role",
   },
   driver: {
     title: "Driver Table",
@@ -54,7 +55,6 @@ export default {
     landingPage: "Landing page",
     language: "Language",
     sharedLine: "Shared Line",
-    status: "Status",
     actions: "Actions",
     active: "Active",
     inactive: "Inactive",
@@ -63,6 +63,7 @@ export default {
     noData: "No data available",
     rowsPerPate: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
+    filterByStatus: "Filter by Status",
   },
   filters: {
     selectAll: "Select All",
@@ -70,6 +71,18 @@ export default {
     allGroupsSelected: "All groups selected",
     manageColumns: "Manage Columns",
     filterBy: "Filter By",
+  },
+  // ترجمة قيم الأدوار
+  roles: {
+    Admin: "Admin",
+    User: "User",
+    Manager: "Manager",
+  },
+  // ترجمة قيم الحالات
+  statuses: {
+    available: "Available",
+    busy: "Busy",
+    offline: "Offline",
   },
   pagination: {
     showing: "Showing",

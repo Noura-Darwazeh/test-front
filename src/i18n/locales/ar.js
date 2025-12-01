@@ -7,7 +7,7 @@ export default {
     logout: "تسجيل الخروج",
   },
   sidebar: {
-    logoText: "نظام التوصيل PITS",
+    logoText: "توصيل PITS",
   },
   user: {
     title: "جدول المستخدمين",
@@ -37,6 +37,11 @@ export default {
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+    // إضافة ترجمات جديدة للفلتر
+    filterByRole: "تصفية حسب الدور",
+    admin: "مسؤول",
+    user: "مستخدم",
+    manager: "مدير",
   },
   driver: {
     title: "جدول السائقين",
@@ -61,6 +66,11 @@ export default {
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+    // إضافة ترجمات جديدة للفلتر
+    filterByStatus: "تصفية حسب الحالة",
+    available: "متاح",
+    busy: "مشغول",
+    offline: "غير متصل",
   },
   filters: {
     selectAll: "تحديد الكل",
@@ -68,6 +78,18 @@ export default {
     allGroupsSelected: "تم تحديد جميع المجموعات",
     manageColumns: "إدارة الأعمدة",
     filterBy: "تصفية حسب",
+  },
+  // ترجمة قيم الأدوار
+  roles: {
+    Admin: "مسؤول",
+    User: "مستخدم",
+    Manager: "مدير",
+  },
+  // ترجمة قيم الحالات
+  statuses: {
+    available: "متاح",
+    busy: "مشغول",
+    offline: "غير متصل",
   },
   pagination: {
     showing: "عرض",

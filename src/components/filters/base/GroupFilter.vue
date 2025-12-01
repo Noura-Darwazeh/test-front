@@ -17,7 +17,7 @@
           <input type="checkbox" :id="`group-${group}`" :value="group" @change="addGroup(group)"
             class="form-check-input" :class="{ 'float-end': isRTL, 'ms-2': isRTL }" />
           <label :for="`group-${group}`" class="form-check-label">
-            {{ group }}
+            {{ translateGroupValue(group) }}
           </label>
         </div>
 
@@ -33,12 +33,13 @@
     </template>
   </BaseDropdown>
 </template>
+
 <script setup>
 import { ref, watch, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const isRTL = computed(() => locale.value === "ar");
 
 const props = defineProps({
@@ -46,6 +47,7 @@ const props = defineProps({
   groupKey: String,
   modelValue: Array,
   label: String,
+  translationKey: String, // مفتاح الترجمة (مثل "roles" أو "statuses")
 });
 const emit = defineEmits(["update:modelValue"]);
 
@@ -65,7 +67,6 @@ const availableGroups = computed(() => {
 });
 
 const displayLabel = computed(() => {
-  const { t } = useI18n();
   if (props.label) {
     return props.label;
   }
@@ -73,6 +74,18 @@ const displayLabel = computed(() => {
     props.groupKey.charAt(0).toUpperCase() + props.groupKey.slice(1);
   return `${t("filters.filterBy")} ${formatted}`;
 });
+
+// دالة لترجمة قيم المنيو
+const translateGroupValue = (value) => {
+  if (!props.translationKey) return value;
+  
+  // محاولة الحصول على الترجمة
+  const translationPath = `${props.translationKey}.${value}`;
+  const translated = t(translationPath);
+  
+  // إذا لم تكن هناك ترجمة، نرجع القيمة الأصلية
+  return translated === translationPath ? value : translated;
+};
 
 const addGroup = (group) => {
   selectedGroups.value.push(group);

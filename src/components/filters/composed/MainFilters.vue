@@ -1,10 +1,17 @@
 <template>
   <div class="main-filters d-flex gap-2 align-items-center">
     <SearchFilter v-model="searchText" :placeholder="placeholder" />
-    <GroupFilter v-if="groupKey && data" :data="data" :groupKey="groupKey" v-model="selectedGroups"
-      :label="groupLabel" />
+    <GroupFilter 
+      v-if="groupKey && data" 
+      :data="data" 
+      :groupKey="groupKey" 
+      v-model="selectedGroups"
+      :label="groupLabel"
+      :translationKey="translationKey" 
+    />
   </div>
 </template>
+
 <script setup>
 import { ref, watch } from "vue";
 import SearchFilter from "../base/SearchFilter.vue";
@@ -17,6 +24,7 @@ const props = defineProps({
   groupKey: String,
   groupModelValue: Array,
   groupLabel: String,
+  translationKey: String, // مفتاح الترجمة الجديد
 });
 const emit = defineEmits(["update:modelValue", "update:groupModelValue"]);
 

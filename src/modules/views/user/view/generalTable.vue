@@ -8,7 +8,8 @@
           :data="data" 
           :groupKey="groupKey"
           v-model:groupModelValue="selectedGroups" 
-          :groupLabel="groupLabel" 
+          :groupLabel="groupLabel"
+          :translationKey="translationKey" 
         />
       </div>
       <div class="d-flex gap-2">
@@ -62,6 +63,10 @@ const props = defineProps({
     type: String,
     default: null
   },
+  translationKey: {
+    type: String,
+    default: null
+  },
   defaultItemsPerPage: {
     type: Number,
     default: 5
@@ -73,7 +78,7 @@ const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(props.defaultItemsPerPage);
-const visibleColumns = ref(props.columns.map(col => col.key)); // Initialize with all columns
+const visibleColumns = ref(props.columns.map(col => col.key));
 
 // =============== Computed ===============
 const filteredColumns = computed(() => {
@@ -83,12 +88,10 @@ const filteredColumns = computed(() => {
 const filteredData = computed(() => {
   let result = props.data;
 
-  // Apply group filtering first
   if (props.groupKey && selectedGroups.value.length > 0) {
     result = filterByGroups(result, selectedGroups.value, props.groupKey);
   }
 
-  // Then apply search filtering
   if (searchText.value) {
     result = filterData(result, searchText.value);
   }

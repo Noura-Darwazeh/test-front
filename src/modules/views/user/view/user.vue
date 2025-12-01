@@ -1,12 +1,19 @@
 <template>
-  <Table :data="users" :columns="userColumns" :searchPlaceholder="$t('user.searchPlaceholder')" groupKey="role"
-    groupLabel="Filter by Role" />
+  <Table 
+    :data="users" 
+    :columns="userColumns" 
+    :searchPlaceholder="$t('user.searchPlaceholder')" 
+    groupKey="role"
+    :groupLabel="$t('user.filterByRole')"
+    translationKey="roles"
+  />
 </template>
 
 <script setup>
 import Table from "./generalTable.vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
+
 const users = [
   {
     id: 1,
