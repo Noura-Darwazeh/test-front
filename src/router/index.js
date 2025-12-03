@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import user from "../modules/user/view/user.vue";
-// import driver from "../modules/views/user/view/driver.vue";
+import driver from "../modules/driver/view/driver.vue";
 
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
@@ -22,17 +22,17 @@ const router = createRouter({
         icon: "/src/assets/sidebar/userIcon.svg",
       },
     },
-    // {
-    //   path: "/driver",
-    //   name: "Driver",
-    //   component: driver,
-    //   meta: {
-    //     titleKey: "driver.title",
-    //     requireAuth: false,
-    //     showInSidebar: true,
-    //     icon: "/src/assets/sidebar/driverIcon.svg",
-    //   },
-    // },
+    {
+      path: "/driver",
+      name: "Driver",
+      component: driver,
+      meta: {
+        titleKey: "driver.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/driverIcon.svg",
+      },
+    },
     {
       path: "/login",
       name: "Login",

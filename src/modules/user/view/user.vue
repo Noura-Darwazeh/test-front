@@ -1,24 +1,28 @@
 <template>
   <div class="user-page-container bg-light">
-    <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <!-- search and group filter components -->
-      <div class="d-flex gap-2 flex-grow-1">
-        <MainFilters v-model="searchText" :placeholder="$t('user.searchPlaceholder')" :data="users" groupKey="role"
-          v-model:groupModelValue="selectedGroups" />
-      </div>
-      <!-- columnSelector component -->
-      <div class="d-flex gap-2">
-        <ColumnSelector :columns="userColumns" v-model="visibleColumns" />
+    <!-- استدعاء TableHeader مع الـ props -->
+    <TableHeader
+      v-model="searchText"
+      :searchPlaceholder="$t('user.searchPlaceholder')"
+      :data="users"
+      groupKey="role"
+      v-model:groupModelValue="selectedGroups"
+      :groupLabel="$t('user.filterByRole')"
+      translationKey="roles"
+      :columns="userColumns"
+      v-model:visibleColumns="visibleColumns"
+    />
 
-      </div>
-    </div>
-
-    <div class="card border-0 ">
+    <div class="card border-0">
       <div class="card-body p-0">
         <DataTable :columns="filteredColumns" :data="paginatedUsers" />
         <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination :totalItems="filteredUsers.length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
-            @update:currentPage="(page) => currentPage = page" />
+          <Pagination
+            :totalItems="filteredUsers.length"
+            :itemsPerPage="itemsPerPage"
+            :currentPage="currentPage"
+            @update:currentPage="(page) => currentPage = page"
+          />
         </div>
       </div>
     </div>
@@ -28,8 +32,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import ColumnSelector from "../../../components/shared/ColumnSelector.vue";
-import MainFilters from "../../../components/filters/composed/MainFilters.vue";
+import TableHeader from "../../../components/shared/TableHeader.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
@@ -39,6 +42,7 @@ const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(25);
+
 const users = [
   {
     id: 1,
@@ -74,6 +78,7 @@ const users = [
     shared_line: 1,
   },
 ];
+
 const userColumns = computed(() => [
   { key: "id", label: t("user.id"), sortable: true },
   { key: "name", label: t("user.fullName"), sortable: true },
