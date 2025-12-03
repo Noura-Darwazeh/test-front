@@ -60,10 +60,10 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import FormLabel from '../../../../components/shared/FormLabel.vue'
-import TextField from '../../../../components/shared/TextField.vue'
-import PrimaryButton from '../../../../components/shared/PrimaryButton.vue'
-import packageIcon from '../../../../assets/login/package.svg'
+import FormLabel from '../../../components/shared/FormLabel.vue'
+import TextField from '../../../components/shared/TextField.vue'
+import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
+import packageIcon from '../../../assets/login/package.svg'
 const email = ref('')
 const submitting = ref(false)
 const sent = ref(false)

@@ -6,7 +6,7 @@ const route = useRoute();
 
 <template>
   <div>
-    <AppLayout v-if="!route.meta?.hideLayout">
+    <AppLayout v-if="!route.meta?.hiddenLayout">
       <router-view />
     </AppLayout>
     <router-view v-else />

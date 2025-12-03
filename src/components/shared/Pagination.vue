@@ -99,8 +99,6 @@ const goToPage = (page) => {
   transition: all 0.2s ease;
 }
 
-
-
 .page-item.active .page-link {
   background-color: var(--primary-color, #1e40af);
   color: white;
