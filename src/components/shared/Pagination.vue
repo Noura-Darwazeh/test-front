@@ -1,11 +1,11 @@
 <template>
-  <div class="d-flex justify-content-between align-items-center mt-3" :class="{ rtl: isRTL }">
-    <div class="text-muted small">
+  <div class="d-flex align-items-center mt-3 flex-column flex-md-row" :class="{ rtl: isRTL }">
+    <div class="text-muted small d-none d-md-block text-nowrap me-md-3">
       {{ $t("pagination.showing") }} {{ startItem }} - {{ endItem }}
       {{ $t("pagination.of") }} {{ totalItems }}
     </div>
-    <nav>
-      <ul class="pagination pagination-sm mb-0">
+    <nav class="w-100">
+      <ul class="pagination pagination-sm mb-0 justify-content-center justify-content-md-end">
         <li class="page-item" :class="{ disabled: currentPage === 1 }">
           <button class="page-link rounded-circle pagination-arrow me-1" @click="goToPage(currentPage - 1)"
             :disabled="currentPage === 1">

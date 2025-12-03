@@ -1,6 +1,5 @@
 <template>
   <div class="user-page-container bg-light">
-    <!-- استدعاء TableHeader مع الـ props -->
     <TableHeader
       v-model="searchText"
       :searchPlaceholder="$t('driver.searchPlaceholder')"
@@ -41,7 +40,7 @@ const { t } = useI18n();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(25);
+const itemsPerPage = ref(5);
 
 const drivers = [
   {
@@ -174,7 +173,7 @@ const filteredColumns = computed(() => {
 
 const filteredDrivers = computed(() => {
   let result = drivers;
-  result = filterByGroups(result, selectedGroups.value, "role");
+  result = filterByGroups(result, selectedGroups.value, "status");
   result = filterData(result, searchText.value);
   return result;
 });

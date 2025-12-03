@@ -1,6 +1,5 @@
 <template>
   <div class="user-page-container bg-light">
-    <!-- استدعاء TableHeader مع الـ props -->
     <TableHeader
       v-model="searchText"
       :searchPlaceholder="$t('user.searchPlaceholder')"
@@ -41,7 +40,7 @@ const { t } = useI18n();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(25);
+const itemsPerPage = ref(5);
 
 const users = [
   {
@@ -68,6 +67,100 @@ const users = [
   },
   {
     id: 3,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },
+
+
+  {
+    id: 4,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },
+  {
+    id: 5,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 6,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 7,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 8,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 9,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 10,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 11,
+    name: "sami",
+    email: "sami@example.com",
+    image: "path/test",
+    phone_number: "0598549638",
+    role: "Manager",
+    land_page: "home",
+    lang: "en",
+    shared_line: 1,
+  },{
+    id: 12,
     name: "sami",
     email: "sami@example.com",
     image: "path/test",
