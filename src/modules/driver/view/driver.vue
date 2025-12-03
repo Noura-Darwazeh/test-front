@@ -7,7 +7,7 @@
       groupKey="status"
       v-model:groupModelValue="selectedGroups"
       :groupLabel="$t('driver.filterByStatus')"
-      translationKey="status"
+      translationKey="statuses"
       :columns="driverColumns"
       v-model:visibleColumns="visibleColumns"
     />
