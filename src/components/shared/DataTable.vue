@@ -5,6 +5,11 @@
       <table class="table table-hover align-middle" :dir="isRTL ? 'rtl' : 'ltr'">
         <thead class="table-light">
           <tr>
+            <!-- Checkbox Column -->
+            <th class="text-center">
+              <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
+            </th>
+
             <th v-for="col in columns" :key="col.key" @click="col.sortable ? handleSort(col.key) : null" :class="{
               'sortable-header': col.sortable,
               'user-select-none': col.sortable,
@@ -24,6 +29,10 @@
         </thead>
         <tbody>
           <tr v-for="row in sortedData" :key="row.id">
+            <!-- Checkbox for each row -->
+            <td class="text-center">
+              <input type="checkbox" :value="row.id" v-model="selectedRows" />
+            </td>
             <td v-for="col in columns" :key="col.key" class="text-dark">
               {{ row[col.key] }}
             </td>
@@ -36,6 +45,11 @@
     <div class="d-md-none bg-light ">
       <div v-for="row in sortedData" :key="row.id" class="card mb-3 border shadow-sm">
         <div class="card-body p-3">
+          <!-- Mobile Checkbox -->
+          <div class="mb-2">
+            <input type="checkbox" :value="row.id" v-model="selectedRows" />
+          </div>
+
           <div v-for="col in columns" :key="col.key" class="row mb-2 pb-2 border-bottom"
             :class="{ 'border-0 mb-0 pb-0': col === columns[columns.length - 1] }">
             <div class="col-5 pe-2" :class="{ 'text-end': isRTL }">
@@ -61,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { sortData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 
@@ -70,6 +84,9 @@ const isRTL = computed(() => locale.value === "ar");
 
 const sortKey = ref("");
 const sortDirection = ref("asc");
+
+const selectedRows = ref([]);
+const selectAll = ref(false);
 
 const props = defineProps({
   columns: Array,
@@ -88,6 +105,17 @@ const handleSort = (columnKey) => {
     sortDirection.value = "asc";
   }
 };
+
+const toggleSelectAll = () => {
+  if (selectAll.value) {
+    selectedRows.value = sortedData.value.map((row) => row.id)
+  } else {
+    selectedRows.value = []
+  }
+}
+watch(selectedRows, (newVal) => {
+  selectAll.value = newVal.length === sortedData.value.length;
+});
 </script>
 
 <style scoped>

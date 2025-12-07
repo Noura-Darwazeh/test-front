@@ -47,7 +47,7 @@ const props = defineProps({
   groupKey: String,
   modelValue: Array,
   label: String,
-  translationKey: String, // مفتاح الترجمة (مثل "roles" أو "statuses")
+  translationKey: String,
 });
 const emit = defineEmits(["update:modelValue"]);
 
@@ -75,15 +75,12 @@ const displayLabel = computed(() => {
   return `${t("filters.filterBy")} ${formatted}`;
 });
 
-// دالة لترجمة قيم المنيو
 const translateGroupValue = (value) => {
   if (!props.translationKey) return value;
-  
-  // محاولة الحصول على الترجمة
+
   const translationPath = `${props.translationKey}.${value}`;
   const translated = t(translationPath);
-  
-  // إذا لم تكن هناك ترجمة، نرجع القيمة الأصلية
+
   return translated === translationPath ? value : translated;
 };
 

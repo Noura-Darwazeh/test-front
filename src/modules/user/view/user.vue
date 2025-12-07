@@ -2,7 +2,8 @@
     <div class="user-page-container bg-light">
         <usersHeader v-model="searchText" :searchPlaceholder="$t('user.searchPlaceholder')" :data="users"
             groupKey="role" v-model:groupModelValue="selectedGroups" :groupLabel="$t('user.filterByRole')"
-            translationKey="roles" :columns="userColumns" v-model:visibleColumns="visibleColumns" />
+            translationKey="roles" :columns="userColumns" v-model:visibleColumns="visibleColumns" :showAddButton="true"
+            :addButtonText="$t('user.addNew') || 'Add User'" @add-click="openModal" />
 
         <div class="card border-0">
             <div class="card-body p-0">
@@ -13,6 +14,10 @@
                 </div>
             </div>
         </div>
+
+        <!-- Add User Modal -->
+        <AddUserModal :isOpen="isModalOpen" :title="$t('user.addNew') || 'Add New User'" @close="closeModal"
+            @submit="handleAddUser" />
     </div>
 </template>
 
@@ -20,16 +25,19 @@
 import { ref, computed, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
+import AddUserModal from "../components/addUserModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
+
 const { t } = useI18n();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
+const isModalOpen = ref(false);
 
-const users = [
+const users = ref([
     {
         id: 1,
         name: "Test name",
@@ -64,100 +72,7 @@ const users = [
         shared_line: 1,
     },
 
-
-    {
-        id: 4,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    },
-    {
-        id: 5,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 6,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 7,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 8,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 9,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 10,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 11,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    }, {
-        id: 12,
-        name: "sami",
-        email: "sami@example.com",
-        image: "path/test",
-        phone_number: "0598549638",
-        role: "Manager",
-        land_page: "home",
-        lang: "en",
-        shared_line: 1,
-    },
-];
+]);
 
 const userColumns = computed(() => [
     { key: "id", label: t("user.id"), sortable: true },
@@ -180,7 +95,7 @@ const filteredColumns = computed(() => {
 });
 
 const filteredUsers = computed(() => {
-    let result = users;
+    let result = users.value;
     result = filterByGroups(result, selectedGroups.value, "role");
     result = filterData(result, searchText.value);
     return result;
@@ -197,6 +112,23 @@ const paginatedUsers = computed(() => {
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
+
+
+const openModal = () => {
+    console.log('Opening modal...');
+    isModalOpen.value = true;
+};
+
+const closeModal = () => {
+    console.log('Closing modal...');
+    isModalOpen.value = false;
+};
+
+const handleAddUser = () => {
+    console.log("New user added successfully:");
+    //API
+};
+
 </script>
 
 <style scoped>

@@ -24,7 +24,7 @@ const props = defineProps({
   groupKey: String,
   groupModelValue: Array,
   groupLabel: String,
-  translationKey: String, // مفتاح الترجمة الجديد
+  translationKey: String, 
 });
 const emit = defineEmits(["update:modelValue", "update:groupModelValue"]);
 

@@ -16,6 +16,7 @@ export default {
     searchPlaceholder: "البحث عن المستخدمين...",
     search: "بحث",
     columns: "الأعمدة",
+    addNew: "إضافة مستخدم",
     export: "تصدير",
     id: "المعرف",
     fullName: "الاسم الكامل",
@@ -37,7 +38,6 @@ export default {
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
-    // إضافة ترجمات جديدة للفلتر
     filterByRole: "تصفية حسب الدور",
     admin: "مسؤول",
     user: "مستخدم",
@@ -48,6 +48,7 @@ export default {
     searchPlaceholder: "البحث عن سائقين...",
     search: "بحث",
     columns: "الأعمدة",
+    addNew:"اضافة سائق",
     export: "تصدير",
     id: "المعرف",
     location: "الموقع",

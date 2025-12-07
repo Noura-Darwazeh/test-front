@@ -2,7 +2,10 @@
     <div class="user-page-container bg-light">
         <DriversHeader v-model="searchText" :searchPlaceholder="$t('driver.searchPlaceholder')" :data="drivers"
             groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('driver.filterByStatus')"
-            translationKey="statuses" :columns="driverColumns" v-model:visibleColumns="visibleColumns" />
+            translationKey="statuses" :columns="driverColumns" v-model:visibleColumns="visibleColumns"
+            :showAddButton="true"
+            :addButtonText="$t('driver.addNew') || 'Add Driver'" @add-click="openModal"
+            />
 
         <div class="card border-0">
             <div class="card-body p-0">
@@ -13,6 +16,9 @@
                 </div>
             </div>
         </div>
+
+        <AddUserModal :isOpen="isModalOpen" :title="$t('driver.addNew') || 'Add New Driver'" @close="closeModal"
+            @submit="handleAddDriver" />
     </div>
 </template>
 
@@ -23,12 +29,14 @@ import Pagination from "../../../components/shared/Pagination.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue"
+import AddUserModal from "../../user/components/addUserModal.vue";
+
 const { t } = useI18n();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
-
+const isModalOpen = ref(false);
 const drivers = [
     {
         id: 1,
@@ -176,6 +184,21 @@ const paginatedDrivers = computed(() => {
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
+
+const openModal = () => {
+    console.log('Opening modal...');
+    isModalOpen.value = true;
+};
+
+const closeModal = () => {
+    console.log('Closing modal...');
+    isModalOpen.value = false;
+};
+
+const handleAddDriver = () => {
+    console.log("New driver added successfully:");
+    //API
+};
 </script>
 
 <style scoped>

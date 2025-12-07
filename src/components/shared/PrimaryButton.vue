@@ -1,14 +1,9 @@
-
 <template>
-  <button
-    :type="type"
-    :disabled="disabled || loading"
-    class="btn w-100 py-2 d-flex align-items-center justify-content-center gap-2"
-    :style="buttonStyle"
-  >
+  <button :type="type" :disabled="disabled || loading" @click="handleClick"
+    class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" type="button" :style="buttonStyle">
     <!-- Icon before -->
     <span v-if="iconBefore && !loading" class="icon-before">
-      <img :src="iconBefore" alt="" height="18" />
+      <img :src="iconBefore" :style="{ fill: iconColor }" alt="" height="18" />
     </span>
 
     <!-- Text -->
@@ -16,7 +11,7 @@
 
     <!-- Icon after -->
     <span v-if="iconAfter && !loading" class="icon-after">
-      <img :src="iconAfter" alt="" height="18" />
+      <img :src="iconAfter" :style="{ fill: iconColor }"alt="" height="18" />
     </span>
   </button>
 </template>
@@ -55,12 +50,20 @@ const props = defineProps({
     type: String,
     default: "var(--primary-color)",
   },
+  color: {
+    type: String,
+    default: "#fff",
+  },
   textColor: {
     type: String,
     default: "#fff",
   },
 });
+const emit = defineEmits(['click']);
 
+const handleClick = () => {
+  emit('click');
+};
 const buttonStyle = computed(() => {
   if (props.disabled || props.loading) {
     return "";
@@ -73,33 +76,19 @@ const buttonStyle = computed(() => {
 });
 </script>
 <style scoped>
-.btn {
-  font-weight: 600;
-  font-size: 1rem;
-  border-radius: var(--radius-lg);
-  padding: 0.875rem 1.5rem !important;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
+.btn-primary {
+  background-color: var(--primary-color);
+  border: none;
+  padding: 0.4rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.btn::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
-}
-
-.btn:active::before {
-  width: 300px;
-  height: 300px;
+.btn-primary:hover {
+  background-color: var(--primary-color);
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .btn:hover:not(:disabled) {
@@ -124,13 +113,7 @@ const buttonStyle = computed(() => {
   display: flex;
   align-items: center;
   transition: transform var(--transition-base);
-}
+  filter: brightness(0) invert(1);
 
-.btn:hover:not(:disabled) .icon-before {
-  transform: translateX(-2px);
-}
-
-.btn:hover:not(:disabled) .icon-after {
-  transform: translateX(2px);
 }
 </style>
