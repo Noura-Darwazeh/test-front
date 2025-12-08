@@ -1,40 +1,27 @@
 <template>
     <div class="user-page-container bg-light">
-        <usersHeader 
-            v-model="searchText" 
-            :searchPlaceholder="$t('user.searchPlaceholder')" 
-            :data="users"
-            groupKey="role" 
-            v-model:groupModelValue="selectedGroups" 
-            :groupLabel="$t('user.filterByRole')"
-            translationKey="roles" 
-            :columns="userColumns" 
-            v-model:visibleColumns="visibleColumns" 
-            :showAddButton="true"
-            :addButtonText="$t('user.addNew') || 'Add User'" 
-            @add-click="openModal" 
-        />
+        <usersHeader v-model="searchText" :searchPlaceholder="$t('user.searchPlaceholder')" :data="users"
+            groupKey="role" v-model:groupModelValue="selectedGroups" :groupLabel="$t('user.filterByRole')"
+            translationKey="roles" :columns="userColumns" v-model:visibleColumns="visibleColumns" :showAddButton="true"
+            :addButtonText="$t('user.addNew') || 'Add User'" @add-click="openModal" @trashed-click="openTrashedModal" />
         <div class="card border-0">
             <div class="card-body p-0">
                 <DataTable :columns="filteredColumns" :data="paginatedUsers" />
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination 
-                        :totalItems="filteredUsers.length" 
-                        :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" 
-                        @update:currentPage="(page) => currentPage = page" 
-                    />
+                    <Pagination :totalItems="filteredUsers.length" :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                 </div>
             </div>
         </div>
+
         <!-- Dynamic Form Modal for User -->
-        <DynamicFormModal 
-            :isOpen="isModalOpen" 
-            :title="$t('user.addNew') || 'Add New User'" 
-            :fields="userFields"
-            @close="closeModal"
-            @submit="handleAddUser" 
-        />
+        <DynamicFormModal :isOpen="isModalOpen" :title="$t('user.addNew') || 'Add New User'" :fields="userFields"
+            @close="closeModal" @submit="handleAddUser" />
+
+        <!-- Trashed Users Modal -->
+        <TrashedItemsModal :isOpen="isTrashedModalOpen" title="Trashed Users" emptyMessage="No trashed users"
+            :columns="trashedColumns" :trashedItems="trashedUsers" @close="closeTrashedModal"
+            @restore="handleRestoreUser" />
     </div>
 </template>
 
@@ -46,6 +33,7 @@ import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
 import DynamicFormModal from "../../../components/shared/FormModal.vue";
+import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 
 const { t } = useI18n();
 const searchText = ref("");
@@ -53,6 +41,7 @@ const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
+const isTrashedModalOpen = ref(false);
 
 const users = ref([
     {
@@ -89,8 +78,35 @@ const users = ref([
         shared_line: 1,
     },
 ]);
+
+// المستخدمين المحذوفين
+const trashedUsers = ref([
+    {
+        id: 101,
+        name: "Deleted User 1",
+        email: "deleted1@example.com",
+        phone_number: "0591234567",
+        role: "User",
+    },
+    {
+        id: 102,
+        name: "Deleted User 2",
+        email: "deleted2@example.com",
+        phone_number: "0597654321",
+        role: "Admin",
+    },
+]);
+
 // User Form Fields
 const userFields = computed(() => [
+       {
+        name: 'userName',
+        label: 'User Name',
+        type: 'text',
+        required: true,
+        placeholder: 'User Name',
+        colClass: 'col-md-6'
+    },
     {
         name: 'name',
         label: t('user.name'),
@@ -103,7 +119,7 @@ const userFields = computed(() => [
         name: 'email',
         label: t('user.email'),
         type: 'email',
-        required: true,
+        required: false,
         placeholder: t('user.email'),
         colClass: 'col-md-6'
     },
@@ -130,29 +146,36 @@ const userFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'Admin', label: t('roles.Admin') },
-            { value: 'User', label: t('roles.User') },
-            { value: 'Manager', label: t('roles.Manager') }
+            { value: 'Admin', label: "Admin" },
+            { value: 'Supervisor', label: "Supervisor" },
+            { value: 'Employee', label: "Employee" }
         ],
         colClass: 'col-md-6'
     },
     {
-        name: 'regionId',
-        label: 'Region ID',
-        type: 'text',
+        name: 'branch_name',
+        label: 'Branch Name',
+        type: 'select',
         required: true,
-        placeholder: 'Region ID',
+        options: [
+            { value: 'branch 1', label: 'branch 1' },
+            { value: 'branch 2', label: 'branch 2' },
+        ],
         colClass: 'col-md-6'
     },
     {
-        name: 'companyId',
-        label: 'Company ID',
-        type: 'text',
+        name: 'company_name',
+        label: 'Company Name',
+        type: 'select',
         required: true,
-        placeholder: 'Company ID',
-        colClass: 'col-md-12'
-    }
+        options: [
+            { value: 'company 1', label: 'company 1' },
+            { value: 'company 1', label: 'company 1' },
+        ],
+        colClass: 'col-md-6'
+    },
 ]);
+
 const userColumns = computed(() => [
     { key: "id", label: t("user.id"), sortable: true },
     { key: "name", label: t("user.fullName"), sortable: true },
@@ -164,18 +187,31 @@ const userColumns = computed(() => [
     { key: "lang", label: t("user.language"), sortable: true },
     { key: "shared_line", label: t("user.sharedLine"), sortable: true },
 ]);
+
+// أعمدة العناصر المحذوفة (اختصار للأعمدة المهمة فقط)
+const trashedColumns = computed(() => [
+    { key: "id", label: t("user.id") },
+    { key: "name", label: t("user.fullName") },
+    { key: "email", label: t("user.email") },
+    { key: "phone_number", label: t("user.phoneNumber") },
+    { key: "role", label: t("user.userRole") },
+]);
+
 const visibleColumns = ref([]);
+
 const filteredColumns = computed(() => {
     return userColumns.value.filter((col) =>
         visibleColumns.value.includes(col.key)
     );
 });
+
 const filteredUsers = computed(() => {
     let result = users.value;
     result = filterByGroups(result, selectedGroups.value, "role");
     result = filterData(result, searchText.value);
     return result;
 });
+
 const paginatedUsers = computed(() => {
     return paginateData(
         filteredUsers.value,
@@ -183,19 +219,51 @@ const paginatedUsers = computed(() => {
         itemsPerPage.value
     );
 });
+
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
+
 const openModal = () => {
     console.log('Opening user modal...');
     isModalOpen.value = true;
 };
+
 const closeModal = () => {
     console.log('Closing user modal...');
     isModalOpen.value = false;
 };
+
+const openTrashedModal = () => {
+    console.log('Opening trashed users modal...');
+    isTrashedModalOpen.value = true;
+};
+
+const closeTrashedModal = () => {
+    console.log('Closing trashed users modal...');
+    isTrashedModalOpen.value = false;
+};
+
 const handleAddUser = (userData) => {
     console.log("New user added successfully:", userData);
+};
+
+const handleRestoreUser = (user) => {
+    console.log("Restoring user:", user);
+    users.value.push({
+        ...user,
+        image: "path/test",
+        land_page: "home",
+        lang: "en",
+        shared_line: 1,
+    });
+    // حذف المستخدم من قائمة المحذوفات
+    const index = trashedUsers.value.findIndex(u => u.id === user.id);
+    if (index > -1) {
+        trashedUsers.value.splice(index, 1);
+    }
+    // رسالة نجاح (يمكنك استخدام مكتبة للإشعارات)
+    alert(`User "${user.name}" has been restored successfully!`);
 };
 </script>
 

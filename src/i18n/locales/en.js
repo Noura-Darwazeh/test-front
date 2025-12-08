@@ -84,7 +84,7 @@ export default {
   statuses: {
     available: "Available",
     busy: "Busy",
-    offline: "Offline",
+    offline: "in holiday",
   },
   pagination: {
     showing: "Showing",

@@ -6,7 +6,7 @@
         <thead class="table-light">
           <tr>
             <!-- Checkbox Column -->
-            <th class="text-center">
+            <th v-if="showCheckbox" class="text-center">
               <input type="checkbox" v-model="selectAll" @change="toggleSelectAll" />
             </th>
 
@@ -25,16 +25,27 @@
                 </span>
               </div>
             </th>
+            
+            <!-- Actions Column Header -->
+            <th v-if="hasActionsSlot" class="text-center text-muted fw-normal small text-uppercase">
+              {{ actionsLabel }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="row in sortedData" :key="row.id">
             <!-- Checkbox for each row -->
-            <td class="text-center">
+            <td v-if="showCheckbox" class="text-center">
               <input type="checkbox" :value="row.id" v-model="selectedRows" />
             </td>
+            
             <td v-for="col in columns" :key="col.key" class="text-dark">
               {{ row[col.key] }}
+            </td>
+            
+            <!-- Actions Slot -->
+            <td v-if="hasActionsSlot" class="text-center">
+              <slot name="actions" :row="row"></slot>
             </td>
           </tr>
         </tbody>
@@ -42,16 +53,16 @@
     </div>
 
     <!-- Mobile Cards View -->
-    <div class="d-md-none bg-light ">
+    <div class="d-md-none bg-light">
       <div v-for="row in sortedData" :key="row.id" class="card mb-3 border shadow-sm">
         <div class="card-body p-3">
           <!-- Mobile Checkbox -->
-          <div class="mb-2">
+          <div v-if="showCheckbox" class="mb-2">
             <input type="checkbox" :value="row.id" v-model="selectedRows" />
           </div>
 
           <div v-for="col in columns" :key="col.key" class="row mb-2 pb-2 border-bottom"
-            :class="{ 'border-0 mb-0 pb-0': col === columns[columns.length - 1] }">
+            :class="{ 'border-0 mb-0 pb-0': col === columns[columns.length - 1] && !hasActionsSlot }">
             <div class="col-5 pe-2" :class="{ 'text-end': isRTL }">
               <small class="text-muted fw-semibold text-uppercase d-block">
                 {{ col.label }}
@@ -62,6 +73,11 @@
                 {{ row[col.key] }}
               </span>
             </div>
+          </div>
+          
+          <!-- Mobile Actions Slot -->
+          <div v-if="hasActionsSlot" class="mt-3 text-center">
+            <slot name="actions" :row="row"></slot>
           </div>
         </div>
       </div>
@@ -75,12 +91,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, useSlots } from "vue";
 import { sortData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 
 const { locale } = useI18n();
 const isRTL = computed(() => locale.value === "ar");
+const slots = useSlots();
 
 const sortKey = ref("");
 const sortDirection = ref("asc");
@@ -91,7 +108,17 @@ const selectAll = ref(false);
 const props = defineProps({
   columns: Array,
   data: Array,
+  showCheckbox: {
+    type: Boolean,
+    default: true,
+  },
+  actionsLabel: {
+    type: String,
+    default: 'Actions',
+  },
 });
+
+const hasActionsSlot = computed(() => !!slots.actions);
 
 const sortedData = computed(() => {
   return sortData(props.data, sortKey.value, sortDirection.value);
@@ -113,6 +140,7 @@ const toggleSelectAll = () => {
     selectedRows.value = []
   }
 }
+
 watch(selectedRows, (newVal) => {
   selectAll.value = newVal.length === sortedData.value.length;
 });
@@ -122,7 +150,6 @@ watch(selectedRows, (newVal) => {
 .sortable-header {
   cursor: pointer;
 }
-
 
 .table-responsive table,
 .table-responsive td {

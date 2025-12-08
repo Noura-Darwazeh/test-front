@@ -31,6 +31,10 @@
                                         {{ option.label }}
                                     </option>
                                 </select>
+                                <button v-else-if="field.type === 'button'" type="button"
+                                    class="btn btn-primary w-100 " @click="field.onClick && field.onClick()">
+                                    {{ field.text || field.label }}
+                                </button>
                                 <!-- Error Message -->
                                 <small v-if="errors[field.name]" class="text-danger">
                                     {{ errors[field.name] }}
@@ -174,6 +178,11 @@ onMounted(() => {
 watch(() => props.isOpen, (newVal) => {
     if (newVal) {
         initializeForm();
+        document.body.style.overflow = 'hidden';
+
+    } else {
+        document.body.style.overflow = '';
+
     }
 });
 // Watch for fields change
@@ -182,4 +191,5 @@ watch(() => props.fields, () => {
         initializeForm();
     }
 }, { deep: true });
+
 </script>

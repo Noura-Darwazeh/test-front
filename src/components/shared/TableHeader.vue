@@ -53,6 +53,7 @@ const emit = defineEmits([
   "update:groupModelValue",
   "update:visibleColumns",
   "add-click",
+  "trashed-click",
 ]);
 
 const handleAddClick = () => {
@@ -63,8 +64,10 @@ const handleAddClick = () => {
 const handleRefreshClick = () => {
   console.log('Refresh button clicked in TableHeader');
 };
+
 const handleTrashedClick = () => {
   console.log('Trashed button clicked in TableHeader');
+  emit('trashed-click');
 };
 </script>
 

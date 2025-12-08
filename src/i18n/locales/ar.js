@@ -90,7 +90,7 @@ export default {
   statuses: {
     available: "متاح",
     busy: "مشغول",
-    offline: "غير متصل",
+    offline: "في عطلة",
   },
   pagination: {
     showing: "عرض",
