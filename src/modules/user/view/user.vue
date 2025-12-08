@@ -15,12 +15,12 @@
         </div>
 
         <!-- Dynamic Form Modal for User -->
-        <DynamicFormModal :isOpen="isModalOpen" :title="$t('user.addNew') || 'Add New User'" :fields="userFields"
+        <FormModal :isOpen="isModalOpen" :title="$t('user.addNew') || 'Add New User'" :fields="userFields"
             @close="closeModal" @submit="handleAddUser" />
 
         <!-- Trashed Users Modal -->
         <TrashedItemsModal :isOpen="isTrashedModalOpen" title="Trashed Users" emptyMessage="No trashed users"
-            :columns="trashedColumns" :trashedItems="trashedUsers" @close="closeTrashedModal"
+            :columns="trashedColumns" :trashedItems="trashedUsers" :showDeleteButton="false" @close="closeTrashedModal"
             @restore="handleRestoreUser" />
     </div>
 </template>
@@ -32,7 +32,7 @@ import Pagination from "../../../components/shared/Pagination.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
-import DynamicFormModal from "../../../components/shared/FormModal.vue";
+import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 
 const { t } = useI18n();
@@ -79,7 +79,7 @@ const users = ref([
     },
 ]);
 
-// المستخدمين المحذوفين
+// deleted users
 const trashedUsers = ref([
     {
         id: 101,
@@ -99,7 +99,7 @@ const trashedUsers = ref([
 
 // User Form Fields
 const userFields = computed(() => [
-       {
+    {
         name: 'userName',
         label: 'User Name',
         type: 'text',
@@ -188,7 +188,7 @@ const userColumns = computed(() => [
     { key: "shared_line", label: t("user.sharedLine"), sortable: true },
 ]);
 
-// أعمدة العناصر المحذوفة (اختصار للأعمدة المهمة فقط)
+// columns for trashed users
 const trashedColumns = computed(() => [
     { key: "id", label: t("user.id") },
     { key: "name", label: t("user.fullName") },
@@ -257,12 +257,12 @@ const handleRestoreUser = (user) => {
         lang: "en",
         shared_line: 1,
     });
-    // حذف المستخدم من قائمة المحذوفات
+    // delete from trashed
     const index = trashedUsers.value.findIndex(u => u.id === user.id);
     if (index > -1) {
         trashedUsers.value.splice(index, 1);
     }
-    // رسالة نجاح (يمكنك استخدام مكتبة للإشعارات)
+    // success
     alert(`User "${user.name}" has been restored successfully!`);
 };
 </script>

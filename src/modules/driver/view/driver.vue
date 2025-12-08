@@ -17,7 +17,7 @@
         </div>
 
         <!-- Dynamic Form Modal for Driver -->
-        <DynamicFormModal :isOpen="isModalOpen" :title="$t('driver.addNew') || 'Add New Driver'" :fields="driverFields"
+        <FormModal :isOpen="isModalOpen" :title="$t('driver.addNew') || 'Add New Driver'" :fields="driverFields"
             @close="closeModal" @submit="handleAddDriver" />
 
         <!-- Trashed Drivers Modal -->
@@ -34,7 +34,7 @@ import Pagination from "../../../components/shared/Pagination.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
-import DynamicFormModal from "../../../components/shared/FormModal.vue";
+import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 
 const { t } = useI18n();
@@ -237,7 +237,7 @@ const driverFields = computed(() => [
         label: 'Branch Name',
         type: 'select',
         required: true,
-         options: [
+        options: [
             { value: 'branch 1', label: t('statuses.available') },
             { value: 'branch 2', label: t('statuses.busy') },
         ],
@@ -270,17 +270,14 @@ const driverFields = computed(() => [
     {
         name: 'set_location',
         label: 'Set Location',
-        type: 'button',      // نوع الزر
-        text: 'Set Location', // النص الظاهر على الزر
-        colClass: 'col-md-6',  // ليكون بعرض كامل الصف
+        type: 'button',
+        text: 'Set Location',
+        colClass: 'col-md-6',
         onClick: () => {
-            // هنا ممكن تحط أي كود تريده لما تضغط الزر
             console.log('Setting driver location...');
-            // مثال: فتح نافذة اختيار الموقع
-            // openLocationPicker();
         }
     }
-    
+
 ]);
 
 const driverColumns = ref([
@@ -293,7 +290,7 @@ const driverColumns = ref([
     { key: "created_by", label: t("driver.createdBy"), sortable: false },
 ]);
 
-// أعمدة العناصر المحذوفة
+// columns for trashed drivers
 const trashedColumns = computed(() => [
     { key: "id", label: t("driver.id") },
     { key: "location", label: t("driver.location") },
@@ -356,17 +353,14 @@ const handleAddDriver = (driverData) => {
 
 const handleRestoreDriver = (driver) => {
     console.log("Restoring driver:", driver);
-
-    // نقل السائق من المحذوفات إلى القائمة الرئيسية
+    // restore
     drivers.push(driver);
-
-    // حذف السائق من قائمة المحذوفات
+    // delete
     const index = trashedDrivers.value.findIndex(d => d.id === driver.id);
     if (index > -1) {
         trashedDrivers.value.splice(index, 1);
     }
-
-    // رسالة نجاح
+    //success
     alert(`Driver from "${driver.location}" has been restored successfully!`);
 };
 </script>

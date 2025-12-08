@@ -27,7 +27,7 @@
                             <template #actions="{ row }">
                                 <PrimaryButton text="Restore" :iconBefore="restoreIcon" bgColor="var(--color-success)"
                                     class="d-inline-flex align-items-center mx-2" @click="handleRestore(row)" />
-                                <PrimaryButton text="Delete" :iconBefore="restoreIcon" bgColor="var(--color-danger)"
+                                <PrimaryButton v-if="showDeleteButton" text="Delete" :iconBefore="restoreIcon" bgColor="var(--color-danger)"
                                     class="d-inline-flex align-items-center" @click="handleRestore(row)" />
                             </template>
                         </DataTable>
@@ -78,6 +78,11 @@ const props = defineProps({
     trashedItems: {
         type: Array,
         default: () => [],
+    },
+
+    showDeleteButton: {
+        type: Boolean,
+        default: true,
     },
 });
 
