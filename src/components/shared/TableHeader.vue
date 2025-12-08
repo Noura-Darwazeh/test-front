@@ -7,15 +7,15 @@
         @update:groupModelValue="$emit('update:groupModelValue', $event)" :groupLabel="groupLabel"
         :translationKey="translationKey" />
 
-      <PrimaryButton :iconBefore="refreshIcon" @click="handleAddClick" />
+      <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" />
     </div>
     <!-- columnSelector and Add Button -->
     <div class="d-flex gap-2">
       <ColumnSelector :columns="columns" :modelValue="visibleColumns"
         @update:modelValue="$emit('update:visibleColumns', $event)" />
       <PrimaryButton v-if="showAddButton" :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
-      <PrimaryButton v-if="showAddButton" text="Trashed" bgColor="var(--color-danger)" :iconBefore="trashIcon"
-        @click="handleAddClick" />
+      <PrimaryButton v-if="showAddButton" bgColor="var(--color-danger)" :iconBefore="trashIcon"
+        @click="handleTrashedClick" />
 
     </div>
   </div>
@@ -24,7 +24,6 @@
 <script setup>
 import ColumnSelector from "./ColumnSelector.vue";
 import MainFilters from "../filters/composed/MainFilters.vue";
-// import AddButton from "../filters/base/Addbutton.vue";
 import PrimaryButton from "../shared/PrimaryButton.vue";
 import trashIcon from "../../assets/table/recycle.svg";
 import addIcon from "../../assets/table/add.svg";
@@ -59,6 +58,13 @@ const emit = defineEmits([
 const handleAddClick = () => {
   console.log('Add button clicked in TableHeader');
   emit('add-click');
+};
+
+const handleRefreshClick = () => {
+  console.log('Refresh button clicked in TableHeader');
+};
+const handleTrashedClick = () => {
+  console.log('Trashed button clicked in TableHeader');
 };
 </script>
 
