@@ -18,7 +18,7 @@
 
         <!-- Dynamic Form Modal for Driver -->
         <FormModal :isOpen="isModalOpen" :title="$t('driver.addNew') || 'Add New Driver'" :fields="driverFields"
-            @close="closeModal" @submit="handleAddDriver" />
+            :showImageUpload="true" :imageRequired="false" @close="closeModal" @submit="handleAddDriver" />
 
         <!-- Trashed Drivers Modal -->
         <TrashedItemsModal :isOpen="isTrashedModalOpen" title="Trashed Drivers" emptyMessage="No trashed drivers"
@@ -48,161 +48,113 @@ const isTrashedModalOpen = ref(false);
 const drivers = [
     {
         id: 1,
-        location: "Nablus",
+        name: "Ali Ahmed",
+        username: "alidriver",
+        email: "ali@example.com",
+        phone_number: "0598549638",
+        role: "Driver",
+        region_id: 1,
         status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
+        type: 'delivery driver',
+        branch_name: "branch 1",
         vehicle_number: '125746',
-        created_by: 'ali'
     },
     {
         id: 2,
-        location: "Ramallah",
+        name: "Sara Mohammad",
+        username: "saradriver",
+        email: "sara@example.com",
+        phone_number: "0598549639",
+        role: "Driver",
+        region_id: 2,
         status: 'busy',
-        type: 'freelance',
-        branch_id: '2',
+        type: 'custom driver',
+        branch_name: "branch 1",
         vehicle_number: '789012',
-        created_by: 'sara'
     },
     {
         id: 3,
-        location: "Hebron",
+        name: "Ahmed Hassan",
+        username: "ahmeddriver",
+        email: "ahmed@example.com",
+        phone_number: "0598549640",
+        role: "Driver",
+        region_id: 1,
         status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
+        type: 'delivery driver',
+        branch_name: "branch 1",
         vehicle_number: '345678',
-        created_by: 'ahmed'
     },
-    {
-        id: 4,
-        location: "Nablus",
-        status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
-        vehicle_number: '125746',
-        created_by: 'ali'
-    },
-    {
-        id: 5,
-        location: "Ramallah",
-        status: 'busy',
-        type: 'freelance',
-        branch_id: '2',
-        vehicle_number: '789012',
-        created_by: 'sara'
-    },
-    {
-        id: 6,
-        location: "Hebron",
-        status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
-        vehicle_number: '345678',
-        created_by: 'ahmed'
-    },
-    {
-        id: 7,
-        location: "Nablus",
-        status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
-        vehicle_number: '125746',
-        created_by: 'ali'
-    },
-    {
-        id: 8,
-        location: "Ramallah",
-        status: 'busy',
-        type: 'freelance',
-        branch_id: '2',
-        vehicle_number: '789012',
-        created_by: 'sara'
-    },
-    {
-        id: 9,
-        location: "Hebron",
-        status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
-        vehicle_number: '345678',
-        created_by: 'ahmed'
-    },
-    {
-        id: 10,
-        location: "Nablus",
-        status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
-        vehicle_number: '125746',
-        created_by: 'ali'
-    },
-    {
-        id: 11,
-        location: "Ramallah",
-        status: 'busy',
-        type: 'freelance',
-        branch_id: '2',
-        vehicle_number: '789012',
-        created_by: 'sara'
-    },
-    {
-        id: 12,
-        location: "Hebron",
-        status: 'available',
-        type: 'delivery company',
-        branch_id: '1',
-        vehicle_number: '345678',
-        created_by: 'ahmed'
-    }
 ];
 
-// السائقون المحذوفون
+// Trashed drivers
 const trashedDrivers = ref([
     {
         id: 201,
-        location: "Jerusalem",
-        status: 'in holiday',
-        type: 'freelance',
-        branch_id: '3',
+        name: "Deleted Driver 1",
+        username: "deleteddriver1",
+        email: "deleted1@example.com",
+        phone_number: "0591234567",
+        role: "Driver",
+        status: 'in_holiday',
+        type: 'custom driver',
+        branch_name: "branch 1",
         vehicle_number: '555111',
-        created_by: 'admin'
     },
     {
         id: 202,
-        location: "Bethlehem",
+        name: "Deleted Driver 2",
+        username: "deleteddriver2",
+        email: "deleted2@example.com",
+        phone_number: "0597654322",
+        role: "Driver",
         status: 'available',
-        type: 'delivery company',
-        branch_id: '2',
+        type: 'delivery driver',
+        branch_name: "branch 2",
         vehicle_number: '999888',
-        created_by: 'manager'
     },
 ]);
 
-// Driver Form Fields Configuration
+// Driver Form Fields
 const driverFields = computed(() => [
     {
-        name: 'driverName',
+        name: 'name',
         label: 'Driver Name',
         type: 'text',
         required: true,
-        placeholder: 'Enter driver name',
-        colClass: 'col-md-6'
+        placeholder: 'Enter driver full name',
+        colClass: 'col-md-6',
+        validate: (value) => {
+            if (value.length > 255) return 'Name must not exceed 255 characters';
+            return null;
+        }
     },
     {
-        name: 'name',
-        label: 'Name',
+        name: 'username',
+        label: 'Username',
         type: 'text',
         required: true,
-        placeholder: 'Enter name',
-        colClass: 'col-md-6'
+        placeholder: 'Enter unique username',
+        colClass: 'col-md-6',
+        validate: (value) => {
+            if (value.length > 255) return 'Username must not exceed 255 characters';
+            // Check uniqueness
+            const exists = drivers.some(d => d.username === value);
+            if (exists) return 'Username already exists';
+            return null;
+        }
     },
     {
         name: 'email',
         label: 'Email Address',
         type: 'email',
         required: false,
-        placeholder: 'driver@example.com',
-        colClass: 'col-md-6'
+        placeholder: 'driver@example.com (optional)',
+        colClass: 'col-md-6',
+        validate: (value) => {
+            if (value && value.length > 255) return 'Email must not exceed 255 characters';
+            return null;
+        }
     },
     {
         name: 'password',
@@ -210,7 +162,7 @@ const driverFields = computed(() => [
         type: 'password',
         required: true,
         minlength: 6,
-        placeholder: '••••••••',
+        placeholder: 'Minimum 6 characters',
         colClass: 'col-md-6'
     },
     {
@@ -219,7 +171,11 @@ const driverFields = computed(() => [
         type: 'tel',
         required: true,
         placeholder: '0599000000',
-        colClass: 'col-md-6'
+        colClass: 'col-md-6',
+        validate: (value) => {
+            if (value.length > 20) return 'Phone number must not exceed 20 characters';
+            return null;
+        }
     },
     {
         name: 'type',
@@ -228,7 +184,7 @@ const driverFields = computed(() => [
         required: true,
         options: [
             { value: 'custom driver', label: 'Custom Driver' },
-            { value: 'delivery company', label: 'Delivery Driver' },
+            { value: 'delivery driver', label: 'Delivery Driver' },
         ],
         colClass: 'col-md-6'
     },
@@ -242,23 +198,25 @@ const driverFields = computed(() => [
     },
     {
         name: 'branch_name',
-        label: 'Branch Name',
+        label: 'Branch',
         type: 'select',
         required: true,
         options: [
-            { value: 'branch 1', label: t('statuses.available') },
-            { value: 'branch 2', label: t('statuses.busy') },
+            { value: '1', label: 'Branch 1' },
+            { value: '2', label: 'Branch 2' },
+            { value: '3', label: 'Branch 3' },
         ],
         colClass: 'col-md-6'
     },
     {
         name: 'company_name',
-        label: 'Company Name',
+        label: 'Company',
         type: 'select',
         required: true,
         options: [
-            { value: 'company 1', label: t('statuses.available') },
-            { value: 'company 1', label: t('statuses.busy') },
+            { value: '1', label: 'Company 1' },
+            { value: '2', label: 'Company 2' },
+            { value: '3', label: 'Company 3' },
         ],
         colClass: 'col-md-6'
     },
@@ -270,44 +228,44 @@ const driverFields = computed(() => [
         options: [
             { value: 'available', label: t('statuses.available') },
             { value: 'busy', label: t('statuses.busy') },
-            { value: 'in holiday', label: t('statuses.offline') }
+            { value: 'in_holiday', label: t('statuses.offline') }
         ],
         defaultValue: 'available',
         colClass: 'col-md-6'
     },
     {
         name: 'set_location',
-        label: ' Location',
+        label: 'Location',
         type: 'button',
         required: true,
-        text: 'Set Location',
+        text: 'Set Location on Map',
         colClass: 'col-md-6',
         onClick: () => {
             console.log('Setting driver location on map...');
-            //here open map to set driver location
+            console.log('Map integration would open here');
         }
     }
-
 ]);
 
 const driverColumns = ref([
     { key: "id", label: t("driver.id"), sortable: true },
-    { key: "location", label: t("driver.location"), sortable: true },
+    { key: "name", label: "Name", sortable: true },
+    { key: "username", label: "Username", sortable: true },
     { key: "status", label: t("driver.status"), sortable: false },
     { key: "type", label: t("driver.type"), sortable: false },
-    { key: "branch_id", label: t("driver.branchId"), sortable: false },
+    { key: "branch_name", label: t("driver.branchName"), sortable: false },
     { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
-    { key: "created_by", label: t("driver.createdBy"), sortable: false },
+    { key: "phone_number", label: "Phone", sortable: false },
 ]);
 
-// columns for trashed drivers
+// Columns for trashed drivers
 const trashedColumns = computed(() => [
     { key: "id", label: t("driver.id") },
-    { key: "location", label: t("driver.location") },
+    { key: "name", label: "Name" },
+    { key: "username", label: "Username" },
     { key: "status", label: t("driver.status") },
     { key: "type", label: t("driver.type") },
     { key: "vehicle_number", label: t("driver.vehicleNumber") },
-    { key: "created_by", label: t("driver.createdBy") },
 ]);
 
 const visibleColumns = ref([]);
@@ -359,19 +317,51 @@ const closeTrashedModal = () => {
 
 const handleAddDriver = (driverData) => {
     console.log("New driver added successfully:", driverData);
+
+    // Validate image size if provided (max 200 KB)
+    if (driverData.image && driverData.image.size > 200 * 1024) {
+        console.log('Image size must not exceed 200 KB');
+        return;
+    }
+
+    // Validate image format if provided
+    if (driverData.image) {
+        const validFormats = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validFormats.includes(driverData.image.type)) {
+            console.log('Image must be in JPEG, JPG, or PNG format');
+            return;
+        }
+    }
+
+    // Create new driver object
+    const newDriver = {
+        id: drivers.length + 1,
+        name: driverData.name,
+        username: driverData.username,
+        email: driverData.email || '',
+        phone_number: driverData.phone_number,
+        role: 'Driver',
+        status: driverData.status || 'available',
+        type: driverData.type,
+        branch_name: driverData.branch_name,
+        vehicle_number: driverData.vehicle_number,
+        image: driverData.imagePreview || 'path/test'
+    };
+
+    drivers.push(newDriver);
+    console.log('Driver added successfully!');
 };
 
 const handleRestoreDriver = (driver) => {
     console.log("Restoring driver:", driver);
-    // restore
+    // Restore
     drivers.push(driver);
-    // delete
+    // Delete from trashed
     const index = trashedDrivers.value.findIndex(d => d.id === driver.id);
     if (index > -1) {
         trashedDrivers.value.splice(index, 1);
     }
-    //success
-    alert(`Driver from "${driver.location}" has been restored successfully!`);
+    console.log("Driver has been restored successfully!");
 };
 </script>
 
