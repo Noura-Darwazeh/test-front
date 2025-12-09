@@ -181,11 +181,19 @@ const trashedDrivers = ref([
 // Driver Form Fields Configuration
 const driverFields = computed(() => [
     {
-        name: 'name',
+        name: 'driverName',
         label: 'Driver Name',
         type: 'text',
         required: true,
         placeholder: 'Enter driver name',
+        colClass: 'col-md-6'
+    },
+    {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter name',
         colClass: 'col-md-6'
     },
     {
@@ -258,7 +266,7 @@ const driverFields = computed(() => [
         name: 'status',
         label: 'Status',
         type: 'select',
-        required: true,
+        required: false,
         options: [
             { value: 'available', label: t('statuses.available') },
             { value: 'busy', label: t('statuses.busy') },
@@ -269,12 +277,14 @@ const driverFields = computed(() => [
     },
     {
         name: 'set_location',
-        label: 'Set Location',
+        label: ' Location',
         type: 'button',
+        required: true,
         text: 'Set Location',
         colClass: 'col-md-6',
         onClick: () => {
-            console.log('Setting driver location...');
+            console.log('Setting driver location on map...');
+            //here open map to set driver location
         }
     }
 

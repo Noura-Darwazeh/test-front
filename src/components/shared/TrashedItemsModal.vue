@@ -27,8 +27,9 @@
                             <template #actions="{ row }">
                                 <PrimaryButton text="Restore" :iconBefore="restoreIcon" bgColor="var(--color-success)"
                                     class="d-inline-flex align-items-center mx-2" @click="handleRestore(row)" />
-                                <PrimaryButton v-if="showDeleteButton" text="Delete" :iconBefore="restoreIcon" bgColor="var(--color-danger)"
-                                    class="d-inline-flex align-items-center" @click="handleRestore(row)" />
+                                <PrimaryButton v-if="showDeleteButton" text="Delete" :iconBefore="restoreIcon"
+                                    bgColor="var(--color-danger)" class="d-inline-flex align-items-center"
+                                    @click="handleDelete(row)" />
                             </template>
                         </DataTable>
                     </div>
@@ -36,9 +37,7 @@
 
                 <!-- Footer -->
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" @click="closeModal">
-                        Close
-                    </button>
+                    <PrimaryButton text="Close" @click="closeModal" bg-color="var(--color-secondary)" />
                 </div>
             </div>
         </div>
@@ -86,7 +85,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close', 'restore']);
+const emit = defineEmits(['close', 'restore', 'delete']);
 
 const closeModal = () => {
     emit('close');
@@ -96,6 +95,9 @@ const handleRestore = (item) => {
     emit('restore', item);
 };
 
+const handleDelete = (item) => {
+    emit('delete', item);
+};
 // Prevent body scroll when modal is open
 watch(() => props.isOpen, (newVal) => {
     if (newVal) {
