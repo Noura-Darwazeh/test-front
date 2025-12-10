@@ -1,29 +1,57 @@
 <template>
     <div class="user-page-container bg-light">
-        <DriversHeader v-model="searchText" :searchPlaceholder="$t('driver.searchPlaceholder')" :data="drivers"
-            groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('driver.filterByStatus')"
-            translationKey="statuses" :columns="driverColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('driver.addNew') || 'Add Driver'" @add-click="openModal"
-            @trashed-click="openTrashedModal" />
+        <DriversHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('driver.searchPlaceholder')" 
+            :data="drivers"
+            groupKey="status" 
+            v-model:groupModelValue="selectedGroups" 
+            :groupLabel="$t('driver.filterByStatus')"
+            translationKey="statuses" 
+            :columns="driverColumns" 
+            v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" 
+            :addButtonText="$t('driver.addNew')" 
+            @add-click="openModal"
+            @trashed-click="openTrashedModal" 
+        />
 
         <div class="card border-0">
             <div class="card-body p-0">
                 <DataTable :columns="filteredColumns" :data="paginatedDrivers" />
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredDrivers.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                    <Pagination 
+                        :totalItems="filteredDrivers.length" 
+                        :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" 
+                        @update:currentPage="(page) => currentPage = page" 
+                    />
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Driver -->
-        <FormModal :isOpen="isModalOpen" :title="$t('driver.addNew') || 'Add New Driver'" :fields="driverFields"
-            :showImageUpload="true" :imageRequired="false" @close="closeModal" @submit="handleAddDriver" />
+        <FormModal 
+            :isOpen="isModalOpen" 
+            :title="$t('driver.addNew')" 
+            :fields="driverFields"
+            :showImageUpload="true" 
+            :imageRequired="false"
+            :imageUploadLabel="$t('driver.form.uploadImage')"
+            @close="closeModal" 
+            @submit="handleAddDriver" 
+        />
 
         <!-- Trashed Drivers Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" title="Trashed Drivers" emptyMessage="No trashed drivers"
-            :columns="trashedColumns" :trashedItems="trashedDrivers" @close="closeTrashedModal"
-            @restore="handleRestoreDriver" />
+        <TrashedItemsModal 
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('driver.trashed.title')" 
+            :emptyMessage="$t('driver.trashed.empty')"
+            :columns="trashedColumns" 
+            :trashedItems="trashedDrivers" 
+            @close="closeTrashedModal"
+            @restore="handleRestoreDriver" 
+        />
     </div>
 </template>
 
@@ -87,7 +115,6 @@ const drivers = [
     },
 ];
 
-// Trashed drivers
 const trashedDrivers = ref([
     {
         id: 201,
@@ -96,7 +123,7 @@ const trashedDrivers = ref([
         email: "deleted1@example.com",
         phone_number: "0591234567",
         role: "Driver",
-        status: 'in_holiday',
+        status: 'offline',
         type: 'custom driver',
         branch_name: "branch 1",
         vehicle_number: '555111',
@@ -115,90 +142,89 @@ const trashedDrivers = ref([
     },
 ]);
 
-// Driver Form Fields
+// Driver Form Fields 
 const driverFields = computed(() => [
     {
         name: 'name',
-        label: 'Driver Name',
+        label: t('driver.form.name'),
         type: 'text',
         required: true,
-        placeholder: 'Enter driver full name',
+        placeholder: t('driver.form.namePlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value.length > 255) return 'Name must not exceed 255 characters';
+            if (value.length > 255) return t('driver.validation.nameMax');
             return null;
         }
     },
     {
         name: 'username',
-        label: 'Username',
+        label: t('driver.form.username'),
         type: 'text',
         required: true,
-        placeholder: 'Enter unique username',
+        placeholder: t('driver.form.usernamePlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value.length > 255) return 'Username must not exceed 255 characters';
-            // Check uniqueness
+            if (value.length > 255) return t('driver.validation.usernameMax');
             const exists = drivers.some(d => d.username === value);
-            if (exists) return 'Username already exists';
+            if (exists) return t('driver.validation.usernameExists');
             return null;
         }
     },
     {
         name: 'email',
-        label: 'Email Address',
+        label: t('driver.form.email'),
         type: 'email',
         required: false,
-        placeholder: 'driver@example.com (optional)',
+        placeholder: t('driver.form.emailPlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value && value.length > 255) return 'Email must not exceed 255 characters';
+            if (value && value.length > 255) return t('driver.validation.emailMax');
             return null;
         }
     },
     {
         name: 'password',
-        label: 'Password',
+        label: t('driver.form.password'),
         type: 'password',
         required: true,
         minlength: 6,
-        placeholder: 'Minimum 6 characters',
+        placeholder: t('driver.form.passwordPlaceholder'),
         colClass: 'col-md-6'
     },
     {
         name: 'phone_number',
-        label: 'Phone Number',
+        label: t('driver.form.phoneNumber'),
         type: 'tel',
         required: true,
-        placeholder: '0599000000',
+        placeholder: t('driver.form.phoneNumberPlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value.length > 20) return 'Phone number must not exceed 20 characters';
+            if (value.length > 20) return t('driver.validation.phoneMax');
             return null;
         }
     },
     {
         name: 'type',
-        label: 'Driver Type',
+        label: t('driver.form.type'),
         type: 'select',
         required: true,
         options: [
-            { value: 'custom driver', label: 'Custom Driver' },
-            { value: 'delivery driver', label: 'Delivery Driver' },
+            { value: 'custom driver', label: t('driverTypes.customDriver') },
+            { value: 'delivery driver', label: t('driverTypes.deliveryDriver') },
         ],
         colClass: 'col-md-6'
     },
     {
         name: 'vehicle_number',
-        label: 'Vehicle Number',
+        label: t('driver.form.vehicleNumber'),
         type: 'text',
         required: true,
-        placeholder: '22-5566',
+        placeholder: t('driver.form.vehicleNumberPlaceholder'),
         colClass: 'col-md-6'
     },
     {
         name: 'branch_name',
-        label: 'Branch',
+        label: t('driver.form.branch'),
         type: 'select',
         required: true,
         options: [
@@ -210,7 +236,7 @@ const driverFields = computed(() => [
     },
     {
         name: 'company_name',
-        label: 'Company',
+        label: t('driver.form.company'),
         type: 'select',
         required: true,
         options: [
@@ -222,47 +248,45 @@ const driverFields = computed(() => [
     },
     {
         name: 'status',
-        label: 'Status',
+        label: t('driver.form.status'),
         type: 'select',
         required: false,
         options: [
             { value: 'available', label: t('statuses.available') },
             { value: 'busy', label: t('statuses.busy') },
-            { value: 'in_holiday', label: t('statuses.offline') }
+            { value: 'offline', label: t('statuses.offline') }
         ],
         defaultValue: 'available',
         colClass: 'col-md-6'
     },
     {
         name: 'set_location',
-        label: 'Location',
+        label: t('driver.form.location'),
         type: 'button',
         required: true,
-        text: 'Set Location on Map',
+        text: t('driver.form.setLocation'),
         colClass: 'col-md-6',
         onClick: () => {
             console.log('Setting driver location on map...');
-            console.log('Map integration would open here');
         }
     }
 ]);
 
 const driverColumns = ref([
     { key: "id", label: t("driver.id"), sortable: true },
-    { key: "name", label: "Name", sortable: true },
-    { key: "username", label: "Username", sortable: true },
+    { key: "name", label: t("driver.name"), sortable: true },
+    { key: "username", label: t("driver.username"), sortable: true },
     { key: "status", label: t("driver.status"), sortable: false },
     { key: "type", label: t("driver.type"), sortable: false },
     { key: "branch_name", label: t("driver.branchName"), sortable: false },
     { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
-    { key: "phone_number", label: "Phone", sortable: false },
+    { key: "phone_number", label: t("driver.phoneNumber"), sortable: false },
 ]);
 
-// Columns for trashed drivers
 const trashedColumns = computed(() => [
     { key: "id", label: t("driver.id") },
-    { key: "name", label: "Name" },
-    { key: "username", label: "Username" },
+    { key: "name", label: t("driver.name") },
+    { key: "username", label: t("driver.username") },
     { key: "status", label: t("driver.status") },
     { key: "type", label: t("driver.type") },
     { key: "vehicle_number", label: t("driver.vehicleNumber") },
@@ -296,44 +320,37 @@ watch([searchText, selectedGroups], () => {
 });
 
 const openModal = () => {
-    console.log('Opening driver modal...');
     isModalOpen.value = true;
 };
 
 const closeModal = () => {
-    console.log('Closing driver modal...');
     isModalOpen.value = false;
 };
 
 const openTrashedModal = () => {
-    console.log('Opening trashed drivers modal...');
     isTrashedModalOpen.value = true;
 };
 
 const closeTrashedModal = () => {
-    console.log('Closing trashed drivers modal...');
-    isTrashedModalOpen.value = false;
+    isTrashedModalModal.value = false;
 };
 
 const handleAddDriver = (driverData) => {
     console.log("New driver added successfully:", driverData);
 
-    // Validate image size if provided (max 200 KB)
     if (driverData.image && driverData.image.size > 200 * 1024) {
-        console.log('Image size must not exceed 200 KB');
+        console.log(t('driver.validation.imageSize'));
         return;
     }
 
-    // Validate image format if provided
     if (driverData.image) {
         const validFormats = ['image/jpeg', 'image/jpg', 'image/png'];
         if (!validFormats.includes(driverData.image.type)) {
-            console.log('Image must be in JPEG, JPG, or PNG format');
+            console.log(t('driver.validation.imageFormat'));
             return;
         }
     }
 
-    // Create new driver object
     const newDriver = {
         id: drivers.length + 1,
         name: driverData.name,
@@ -354,9 +371,7 @@ const handleAddDriver = (driverData) => {
 
 const handleRestoreDriver = (driver) => {
     console.log("Restoring driver:", driver);
-    // Restore
     drivers.push(driver);
-    // Delete from trashed
     const index = trashedDrivers.value.findIndex(d => d.id === driver.id);
     if (index > -1) {
         trashedDrivers.value.splice(index, 1);

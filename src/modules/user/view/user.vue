@@ -3,7 +3,8 @@
         <usersHeader v-model="searchText" :searchPlaceholder="$t('user.searchPlaceholder')" :data="users"
             groupKey="role" v-model:groupModelValue="selectedGroups" :groupLabel="$t('user.filterByRole')"
             translationKey="roles" :columns="userColumns" v-model:visibleColumns="visibleColumns" :showAddButton="true"
-            :addButtonText="$t('user.addNew') || 'Add User'" @add-click="openModal" @trashed-click="openTrashedModal" />
+            :addButtonText="$t('user.addNew')" @add-click="openModal" @trashed-click="openTrashedModal" />
+        
         <div class="card border-0">
             <div class="card-body p-0">
                 <DataTable :columns="filteredColumns" :data="paginatedUsers" />
@@ -15,13 +16,28 @@
         </div>
 
         <!-- Form Modal for User -->
-        <FormModal :isOpen="isModalOpen" :title="$t('user.addNew') || 'Add New User'" :fields="userFields"
-            :showImageUpload="true" :imageRequired="false" @close="closeModal" @submit="handleAddUser" />
+        <FormModal 
+            :isOpen="isModalOpen" 
+            :title="$t('user.addNew')" 
+            :fields="userFields"
+            :showImageUpload="true" 
+            :imageRequired="false" 
+            :imageUploadLabel="$t('user.form.uploadImage')"
+            @close="closeModal" 
+            @submit="handleAddUser" 
+        />
 
         <!-- Trashed Users Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" title="Trashed Users" emptyMessage="No trashed users"
-            :columns="trashedColumns" :trashedItems="trashedUsers" :showDeleteButton="false" @close="closeTrashedModal"
-            @restore="handleRestoreUser" />
+        <TrashedItemsModal 
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('user.trashed.title')" 
+            :emptyMessage="$t('user.trashed.empty')"
+            :columns="trashedColumns" 
+            :trashedItems="trashedUsers" 
+            :showDeleteButton="false" 
+            @close="closeTrashedModal"
+            @restore="handleRestoreUser" 
+        />
     </div>
 </template>
 
@@ -76,7 +92,6 @@ const users = ref([
     },
 ]);
 
-// Deleted users
 const trashedUsers = ref([
     {
         id: 101,
@@ -102,84 +117,84 @@ const trashedUsers = ref([
 const userFields = computed(() => [
     {
         name: 'name',
-        label: t('user.name'),
+        label: t('user.form.name'),
         type: 'text',
         required: true,
-        placeholder: t('user.name'),
+        placeholder: t('user.form.namePlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value.length > 255) return 'Name must not exceed 255 characters';
+            if (value.length > 255) return t('user.validation.nameMax');
             return null;
         }
     },
     {
         name: 'username',
-        label: 'Username',
+        label: t('user.form.username'),
         type: 'text',
         required: true,
-        placeholder: 'Enter unique username',
+        placeholder: t('user.form.usernamePlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value.length > 255) return 'Username must not exceed 255 characters';
+            if (value.length > 255) return t('user.validation.usernameMax');
             const exists = users.value.some(u => u.username === value);
-            if (exists) return 'Username already exists';
+            if (exists) return t('user.validation.usernameExists');
             return null;
         }
     },
     {
         name: 'email',
-        label: t('user.email'),
+        label: t('user.form.email'),
         type: 'email',
         required: false,
-        placeholder: t('user.email'),
+        placeholder: t('user.form.emailPlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value && value.length > 255) return 'Email must not exceed 255 characters';
+            if (value && value.length > 255) return t('user.validation.emailMax');
             return null;
         }
     },
     {
         name: 'password',
-        label: 'Password',
+        label: t('user.form.password'),
         type: 'password',
         required: true,
         minlength: 6,
-        placeholder: 'Minimum 6 characters',
+        placeholder: t('user.form.passwordPlaceholder'),
         colClass: 'col-md-6'
     },
     {
         name: 'phone_number',
-        label: t('user.phoneNumber'),
+        label: t('user.form.phoneNumber'),
         type: 'tel',
         required: true,
-        placeholder: t('user.phoneNumber'),
+        placeholder: t('user.form.phoneNumberPlaceholder'),
         colClass: 'col-md-6',
         validate: (value) => {
-            if (value.length > 20) return 'Phone number must not exceed 20 characters';
+            if (value.length > 20) return t('user.validation.phoneMax');
             return null;
         }
     },
     {
         name: 'role',
-        label: t('user.role'),
+        label: t('user.form.role'),
         type: 'select',
         required: true,
         options: [
-            { value: 'Admin', label: "Admin" },
-            { value: 'Supervisor', label: "Supervisor" },
-            { value: 'Employee', label: "Employee" },
+            { value: 'Admin', label: t('roles.Admin') },
+            { value: 'Supervisor', label: t('roles.Supervisor') },
+            { value: 'Employee', label: t('roles.Employee') },
         ],
         colClass: 'col-md-6'
     },
     {
         name: 'company_name',
-        label: 'company',
+        label: t('user.form.company'),
         type: 'select',
         required: true,
         options: [
-            { value: '1', label: 'company 1' },
-            { value: '2', label: 'company 2' },
-            { value: '3', label: 'company 3' },
+            { value: '1', label: 'Company 1' },
+            { value: '2', label: 'Company 2' },
+            { value: '3', label: 'Company 3' },
         ],
         colClass: 'col-md-6'
     },
@@ -188,18 +203,17 @@ const userFields = computed(() => [
 const userColumns = computed(() => [
     { key: "id", label: t("user.id"), sortable: true },
     { key: "name", label: t("user.fullName"), sortable: true },
-    { key: "username", label: "Username", sortable: true },
+    { key: "username", label: t("user.username"), sortable: true },
     { key: "email", label: t("user.email"), sortable: false },
     { key: "phone_number", label: t("user.phoneNumber"), sortable: false },
     { key: "role", label: t("user.userRole"), sortable: true },
-    { key: "company_name", label: "company", sortable: false },
+    { key: "company_name", label: t("user.company"), sortable: false },
 ]);
 
-// Columns for trashed users
 const trashedColumns = computed(() => [
     { key: "id", label: t("user.id") },
     { key: "name", label: t("user.fullName") },
-    { key: "username", label: "Username" },
+    { key: "username", label: t("user.username") },
     { key: "email", label: t("user.email") },
     { key: "phone_number", label: t("user.phoneNumber") },
     { key: "role", label: t("user.userRole") },
@@ -233,33 +247,29 @@ watch([searchText, selectedGroups], () => {
 });
 
 const openModal = () => {
-    console.log('Opening user modal...');
     isModalOpen.value = true;
 };
 
 const closeModal = () => {
-    console.log('Closing user modal...');
     isModalOpen.value = false;
 };
 
 const openTrashedModal = () => {
-    console.log('Opening trashed users modal...');
     isTrashedModalOpen.value = true;
 };
 
 const closeTrashedModal = () => {
-    console.log('Closing trashed users modal...');
     isTrashedModalOpen.value = false;
 };
 
 const handleAddUser = (userData) => {
     console.log("New user added successfully:", userData);
-    // Validate image size if provided
+    
     if (userData.image && userData.image.size > 200 * 1024) {
-        console.log('Image size must not exceed 200 KB');
+        console.log(t('user.validation.imageSize'));
         return;
     }
-    // Add new user to the list
+    
     const newUser = {
         id: users.value.length + 1,
         name: userData.name,
@@ -270,6 +280,7 @@ const handleAddUser = (userData) => {
         company_name: userData.company_name || null,
         image: userData.imagePreview || 'path/test'
     };
+    
     users.value.push(newUser);
     console.log('User added successfully!');
 };
@@ -277,7 +288,6 @@ const handleAddUser = (userData) => {
 const handleRestoreUser = (user) => {
     console.log("Restoring user:", user);
     users.value.push(user);
-    // Delete from trashed
     const index = trashedUsers.value.findIndex(u => u.id === user.id);
     if (index > -1) {
         trashedUsers.value.splice(index, 1);
