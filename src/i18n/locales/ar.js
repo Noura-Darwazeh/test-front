@@ -14,7 +14,7 @@ export default {
     title: "جدول المستخدمين",
     pageTitle: "إدارة المستخدمين",
     pageSubtitle: "إدارة مستخدمي النظام وصلاحياتهم",
-    
+
     // الإجراءات
     searchPlaceholder: "البحث عن المستخدمين...",
     search: "بحث",
@@ -24,7 +24,7 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
-    
+
     // أعمدة الجدول
     id: "المعرف",
     fullName: "الاسم الكامل",
@@ -40,19 +40,19 @@ export default {
     sharedLine: "الخط المشترك",
     status: "الحالة",
     company: "الشركة",
-    
+
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
-    
+
     // الرسائل
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
-    
+
     // الفلاتر
     filterByRole: "تصفية حسب الدور",
-    
+
     // حقول النموذج
     form: {
       name: "الاسم الكامل",
@@ -72,7 +72,7 @@ export default {
       uploadImage: "رفع صورة",
       removeImage: "إزالة",
     },
-    
+
     // رسائل التحقق
     validation: {
       nameRequired: "الاسم مطلوب",
@@ -92,7 +92,7 @@ export default {
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
     },
-    
+
     // العناصر المحذوفة
     trashed: {
       title: "المستخدمون المحذوفون",
@@ -100,14 +100,17 @@ export default {
       restore: "استعادة",
       delete: "حذف نهائي",
     },
+    //التعديل والتفاصيل
+    edit: "تعديل",
+    details: "التفاصيل",
   },
-  
+
   driver: {
     // عناوين الصفحة
     title: "جدول السائقين",
     pageTitle: "إدارة السائقين",
     pageSubtitle: "إدارة سائقي التوصيل وتفاصيلهم",
-    
+
     // الإجراءات
     searchPlaceholder: "البحث عن سائقين...",
     search: "بحث",
@@ -117,7 +120,7 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
-    
+
     // أعمدة الجدول
     id: "المعرف",
     name: "الاسم",
@@ -134,19 +137,19 @@ export default {
     landingPage: "الصفحة الرئيسية",
     language: "اللغة",
     company: "الشركة",
-    
+
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
-    
+
     // الرسائل
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
-    
+
     // الفلاتر
     filterByStatus: "تصفية حسب الحالة",
-    
+
     // حقول النموذج
     form: {
       name: "اسم السائق",
@@ -174,7 +177,7 @@ export default {
       uploadImage: "رفع صورة",
       removeImage: "إزالة",
     },
-    
+
     // رسائل التحقق
     validation: {
       nameRequired: "اسم السائق مطلوب",
@@ -197,7 +200,7 @@ export default {
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
     },
-    
+
     // العناصر المحذوفة
     trashed: {
       title: "السائقون المحذوفون",
@@ -205,8 +208,11 @@ export default {
       restore: "استعادة",
       delete: "حذف نهائي",
     },
+    //التعديل والتفاصيل
+    edit: "تعديل",
+    details: "تفاصيل ",
   },
-  
+
   filters: {
     selectAll: "تحديد الكل",
     clearAll: "مسح الكل",
@@ -214,7 +220,7 @@ export default {
     manageColumns: "إدارة الأعمدة",
     filterBy: "تصفية حسب",
   },
-  
+
   // الترجمات المشتركة
   common: {
     save: "حفظ",
@@ -228,7 +234,7 @@ export default {
     required: "مطلوب",
     optional: "اختياري",
   },
-  
+
   // قيم الأدوار
   roles: {
     Admin: "مسؤول",
@@ -237,20 +243,20 @@ export default {
     Supervisor: "مشرف",
     Employee: "موظف",
   },
-  
+
   // قيم حالة السائق
   statuses: {
     available: "متاح",
     busy: "مشغول",
     offline: "في عطلة",
   },
-  
+
   // قيم نوع السائق
   driverTypes: {
     customDriver: "سائق مخصص",
     deliveryDriver: "سائق توصيل",
   },
-  
+
   pagination: {
     showing: "عرض",
     of: "من",

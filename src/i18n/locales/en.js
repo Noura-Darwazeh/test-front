@@ -14,7 +14,7 @@ export default {
     title: "User Table",
     pageTitle: "Users Management",
     pageSubtitle: "Manage system users and their permissions",
-    
+
     // Actions
     searchPlaceholder: "Search users...",
     search: "Search",
@@ -24,7 +24,7 @@ export default {
     edit: "Edit",
     delete: "Delete",
     actions: "Actions",
-    
+
     // Table Columns
     id: "ID",
     fullName: "Full Name",
@@ -40,19 +40,19 @@ export default {
     sharedLine: "Shared Line",
     status: "Status",
     company: "Company",
-    
+
     // Status Values
     active: "Active",
     inactive: "Inactive",
-    
+
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
-    
+
     // Filters
     filterByRole: "Filter by Role",
-    
+
     // Form Fields
     form: {
       name: "Full Name",
@@ -72,7 +72,7 @@ export default {
       uploadImage: "Upload Image",
       removeImage: "Remove",
     },
-    
+
     // Validation Messages
     validation: {
       nameRequired: "Name is required",
@@ -92,7 +92,7 @@ export default {
       imageSize: "Image size must not exceed 200 KB",
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
     },
-    
+
     // Trashed Items
     trashed: {
       title: "Trashed Users",
@@ -100,14 +100,17 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
   },
-  
+
   driver: {
     // Page Headers
     title: "Driver Table",
     pageTitle: "Drivers Management",
     pageSubtitle: "Manage delivery drivers and their details",
-    
+
     // Actions
     searchPlaceholder: "Search drivers...",
     search: "Search",
@@ -117,7 +120,7 @@ export default {
     edit: "Edit",
     delete: "Delete",
     actions: "Actions",
-    
+
     // Table Columns
     id: "ID",
     name: "Name",
@@ -134,19 +137,19 @@ export default {
     landingPage: "Landing Page",
     language: "Language",
     company: "Company",
-    
+
     // Status Values
     active: "Active",
     inactive: "Inactive",
-    
+
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
-    
+
     // Filters
     filterByStatus: "Filter by Status",
-    
+
     // Form Fields
     form: {
       name: "Driver Name",
@@ -174,7 +177,7 @@ export default {
       uploadImage: "Upload Image",
       removeImage: "Remove",
     },
-    
+
     // Validation Messages
     validation: {
       nameRequired: "Driver name is required",
@@ -197,7 +200,7 @@ export default {
       imageSize: "Image size must not exceed 200 KB",
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
     },
-    
+
     // Trashed Items
     trashed: {
       title: "Trashed Drivers",
@@ -205,8 +208,11 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
   },
-  
+
   filters: {
     selectAll: "Select All",
     clearAll: "Clear All",
@@ -214,7 +220,7 @@ export default {
     manageColumns: "Manage Columns",
     filterBy: "Filter By",
   },
-  
+
   // Common Translations
   common: {
     save: "Save",
@@ -228,7 +234,7 @@ export default {
     required: "Required",
     optional: "Optional",
   },
-  
+
   // Role Values
   roles: {
     Admin: "Admin",
@@ -237,20 +243,20 @@ export default {
     Supervisor: "Supervisor",
     Employee: "Employee",
   },
-  
+
   // Driver Status Values
   statuses: {
     available: "Available",
     busy: "Busy",
     offline: "In Holiday",
   },
-  
+
   // Driver Type Values
   driverTypes: {
     customDriver: "Custom Driver",
     deliveryDriver: "Delivery Driver",
   },
-  
+
   pagination: {
     showing: "Showing",
     of: "of",

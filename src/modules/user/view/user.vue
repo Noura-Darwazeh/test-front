@@ -1,30 +1,64 @@
 <template>
     <div class="user-page-container bg-light">
-        <usersHeader v-model="searchText" :searchPlaceholder="$t('user.searchPlaceholder')" :data="users"
-            groupKey="role" v-model:groupModelValue="selectedGroups" :groupLabel="$t('user.filterByRole')"
-            translationKey="roles" :columns="userColumns" v-model:visibleColumns="visibleColumns" :showAddButton="true"
-            :addButtonText="$t('user.addNew')" @add-click="openModal" @trashed-click="openTrashedModal" />
+        <usersHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('user.searchPlaceholder')" 
+            :data="users"
+            groupKey="role" 
+            v-model:groupModelValue="selectedGroups" 
+            :groupLabel="$t('user.filterByRole')"
+            translationKey="roles" 
+            :columns="userColumns" 
+            v-model:visibleColumns="visibleColumns" 
+            :showAddButton="true"
+            :addButtonText="$t('user.addNew')" 
+            @add-click="openAddModal" 
+            @trashed-click="openTrashedModal" 
+        />
         
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedUsers" />
+                <DataTable :columns="filteredColumns" :data="paginatedUsers" :actionsLabel="$t('user.actions')">
+                    <template #actions="{ row }">
+                        <ActionsDropdown 
+                            :row="row" 
+                            :editLabel="$t('user.edit')"
+                            :detailsLabel="$t('user.details')" 
+                            @edit="openEditModal" 
+                            @details="openDetailsModal" 
+                        />
+                    </template>
+                </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredUsers.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                    <Pagination 
+                        :totalItems="filteredUsers.length" 
+                        :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" 
+                        @update:currentPage="(page) => currentPage = page" 
+                    />
                 </div>
             </div>
         </div>
 
-        <!-- Form Modal for User -->
+        <!-- Form Modal for Add/Edit User -->
         <FormModal 
-            :isOpen="isModalOpen" 
-            :title="$t('user.addNew')" 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('user.edit') : $t('user.addNew')" 
             :fields="userFields"
             :showImageUpload="true" 
             :imageRequired="false" 
             :imageUploadLabel="$t('user.form.uploadImage')"
-            @close="closeModal" 
-            @submit="handleAddUser" 
+            @close="closeFormModal" 
+            @submit="handleSubmitUser" 
+        />
+
+        <!-- Details Modal -->
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('user.details')" 
+            :data="selectedUser"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
         />
 
         <!-- Trashed Users Modal -->
@@ -45,6 +79,8 @@
 import { ref, computed, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
+import ActionsDropdown from "../../../components/shared/Actions.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
@@ -56,8 +92,11 @@ const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
-const isModalOpen = ref(false);
+const isFormModalOpen = ref(false);
+const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedUser = ref({});
 
 const users = ref([
     {
@@ -102,15 +141,6 @@ const trashedUsers = ref([
         role: "User",
         company_name: "company 1",
     },
-    {
-        id: 102,
-        name: "Deleted User 2",
-        username: "deleteduser2",
-        email: "deleted2@example.com",
-        phone_number: "0597654321",
-        role: "Admin",
-        company_name: "company 2",
-    },
 ]);
 
 // User Form Fields 
@@ -122,6 +152,7 @@ const userFields = computed(() => [
         required: true,
         placeholder: t('user.form.namePlaceholder'),
         colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedUser.value.name : '',
         validate: (value) => {
             if (value.length > 255) return t('user.validation.nameMax');
             return null;
@@ -134,10 +165,13 @@ const userFields = computed(() => [
         required: true,
         placeholder: t('user.form.usernamePlaceholder'),
         colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedUser.value.username : '',
         validate: (value) => {
             if (value.length > 255) return t('user.validation.usernameMax');
-            const exists = users.value.some(u => u.username === value);
-            if (exists) return t('user.validation.usernameExists');
+            if (!isEditMode.value) {
+                const exists = users.value.some(u => u.username === value);
+                if (exists) return t('user.validation.usernameExists');
+            }
             return null;
         }
     },
@@ -148,6 +182,7 @@ const userFields = computed(() => [
         required: false,
         placeholder: t('user.form.emailPlaceholder'),
         colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedUser.value.email : '',
         validate: (value) => {
             if (value && value.length > 255) return t('user.validation.emailMax');
             return null;
@@ -157,10 +192,11 @@ const userFields = computed(() => [
         name: 'password',
         label: t('user.form.password'),
         type: 'password',
-        required: true,
+        required: !isEditMode.value,
         minlength: 6,
-        placeholder: t('user.form.passwordPlaceholder'),
-        colClass: 'col-md-6'
+        placeholder: isEditMode.value ? 'Leave empty to keep current password' : t('user.form.passwordPlaceholder'),
+        colClass: 'col-md-6',
+        defaultValue: ''
     },
     {
         name: 'phone_number',
@@ -169,6 +205,7 @@ const userFields = computed(() => [
         required: true,
         placeholder: t('user.form.phoneNumberPlaceholder'),
         colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedUser.value.phone_number : '',
         validate: (value) => {
             if (value.length > 20) return t('user.validation.phoneMax');
             return null;
@@ -184,7 +221,8 @@ const userFields = computed(() => [
             { value: 'Supervisor', label: t('roles.Supervisor') },
             { value: 'Employee', label: t('roles.Employee') },
         ],
-        colClass: 'col-md-6'
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedUser.value.role : ''
     },
     {
         name: 'company_name',
@@ -196,8 +234,20 @@ const userFields = computed(() => [
             { value: '2', label: 'Company 2' },
             { value: '3', label: 'Company 3' },
         ],
-        colClass: 'col-md-6'
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedUser.value.company_name : ''
     },
+]);
+
+// Details Fields
+const detailsFields = computed(() => [
+    { key: 'id', label: t('user.id'), colClass: 'col-md-6' },
+    { key: 'name', label: t('user.fullName'), colClass: 'col-md-6' },
+    { key: 'username', label: t('user.username'), colClass: 'col-md-6' },
+    { key: 'email', label: t('user.email'), colClass: 'col-md-6' },
+    { key: 'phone_number', label: t('user.phoneNumber'), colClass: 'col-md-6' },
+    { key: 'role', label: t('user.userRole'), translationKey: 'roles', colClass: 'col-md-6' },
+    { key: 'company_name', label: t('user.company'), colClass: 'col-md-12' },
 ]);
 
 const userColumns = computed(() => [
@@ -246,12 +296,35 @@ watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
 
-const openModal = () => {
-    isModalOpen.value = true;
+// Add Modal
+const openAddModal = () => {
+    isEditMode.value = false;
+    selectedUser.value = {};
+    isFormModalOpen.value = true;
 };
 
-const closeModal = () => {
-    isModalOpen.value = false;
+// Edit Modal
+const openEditModal = (user) => {
+    isEditMode.value = true;
+    selectedUser.value = { ...user };
+    isFormModalOpen.value = true;
+};
+
+// Details Modal
+const openDetailsModal = (user) => {
+    selectedUser.value = { ...user };
+    isDetailsModalOpen.value = true;
+};
+
+const closeFormModal = () => {
+    isFormModalOpen.value = false;
+    isEditMode.value = false;
+    selectedUser.value = {};
+};
+
+const closeDetailsModal = () => {
+    isDetailsModalOpen.value = false;
+    selectedUser.value = {};
 };
 
 const openTrashedModal = () => {
@@ -262,37 +335,47 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleAddUser = (userData) => {
-    console.log("New user added successfully:", userData);
-    
-    if (userData.image && userData.image.size > 200 * 1024) {
-        console.log(t('user.validation.imageSize'));
-        return;
+const handleSubmitUser = (userData) => {
+    if (isEditMode.value) {
+        // Update existing user
+        const index = users.value.findIndex(u => u.id === selectedUser.value.id);
+        if (index > -1) {
+            users.value[index] = {
+                ...users.value[index],
+                name: userData.name,
+                username: userData.username,
+                email: userData.email || '',
+                phone_number: userData.phone_number,
+                role: userData.role,
+                company_name: userData.company_name,
+                image: userData.imagePreview || users.value[index].image
+            };
+            console.log('User updated successfully!');
+        }
+    } else {
+        // Add new user
+        const newUser = {
+            id: users.value.length + 1,
+            name: userData.name,
+            username: userData.username,
+            email: userData.email || '',
+            phone_number: userData.phone_number,
+            role: userData.role,
+            company_name: userData.company_name,
+            image: userData.imagePreview || 'path/test'
+        };
+        users.value.push(newUser);
+        console.log('User added successfully!');
     }
-    
-    const newUser = {
-        id: users.value.length + 1,
-        name: userData.name,
-        username: userData.username,
-        email: userData.email || '',
-        phone_number: userData.phone_number,
-        role: userData.role,
-        company_name: userData.company_name || null,
-        image: userData.imagePreview || 'path/test'
-    };
-    
-    users.value.push(newUser);
-    console.log('User added successfully!');
 };
 
 const handleRestoreUser = (user) => {
-    console.log("Restoring user:", user);
     users.value.push(user);
     const index = trashedUsers.value.findIndex(u => u.id === user.id);
     if (index > -1) {
         trashedUsers.value.splice(index, 1);
     }
-    console.log("User has been restored successfully!");
+    console.log("User restored successfully!");
 };
 </script>
 
