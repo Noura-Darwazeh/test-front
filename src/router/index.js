@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from "vue-router";
 import user from "../modules/user/view/user.vue";
 import driver from "../modules/driver/view/driver.vue";
-
+import customer from "../modules/customer/view/customer.vue";
+import company from "../modules/company/view/company.vue";
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
 const router = createRouter({
@@ -31,6 +32,28 @@ const router = createRouter({
         requireAuth: false,
         showInSidebar: true,
         icon: "/src/assets/sidebar/driverIcon.svg",
+      },
+    },
+       {
+      path: "/customer",
+      name: "Customer",
+      component: customer,
+      meta: {
+        titleKey: "customer.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/customerIcon.svg",
+      },
+    },
+    {
+      path: "/company",
+      name: "Company",
+      component: company,
+      meta: {
+        titleKey: "company.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/companyIcon.svg",
       },
     },
     {

@@ -1,7 +1,7 @@
 <template>
     <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" :class="{ rtl: isRTL }">
         <template #trigger>
-            <PrimaryButton :iconBefore="actionsIcon" bg-color=red />
+            <PrimaryButton :iconBefore="actionsIcon" bg-color=#ffffff iconColor="black" />
         </template>
 
         <template #menu="{ close }">
@@ -64,4 +64,3 @@ const handleDetails = (close) => {
     emit('details', props.row);
 };
 </script>
-

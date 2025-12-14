@@ -212,7 +212,73 @@ export default {
     edit: "تعديل",
     details: "تفاصيل ",
   },
+  customer: {
+    // Page Headers
+    title: "جدول العملاء",
 
+    // الإجراءات
+    searchPlaceholder: "البحث عن عملاء...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة عميل",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "الاسم",
+    phoneNumber: "رقم الهاتف",
+    location: "الموقع",
+    companyName: "الشركة",
+
+    // قيم الحالة
+    active: "نشط",
+    inactive: "غير نشط",
+
+    // الرسائل
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    // الفلاتر
+    filterByStatus: "تصفية حسب الحالة",
+
+    // حقول النموذج
+    form: {
+      name: "اسم العميل",
+      namePlaceholder: "أدخل الاسم الكامل للعميل",
+      phoneNumber: "رقم الهاتف",
+      phoneNumberPlaceholder: "0599000000",
+      company: "الشركة",
+      companyPlaceholder: "اختر الشركة",
+      location: "الموقع",
+      setLocation: "تحديد الموقع على الخريطة",
+    },
+
+    // رسائل التحقق
+    validation: {
+      nameRequired: "اسم العميل مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      phoneRequired: "رقم الهاتف مطلوب",
+      phoneMax: "يجب ألا يتجاوز رقم الهاتف 20 حرفاً",
+      companyRequired: "الشركة مطلوبة",
+      locationRequired: "الموقع مطلوب",
+
+    },
+
+    // العناصر المحذوفة
+    trashed: {
+      title: "العملاء المحذوفون",
+      empty: "لا يوجد عملاء محذوفون",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+    //التعديل والتفاصيل
+    edit: "تعديل",
+    details: "تفاصيل ",
+  },
   filters: {
     selectAll: "تحديد الكل",
     clearAll: "مسح الكل",

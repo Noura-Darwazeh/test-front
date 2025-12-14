@@ -1,22 +1,24 @@
 <template>
   <button :type="type" :disabled="disabled || loading" @click="handleClick"
-    class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" type="button" :style="buttonStyle">
+    class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" :style="buttonStyle">
     <!-- Icon before -->
-    <span v-if="iconBefore && !loading" class="icon-before">
-      <img :src="iconBefore" :style="{ fill: iconColor }" alt="" height="18" />
+    <span v-if="iconBefore && !loading" class="icon-before" :style="iconStyle">
+      <img :src="iconBefore" alt="" height="18" />
     </span>
 
     <!-- Text -->
     {{ loading ? loadingText : text }}
 
     <!-- Icon after -->
-    <span v-if="iconAfter && !loading" class="icon-after">
-      <img :src="iconAfter" :style="{ fill: iconColor }"alt="" height="18" />
+    <span v-if="iconAfter && !loading" class="icon-after" :style="iconStyle">
+      <img :src="iconAfter" alt="" height="18" />
     </span>
   </button>
 </template>
+
 <script setup>
 import { computed } from "vue";
+
 const props = defineProps({
   text: {
     type: String,
@@ -50,20 +52,22 @@ const props = defineProps({
     type: String,
     default: "var(--primary-color)",
   },
-  color: {
-    type: String,
-    default: "#fff",
-  },
   textColor: {
     type: String,
     default: "#fff",
   },
+  iconColor: {
+    type: String,
+    default: "#fff",
+  },
 });
+
 const emit = defineEmits(['click']);
 
 const handleClick = () => {
   emit('click');
 };
+
 const buttonStyle = computed(() => {
   if (props.disabled || props.loading) {
     return "";
@@ -74,7 +78,27 @@ const buttonStyle = computed(() => {
     color: props.textColor,
   };
 });
+
+const iconStyle = computed(() => {
+  if (props.disabled || props.loading) {
+    return {};
+  }
+
+  if (props.iconColor === "#fff" || props.iconColor === "#ffffff" || props.iconColor === "white") {
+    return {
+      filter: "brightness(0) invert(1)"
+    };
+  }
+  if (props.iconColor === "#000" || props.iconColor === "#000000" || props.iconColor === "black") {
+    return {
+      filter: "brightness(0)"
+    };
+  }
+
+});
+
 </script>
+
 <style scoped>
 .btn-primary {
   background-color: var(--primary-color);
@@ -113,7 +137,5 @@ const buttonStyle = computed(() => {
   display: flex;
   align-items: center;
   transition: transform var(--transition-base);
-  filter: brightness(0) invert(1);
-
 }
 </style>

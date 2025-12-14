@@ -26,7 +26,7 @@
                             :detailsLabel="$t('driver.details')" 
                             @edit="openEditModal" 
                             @details="openDetailsModal" 
-                        />
+                        />0
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">

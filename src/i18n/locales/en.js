@@ -12,8 +12,6 @@ export default {
   user: {
     // Page Headers
     title: "User Table",
-    pageTitle: "Users Management",
-    pageSubtitle: "Manage system users and their permissions",
 
     // Actions
     searchPlaceholder: "Search users...",
@@ -212,7 +210,142 @@ export default {
     edit: "Edit",
     details: "Details",
   },
+  customer: {
+    // Page Headers
+    title: "Customer Table",
 
+    // Actions
+    searchPlaceholder: "Search customers...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Customer",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    fullName: "Full Name",
+    name: "Name",
+    image: "Image",
+    phoneNumber: "Phone Number",
+    landingPage: "Landing Page",
+    language: "Language",
+    companyName: "Company",
+
+    // Status Values
+    active: "Active",
+    inactive: "Inactive",
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByRole: "Filter by Role",
+
+    // Form Fields
+    form: {
+      name: "Full Name",
+      namePlaceholder: "Enter full name",
+      phoneNumber: "Phone Number",
+      phoneNumberPlaceholder: "0599000000",
+      company: "Company",
+      companyPlaceholder: "Select company",
+      location: "Location",
+      setLocation: "Set Location on Map",
+    },
+
+    // Validation Messages
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      usernameRequired: "Username is required",
+      usernameMax: "Username must not exceed 255 characters",
+      usernameExists: "Username already exists",
+      phoneRequired: "Phone number is required",
+      phoneMax: "Phone number must not exceed 20 characters",
+      companyRequired: "Company is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Customers",
+      empty: "No trashed Customers",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
+
+
+  company: {
+    // Page Headers
+    title: "Company Table",
+
+    // Actions
+    searchPlaceholder: "Search companys...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Company",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    name: "Name",
+    image: "Image",
+    type: "Type",
+
+    // Status Values
+    active: "Active",
+    inactive: "Inactive",
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByRole: "Filter by Role",
+
+    // Form Fields
+    form: {
+      name: "Company Name",
+      namePlaceholder: "Enter company full name",
+      type: "Company Type",
+      typePlaceholder: "Select company type",
+      uploadImage: "Upload Image",
+      removeImage: "Remove",
+      types: {
+        delivery: "Delivery Company",
+        admin: "Admin Company",
+      },
+    },
+    // Validation Messages
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      typeRequired: "Type is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Companys",
+      empty: "No trashed Companys",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
   filters: {
     selectAll: "Select All",
     clearAll: "Clear All",
@@ -239,22 +372,15 @@ export default {
   roles: {
     Admin: "Admin",
     User: "User",
-    Manager: "Manager",
     Supervisor: "Supervisor",
     Employee: "Employee",
   },
 
-  // Driver Status Values
+  //  Status Values
   statuses: {
     available: "Available",
     busy: "Busy",
     offline: "In Holiday",
-  },
-
-  // Driver Type Values
-  driverTypes: {
-    customDriver: "Custom Driver",
-    deliveryDriver: "Delivery Driver",
   },
 
   pagination: {
