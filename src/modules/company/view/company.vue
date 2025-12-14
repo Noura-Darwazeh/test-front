@@ -1,76 +1,39 @@
 <template>
     <div class="user-page-container bg-light">
-        <CompanyHeader 
-            v-model="searchText" 
-            :searchPlaceholder="$t('company.searchPlaceholder')" 
-            :data="companys"
-            groupKey="status" 
-            v-model:groupModelValue="selectedGroups" 
-            :groupLabel="$t('company.filterByStatus')"
-            translationKey="statuses" 
-            :columns="companyColumns" 
-            v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" 
-            :addButtonText="$t('company.addNew')" 
-            @add-click="openAddModal"
-            @trashed-click="openTrashedModal" 
-        />
+        <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companys"
+            groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
+            translationKey="companyTypes" :columns="companyColumns" v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal"
+            @trashed-click="openTrashedModal" />
 
         <div class="card border-0">
             <div class="card-body p-0">
                 <DataTable :columns="filteredColumns" :data="paginatedcompanys" :actionsLabel="$t('company.actions')">
                     <template #actions="{ row }">
-                        <ActionsDropdown 
-                            :row="row" 
-                            :editLabel="$t('company.edit')"
-                            :detailsLabel="$t('company.details')" 
-                            @edit="openEditModal" 
-                            @details="openDetailsModal" 
-                        />
+                        <ActionsDropdown :row="row" :editLabel="$t('company.edit')"
+                            :detailsLabel="$t('company.details')" @edit="openEditModal" @details="openDetailsModal" />
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination 
-                        :totalItems="filteredcompanys.length" 
-                        :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" 
-                        @update:currentPage="(page) => currentPage = page" 
-                    />
+                    <Pagination :totalItems="filteredcompanys.length" :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit company -->
-        <FormModal 
-            :isOpen="isFormModalOpen" 
-            :title="isEditMode ? $t('company.edit') : $t('company.addNew')" 
-            :fields="companyFields"
-            :showImageUpload="true" 
-            :imageRequired="false"
-            :imageUploadLabel="$t('company.form.uploadImage')"
-            @close="closeFormModal" 
-            @submit="handleSubmitcompany" 
-        />
+        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('company.edit') : $t('company.addNew')"
+            :fields="companyFields" :showImageUpload="true" :imageRequired="false"
+            :imageUploadLabel="$t('company.form.uploadImage')" @close="closeFormModal" @submit="handleSubmitcompany" />
 
         <!-- Details Modal -->
-        <DetailsModal 
-            :isOpen="isDetailsModalOpen" 
-            :title="$t('company.details')" 
-            :data="selectedcompany"
-            :fields="detailsFields" 
-            @close="closeDetailsModal" 
-        />
+        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('company.details')" :data="selectedcompany"
+            :fields="detailsFields" @close="closeDetailsModal" />
 
         <!-- Trashed companys Modal -->
-        <TrashedItemsModal 
-            :isOpen="isTrashedModalOpen" 
-            :title="$t('company.trashed.title')" 
-            :emptyMessage="$t('company.trashed.empty')"
-            :columns="trashedColumns" 
-            :trashedItems="trashedcompanys" 
-            @close="closeTrashedModal"
-            @restore="handleRestorecompany" 
-        />
+        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('company.trashed.title')"
+            :emptyMessage="$t('company.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedcompanys"
+            @close="closeTrashedModal" @restore="handleRestorecompany" />
     </div>
 </template>
 
@@ -101,56 +64,25 @@ const companys = ref([
     {
         id: 1,
         name: "Ali Ahmed",
-        username: "alicompany",
-        email: "ali@example.com",
-        phone_number: "0598549638",
-        role: "company",
-        region_id: 1,
-        status: 'available',
         type: 'delivery company',
-        branch_name: "branch 1",
-        vehicle_number: '125746',
     },
     {
         id: 2,
         name: "Sara Mohammad",
-        username: "saracompany",
-        email: "sara@example.com",
-        phone_number: "0598549639",
-        role: "company",
-        region_id: 2,
-        status: 'busy',
-        type: 'custom company',
-        branch_name: "branch 1",
-        vehicle_number: '789012',
+        type: 'admin company',
     },
     {
         id: 3,
         name: "Ahmed Hassan",
-        username: "ahmedcompany",
-        email: "ahmed@example.com",
-        phone_number: "0598549640",
-        role: "company",
-        region_id: 1,
-        status: 'available',
         type: 'delivery company',
-        branch_name: "branch 1",
-        vehicle_number: '345678',
     },
 ]);
 
 const trashedcompanys = ref([
     {
-        id: 201,
-        name: "Deleted company 1",
-        username: "deletedcompany1",
-        email: "deleted1@example.com",
-        phone_number: "0591234567",
-        role: "company",
-        status: 'offline',
-        type: 'custom company',
-        branch_name: "branch 1",
-        vehicle_number: '555111',
+        id: 4,
+        name: "Trashed",
+        type: 'delivery company',
     },
 ]);
 
@@ -182,8 +114,8 @@ const companyFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedcompany.value.type : ''
     },
-    
- 
+
+
 
 ]);
 
@@ -216,7 +148,7 @@ const filteredColumns = computed(() => {
 
 const filteredcompanys = computed(() => {
     let result = companys.value;
-    result = filterByGroups(result, selectedGroups.value, "status");
+    result = filterByGroups(result, selectedGroups.value, "type");
     result = filterData(result, searchText.value);
     return result;
 });

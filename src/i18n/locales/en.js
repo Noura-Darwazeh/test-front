@@ -313,7 +313,8 @@ export default {
     showingEntries: "Showing {from} to {to} of {total} entries",
 
     // Filters
-    filterByRole: "Filter by Role",
+
+    filterByType: "Filter by Type",
 
     // Form Fields
     form: {
@@ -327,6 +328,10 @@ export default {
         delivery: "Delivery Company",
         admin: "Admin Company",
       },
+    },
+    companyTypes: {
+      "delivery company": "Delivery Company",
+      "admin company": "Admin Company",
     },
     // Validation Messages
     validation: {

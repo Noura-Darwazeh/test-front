@@ -279,6 +279,75 @@ export default {
     edit: "تعديل",
     details: "تفاصيل ",
   },
+
+  company: {
+    // عناوين الصفحة
+    title: "جدول الشركات",
+    pageTitle: "إدارة الشركات",
+    pageSubtitle: "إدارة الشركات وتفاصيلها",
+
+    // الإجراءات
+    searchPlaceholder: "البحث عن شركات...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة شركة",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "اسم الشركة",
+    image: "الصورة",
+    type: "نوع الشركة",
+
+    active: "نشط",
+    inactive: "غير نشط",
+
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    filterByType: "تصفية حسب النوع",
+
+    form: {
+      name: "اسم الشركة",
+      namePlaceholder: "أدخل اسم الشركة",
+      type: "نوع الشركة",
+      typePlaceholder: "اختر نوع الشركة",
+      uploadImage: "رفع صورة",
+      removeImage: "إزالة",
+      types: {
+        delivery: "شركة توصيل",
+        admin: "شركة إدارية",
+      },
+    },
+
+    validation: {
+      nameRequired: "اسم الشركة مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      typeRequired: "نوع الشركة مطلوب",
+      imageRequired: "صورة الشركة مطلوبة",
+      imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
+      imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
+    },
+
+    trashed: {
+      title: "الشركات المحذوفة",
+      empty: "لا توجد شركات محذوفة",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+
+    edit: "تعديل",
+    details: "التفاصيل",
+  },
+
+  companyTypes: {
+    "delivery company": "شركة توصيل",
+    "admin company": "شركة إدارية",
+  },
   filters: {
     selectAll: "تحديد الكل",
     clearAll: "مسح الكل",
@@ -287,7 +356,6 @@ export default {
     filterBy: "تصفية حسب",
   },
 
-  // الترجمات المشتركة
   common: {
     save: "حفظ",
     cancel: "إلغاء",
@@ -301,7 +369,6 @@ export default {
     optional: "اختياري",
   },
 
-  // قيم الأدوار
   roles: {
     Admin: "مسؤول",
     User: "مستخدم",
@@ -310,14 +377,12 @@ export default {
     Employee: "موظف",
   },
 
-  // قيم حالة السائق
   statuses: {
     available: "متاح",
     busy: "مشغول",
     offline: "في عطلة",
   },
 
-  // قيم نوع السائق
   driverTypes: {
     customDriver: "سائق مخصص",
     deliveryDriver: "سائق توصيل",
