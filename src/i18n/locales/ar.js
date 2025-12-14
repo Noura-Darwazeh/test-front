@@ -243,7 +243,7 @@ export default {
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
     // الفلاتر
-    filterByStatus: "تصفية حسب الحالة",
+    filterByCompany: "تصفية حسب الشركة",
 
     // حقول النموذج
     form: {
@@ -278,6 +278,12 @@ export default {
     //التعديل والتفاصيل
     edit: "تعديل",
     details: "تفاصيل ",
+  },
+
+  companyNames: {
+    "company 1": "شركة 1",
+    "company 2": "شركة 2",
+    "company 3": "شركة 3",
   },
 
   company: {

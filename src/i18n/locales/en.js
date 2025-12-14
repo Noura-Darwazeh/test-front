@@ -244,7 +244,7 @@ export default {
     showingEntries: "Showing {from} to {to} of {total} entries",
 
     // Filters
-    filterByRole: "Filter by Role",
+    filterByCompany: "Filter by Company",
 
     // Form Fields
     form: {
@@ -283,6 +283,11 @@ export default {
   },
 
 
+  companyNames: {
+    "company 1": "Company 1",
+    "company 2": "Company 2",
+    "company 3": "Company 3",
+  },
   company: {
     // Page Headers
     title: "Company Table",

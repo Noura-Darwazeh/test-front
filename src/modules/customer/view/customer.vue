@@ -1,10 +1,10 @@
 <template>
     <div class="user-page-container bg-light">
         <CustomerHeader v-model="searchText" :searchPlaceholder="$t('customer.searchPlaceholder')" :data="customers"
-            groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('customer.filterByStatus')"
-            translationKey="statuses" :columns="customerColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('customer.addNew')" @add-click="openAddModal"
-            @trashed-click="openTrashedModal" />
+            groupKey="company_name" v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('customer.filterByCompany')" translationKey="" :columns="customerColumns"
+            v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('customer.addNew')"
+            @add-click="openAddModal" @trashed-click="openTrashedModal" />
 
         <div class="card border-0">
             <div class="card-body p-0">
@@ -80,7 +80,7 @@ const customers = ref([
         id: 3,
         name: " Ahmed",
         phone_number: "0598549638",
-        company_name: "company 1",
+        company_name: "company 2",
         location: 'Nablus',
     },
 ]);
@@ -185,7 +185,7 @@ const filteredColumns = computed(() => {
 
 const filteredCustomer = computed(() => {
     let result = customers.value;
-    result = filterByGroups(result, selectedGroups.value, "status");
+    result = filterByGroups(result, selectedGroups.value, "company_name");
     result = filterData(result, searchText.value);
     return result;
 });
