@@ -356,6 +356,139 @@ export default {
     edit: "Edit",
     details: "Details",
   },
+  //branches
+  branch: {
+    // Page Headers
+    title: "Branches Table",
+
+    // Actions
+    searchPlaceholder: "Search branches...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Branch",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    name: "Name",
+    image: "Image",
+    location: "Location",
+
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByType: "Filter by Type",
+
+    // Form Fields
+    form: {
+      name: "Branch Name",
+      namePlaceholder: "Enter  full name",
+      location: "Branch location",
+      locationPlaceholder: "Select branch location",
+      types: {
+        delivery: "Delivery Company",
+        admin: "Admin Company",
+      },
+    },
+    companyTypes: {
+      "delivery company": "Delivery Company",
+      "admin company": "Admin Company",
+    },
+    // Validation Messages
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      typeRequired: "Type is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Branches",
+      empty: "No trashed Branches",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
+  //lines
+  lines: {
+    // Page Headers
+    title: "Lines Table",
+
+    // Actions
+    searchPlaceholder: "Search Lines...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Line",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    name: "Name",
+    region: "region",
+    company: "company",
+
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByType: "Filter by Type",
+
+    // Form Fields
+    form: {
+      name: "Line Name",
+      namePlaceholder: "Enter  full name",
+      region: "Line Region",
+      regionPlaceholder: "Select region location",
+      regions: {
+        region1: "palestine",
+        region2: "jordan",
+      },
+      company: "Line Company",
+      companyPlaceholder: "Select company",
+      companies: {
+        company1: "company 1",
+        company2: "company 2",
+      },
+    },
+    companyTypes: {
+      "delivery company": "Delivery Company",
+      "admin company": "Admin Company",
+    },
+    // Validation Messages
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      typeRequired: "Type is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Branches",
+      empty: "No trashed Branches",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
+  //
   filters: {
     selectAll: "Select All",
     clearAll: "Clear All",

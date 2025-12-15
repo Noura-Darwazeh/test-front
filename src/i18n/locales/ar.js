@@ -349,7 +349,120 @@ export default {
     edit: "تعديل",
     details: "التفاصيل",
   },
+  branch: {
+    // Page Headers
+    title: "جدول الفروع ",
 
+    searchPlaceholder: "البحث عن فروع...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة فرع",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "اسم الفرع",
+    image: "الصورة",
+    location: "الموقع",
+
+
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    filterByType: "تصفية حسب النوع",
+
+    form: {
+      name: "اسم الفرع",
+      namePlaceholder: "أدخل اسم الفرع",
+      location: "موقع الفرع",
+      typePlaceholder: "اختر نوع الفرع",
+
+      types: {
+        delivery: "شركة توصيل",
+        admin: "شركة إدارية",
+      },
+    },
+
+    validation: {
+      nameRequired: "اسم الفرع مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      typeRequired: "نوع الفرع مطلوب",
+    },
+
+    trashed: {
+      title: "الفروع المحذوفة",
+      empty: "لا توجد فروع محذوفة",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+
+    edit: "تعديل",
+    details: "التفاصيل",
+  },
+
+  lines: {
+    // Page Headers
+    title: "جدول الخطوط ",
+
+    searchPlaceholder: "البحث عن خطوط...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة خط",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "الاسم",
+    region: "المنطقة",
+    company: "الشركة",
+
+
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    filterByType: "تصفية حسب النوع",
+
+    form: {
+      name: "اسم الخط",
+      namePlaceholder: "ادخل اسم الخط",
+      region: "المنطقة ",
+      regionPlaceholder: "حدد المنطقة",
+      regions: {
+        region1: "فلسطين",
+        region2: "الاردن",
+      },
+      company: "الشركة",
+      companyPlaceholder: "حدد الشركة",
+      companies: {
+        company1: "شركة 1",
+        company2: "شركة 2",
+      },
+    },
+
+    validation: {
+      nameRequired: "اسم الفرع مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      typeRequired: "نوع الفرع مطلوب",
+    },
+
+    trashed: {
+      title: "الفروع المحذوفة",
+      empty: "لا توجد فروع محذوفة",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+
+    edit: "تعديل",
+    details: "التفاصيل",
+  },
   companyTypes: {
     "delivery company": "شركة توصيل",
     "admin company": "شركة إدارية",

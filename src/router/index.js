@@ -3,6 +3,9 @@ import user from "../modules/user/view/user.vue";
 import driver from "../modules/driver/view/driver.vue";
 import customer from "../modules/customer/view/customer.vue";
 import company from "../modules/company/view/company.vue";
+import branches from "../modules/branches/view/branches.vue";
+import lines from "../modules/lines/view/lines.vue";
+
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
 const router = createRouter({
@@ -56,6 +59,29 @@ const router = createRouter({
         icon: "/src/assets/sidebar/companyIcon.svg",
       },
     },
+    {
+      path: "/branches",
+      name: "Branches",
+      component: branches,
+      meta: {
+        titleKey: "branch.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/companyIcon.svg",
+      },
+    },
+        {
+      path: "/lines",
+      name: "Lines",
+      component: lines,
+      meta: {
+        titleKey: "lines.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/companyIcon.svg",
+      },
+    },
+
     {
       path: "/login",
       name: "Login",
