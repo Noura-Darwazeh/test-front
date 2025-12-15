@@ -389,7 +389,7 @@ export default {
     // Form Fields
     form: {
       name: "Branch Name",
-      namePlaceholder: "Enter  full name",
+      namePlaceholder: "Enter full name",
       location: "Branch location",
       locationPlaceholder: "Select branch location",
       types: {
@@ -437,8 +437,8 @@ export default {
     // Table Columns
     id: "ID",
     name: "Name",
-    region: "region",
-    company: "company",
+    region: "Region",
+    company: "Company",
 
 
     // Messages
@@ -447,40 +447,37 @@ export default {
     showingEntries: "Showing {from} to {to} of {total} entries",
 
     // Filters
-    filterByType: "Filter by Type",
+    filterByRegion: "Filter by Region",
 
     // Form Fields
     form: {
       name: "Line Name",
-      namePlaceholder: "Enter  full name",
+      namePlaceholder: "Enter full name",
       region: "Line Region",
       regionPlaceholder: "Select region location",
       regions: {
-        region1: "palestine",
-        region2: "jordan",
+        region1: "Palestine",
+        region2: "Jordan",
       },
       company: "Line Company",
       companyPlaceholder: "Select company",
       companies: {
-        company1: "company 1",
-        company2: "company 2",
+        company1: "Company 1",
+        company2: "Company 2",
       },
-    },
-    companyTypes: {
-      "delivery company": "Delivery Company",
-      "admin company": "Admin Company",
     },
     // Validation Messages
     validation: {
       nameRequired: "Name is required",
       nameMax: "Name must not exceed 255 characters",
-      typeRequired: "Type is required",
+      regionRequired: "Region is required",
+      companyRequired: "Company is required",
     },
 
     // Trashed Items
     trashed: {
-      title: "Trashed Branches",
-      empty: "No trashed Branches",
+      title: "Trashed Lines",
+      empty: "No trashed Lines",
       restore: "Restore",
       delete: "Delete Permanently",
     },
@@ -524,6 +521,12 @@ export default {
     available: "Available",
     busy: "Busy",
     offline: "In Holiday",
+  },
+
+  // Regions
+  regions: {
+    palestine: "Palestine",
+    jordan: "Jordan",
   },
 
   pagination: {

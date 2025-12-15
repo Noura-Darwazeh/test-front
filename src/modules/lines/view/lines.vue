@@ -1,38 +1,74 @@
 <template>
     <div class="user-page-container bg-light">
-        <LinesHeader v-model="searchText" :searchPlaceholder="$t('lines.searchPlaceholder')" :data="liness"
-            groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('lines.filterByType')"
-            translationKey="linesTypes" :columns="linesColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('lines.addNew')" @add-click="openAddModal"
-            @trashed-click="openTrashedModal" />
+        <LinesHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('lines.searchPlaceholder')" 
+            :data="liness"
+            groupKey="region" 
+            v-model:groupModelValue="selectedGroups" 
+            :groupLabel="$t('lines.filterByRegion')"
+            translationKey="regions" 
+            :columns="linesColumns" 
+            v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" 
+            :addButtonText="$t('lines.addNew')" 
+            @add-click="openAddModal"
+            @trashed-click="openTrashedModal" 
+        />
 
         <div class="card border-0">
             <div class="card-body p-0">
                 <DataTable :columns="filteredColumns" :data="paginatedliness" :actionsLabel="$t('lines.actions')">
                     <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('lines.edit')" :detailsLabel="$t('lines.details')"
-                            @edit="openEditModal" @details="openDetailsModal" />
+                        <ActionsDropdown 
+                            :row="row" 
+                            :editLabel="$t('lines.edit')" 
+                            :detailsLabel="$t('lines.details')"
+                            @edit="openEditModal" 
+                            @details="openDetailsModal" 
+                        />
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredliness.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                    <Pagination 
+                        :totalItems="filteredliness.length" 
+                        :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" 
+                        @update:currentPage="(page) => currentPage = page" 
+                    />
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit lines -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('lines.edit') : $t('lines.addNew')"
-            :fields="linesFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitlines" />
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('lines.edit') : $t('lines.addNew')"
+            :fields="linesFields" 
+            :showImageUpload="false" 
+            @close="closeFormModal" 
+            @submit="handleSubmitlines" 
+        />
 
         <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('lines.details')" :data="selectedlines"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('lines.details')" 
+            :data="selectedlines"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
+        />
 
         <!-- Trashed liness Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('lines.trashed.title')"
-            :emptyMessage="$t('lines.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedliness"
-            @close="closeTrashedModal" @restore="handleRestorelines" />
+        <TrashedItemsModal 
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('lines.trashed.title')"
+            :emptyMessage="$t('lines.trashed.empty')" 
+            :columns="trashedColumns" 
+            :trashedItems="trashedliness"
+            @close="closeTrashedModal" 
+            @restore="handleRestorelines" 
+        />
     </div>
 </template>
 
@@ -62,30 +98,36 @@ const selectedlines = ref({});
 const liness = ref([
     {
         id: 1,
-        name: "Ali Ahmed",
+        name: "Line 1",
         region: 'palestine',
-        company: 'delivery lines',
+        company: 'company 1',
     },
     {
         id: 2,
-        name: "Sara Mohammad",
-        region: 'palestine',
-        company: 'admin lines',
+        name: "Line 2",
+        region: 'jordan',
+        company: 'company 2',
     },
     {
         id: 3,
-        name: "Ahmed Hassan",
+        name: "Line 3",
         region: 'palestine',
-        company: 'delivery lines',
+        company: 'company 1',
+    },
+    {
+        id: 4,
+        name: "Line 4",
+        region: 'jordan',
+        company: 'company 2',
     },
 ]);
 
 const trashedliness = ref([
     {
-        id: 4,
-        name: "Trashed",
+        id: 5,
+        name: "Trashed Line",
         region: 'jordan',
-        company: 'delivery lines',
+        company: 'company 1',
     },
 ]);
 
@@ -104,7 +146,6 @@ const linesFields = computed(() => [
             return null;
         }
     },
-
     {
         name: 'region',
         label: t('lines.form.region'),
@@ -115,9 +156,8 @@ const linesFields = computed(() => [
             { value: 'jordan', label: t('lines.form.regions.region2') },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlines.value.type : ''
+        defaultValue: isEditMode.value ? selectedlines.value.region : ''
     },
-
     {
         name: 'company',
         label: t('lines.form.company'),
@@ -128,18 +168,16 @@ const linesFields = computed(() => [
             { value: 'company 2', label: t('lines.form.companies.company2') },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlines.value.type : ''
+        defaultValue: isEditMode.value ? selectedlines.value.company : ''
     },
-
 ]);
 
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('lines.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('lines.name'), colClass: 'col-md-6' },
-    { key: 'region', label: t('lines.region'), translationKey: 'linesTypes', colClass: 'col-md-6' },
-    { key: 'company', label: t('lines.company'), translationKey: 'linesTypes', colClass: 'col-md-6' },
-
+    { key: 'region', label: t('lines.region'), translationKey: 'regions', colClass: 'col-md-6' },
+    { key: 'company', label: t('lines.company'), colClass: 'col-md-6' },
 ]);
 
 const linesColumns = ref([
@@ -147,7 +185,6 @@ const linesColumns = ref([
     { key: "name", label: t("lines.name"), sortable: true },
     { key: "region", label: t("lines.region"), sortable: false },
     { key: "company", label: t("lines.company"), sortable: false },
-
 ]);
 
 const trashedColumns = computed(() => [
@@ -167,7 +204,7 @@ const filteredColumns = computed(() => {
 
 const filteredliness = computed(() => {
     let result = liness.value;
-    result = filterByGroups(result, selectedGroups.value, "type");
+    result = filterByGroups(result, selectedGroups.value, "region");
     result = filterData(result, searchText.value);
     return result;
 });
@@ -225,7 +262,7 @@ const closeTrashedModal = () => {
 
 const handleSubmitlines = (linesData) => {
     if (isEditMode.value) {
-        // Update existing lines
+        // Update existing line
         const index = liness.value.findIndex(d => d.id === selectedlines.value.id);
         if (index > -1) {
             liness.value[index] = {
@@ -234,19 +271,18 @@ const handleSubmitlines = (linesData) => {
                 region: linesData.region,
                 company: linesData.company,
             };
-            console.log('lines updated successfully!');
+            console.log('Line updated successfully!');
         }
     } else {
-        // Add new lines
+        // Add new line
         const newlines = {
             id: liness.value.length + 1,
             name: linesData.name,
             region: linesData.region,
             company: linesData.company,
-
         };
         liness.value.push(newlines);
-        console.log('lines added successfully!');
+        console.log('Line added successfully!');
     }
 };
 
@@ -256,7 +292,7 @@ const handleRestorelines = (lines) => {
     if (index > -1) {
         trashedliness.value.splice(index, 1);
     }
-    console.log("lines restored successfully!");
+    console.log("Line restored successfully!");
 };
 </script>
 

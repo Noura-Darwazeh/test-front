@@ -406,7 +406,7 @@ export default {
 
   lines: {
     // Page Headers
-    title: "جدول الخطوط ",
+    title: "جدول الخطوط",
 
     searchPlaceholder: "البحث عن خطوط...",
     search: "بحث",
@@ -428,16 +428,16 @@ export default {
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
-    filterByType: "تصفية حسب النوع",
+    filterByRegion: "تصفية حسب المنطقة",
 
     form: {
       name: "اسم الخط",
       namePlaceholder: "ادخل اسم الخط",
-      region: "المنطقة ",
+      region: "المنطقة",
       regionPlaceholder: "حدد المنطقة",
       regions: {
         region1: "فلسطين",
-        region2: "الاردن",
+        region2: "الأردن",
       },
       company: "الشركة",
       companyPlaceholder: "حدد الشركة",
@@ -448,14 +448,15 @@ export default {
     },
 
     validation: {
-      nameRequired: "اسم الفرع مطلوب",
+      nameRequired: "اسم الخط مطلوب",
       nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
-      typeRequired: "نوع الفرع مطلوب",
+      regionRequired: "المنطقة مطلوبة",
+      companyRequired: "الشركة مطلوبة",
     },
 
     trashed: {
-      title: "الفروع المحذوفة",
-      empty: "لا توجد فروع محذوفة",
+      title: "الخطوط المحذوفة",
+      empty: "لا توجد خطوط محذوفة",
       restore: "استعادة",
       delete: "حذف نهائي",
     },
@@ -505,6 +506,11 @@ export default {
   driverTypes: {
     customDriver: "سائق مخصص",
     deliveryDriver: "سائق توصيل",
+  },
+
+  regions: {
+    palestine: "فلسطين",
+    jordan: "الأردن",
   },
 
   pagination: {
