@@ -38,6 +38,9 @@
               </div>
             </div>
           </div>
+
+          <!-- Custom Slot for Additional Content -->
+          <slot name="after-details"></slot>
         </div>
 
         <!-- Footer -->

@@ -352,6 +352,15 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
+    branches: {
+      title: "Branches",
+      empty: "No branches available"
+    },
+    
+    lines: {
+      title: "Lines",
+      empty: "No lines available"
+    },
     //Edit / Details Modal
     edit: "Edit",
     details: "Details",

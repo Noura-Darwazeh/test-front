@@ -345,7 +345,15 @@ export default {
       restore: "استعادة",
       delete: "حذف نهائي",
     },
-
+  branches: {
+      title: "الفروع",
+      empty: "لا توجد فروع متاحة"
+    },
+    
+    lines: {
+      title: "الخطوط",
+      empty: "لا توجد خطوط متاحة"
+    },
     edit: "تعديل",
     details: "التفاصيل",
   },
