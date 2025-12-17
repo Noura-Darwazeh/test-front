@@ -1,24 +1,22 @@
 <template>
     <div class="user-page-container bg-light">
-        <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches
-            " groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('branch.filterByType')"
-            translationKey="branchTypes" :columns="branchColumns" v-model:visibleColumns="visibleColumns"
+        <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches"
+            groupKey="location" v-model:groupModelValue="selectedGroups" :groupLabel="$t('branch.filterByLocation')"
+            translationKey="branch.locations" :columns="branchColumns" v-model:visibleColumns="visibleColumns"
             :showAddButton="true" :addButtonText="$t('branch.addNew')" @add-click="openAddModal"
             @trashed-click="openTrashedModal" />
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedbranches
-                    " :actionsLabel="$t('branch.actions')">
+                <DataTable :columns="filteredColumns" :data="paginatedbranches" :actionsLabel="$t('branch.actions')">
                     <template #actions="{ row }">
                         <ActionsDropdown :row="row" :editLabel="$t('branch.edit')" :detailsLabel="$t('branch.details')"
                             @edit="openEditModal" @details="openDetailsModal" />
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredbranches
-                        .length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
-                        @update:currentPage="(page) => currentPage = page" />
+                    <Pagination :totalItems="filteredbranches.length" :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                 </div>
             </div>
         </div>
@@ -33,8 +31,8 @@
 
         <!-- Trashed branches Modal -->
         <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('branch.trashed.title')"
-            :emptyMessage="$t('branch.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedbranches
-                " @close="closeTrashedModal" @restore="handleRestorebranch" />
+            :emptyMessage="$t('branch.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedbranches"
+            @close="closeTrashedModal" @restore="handleRestorebranch" />
     </div>
 </template>
 
@@ -64,33 +62,24 @@ const selectedbranch = ref({});
 const branches = ref([
     {
         id: 1,
-        name: "Ali Ahmed",
-        location: 'Nablus',
+        name: "Branch Nablus Central",
+        location: 'nablus',
         company: 'company 1'
     },
     {
         id: 2,
-        name: "Sara Mohammad",
-        location: 'Ramallah',
+        name: "Branch Ramallah Downtown",
+        location: 'ramallah',
         company: 'company 2'
-
-    },
-    {
-        id: 3,
-        name: "Ahmed Hassan",
-        location: 'Ramallah',
-        company: 'company 3'
-
     },
 ]);
 
 const trashedbranches = ref([
     {
-        id: 4,
-        name: "Trashed",
-        location: 'Nablus',
+        id: 6,
+        name: "Trashed Branch",
+        location: 'nablus',
         company: 'company 1'
-
     },
 ]);
 
@@ -109,16 +98,19 @@ const branchFields = computed(() => [
             return null;
         }
     },
-
     {
         name: 'location',
         label: t('branch.form.location'),
-        type: 'text',
+        type: 'select',
         required: true,
+        options: [
+            { value: 'nablus', label: t('branch.locations.nablus') },
+            { value: 'ramallah', label: t('branch.locations.ramallah') },
+
+        ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedbranch.value.location : ''
     },
-
     {
         name: 'company',
         label: t('branch.form.company'),
@@ -131,18 +123,14 @@ const branchFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedbranch.value.company : ''
     },
-
-
-
 ]);
 
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('branch.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('branch.name'), colClass: 'col-md-6' },
-    { key: 'location', label: t('branch.location'), translationKey: 'branchTypes', colClass: 'col-md-6' },
+    { key: 'location', label: t('branch.location'), translationKey: 'branch.locations', colClass: 'col-md-6' },
     { key: 'company', label: t('branch.company'), colClass: 'col-md-6' },
-
 ]);
 
 const branchColumns = ref([
@@ -150,8 +138,6 @@ const branchColumns = ref([
     { key: "name", label: t("branch.name"), sortable: true },
     { key: "location", label: t("branch.location"), sortable: false },
     { key: "company", label: t("branch.company"), sortable: false },
-
-
 ]);
 
 const trashedColumns = computed(() => [
@@ -168,24 +154,20 @@ const filteredColumns = computed(() => {
     );
 });
 
-const filteredbranches
-    = computed(() => {
-        let result = branches
-            .value;
-        result = filterByGroups(result, selectedGroups.value, "type");
-        result = filterData(result, searchText.value);
-        return result;
-    });
+const filteredbranches = computed(() => {
+    let result = branches.value;
+    result = filterByGroups(result, selectedGroups.value, "location");
+    result = filterData(result, searchText.value);
+    return result;
+});
 
-const paginatedbranches
-    = computed(() => {
-        return paginateData(
-            filteredbranches
-                .value,
-            currentPage.value,
-            itemsPerPage.value
-        );
-    });
+const paginatedbranches = computed(() => {
+    return paginateData(
+        filteredbranches.value,
+        currentPage.value,
+        itemsPerPage.value
+    );
+});
 
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
@@ -233,45 +215,36 @@ const closeTrashedModal = () => {
 const handleSubmitbranch = (branchData) => {
     if (isEditMode.value) {
         // Update existing branch
-        const index = branches
-            .value.findIndex(d => d.id === selectedbranch.value.id);
+        const index = branches.value.findIndex(d => d.id === selectedbranch.value.id);
         if (index > -1) {
-            branches
-                .value[index] = {
-                ...branches
-                    .value[index],
+            branches.value[index] = {
+                ...branches.value[index],
                 name: branchData.name,
                 company: branchData.company || 'company 1',
                 location: branchData.location,
-
             };
-            console.log('branch updated successfully!');
+            console.log('Branch updated successfully!');
         }
     } else {
         // Add new branch
         const newbranch = {
-            id: branches
-                .value.length + 1,
+            id: branches.value.length + 1,
             name: branchData.name,
             company: branchData.company,
             location: branchData.location,
         };
-        branches
-            .value.push(newbranch);
-        console.log('branch added successfully!');
+        branches.value.push(newbranch);
+        console.log('Branch added successfully!');
     }
 };
 
 const handleRestorebranch = (branch) => {
-    branches
-        .value.push(branch);
-    const index = trashedbranches
-        .value.findIndex(d => d.id === branch.id);
+    branches.value.push(branch);
+    const index = trashedbranches.value.findIndex(d => d.id === branch.id);
     if (index > -1) {
-        trashedbranches
-            .value.splice(index, 1);
+        trashedbranches.value.splice(index, 1);
     }
-    console.log("branch restored successfully!");
+    console.log("Branch restored successfully!");
 };
 </script>
 

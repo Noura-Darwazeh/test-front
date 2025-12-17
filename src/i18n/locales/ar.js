@@ -385,8 +385,11 @@ export default {
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
-    filterByType: "تصفية حسب النوع",
-
+    filterByLocation: "تصفية حسب الموقع",
+    locations: {
+      nablus: "نابلس",
+      ramallah: "رام الله",
+    },
     form: {
       name: "اسم الفرع",
       namePlaceholder: "أدخل اسم الفرع",

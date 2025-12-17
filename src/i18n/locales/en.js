@@ -393,8 +393,11 @@ export default {
     showingEntries: "Showing {from} to {to} of {total} entries",
 
     // Filters
-    filterByType: "Filter by Type",
-
+    filterByLocation: "Filter by Location",
+    locations: {
+      nablus: "Nablus",
+      ramallah: "Ramallah",
+    },
     // Form Fields
     form: {
       name: "Branch Name",
