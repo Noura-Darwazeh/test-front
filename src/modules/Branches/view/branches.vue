@@ -11,8 +11,8 @@
                 <DataTable :columns="filteredColumns" :data="paginatedbranches
                     " :actionsLabel="$t('branch.actions')">
                     <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('branch.edit')"
-                            :detailsLabel="$t('branch.details')" @edit="openEditModal" @details="openDetailsModal" />
+                        <ActionsDropdown :row="row" :editLabel="$t('branch.edit')" :detailsLabel="$t('branch.details')"
+                            @edit="openEditModal" @details="openDetailsModal" />
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
@@ -25,15 +25,13 @@
 
         <!-- Dynamic Form Modal for Add/Edit branch -->
         <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('branch.edit') : $t('branch.addNew')"
-            :fields="branchFields" :showImageUpload="true" :imageRequired="false"
-            :imageUploadLabel="$t('branch.form.uploadImage')" @close="closeFormModal" @submit="handleSubmitbranch" />
+            :fields="branchFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitbranch" />
 
         <!-- Details Modal -->
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('branch.details')" :data="selectedbranch"
             :fields="detailsFields" @close="closeDetailsModal" />
 
-        <!-- Trashed branches
- Modal -->
+        <!-- Trashed branches Modal -->
         <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('branch.trashed.title')"
             :emptyMessage="$t('branch.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedbranches
                 " @close="closeTrashedModal" @restore="handleRestorebranch" />
@@ -48,7 +46,7 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
-import BranchesHeader from "../components/BranchesHeader.vue";
+import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 
@@ -63,33 +61,38 @@ const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedbranch = ref({});
 
-const branches
-    = ref([
-        {
-            id: 1,
-            name: "Ali Ahmed",
-            location: 'Nablus',
-        },
-        {
-            id: 2,
-            name: "Sara Mohammad",
-            location: 'Ramallah',
-        },
-        {
-            id: 3,
-            name: "Ahmed Hassan",
-            location: 'Ramallah',
-        },
-    ]);
+const branches = ref([
+    {
+        id: 1,
+        name: "Ali Ahmed",
+        location: 'Nablus',
+        company: 'company 1'
+    },
+    {
+        id: 2,
+        name: "Sara Mohammad",
+        location: 'Ramallah',
+        company: 'company 2'
 
-const trashedbranches
-    = ref([
-        {
-            id: 4,
-            name: "Trashed",
-            location: 'delivery branch',
-        },
-    ]);
+    },
+    {
+        id: 3,
+        name: "Ahmed Hassan",
+        location: 'Ramallah',
+        company: 'company 3'
+
+    },
+]);
+
+const trashedbranches = ref([
+    {
+        id: 4,
+        name: "Trashed",
+        location: 'Nablus',
+        company: 'company 1'
+
+    },
+]);
 
 // branch Form Fields 
 const branchFields = computed(() => [
@@ -110,14 +113,23 @@ const branchFields = computed(() => [
     {
         name: 'location',
         label: t('branch.form.location'),
+        type: 'text',
+        required: true,
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedbranch.value.location : ''
+    },
+
+    {
+        name: 'company',
+        label: t('branch.form.company'),
         type: 'select',
         required: true,
         options: [
-            { value: 'admin branch', label: t('branch.form.types.delivery') },
-            { value: 'delivery branch', label: t('branch.form.types.admin') },
+            { value: 'company 1', label: t('lines.form.companies.company1') },
+            { value: 'company 2', label: t('lines.form.companies.company2') },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedbranch.value.location : ''
+        defaultValue: isEditMode.value ? selectedbranch.value.company : ''
     },
 
 
@@ -129,12 +141,17 @@ const detailsFields = computed(() => [
     { key: 'id', label: t('branch.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('branch.name'), colClass: 'col-md-6' },
     { key: 'location', label: t('branch.location'), translationKey: 'branchTypes', colClass: 'col-md-6' },
+    { key: 'company', label: t('branch.company'), colClass: 'col-md-6' },
+
 ]);
 
 const branchColumns = ref([
     { key: "id", label: t("branch.id"), sortable: true },
     { key: "name", label: t("branch.name"), sortable: true },
     { key: "location", label: t("branch.location"), sortable: false },
+    { key: "company", label: t("branch.company"), sortable: false },
+
+
 ]);
 
 const trashedColumns = computed(() => [
@@ -224,15 +241,9 @@ const handleSubmitbranch = (branchData) => {
                 ...branches
                     .value[index],
                 name: branchData.name,
-                username: branchData.username,
-                email: branchData.email || '',
-                phone_number: branchData.phone_number,
-                status: branchData.status || 'available',
+                company: branchData.company || 'company 1',
                 location: branchData.location,
-                branch_name: branchData.branch_name,
-                vehicle_number: branchData.vehicle_number,
-                image: branchData.imagePreview || branches
-                    .value[index].image
+
             };
             console.log('branch updated successfully!');
         }
@@ -242,8 +253,8 @@ const handleSubmitbranch = (branchData) => {
             id: branches
                 .value.length + 1,
             name: branchData.name,
+            company: branchData.company,
             location: branchData.location,
-            image: branchData.imagePreview || 'path/test'
         };
         branches
             .value.push(newbranch);

@@ -356,7 +356,7 @@ export default {
       title: "Branches",
       empty: "No branches available"
     },
-    
+
     lines: {
       title: "Lines",
       empty: "No lines available"
@@ -383,7 +383,7 @@ export default {
     // Table Columns
     id: "ID",
     name: "Name",
-    image: "Image",
+    company: "company",
     location: "Location",
 
 
@@ -401,15 +401,14 @@ export default {
       namePlaceholder: "Enter full name",
       location: "Branch location",
       locationPlaceholder: "Select branch location",
-      types: {
-        delivery: "Delivery Company",
-        admin: "Admin Company",
+      company: "Company",
+      companyPlaceholder: "Select company",
+      companies: {
+        "company1": "Company 1",
+        "company2": "Company 2",
       },
     },
-    companyTypes: {
-      "delivery company": "Delivery Company",
-      "admin company": "Admin Company",
-    },
+
     // Validation Messages
     validation: {
       nameRequired: "Name is required",
@@ -494,7 +493,93 @@ export default {
     edit: "Edit",
     details: "Details",
   },
-  //
+  //linePrice
+
+  linePrice: {
+    // Page Headers
+    title: "Line Price Table",
+
+    // Actions
+    searchPlaceholder: "Search Line...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Price",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    name: "Name",
+    price: "Price",
+    currency: "currency",
+    type: "Type",
+    company: "Company",
+
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByRegion: "Filter by Region",
+
+    // Form Fields
+    form: {
+      name: "Line Name",
+      namePlaceholder: "Enter full name",
+
+      price: "price",
+      pricePlaceholder: "Enter price",
+
+      currency: "currency",
+      currencyPlaceholder: "Select Currency",
+      currencies: {
+        currency1: "USD",
+        currency2: "JOD",
+        currency3: "ILS",
+      },
+
+      company: "Line Company",
+      companyPlaceholder: "Select company",
+      companies: {
+        company1: "Company 1",
+        company2: "Company 2",
+      },
+
+      type: "Line Type",
+      typePlaceholder: "Select Type",
+      types: {
+        type1: "delivery",
+        type2: "return",
+      },
+    },
+    // Validation Messages
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      regionRequired: "Region is required",
+      companyRequired: "Company is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Line",
+      empty: "No trashed line",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
+  //regions
+
+  regions: {
+    title: "Regions Table",
+  },
   filters: {
     selectAll: "Select All",
     clearAll: "Clear All",

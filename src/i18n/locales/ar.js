@@ -1,3 +1,5 @@
+import LinePrice from "@/modules/linePrice/view/linePrice.vue";
+
 export default {
   navbar: {
     notifications: "الإشعارات",
@@ -345,11 +347,11 @@ export default {
       restore: "استعادة",
       delete: "حذف نهائي",
     },
-  branches: {
+    branches: {
       title: "الفروع",
       empty: "لا توجد فروع متاحة"
     },
-    
+
     lines: {
       title: "الخطوط",
       empty: "لا توجد خطوط متاحة"
@@ -357,6 +359,8 @@ export default {
     edit: "تعديل",
     details: "التفاصيل",
   },
+  //
+
   branch: {
     // Page Headers
     title: "جدول الفروع ",
@@ -373,7 +377,7 @@ export default {
     // أعمدة الجدول
     id: "المعرف",
     name: "اسم الفرع",
-    image: "الصورة",
+    company: "الشركة",
     location: "الموقع",
 
 
@@ -389,9 +393,12 @@ export default {
       location: "موقع الفرع",
       typePlaceholder: "اختر نوع الفرع",
 
-      types: {
-        delivery: "شركة توصيل",
-        admin: "شركة إدارية",
+      company: "الشركة",
+      companyPlaceholder: "حدد الشركة",
+
+      companies: {
+        "company1": "شركة 1",
+        "company2": "شركة 2",
       },
     },
 
@@ -472,6 +479,83 @@ export default {
     edit: "تعديل",
     details: "التفاصيل",
   },
+
+  //linePrice
+  linePrice: {
+    // Page Headers
+    title: "جدول سعر الخط",
+
+    searchPlaceholder: "البحث عن سعر...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة سعر",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "الاسم",
+    price: "السعر",
+    currency: "العملة",
+    type: "النوع",
+    company: "الشركة",
+
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    filterByRegion: "تصفية حسب المنطقة",
+
+    form: {
+      name: "اسم الخط",
+      namePlaceholder: "ادخل اسم الخط ",
+
+      price: "السعر",
+      pricePlaceholder: "ادخل سعر الخط",
+
+      currency: "العملة",
+      currencyPlaceholder: "حدد العملة",
+      currencies: {
+        currency1: "USD",
+        currency2: "JOD",
+        currency3: "ILS",
+      },
+
+      company: "الشركة",
+      companyPlaceholder: "حدد الشركة",
+      companies: {
+        company1: "شركة1",
+        company2: "شركة2",
+      },
+
+      type: "نوع الخط",
+      typePlaceholder: "حدد نوع الخط",
+      types: {
+        type1: "توصيل",
+        type2: "ارجاع",
+      },
+    },
+
+    validation: {
+      nameRequired: "اسم الخط مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      regionRequired: "المنطقة مطلوبة",
+      companyRequired: "الشركة مطلوبة",
+    },
+
+    trashed: {
+      title: "الخط المحذوفة",
+      empty: "لا توجد خطوط محذوفة",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+
+    edit: "تعديل",
+    details: "التفاصيل",
+  },
+
   companyTypes: {
     "delivery company": "شركة توصيل",
     "admin company": "شركة إدارية",

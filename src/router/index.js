@@ -5,9 +5,11 @@ import customer from "../modules/customer/view/customer.vue";
 import company from "../modules/company/view/company.vue";
 import branches from "../modules/branches/view/branches.vue";
 import lines from "../modules/lines/view/lines.vue";
-
+import linePrice from "../modules/linePrice/view/linePrice.vue";
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
+import regions from "../modules/regions/view/regions.vue";
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -37,7 +39,7 @@ const router = createRouter({
         icon: "/src/assets/sidebar/driverIcon.svg",
       },
     },
-       {
+    {
       path: "/customer",
       name: "Customer",
       component: customer,
@@ -67,10 +69,10 @@ const router = createRouter({
         titleKey: "branch.title",
         requireAuth: false,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/companyIcon.svg",
+        icon: "/src/assets/sidebar/branchIcon.svg",
       },
     },
-        {
+    {
       path: "/lines",
       name: "Lines",
       component: lines,
@@ -78,10 +80,33 @@ const router = createRouter({
         titleKey: "lines.title",
         requireAuth: false,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/companyIcon.svg",
+        icon: "/src/assets/sidebar/linesIcon.svg",
       },
     },
 
+    {
+      path: "/line-price",
+      name: "linePrice",
+      component: linePrice,
+      meta: {
+        titleKey: "linePrice.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/priceIcon.svg",
+      },
+    },
+
+    {
+      path: "/regions",
+      name: "regions",
+      component: regions,
+      meta: {
+        titleKey: "regions.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/linesIcon.svg",
+      },
+    },
     {
       path: "/login",
       name: "Login",
