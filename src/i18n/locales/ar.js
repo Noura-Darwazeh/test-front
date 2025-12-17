@@ -484,11 +484,14 @@ export default {
   },
 
   //linePrice
-  linePrice: {
-    // Page Headers
-    title: "جدول سعر الخط",
+  // إضافة هذا الجزء إلى ملف src/i18n/locales/ar.js
 
-    searchPlaceholder: "البحث عن سعر...",
+  linePrice: {
+    // عناوين الصفحة
+    title: "جدول أسعار الخطوط",
+
+    // الإجراءات
+    searchPlaceholder: "البحث عن أسعار الخطوط...",
     search: "بحث",
     columns: "الأعمدة",
     addNew: "إضافة سعر",
@@ -499,62 +502,72 @@ export default {
 
     // أعمدة الجدول
     id: "المعرف",
-    name: "الاسم",
+    name: "اسم الخط",
     price: "السعر",
     currency: "العملة",
     type: "النوع",
     company: "الشركة",
 
+    // الرسائل
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
-    filterByRegion: "تصفية حسب المنطقة",
+    // الفلاتر
+    filterByCompany: "تصفية حسب الشركة",
 
+    // حقول النموذج
     form: {
       name: "اسم الخط",
-      namePlaceholder: "ادخل اسم الخط ",
+      namePlaceholder: "أدخل اسم الخط",
 
       price: "السعر",
-      pricePlaceholder: "ادخل سعر الخط",
+      pricePlaceholder: "أدخل سعر الخط",
 
       currency: "العملة",
       currencyPlaceholder: "حدد العملة",
       currencies: {
-        currency1: "USD",
-        currency2: "JOD",
-        currency3: "ILS",
+        currency1: "دولار أمريكي",
+        currency2: "دينار أردني",
+        currency3: "شيكل",
       },
 
       company: "الشركة",
       companyPlaceholder: "حدد الشركة",
       companies: {
-        company1: "شركة1",
-        company2: "شركة2",
+        company1: "شركة 1",
+        company2: "شركة 2",
       },
 
       type: "نوع الخط",
       typePlaceholder: "حدد نوع الخط",
       types: {
         type1: "توصيل",
-        type2: "ارجاع",
+        type2: "إرجاع",
+        delivery: "توصيل",
+        return: "إرجاع",
       },
     },
 
+    // رسائل التحقق
     validation: {
       nameRequired: "اسم الخط مطلوب",
       nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
-      regionRequired: "المنطقة مطلوبة",
+      priceRequired: "السعر مطلوب ويجب أن يكون أكبر من 0",
+      currencyRequired: "العملة مطلوبة",
       companyRequired: "الشركة مطلوبة",
+      typeRequired: "النوع مطلوب",
     },
 
+    // العناصر المحذوفة
     trashed: {
-      title: "الخط المحذوفة",
-      empty: "لا توجد خطوط محذوفة",
+      title: "أسعار الخطوط المحذوفة",
+      empty: "لا توجد أسعار خطوط محذوفة",
       restore: "استعادة",
       delete: "حذف نهائي",
     },
 
+    // التعديل والتفاصيل
     edit: "تعديل",
     details: "التفاصيل",
   },

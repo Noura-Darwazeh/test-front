@@ -498,12 +498,14 @@ export default {
   },
   //linePrice
 
+  // إضافة هذا الجزء إلى ملف src/i18n/locales/en.js
+
   linePrice: {
     // Page Headers
     title: "Line Price Table",
 
     // Actions
-    searchPlaceholder: "Search Line...",
+    searchPlaceholder: "Search line prices...",
     search: "Search",
     columns: "Columns",
     addNew: "Add Price",
@@ -514,12 +516,11 @@ export default {
 
     // Table Columns
     id: "ID",
-    name: "Name",
+    name: "Line Name",
     price: "Price",
-    currency: "currency",
+    currency: "Currency",
     type: "Type",
     company: "Company",
-
 
     // Messages
     noData: "No data available",
@@ -527,17 +528,17 @@ export default {
     showingEntries: "Showing {from} to {to} of {total} entries",
 
     // Filters
-    filterByRegion: "Filter by Region",
+    filterByCompany: "Filter by Company",
 
     // Form Fields
     form: {
       name: "Line Name",
-      namePlaceholder: "Enter full name",
+      namePlaceholder: "Enter line name",
 
-      price: "price",
+      price: "Price",
       pricePlaceholder: "Enter price",
 
-      currency: "currency",
+      currency: "Currency",
       currencyPlaceholder: "Select Currency",
       currencies: {
         currency1: "USD",
@@ -545,7 +546,7 @@ export default {
         currency3: "ILS",
       },
 
-      company: "Line Company",
+      company: "Company",
       companyPlaceholder: "Select company",
       companies: {
         company1: "Company 1",
@@ -555,26 +556,32 @@ export default {
       type: "Line Type",
       typePlaceholder: "Select Type",
       types: {
-        type1: "delivery",
-        type2: "return",
+        type1: "Delivery",
+        type2: "Return",
+        delivery: "Delivery",
+        return: "Return",
       },
     },
+
     // Validation Messages
     validation: {
-      nameRequired: "Name is required",
+      nameRequired: "Line name is required",
       nameMax: "Name must not exceed 255 characters",
-      regionRequired: "Region is required",
+      priceRequired: "Price is required and must be greater than 0",
+      currencyRequired: "Currency is required",
       companyRequired: "Company is required",
+      typeRequired: "Type is required",
     },
 
     // Trashed Items
     trashed: {
-      title: "Trashed Line",
-      empty: "No trashed line",
+      title: "Trashed Line Prices",
+      empty: "No trashed line prices",
       restore: "Restore",
       delete: "Delete Permanently",
     },
-    //Edit / Details Modal
+
+    // Edit / Details Modal
     edit: "Edit",
     details: "Details",
   },
