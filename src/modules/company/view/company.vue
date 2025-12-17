@@ -1,6 +1,6 @@
 <template>
     <div class="user-page-container bg-light">
-        <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companys"
+        <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
             groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
             translationKey="companyTypes" :columns="companyColumns" v-model:visibleColumns="visibleColumns"
             :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal"
@@ -8,14 +8,14 @@
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedcompanys" :actionsLabel="$t('company.actions')">
+                <DataTable :columns="filteredColumns" :data="paginatedcompanies" :actionsLabel="$t('company.actions')">
                     <template #actions="{ row }">
                         <ActionsDropdown :row="row" :editLabel="$t('company.edit')"
                             :detailsLabel="$t('company.details')" @edit="openEditModal" @details="openDetailsModal" />
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredcompanys.length" :itemsPerPage="itemsPerPage"
+                    <Pagination :totalItems="filteredcompanies.length" :itemsPerPage="itemsPerPage"
                         :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                 </div>
             </div>
@@ -143,9 +143,9 @@
             </template>
         </DetailsModal>
 
-        <!-- Trashed companys Modal -->
+        <!-- Trashed companies Modal -->
         <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('company.trashed.title')"
-            :emptyMessage="$t('company.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedcompanys"
+            :emptyMessage="$t('company.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedcompanies"
             @close="closeTrashedModal" @restore="handleRestorecompany" />
     </div>
 </template>
@@ -173,7 +173,7 @@ const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedcompany = ref({});
 
-const companys = ref([
+const companies = ref([
     {
         id: 1,
         name: "Ali Ahmed",
@@ -214,7 +214,7 @@ const companys = ref([
     },
 ]);
 
-const trashedcompanys = ref([
+const trashedcompanies = ref([
     {
         id: 4,
         name: "Trashed",
@@ -257,8 +257,8 @@ const companyFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'admin company', label: t('company.form.types.delivery') },
-            { value: 'delivery company', label: t('company.form.types.admin') },
+            { value: 'admin company', label: t('company.form.types.admin') },
+            { value: 'delivery company', label: t('company.form.types.delivery') },
         ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedcompany.value.type : ''
@@ -292,16 +292,16 @@ const filteredColumns = computed(() => {
     );
 });
 
-const filteredcompanys = computed(() => {
-    let result = companys.value;
+const filteredcompanies = computed(() => {
+    let result = companies.value;
     result = filterByGroups(result, selectedGroups.value, "type");
     result = filterData(result, searchText.value);
     return result;
 });
 
-const paginatedcompanys = computed(() => {
+const paginatedcompanies = computed(() => {
     return paginateData(
-        filteredcompanys.value,
+        filteredcompanies.value,
         currentPage.value,
         itemsPerPage.value
     );
@@ -353,42 +353,36 @@ const closeTrashedModal = () => {
 const handleSubmitcompany = (companyData) => {
     if (isEditMode.value) {
         // Update existing company
-        const index = companys.value.findIndex(d => d.id === selectedcompany.value.id);
+        const index = companies.value.findIndex(d => d.id === selectedcompany.value.id);
         if (index > -1) {
-            companys.value[index] = {
-                ...companys.value[index],
+            companies.value[index] = {
+                ...companies.value[index],
                 name: companyData.name,
-                username: companyData.username,
-                email: companyData.email || '',
-                phone_number: companyData.phone_number,
-                status: companyData.status || 'available',
                 type: companyData.type,
-                branch_name: companyData.branch_name,
-                vehicle_number: companyData.vehicle_number,
-                image: companyData.imagePreview || companys.value[index].image
+                image: companyData.imagePreview || companies.value[index].image
             };
             console.log('company updated successfully!');
         }
     } else {
         // Add new company
         const newcompany = {
-            id: companys.value.length + 1,
+            id: companies.value.length + 1,
             name: companyData.name,
             type: companyData.type,
             image: companyData.imagePreview || 'path/test',
             branches: [],
             lines: []
         };
-        companys.value.push(newcompany);
+        companies.value.push(newcompany);
         console.log('company added successfully!');
     }
 };
 
 const handleRestorecompany = (company) => {
-    companys.value.push(company);
-    const index = trashedcompanys.value.findIndex(d => d.id === company.id);
+    companies.value.push(company);
+    const index = trashedcompanies.value.findIndex(d => d.id === company.id);
     if (index > -1) {
-        trashedcompanys.value.splice(index, 1);
+        trashedcompanies.value.splice(index, 1);
     }
     console.log("company restored successfully!");
 };

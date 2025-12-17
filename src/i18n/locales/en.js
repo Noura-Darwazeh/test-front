@@ -293,7 +293,7 @@ export default {
     title: "Company Table",
 
     // Actions
-    searchPlaceholder: "Search companys...",
+    searchPlaceholder: "Search companies...",
     search: "Search",
     columns: "Columns",
     addNew: "Add Company",
@@ -308,19 +308,17 @@ export default {
     image: "Image",
     type: "Type",
 
-    // Status Values
-    active: "Active",
-    inactive: "Inactive",
-
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
 
     // Filters
-
     filterByType: "Filter by Type",
-
+    companyTypes: {
+      "delivery company": "Delivery Company",
+      "admin company": "Admin Company",
+    },
     // Form Fields
     form: {
       name: "Company Name",
@@ -334,10 +332,7 @@ export default {
         admin: "Admin Company",
       },
     },
-    companyTypes: {
-      "delivery company": "Delivery Company",
-      "admin company": "Admin Company",
-    },
+
     // Validation Messages
     validation: {
       nameRequired: "Name is required",
@@ -347,8 +342,8 @@ export default {
 
     // Trashed Items
     trashed: {
-      title: "Trashed Companys",
-      empty: "No trashed Companys",
+      title: "Trashed Companies",
+      empty: "No Trashed Companies",
       restore: "Restore",
       delete: "Delete Permanently",
     },
@@ -629,10 +624,66 @@ export default {
 
   // Regions
   regions: {
-    palestine: "Palestine",
-    jordan: "Jordan",
-  },
+    // Page Headers
+    title: "Regions Table",
+    // Actions
+    searchPlaceholder: "Search Regions...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Region",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
 
+    // Table Columns
+    id: "ID",
+    key: "Key",
+    name: "Name",
+    timezone: "Timezone",
+
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByStatus: "Filter by Status",
+
+    // Form Fields
+    form: {
+      key: "Region Key",
+      keyPlaceholder: "Enter Region Key",
+
+      name: "Region Name",
+      namePlaceholder: "Enter Region name",
+
+      timezone: "Region Timezone",
+      timezonePlaceholder: "Enter Region Timezone",
+    },
+
+    // Validation Messages
+    validation: {
+      nameRequired: "Region name is required",
+      nameMax: "Name must not exceed 255 characters",
+
+      keyRequired: "Region key is required",
+
+      timezoneMax: "timezone must not exceed 50 characters",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Regions",
+      empty: "No trashed region",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
   pagination: {
     showing: "Showing",
     of: "of",

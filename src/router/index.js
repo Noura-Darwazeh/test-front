@@ -104,7 +104,7 @@ const router = createRouter({
         titleKey: "regions.title",
         requireAuth: false,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/linesIcon.svg",
+        icon: "/src/assets/sidebar/regionsIcon.svg",
       },
     },
     {

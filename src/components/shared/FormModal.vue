@@ -81,7 +81,8 @@
                         <!-- Footer -->
                         <div class="mt-4 d-flex justify-content-end gap-2">
                             <PrimaryButton text="Cancel" @click="closeModal" bg-color="var(--color-secondary)" />
-                            <PrimaryButton text="Save" loadingText="Saving..." :loading="isSubmitting" type="submit" />
+                            <PrimaryButton text="Save" bgColor="var(--color-success)" loadingText="Saving..."
+                                :loading="isSubmitting" type="submit" />
                         </div>
                     </form>
                 </div>

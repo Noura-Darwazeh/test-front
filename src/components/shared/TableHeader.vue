@@ -13,10 +13,9 @@
     <div class="d-flex gap-2">
       <ColumnSelector :columns="columns" :modelValue="visibleColumns"
         @update:modelValue="$emit('update:visibleColumns', $event)" />
-      <PrimaryButton v-if="showAddButton" :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
+      <PrimaryButton v-if="showAddButton"  bgColor="var(--color-success)"  :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
       <PrimaryButton v-if="showAddButton" bgColor="var(--color-danger)" :iconBefore="trashIcon"
         @click="handleTrashedClick" />
-
     </div>
   </div>
 </template>

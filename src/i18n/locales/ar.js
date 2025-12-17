@@ -1,4 +1,3 @@
-import LinePrice from "@/modules/linePrice/view/linePrice.vue";
 
 export default {
   navbar: {
@@ -617,8 +616,67 @@ export default {
   },
 
   regions: {
-    palestine: "فلسطين",
-    jordan: "الأردن",
+    // عناوين الصفحة
+    title: "جدول المناطق",
+
+    // الإجراءات
+    searchPlaceholder: "البحث عن مناطق...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "اضافة منطقة",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    key: "المفتاح",
+    name: "الاسم",
+    timezone: "المنطقة الزمنية",
+
+    // الرسائل
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    // الفلاتر
+    filterByStatus: "تصفية حسب الحالة",
+
+    // حقول النموذج
+    form: {
+      key: "مفتاح المنطقة",
+      keyPlaceholder: "ادخل مفتاح المنطقة",
+
+      name: "اسم المنطقة",
+      namePlaceholder: "ادخل اسم المنطقة",
+
+      timezone: "المنطقة الزمنية ",
+      timezonePlaceholder: "ادخل المنطقة الزمنية",
+    },
+
+
+    // رسائل التحقق
+    validation: {
+      nameRequired: "اسم المنطقة مطلوب",
+      nameMax: "يجب ألا يتجاوز 255 حرفاً",
+
+      keyRequired: "مفتاح المنطقة مطلوب",
+
+      timezoneMax: "يجب ألا يتجاوز 255 حرفاً",
+
+    },
+
+    // العناصر المحذوفة
+    trashed: {
+      title: "المناطق المحذوفة",
+      empty: "لا يوجد مناطق محذوفة",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+    //التعديل والتفاصيل
+    edit: "تعديل",
+    details: "تفاصيل ",
   },
 
   pagination: {
