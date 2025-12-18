@@ -106,7 +106,18 @@ const customerFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedCustomer.value.name : '',
         validate: (value) => {
-            if (value.length > 255) return t('customer.validation.nameMax');
+            if (!value || value.trim().length === 0) {
+                return t('customer.validation.nameRequired');
+            }
+
+            if (value.length < 3) {
+                return t('customer.validation.nameMin');
+            }
+
+            if (value.length > 255) {
+                return t('customer.validation.nameMax');
+            }
+
             return null;
         }
     },
@@ -130,9 +141,9 @@ const customerFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: '1', label: 'Company 1' },
-            { value: '2', label: 'Company 2' },
-            { value: '3', label: 'Company 3' },
+            { value: 'company 1', label: 'Company 1' },
+            { value: 'company 2', label: 'Company 2' },
+            { value: 'company 3', label: 'Company 3' },
         ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedCustomer.value.company_name : ''
@@ -155,7 +166,6 @@ const customerFields = computed(() => [
 const detailsFields = computed(() => [
     { key: 'id', label: t('customer.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('customer.name'), colClass: 'col-md-6' },
-
     { key: 'phone_number', label: t('customer.phoneNumber'), colClass: 'col-md-6' },
     { key: 'company_name', label: t('customer.companyName'), colClass: 'col-md-6' },
 ]);
@@ -249,14 +259,8 @@ const handleSubmitcustomer = (customerData) => {
             customers.value[index] = {
                 ...customers.value[index],
                 name: customerData.name,
-                username: customerData.username,
-                email: customerData.email || '',
                 phone_number: customerData.phone_number,
-                status: customerData.status || 'available',
-                type: customerData.type,
                 company_name: customerData.company_name,
-                vehicle_number: customerData.vehicle_number,
-                image: customerData.imagePreview || customers.value[index].image
             };
             console.log('customer updated successfully!');
         }
@@ -265,15 +269,8 @@ const handleSubmitcustomer = (customerData) => {
         const newcustomer = {
             id: customers.value.length + 1,
             name: customerData.name,
-            username: customerData.username,
-            email: customerData.email || '',
             phone_number: customerData.phone_number,
-            role: 'customer',
-            status: customerData.status || 'available',
-            type: customerData.type,
             company_name: customerData.company_name,
-            vehicle_number: customerData.vehicle_number,
-            image: customerData.imagePreview || 'path/test'
         };
         customers.value.push(newcustomer);
         console.log('customer added successfully!');

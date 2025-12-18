@@ -61,17 +61,17 @@
             @close="closeDetailsModal" 
         />
 
-        <!-- Trashed Drivers Modal -->
-        <TrashedItemsModal 
-            :isOpen="isTrashedModalOpen" 
-            :title="$t('driver.trashed.title')" 
-            :emptyMessage="$t('driver.trashed.empty')"
-            :columns="trashedColumns" 
-            :trashedItems="trashedDrivers" 
-            @close="closeTrashedModal"
-            @restore="handleRestoreDriver" 
-        />
-    </div>
+    <!-- Trashed Drivers Modal -->
+    <TrashedItemsModal
+      :isOpen="isTrashedModalOpen"
+      :title="$t('driver.trashed.title')"
+      :emptyMessage="$t('driver.trashed.empty')"
+      :columns="trashedColumns"
+      :trashedItems="trashedDrivers"
+      @close="closeTrashedModal"
+      @restore="handleRestoreDriver"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -85,6 +85,7 @@ import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import StatusBadge from "../../../components/shared/StatusBadge.vue";
 
 const { t } = useI18n();
 const searchText = ref("");
@@ -154,7 +155,7 @@ const trashedDrivers = ref([
     },
 ]);
 
-// Driver Form Fields 
+// Driver Form Fields
 const driverFields = computed(() => [
     {
         name: 'name',
@@ -309,31 +310,37 @@ const detailsFields = computed(() => [
 ]);
 
 const driverColumns = ref([
-    { key: "id", label: t("driver.id"), sortable: true },
-    { key: "name", label: t("driver.name"), sortable: true },
-    { key: "username", label: t("driver.username"), sortable: true },
-    { key: "status", label: t("driver.status"), sortable: false },
-    { key: "type", label: t("driver.type"), sortable: false },
-    { key: "branch_name", label: t("driver.branchName"), sortable: false },
-    { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
-    { key: "phone_number", label: t("driver.phoneNumber"), sortable: false },
+  { key: "id", label: t("driver.id"), sortable: true },
+  { key: "name", label: t("driver.name"), sortable: true },
+  { key: "username", label: t("driver.username"), sortable: true },
+  {
+    key: "status",
+    label: t("driver.status"),
+    sortable: false,
+    component: "StatusBadge",
+    componentProps: { type: "driver" },
+  },
+  { key: "type", label: t("driver.type"), sortable: false },
+  { key: "branch_name", label: t("driver.branchName"), sortable: false },
+  { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
+  { key: "phone_number", label: t("driver.phoneNumber"), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
-    { key: "id", label: t("driver.id") },
-    { key: "name", label: t("driver.name") },
-    { key: "username", label: t("driver.username") },
-    { key: "status", label: t("driver.status") },
-    { key: "type", label: t("driver.type") },
-    { key: "vehicle_number", label: t("driver.vehicleNumber") },
+  { key: "id", label: t("driver.id") },
+  { key: "name", label: t("driver.name") },
+  { key: "username", label: t("driver.username") },
+  { key: "status", label: t("driver.status") },
+  { key: "type", label: t("driver.type") },
+  { key: "vehicle_number", label: t("driver.vehicleNumber") },
 ]);
 
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-    return driverColumns.value.filter((col) =>
-        visibleColumns.value.includes(col.key)
-    );
+  return driverColumns.value.filter((col) =>
+    visibleColumns.value.includes(col.key)
+  );
 });
 
 const filteredDrivers = computed(() => {
@@ -344,15 +351,15 @@ const filteredDrivers = computed(() => {
 });
 
 const paginatedDrivers = computed(() => {
-    return paginateData(
-        filteredDrivers.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+  return paginateData(
+    filteredDrivers.value,
+    currentPage.value,
+    itemsPerPage.value
+  );
 });
 
 watch([searchText, selectedGroups], () => {
-    currentPage.value = 1;
+  currentPage.value = 1;
 });
 
 // Add Modal
@@ -387,7 +394,7 @@ const closeDetailsModal = () => {
 };
 
 const openTrashedModal = () => {
-    isTrashedModalOpen.value = true;
+  isTrashedModalOpen.value = true;
 };
 
 const closeTrashedModal = () => {
@@ -445,6 +452,6 @@ const handleRestoreDriver = (driver) => {
 
 <style scoped>
 .user-page-container {
-    max-width: 100%;
+  max-width: 100%;
 }
 </style>

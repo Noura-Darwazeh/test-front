@@ -176,7 +176,7 @@ const selectedcompany = ref({});
 const companies = ref([
     {
         id: 1,
-        name: "Ali Ahmed",
+        name: "Company 1",
         type: 'delivery company',
         branches: [
             { id: 1, name: "Branch Nablus", location: "Nablus, Palestine" },
@@ -189,7 +189,7 @@ const companies = ref([
     },
     {
         id: 2,
-        name: "Sara Mohammad",
+        name: "Company 2",
         type: 'admin company',
         branches: [
             { id: 3, name: "Branch Amman", location: "Amman, Jordan" }
@@ -200,7 +200,7 @@ const companies = ref([
     },
     {
         id: 3,
-        name: "Ahmed Hassan",
+        name: "Company 3",
         type: 'delivery company',
         branches: [
             { id: 4, name: "Branch Jenin", location: "Jenin, Palestine" },

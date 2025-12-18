@@ -27,10 +27,13 @@
 
     <nav class="sidebar-nav p-2">
       <router-link v-for="item in menuItems" :key="item.path" :to="item.path"
-        class="nav-item d-flex align-items-center gap-3 px-3 py-2 mb-1 rounded text-decoration-none"
+        class="nav-item d-flex align-items-center gap-3 px-3 py-2 mb-1 rounded text-decoration-none position-relative"
         :class="{ active: isActive(item.path) }">
         <img v-if="item.icon" :src="item.icon" :alt="item.label" width="25" height="25" class="nav-icon" />
         <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
+
+        <!-- Tooltip for collapsed state -->
+        <span v-if="isCollapsed" class="nav-tooltip">{{ item.label }}</span>
       </router-link>
     </nav>
   </aside>
@@ -177,5 +180,36 @@ onUnmounted(() => {
   .text-primary {
     color: var(--primary-color) !important;
   }
+
+
+}
+
+
+
+
+.nav-tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--color-secondary);
+  color: var(--sidebar-bg);
+  padding: 5px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+}
+
+.sidebar.collapsed .nav-item:hover .nav-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar.collapsed.rtl .nav-item:hover .nav-tooltip {
+  left: auto;
+  right: 100%;
 }
 </style>

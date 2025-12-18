@@ -6,6 +6,12 @@ import company from "../modules/company/view/company.vue";
 import branches from "../modules/branches/view/branches.vue";
 import lines from "../modules/lines/view/lines.vue";
 import linePrice from "../modules/linePrice/view/linePrice.vue";
+import lineWork from "../modules/lineWork/view/lineWork.vue";
+import orders from "../modules/orders/view/orderPage.vue";
+import discount from "../modules/discount/view/discountPage.vue";
+import currency from "../modules/currency/view/currency.vue";
+import companyPrice from "../modules/companyPrice/view/companyPrice.vue";
+import map from "../modules/map/view/mapPage.vue";
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
@@ -83,7 +89,17 @@ const router = createRouter({
         icon: "/src/assets/sidebar/linesIcon.svg",
       },
     },
-
+    {
+      path: "/line-work",
+      name: "LineWork",
+      component: lineWork,
+      meta: {
+        titleKey: "lineWork.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/linesIcon.svg",
+      },
+    },
     {
       path: "/line-price",
       name: "linePrice",
@@ -108,12 +124,67 @@ const router = createRouter({
       },
     },
     {
+      path: "/orders",
+      name: "Orders",
+      component: orders,
+      meta: {
+        titleKey: "orders.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/order/order.svg",
+      },
+    },
+    {
+      path: "/discount",
+      name: "Discount",
+      component: discount,
+      meta: {
+        titleKey: "discount.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/discount/discount.svg",
+      },
+    },
+    {
+      path: "/currency",
+      name: "Currency",
+      component: currency,
+      meta: {
+        titleKey: "currency.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/currency/currency.svg",
+      },
+    },
+    {
+      path: "/company-price",
+      name: "CompanyPrice",
+      component: companyPrice,
+      meta: {
+        titleKey: "companyPrice.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/itemprice/price.svg",
+      },
+    },
+    {
       path: "/login",
       name: "Login",
       component: Login,
       meta: {
         hiddenLayout: true,
-      }
+      },
+    },
+    {
+      path: "/map",
+      name: "Map",
+      component: map,
+      meta: {
+        titleKey: "map.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/map/mapGlobe.svg",
+      },
     },
     {
       path: "/forgot-password",
@@ -121,7 +192,7 @@ const router = createRouter({
       component: forgetPassword,
       meta: {
         hiddenLayout: true,
-      }
+      },
     },
   ],
 });
