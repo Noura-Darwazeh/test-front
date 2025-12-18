@@ -597,6 +597,67 @@ export default {
     edit: "Edit",
     details: "Details",
   },
+  
+  lineWork: {
+    // Page Headers
+    title: "Line Work Table",
+    pageTitle: "Line Work Management",
+    pageSubtitle: "Manage line work and their details",
+
+    // Actions
+    searchPlaceholder: "Search line work...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Line Work",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    name: "Line Work Name",
+    company: "Company",
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByCompany: "Filter by Company",
+
+    // Form Fields
+    form: {
+      name: "Line Work Name",
+      namePlaceholder: "Enter line work name",
+      company: "Company",
+      companyPlaceholder: "Select company",
+      companies: {
+        company1: "Company 1",
+        company2: "Company 2",
+      },
+    },
+
+    // Validation Messages
+    validation: {
+      nameRequired: "Line work name is required",
+      nameMax: "Name must not exceed 255 characters",
+      companyRequired: "Company is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Line Work",
+      empty: "No trashed line work",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+
+    // Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
+  },
   //regions
 
   regions: {

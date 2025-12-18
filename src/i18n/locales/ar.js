@@ -587,7 +587,66 @@ export default {
     edit: "تعديل",
     details: "التفاصيل",
   },
+  lineWork: {
+    // عناوين الصفحة
+    title: "جدول خطوط العمل",
+    pageTitle: "إدارة خطوط العمل",
+    pageSubtitle: "إدارة خطوط العمل وتفاصيلها",
 
+    // الإجراءات
+    searchPlaceholder: "البحث عن خطوط العمل...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة خط عمل",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "اسم خط العمل",
+    company: "الشركة",
+
+    // الرسائل
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    // الفلاتر
+    filterByCompany: "تصفية حسب الشركة",
+
+    // حقول النموذج
+    form: {
+      name: "اسم خط العمل",
+      namePlaceholder: "أدخل اسم خط العمل",
+      company: "الشركة",
+      companyPlaceholder: "اختر الشركة",
+      companies: {
+        company1: "شركة 1",
+        company2: "شركة 2",
+      },
+    },
+
+    // رسائل التحقق
+    validation: {
+      nameRequired: "اسم خط العمل مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      companyRequired: "الشركة مطلوبة",
+    },
+
+    // العناصر المحذوفة
+    trashed: {
+      title: "خطوط العمل المحذوفة",
+      empty: "لا توجد خطوط عمل محذوفة",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+
+    // التعديل والتفاصيل
+    edit: "تعديل",
+    details: "التفاصيل",
+  },
   companyTypes: {
     "delivery company": "شركة توصيل",
     "admin company": "شركة إدارية",

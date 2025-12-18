@@ -1,8 +1,8 @@
 <template>
     <div class="user-page-container bg-light">
         <lineWorkHeader v-model="searchText" :searchPlaceholder="$t('lineWork.searchPlaceholder')" :data="lineWork"
-            groupKey="location" v-model:groupModelValue="selectedGroups" :groupLabel="$t('lineWork.filterByLocation')"
-            translationKey="lineWork.locations" :columns="lineWorkColumns" v-model:visibleColumns="visibleColumns"
+            groupKey="company" v-model:groupModelValue="selectedGroups" :groupLabel="$t('lineWork.filterByCompany')"
+            translationKey="companyNames" :columns="lineWorkColumns" v-model:visibleColumns="visibleColumns"
             :showAddButton="true" :addButtonText="$t('lineWork.addNew')" @add-click="openAddModal"
             @trashed-click="openTrashedModal" />
 
@@ -10,8 +10,8 @@
             <div class="card-body p-0">
                 <DataTable :columns="filteredColumns" :data="paginatedlineWork" :actionsLabel="$t('lineWork.actions')">
                     <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('lineWork.edit')" :detailsLabel="$t('lineWork.details')"
-                            @edit="openEditModal" @details="openDetailsModal" />
+                        <ActionsDropdown :row="row" :editLabel="$t('lineWork.edit')"
+                            :detailsLabel="$t('lineWork.details')" @edit="openEditModal" @details="openDetailsModal" />
                     </template>
                 </DataTable>
                 <div class="px-3 pt-1 pb-2 bg-light">
@@ -62,23 +62,25 @@ const selectedlineWork = ref({});
 const lineWork = ref([
     {
         id: 1,
-        name: "lineWork Nablus Central",
-        location: 'nablus',
+        name: "Nablus - Ramallah",
         company: 'company 1'
     },
     {
         id: 2,
-        name: "lineWork Ramallah Downtown",
-        location: 'ramallah',
+        name: "Tulkarm - Nablus",
         company: 'company 2'
+    },
+    {
+        id: 3,
+        name: "Tulkarm - Jenin ",
+        company: 'company 1'
     },
 ]);
 
 const trashedlineWork = ref([
     {
         id: 6,
-        name: "Trashed lineWork",
-        location: 'nablus',
+        name: "Trashed Line Work",
         company: 'company 1'
     },
 ]);
@@ -98,7 +100,6 @@ const lineWorkFields = computed(() => [
             return null;
         }
     },
-
     {
         name: 'company',
         label: t('lineWork.form.company'),
@@ -117,7 +118,7 @@ const lineWorkFields = computed(() => [
 const detailsFields = computed(() => [
     { key: 'id', label: t('lineWork.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('lineWork.name'), colClass: 'col-md-6' },
-    { key: 'company', label: t('lineWork.company'), colClass: 'col-md-6' },
+    { key: 'company', label: t('lineWork.company'), translationKey: 'companyNames', colClass: 'col-md-6' },
 ]);
 
 const lineWorkColumns = ref([
@@ -129,6 +130,7 @@ const lineWorkColumns = ref([
 const trashedColumns = computed(() => [
     { key: "id", label: t("lineWork.id") },
     { key: "name", label: t("lineWork.name") },
+    { key: "company", label: t("lineWork.company") },
 ]);
 
 const visibleColumns = ref([]);
@@ -141,7 +143,8 @@ const filteredColumns = computed(() => {
 
 const filteredlineWork = computed(() => {
     let result = lineWork.value;
-    result = filterByGroups(result, selectedGroups.value, "location");
+    // تم تغيير الفلتر من "location" إلى "company"
+    result = filterByGroups(result, selectedGroups.value, "company");
     result = filterData(result, searchText.value);
     return result;
 });
@@ -206,9 +209,8 @@ const handleSubmitlineWork = (lineWorkData) => {
                 ...lineWork.value[index],
                 name: lineWorkData.name,
                 company: lineWorkData.company || 'company 1',
-                location: lineWorkData.location,
             };
-            console.log('lineWork updated successfully!');
+            console.log('LineWork updated successfully!');
         }
     } else {
         // Add new lineWork
@@ -216,20 +218,19 @@ const handleSubmitlineWork = (lineWorkData) => {
             id: lineWork.value.length + 1,
             name: lineWorkData.name,
             company: lineWorkData.company,
-            location: lineWorkData.location,
         };
         lineWork.value.push(newlineWork);
-        console.log('lineWork added successfully!');
+        console.log('LineWork added successfully!');
     }
 };
 
-const handleRestorelineWork = (lineWork) => {
-    lineWork.value.push(lineWork);
-    const index = trashedlineWork.value.findIndex(d => d.id === lineWork.id);
+const handleRestorelineWork = (item) => {
+    lineWork.value.push(item);
+    const index = trashedlineWork.value.findIndex(d => d.id === item.id);
     if (index > -1) {
         trashedlineWork.value.splice(index, 1);
     }
-    console.log("lineWork restored successfully!");
+    console.log("LineWork restored successfully!");
 };
 </script>
 
