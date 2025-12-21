@@ -1183,7 +1183,72 @@ export default {
       delete: "حذف نهائي",
     },
   },
+  //خطط العمل 
+  workPlan: {
+    // Page Headers
+    title: "ادارة خطط العمل ",
 
+    // الإجراءات
+    searchPlaceholder: "البحث عن خطة عمل...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "إضافة خطة عمل",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    id: "المعرف",
+    name: "الاسم",
+    description: "الوصف",
+    companyName: "الشركة",
+
+    // قيم الحالة
+    active: "نشط",
+    inactive: "غير نشط",
+
+    // الرسائل
+    noData: "لا توجد بيانات متاحة",
+    rowsPerPage: "عدد الصفوف في الصفحة",
+    showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+
+    // الفلاتر
+    filterByCompany: "تصفية حسب الشركة",
+
+    // حقول النموذج
+    form: {
+      name: "اسم خطة العمل",
+      namePlaceholder: "أدخل اسم خطة العمل",
+      description: "الوصف",
+      descriptionPlaceholder: "أدخل وصف الخطة",
+      company: "الشركة",
+      companyPlaceholder: "اختر الشركة",
+    },
+
+    // رسائل التحقق
+    validation: {
+      nameRequired: "اسم العميل مطلوب",
+      nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      phoneRequired: "رقم الهاتف مطلوب",
+      phoneMax: "يجب ألا يتجاوز رقم الهاتف 20 حرفاً",
+      companyRequired: "الشركة مطلوبة",
+      locationRequired: "الموقع مطلوب",
+
+    },
+
+    // العناصر المحذوفة
+    trashed: {
+      title: "خطط العمل المحذوفة",
+      empty: "لا يوجد خطط عمل المحذوفة ",
+      restore: "استعادة",
+      delete: "حذف نهائي",
+    },
+    //التعديل والتفاصيل
+    edit: "تعديل",
+    details: "تفاصيل ",
+
+  },
   // الترجمات المشتركة
   common: {
     save: "حفظ",

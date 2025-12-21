@@ -1,0 +1,298 @@
+<template>
+    <div class="user-page-container bg-light">
+        <WorkPlansHeader v-model="searchText" :searchPlaceholder="$t('workPlan.searchPlaceholder')" :data="workPlans"
+            groupKey="company_name" v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('workPlan.filterByCompany')" translationKey="" :columns="workPlanColumns"
+            v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('workPlan.addNew')"
+            @add-click="openAddModal" @trashed-click="openTrashedModal" />
+
+        <div class="card border-0">
+            <div class="card-body p-0">
+                <DataTable :columns="filteredColumns" :data="paginatedworkPlans" :actionsLabel="$t('workPlan.actions')">
+                    <template #actions="{ row }">
+                        <ActionsDropdown :row="row" :editLabel="$t('workPlan.edit')"
+                            :detailsLabel="$t('workPlan.details')" @edit="openEditModal" @details="openDetailsModal" />
+                    </template>
+                </DataTable>
+                <div class="px-3 pt-1 pb-2 bg-light">
+                    <Pagination :totalItems="filteredworkPlan.length" :itemsPerPage="itemsPerPage"
+                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Form Modal for Add/Edit workPlan -->
+        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
+            :fields="workPlanFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitworkPlan" />
+
+        <!-- Details Modal -->
+        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('workPlan.details')" :data="selectedworkPlan"
+            :fields="detailsFields" @close="closeDetailsModal" />
+
+        <!-- Trashed workPlans Modal -->
+        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('workPlan.trashed.title')"
+            :emptyMessage="$t('workPlan.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedworkPlans"
+            @close="closeTrashedModal" @restore="handleRestoreworkPlan" />
+    </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from "vue";
+import DataTable from "../../../components/shared/DataTable.vue";
+import Pagination from "../../../components/shared/Pagination.vue";
+import ActionsDropdown from "../../../components/shared/Actions.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { useI18n } from "vue-i18n";
+import WorkPlansHeader from "../components/workPlansHeader.vue";
+import FormModal from "../../../components/shared/FormModal.vue";
+import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+
+const { t } = useI18n();
+const searchText = ref("");
+const selectedGroups = ref([]);
+const currentPage = ref(1);
+const itemsPerPage = ref(5);
+const isFormModalOpen = ref(false);
+const isDetailsModalOpen = ref(false);
+const isTrashedModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedworkPlan = ref({});
+
+const workPlans = ref([
+    {
+        id: 1,
+        name: "Plan 1 ",
+        description: "description 1 ",
+        company_name: "company 1",
+    },
+    {
+        id: 2,
+        name: "Plan 2 ",
+        description: "description 2",
+        company_name: "company 1",
+    },
+    {
+        id: 3,
+        name: "Plan 3",
+        description: "description 3",
+        company_name: "company 2",
+    },
+]);
+
+const trashedworkPlans = ref([
+    {
+        id: 5,
+        name: "Plan 5",
+        company_name: "company 1",
+    },
+]);
+
+// workPlan Form Fields 
+const workPlanFields = computed(() => [
+    {
+        name: 'name',
+        label: t('workPlan.form.name'),
+        type: 'text',
+        required: true,
+        placeholder: t('workPlan.form.namePlaceholder'),
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.name : '',
+        validate: (value) => {
+            if (!value || value.trim().length === 0) {
+                return t('workPlan.validation.nameRequired');
+            }
+
+            if (value.length > 255) {
+                return t('workPlan.validation.nameMax');
+            }
+
+            return null;
+        }
+    },
+
+    {
+        name: 'description',
+        label: t('workPlan.form.description'),
+        type: 'text',
+        required: false,
+        placeholder: t('workPlan.form.descriptionPlaceholder'),
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.description : '',
+        validate: (value) => {
+            if (!value || value.trim().length === 0) {
+                return t('workPlan.validation.nameRequired');
+            }
+            return null;
+        }
+    },
+    {
+        name: 'order_name',
+        label: t('workPlan.form.orderName'),
+        type: 'select',
+        required: true,
+        options: [
+            { value: 'order 1', label: 'order 1' },
+            { value: 'order 2', label: 'order 2' },
+            { value: 'order 3', label: 'order 3' },
+        ],
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_name : ''
+    },
+    {
+        name: 'order_type',
+        label: t('workPlan.form.orderType'),
+        type: 'select',
+        required: true,
+        options: [
+            { value: 'order 1', label: 'order 1' },
+            { value: 'order 2', label: 'order 2' },
+            { value: 'order 3', label: 'order 3' },
+        ],
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_type : ''
+    },
+    {
+        name: 'company_name',
+        label: t('workPlan.form.company'),
+        type: 'select',
+        required: true,
+        options: [
+            { value: 'company 1', label: 'Company 1' },
+            { value: 'company 2', label: 'Company 2' },
+            { value: 'company 3', label: 'Company 3' },
+        ],
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.company_name : ''
+    },
+]);
+
+// Details Fields
+const detailsFields = computed(() => [
+    { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
+    { key: 'name', label: t('workPlan.name'), colClass: 'col-md-6' },
+    { key: 'description', label: t('workPlan.description'), colClass: 'col-md-6' },
+    { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+]);
+
+const workPlanColumns = ref([
+    { key: "id", label: t("workPlan.id"), sortable: true },
+    { key: "name", label: t("workPlan.name"), sortable: true },
+    { key: "description", label: t("workPlan.description"), sortable: false },
+    { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+
+]);
+
+const trashedColumns = computed(() => [
+    { key: "id", label: t("workPlan.id") },
+    { key: "name", label: t("workPlan.name") },
+    { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+]);
+
+const visibleColumns = ref([]);
+
+const filteredColumns = computed(() => {
+    return workPlanColumns.value.filter((col) =>
+        visibleColumns.value.includes(col.key)
+    );
+});
+
+const filteredworkPlan = computed(() => {
+    let result = workPlans.value;
+    result = filterByGroups(result, selectedGroups.value, "company_name");
+    result = filterData(result, searchText.value);
+    return result;
+});
+
+const paginatedworkPlans = computed(() => {
+    return paginateData(
+        filteredworkPlan.value,
+        currentPage.value,
+        itemsPerPage.value
+    );
+});
+
+watch([searchText, selectedGroups], () => {
+    currentPage.value = 1;
+});
+
+// Add Modal
+const openAddModal = () => {
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    isFormModalOpen.value = true;
+};
+
+// Edit Modal
+const openEditModal = (workPlan) => {
+    isEditMode.value = true;
+    selectedworkPlan.value = { ...workPlan };
+    isFormModalOpen.value = true;
+};
+
+// Details Modal
+const openDetailsModal = (workPlan) => {
+    selectedworkPlan.value = { ...workPlan };
+    isDetailsModalOpen.value = true;
+};
+
+const closeFormModal = () => {
+    isFormModalOpen.value = false;
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+};
+
+const closeDetailsModal = () => {
+    isDetailsModalOpen.value = false;
+    selectedworkPlan.value = {};
+};
+
+const openTrashedModal = () => {
+    isTrashedModalOpen.value = true;
+};
+
+const closeTrashedModal = () => {
+    isTrashedModalOpen.value = false;
+};
+
+const handleSubmitworkPlan = (workPlanData) => {
+    if (isEditMode.value) {
+        // Update existing workPlan
+        const index = workPlans.value.findIndex(d => d.id === selectedworkPlan.value.id);
+        if (index > -1) {
+            workPlans.value[index] = {
+                ...workPlans.value[index],
+                name: workPlanData.name,
+                description: workPlanData.description,
+                company_name: workPlanData.company_name,
+            };
+            console.log('workPlan updated successfully!');
+        }
+    } else {
+        // Add new workPlan
+        const newworkPlan = {
+            id: workPlans.value.length + 1,
+            name: workPlanData.name,
+            description: workPlanData.description,
+            company_name: workPlanData.company_name,
+        };
+        workPlans.value.push(newworkPlan);
+        console.log('workPlan added successfully!');
+    }
+};
+
+const handleRestoreworkPlan = (workPlan) => {
+    workPlans.value.push(workPlan);
+    const index = trashedworkPlans.value.findIndex(d => d.id === workPlan.id);
+    if (index > -1) {
+        trashedworkPlans.value.splice(index, 1);
+    }
+    console.log("workPlan restored successfully!");
+};
+</script>
+
+<style scoped>
+.user-page-container {
+    max-width: 100%;
+}
+</style>

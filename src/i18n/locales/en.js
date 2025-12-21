@@ -1,3 +1,5 @@
+import { descending } from "ol/array";
+
 export default {
   navbar: {
     notifications: "Notifications",
@@ -597,7 +599,7 @@ export default {
     edit: "Edit",
     details: "Details",
   },
-  
+
   lineWork: {
     // Page Headers
     title: "Line Work Table",
@@ -1208,5 +1210,82 @@ export default {
     required: "Required",
     optional: "Optional",
     back: "Back",
+  },
+
+  workPlan: {
+    // Page Headers
+    title: "Work Plan Management",
+
+    // Actions
+    searchPlaceholder: "Search Work Plans...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Add Work Plan",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    id: "ID",
+    name: "Name",
+    description: "Description",
+    companyName: "Company",
+
+    // Status Values
+    active: "Active",
+    inactive: "Inactive",
+
+    // Messages
+    noData: "No data available",
+    rowsPerPage: "Rows per page",
+    showingEntries: "Showing {from} to {to} of {total} entries",
+
+    // Filters
+    filterByCompany: "Filter by Company",
+
+    // Form Fields
+    form: {
+      name: "Full Name",
+      namePlaceholder: "Enter full name",
+
+      description: "Description",
+      descriptionPlaceholder: "Enter description",
+
+      company: "Company",
+      companyPlaceholder: "Select company",
+
+      orderName: "Order Name",
+      orderNamePlaceholder: "Select Order Name",
+
+      orderType: "Order Type",
+      orderTypePlaceholder: "Select Order Type",
+
+
+    },
+
+    // Validation Messages
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      nameMin: "The name must be at least 3 characters",
+      usernameRequired: "Username is required",
+      usernameMax: "Username must not exceed 255 characters",
+      usernameExists: "Username already exists",
+      phoneRequired: "Phone number is required",
+      phoneMax: "Phone number must not exceed 20 characters",
+      companyRequired: "Company is required",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Trashed Work Plans",
+      empty: "No trashed Work Plans",
+      restore: "Restore",
+      delete: "Delete Permanently",
+    },
+    //Edit / Details Modal
+    edit: "Edit",
+    details: "Details",
   },
 };

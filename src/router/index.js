@@ -15,6 +15,7 @@ import map from "../modules/map/view/mapPage.vue";
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
+import workPlans from "../modules/workPlans/view/workPlans.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -192,6 +193,18 @@ const router = createRouter({
       component: forgetPassword,
       meta: {
         hiddenLayout: true,
+      },
+    },
+
+    {
+      path: "/work-plans",
+      name: "WorkPlans",
+      component: workPlans,
+      meta: {
+        titleKey: "workPlan.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/planIcon.svg",
       },
     },
   ],

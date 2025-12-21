@@ -77,7 +77,6 @@
 </template>
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
-
 // ---------------------- Props and Emits ----------------
 const props = defineProps({
   data: Array,
@@ -182,7 +181,7 @@ watch(
   font-size: 1.125rem;
   line-height: 1;
   padding: 0;
-  margin-left: 0.25rem;
+  margin-left: 0.;
   cursor: pointer;
   opacity: 0.8;
   transition: opacity 0.2s;
