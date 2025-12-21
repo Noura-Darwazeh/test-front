@@ -6,17 +6,51 @@
             v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('workPlan.addNew')"
             @add-click="openAddModal" @trashed-click="openTrashedModal" />
 
-        <div class="card border-0">
+        <!-- Tabs Navigation -->
+        <div class="card border-0 mb-3">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedworkPlans" :actionsLabel="$t('workPlan.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('workPlan.edit')"
-                            :detailsLabel="$t('workPlan.details')" @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredworkPlan.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'calendar' }"
+                            @click="activeTab = 'calendar'">
+                            <i class="bi bi-calendar3 me-2"></i> {{ $t('workPlan.tabs.calendar') }}
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="activeTab = 'table'">
+                            <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
+                        </button>
+                    </li>
+                </ul>
+
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Calendar Tab -->
+            <div v-show="activeTab === 'calendar'" class="tab-pane fade"
+                :class="{ 'show active': activeTab === 'calendar' }">
+                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
+            </div>
+
+            <!-- Table Tab -->
+            <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
+                <div class="card border-0">
+                    <div class="card-body p-0">
+                        <DataTable :columns="filteredColumns" :data="paginatedworkPlans"
+                            :actionsLabel="$t('workPlan.actions')">
+                            <template #actions="{ row }">
+                                <ActionsDropdown :row="row" :editLabel="$t('workPlan.edit')"
+                                    :detailsLabel="$t('workPlan.details')" @edit="openEditModal"
+                                    @details="openDetailsModal" />
+                            </template>
+                        </DataTable>
+                        <div class="px-3 pt-1 pb-2 bg-light">
+                            <Pagination :totalItems="filteredworkPlan.length" :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -47,6 +81,7 @@ import { useI18n } from "vue-i18n";
 import WorkPlansHeader from "../components/workPlansHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import WorkPlanCalendar from "../components/calender.vue"
 
 const { t } = useI18n();
 const searchText = ref("");
@@ -58,6 +93,7 @@ const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedworkPlan = ref({});
+const activeTab = ref('calendar'); // Default active tab
 
 const workPlans = ref([
     {
@@ -65,18 +101,24 @@ const workPlans = ref([
         name: "Plan 1 ",
         description: "description 1 ",
         company_name: "company 1",
+        start_date: "2024-12-20",
+        end_date: "2024-12-25",
     },
     {
         id: 2,
         name: "Plan 2 ",
         description: "description 2",
         company_name: "company 1",
+        start_date: "2024-12-22",
+        end_date: "2024-12-28",
     },
     {
         id: 3,
         name: "Plan 3",
         description: "description 3",
         company_name: "company 2",
+        start_date: "2024-12-15",
+        end_date: "2024-12-20",
     },
 ]);
 
@@ -294,5 +336,36 @@ const handleRestoreworkPlan = (workPlan) => {
 <style scoped>
 .user-page-container {
     max-width: 100%;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: transparent;
+}
+
+/* RTL Support */
+[dir="rtl"] .nav-tabs .nav-link i {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+[dir="rtl"] .nav-tabs .nav-link {
+    margin-right: 0;
+    margin-left: 0.25rem;
 }
 </style>

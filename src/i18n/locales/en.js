@@ -1216,6 +1216,10 @@ export default {
     // Page Headers
     title: "Work Plan Management",
 
+    tabs: {
+      calendar: "Calendar",
+      table: "Table"
+    },
     // Actions
     searchPlaceholder: "Search Work Plans...",
     search: "Search",

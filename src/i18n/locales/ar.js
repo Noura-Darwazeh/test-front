@@ -1187,7 +1187,10 @@ export default {
   workPlan: {
     // Page Headers
     title: "ادارة خطط العمل ",
-
+    tabs: {
+      calendar: "التقويم",
+      table: "الجدول"
+    },
     // الإجراءات
     searchPlaceholder: "البحث عن خطة عمل...",
     search: "بحث",
