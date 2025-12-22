@@ -196,30 +196,26 @@ const workPlanFields = computed(() => [
         defaultValue: isEditMode.value ? selectedworkPlan.value.company_name : ''
     },
     {
-        name: 'order_name',
-        label: t('workPlan.form.orderName'),
-        type: 'select',
+        name: 'orders',
+        label: t('workPlan.form.orders') || 'Orders',
+        type: 'orderRows',
         required: false,
-        options: [
+        colClass: 'col-12',
+        orderLabel: t('workPlan.form.orderName'),
+        phaseLabel: t('workPlan.form.orderPhase'),
+        orderOptions: [
             { value: 'order 1', label: 'order 1' },
             { value: 'order 2', label: 'order 2' },
             { value: 'order 3', label: 'order 3' },
         ],
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedworkPlan.value.order_name : ''
-    },
-    {
-        name: 'order_phase',
-        label: t('workPlan.form.orderPhase'),
-        type: 'select',
-        required: false,
-        options: [
+        phaseOptions: [
             { value: 'phase 1', label: 'phase 1' },
             { value: 'phase 2', label: 'phase 2' },
             { value: 'phase 3', label: 'phase 3' },
         ],
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedworkPlan.value.order_type : ''
+        defaultValue: isEditMode.value
+            ? (selectedworkPlan.value.orders || [{ order: '', phase: '' }])
+            : [{ order: '', phase: '' }]
     },
 
 ]);
@@ -322,6 +318,7 @@ const handleSubmitworkPlan = (workPlanData) => {
                 name: workPlanData.name,
                 description: workPlanData.description,
                 company_name: workPlanData.company_name,
+                orders: workPlanData.orders,
             };
             console.log('workPlan updated successfully!');
         }
@@ -332,6 +329,7 @@ const handleSubmitworkPlan = (workPlanData) => {
             name: workPlanData.name,
             description: workPlanData.description,
             company_name: workPlanData.company_name,
+            orders: workPlanData.orders,
         };
         workPlans.value.push(newworkPlan);
         console.log('workPlan added successfully!');
