@@ -17,7 +17,8 @@
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="activeTab = 'table'">
+                        <button class="nav-link" :class="{ active: activeTab === 'table' }"
+                            @click="activeTab = 'table'">
                             <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
                         </button>
                     </li>
@@ -101,24 +102,24 @@ const workPlans = ref([
         name: "Plan 1 ",
         description: "description 1 ",
         company_name: "company 1",
-        start_date: "2024-12-20",
-        end_date: "2024-12-25",
+        start_date: "2025-12-20",
+        end_date: "2025-12-20",
     },
     {
         id: 2,
         name: "Plan 2 ",
         description: "description 2",
         company_name: "company 1",
-        start_date: "2024-12-22",
-        end_date: "2024-12-28",
+        start_date: "2025-12-15",
+        end_date: "2025-12-15",
     },
     {
         id: 3,
         name: "Plan 3",
         description: "description 3",
         company_name: "company 2",
-        start_date: "2024-12-15",
-        end_date: "2024-12-20",
+        start_date: "2025-12-17",
+        end_date: "2025-12-17",
     },
 ]);
 
@@ -169,30 +170,17 @@ const workPlanFields = computed(() => [
         }
     },
     {
-        name: 'order_name',
-        label: t('workPlan.form.orderName'),
+        name: 'driver_name',
+        label: t('workPlan.form.driverName'),
         type: 'select',
         required: true,
         options: [
-            { value: 'order 1', label: 'order 1' },
-            { value: 'order 2', label: 'order 2' },
-            { value: 'order 3', label: 'order 3' },
+            { value: 'driver 1', label: 'driver 1' },
+            { value: 'driver 2', label: 'driver 2' },
+            { value: 'driver 3', label: 'driver 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedworkPlan.value.order_name : ''
-    },
-    {
-        name: 'order_type',
-        label: t('workPlan.form.orderType'),
-        type: 'select',
-        required: true,
-        options: [
-            { value: 'order 1', label: 'order 1' },
-            { value: 'order 2', label: 'order 2' },
-            { value: 'order 3', label: 'order 3' },
-        ],
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedworkPlan.value.order_type : ''
+        defaultValue: isEditMode.value ? selectedworkPlan.value.driver_name : ''
     },
     {
         name: 'company_name',
@@ -207,6 +195,33 @@ const workPlanFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedworkPlan.value.company_name : ''
     },
+    {
+        name: 'order_name',
+        label: t('workPlan.form.orderName'),
+        type: 'select',
+        required: false,
+        options: [
+            { value: 'order 1', label: 'order 1' },
+            { value: 'order 2', label: 'order 2' },
+            { value: 'order 3', label: 'order 3' },
+        ],
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_name : ''
+    },
+    {
+        name: 'order_phase',
+        label: t('workPlan.form.orderPhase'),
+        type: 'select',
+        required: false,
+        options: [
+            { value: 'phase 1', label: 'phase 1' },
+            { value: 'phase 2', label: 'phase 2' },
+            { value: 'phase 3', label: 'phase 3' },
+        ],
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_type : ''
+    },
+
 ]);
 
 // Details Fields

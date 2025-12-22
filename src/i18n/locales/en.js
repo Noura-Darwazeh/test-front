@@ -1262,13 +1262,14 @@ export default {
       company: "Company",
       companyPlaceholder: "Select company",
 
+      driverName: "Driver Name",
+      driverNamePlaceholder: "Select Driver Name",
+
       orderName: "Order Name",
       orderNamePlaceholder: "Select Order Name",
 
-      orderType: "Order Type",
-      orderTypePlaceholder: "Select Order Type",
-
-
+      orderPhase: "Order Phase",
+      orderPhasePlaceholder: "Select Phase Type",
     },
 
     // Validation Messages
