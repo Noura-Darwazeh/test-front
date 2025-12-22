@@ -1215,7 +1215,10 @@ export default {
   workPlan: {
     // Page Headers
     title: "Work Plan Management",
-
+    planDetails: 'Plan Details',
+    orderName: 'Order Name',
+    orderType: 'Order Type',
+    selectDate: 'Select a date from calendar to view details',
     tabs: {
       calendar: "Calendar",
       table: "Table"

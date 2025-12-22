@@ -1187,6 +1187,10 @@ export default {
   workPlan: {
     // Page Headers
     title: "ادارة خطط العمل ",
+    planDetails: 'تفاصيل الخطة',
+    orderName: 'اسم الطلب',
+    orderType: 'نوع الطلب',
+    selectDate: 'اختر تاريخ من الكالندر لعرض التفاصيل',
     tabs: {
       calendar: "التقويم",
       table: "الجدول"

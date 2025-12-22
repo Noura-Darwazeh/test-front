@@ -1,55 +1,92 @@
 <template>
-    <div class="calendar-container card border-0">
-        <div class="card-body">
-            <!-- Calendar Header -->
-            <div class="calendar-header d-flex justify-content-between align-items-center mb-4">
-                <button class="btn btn-outline-primary" @click="previousMonth">
-                    <i class="bi" :class="isRTL ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
-                </button>
-                <h4 class="mb-0">{{ currentMonthYear }}</h4>
-                <button class="btn btn-outline-primary" @click="nextMonth">
-                    <i class="bi" :class="isRTL ? 'bi-chevron-left' : 'bi-chevron-right'"></i>
-                </button>
-            </div>
-
-            <!-- Calendar Grid -->
-            <div class="calendar-grid">
-                <!-- Weekday Headers -->
-                <div v-for="day in weekDays" :key="day" class="calendar-weekday">
-                    {{ day }}
-                </div>
-
-                <!-- Calendar Days -->
-                <div v-for="day in calendarDays" :key="day.date" 
-                     class="calendar-day" 
-                     :class="{ 
-                         'other-month': !day.isCurrentMonth,
-                         'today': day.isToday,
-                         'has-plans': day.plans.length > 0
-                     }">
-                    <div class="day-number">{{ day.dayNumber }}</div>
-                    
-                    <!-- Work Plans for this day -->
-                    <div v-if="day.plans.length > 0" class="day-plans">
-                        <div v-for="plan in day.plans.slice(0, 2)" :key="plan.id" 
-                             class="plan-badge"
-                             :style="{ backgroundColor: getCompanyColor(plan.company_name) }"
-                             @click="$emit('view-details', plan)">
-                            <small>{{ plan.name }}</small>
-                        </div>
-                        <div v-if="day.plans.length > 2" class="more-plans" @click="showDayPlans(day)">
-                            <small>+{{ day.plans.length - 2 }} {{ $t('workPlan.calendar.more') }}</small>
-                        </div>
+    <div class="calendar-container">
+        <div class="row g-3">
+            <!-- Small Calendar -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-2">
+                        <FullCalendar ref="calendar" :options="calendarOptions" />
                     </div>
                 </div>
             </div>
 
-            <!-- Legend -->
-            <div class="calendar-legend mt-4">
-                <div class="d-flex flex-wrap gap-3">
-                    <div v-for="(color, company) in companyColors" :key="company" class="legend-item">
-                        <span class="legend-color" :style="{ backgroundColor: color }"></span>
-                        <span>{{ company }}</span>
+            <!-- Plan Details Card -->
+            <div class="col-md-8">
+                <div v-if="selectedPlan" class="card border-0 shadow-sm">
+                    <div class="card-header border-bottom py-2" 
+                         :style="{ backgroundColor: getCompanyColor(selectedPlan.company_name), color: 'white' }">
+                        <h6 class="mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-card-checklist"></i>
+                            {{ $t('workPlan.planDetails') }}
+                        </h6>
+                    </div>
+                    
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            <!-- Plan Name -->
+                            <div class="col-12">
+                                <div class="border-bottom pb-2 mb-2">
+                                    <small class="text-muted d-block mb-1">{{ $t('workPlan.name') }}</small>
+                                    <strong class="d-block">{{ selectedPlan.name }}</strong>
+                                </div>
+                            </div>
+
+                            <!-- Company -->
+                            <div class="col-6">
+                                <small class="text-muted d-block mb-1">{{ $t('workPlan.company') }}</small>
+                                <span class="badge" 
+                                      :style="{ backgroundColor: getCompanyColor(selectedPlan.company_name) }">
+                                    {{ selectedPlan.company_name }}
+                                </span>
+                            </div>
+
+                            <!-- Date Range -->
+                            <div class="col-6">
+                                <small class="text-muted d-block mb-1">{{ $t('workPlan.duration') }}</small>
+                                <small class="d-block">
+                                    {{ formatDate(selectedPlan.start_date) }} - {{ formatDate(selectedPlan.end_date) }}
+                                </small>
+                            </div>
+
+                            <!-- Order Name -->
+                            <div class="col-6">
+                                <small class="text-muted d-block mb-1">{{ $t('workPlan.orderName') }}</small>
+                                <strong class="d-block">{{ selectedPlan.order_name || '-' }}</strong>
+                            </div>
+
+                            <!-- Order Type -->
+                            <div class="col-6">
+                                <small class="text-muted d-block mb-1">{{ $t('workPlan.orderType') }}</small>
+                                <strong class="d-block">{{ selectedPlan.order_type || '-' }}</strong>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-12">
+                                <small class="text-muted d-block mb-1">{{ $t('workPlan.description') }}</small>
+                                <p class="mb-0 small">{{ selectedPlan.description || $t('workPlan.noDescription') }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-light py-2">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-primary" @click="editPlan">
+                                <i class="bi bi-pencil me-1"></i>
+                                {{ $t('workPlan.edit') }}
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" @click="closePlanDetails">
+                                <i class="bi bi-x-circle me-1"></i>
+                                {{ $t('common.close') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-calendar-check text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3 mb-0">{{ $t('workPlan.selectDate') }}</p>
                     </div>
                 </div>
             </div>
@@ -58,8 +95,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import FullCalendar from '@fullcalendar/vue3';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import arLocale from '@fullcalendar/core/locales/ar';
 
 const props = defineProps({
     workPlans: {
@@ -71,38 +112,10 @@ const props = defineProps({
 const emit = defineEmits(['edit-plan', 'view-details']);
 
 const { t, locale } = useI18n();
-const currentDate = ref(new Date());
+const calendar = ref(null);
+const selectedPlan = ref(null);
 
-const isRTL = computed(() => locale.value === 'ar');
-
-const weekDays = computed(() => {
-    const days = isRTL.value 
-        ? [
-            t('workPlan.calendar.days.sunday'),
-            t('workPlan.calendar.days.saturday'),
-            t('workPlan.calendar.days.friday'),
-            t('workPlan.calendar.days.thursday'),
-            t('workPlan.calendar.days.wednesday'),
-            t('workPlan.calendar.days.tuesday'),
-            t('workPlan.calendar.days.monday')
-        ]
-        : [
-            t('workPlan.calendar.days.sunday'),
-            t('workPlan.calendar.days.monday'),
-            t('workPlan.calendar.days.tuesday'),
-            t('workPlan.calendar.days.wednesday'),
-            t('workPlan.calendar.days.thursday'),
-            t('workPlan.calendar.days.friday'),
-            t('workPlan.calendar.days.saturday')
-        ];
-    return days;
-});
-
-const currentMonthYear = computed(() => {
-    const options = { year: 'numeric', month: 'long' };
-    return currentDate.value.toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', options);
-});
-
+// Company colors
 const companyColors = computed(() => {
     const colors = {};
     const colorPalette = [
@@ -121,256 +134,147 @@ const companyColors = computed(() => {
     return colors;
 });
 
-const calendarDays = computed(() => {
-    const year = currentDate.value.getFullYear();
-    const month = currentDate.value.getMonth();
-    
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const prevLastDay = new Date(year, month, 0);
-    
-    const firstDayOfWeek = firstDay.getDay();
-    const lastDateOfMonth = lastDay.getDate();
-    const prevLastDate = prevLastDay.getDate();
-    
-    const days = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Previous month days
-    for (let i = firstDayOfWeek; i > 0; i--) {
-        const date = new Date(year, month - 1, prevLastDate - i + 1);
-        days.push({
-            date: date.toISOString().split('T')[0],
-            dayNumber: prevLastDate - i + 1,
-            isCurrentMonth: false,
-            isToday: false,
-            plans: getPlansForDate(date)
-        });
-    }
-    
-    // Current month days
-    for (let i = 1; i <= lastDateOfMonth; i++) {
-        const date = new Date(year, month, i);
-        const dateStr = date.toISOString().split('T')[0];
-        days.push({
-            date: dateStr,
-            dayNumber: i,
-            isCurrentMonth: true,
-            isToday: dateStr === today.toISOString().split('T')[0],
-            plans: getPlansForDate(date)
-        });
-    }
-    
-    // Next month days
-    const remainingDays = 42 - days.length; // 6 rows × 7 days
-    for (let i = 1; i <= remainingDays; i++) {
-        const date = new Date(year, month + 1, i);
-        days.push({
-            date: date.toISOString().split('T')[0],
-            dayNumber: i,
-            isCurrentMonth: false,
-            isToday: false,
-            plans: getPlansForDate(date)
-        });
-    }
-    
-    return days;
+// Calendar events
+const calendarEvents = computed(() => {
+    return props.workPlans.map(plan => ({
+        id: plan.id,
+        title: plan.name,
+        start: plan.start_date,
+        end: plan.end_date,
+        backgroundColor: getCompanyColor(plan.company_name),
+        borderColor: getCompanyColor(plan.company_name),
+        extendedProps: {
+            description: plan.description,
+            company_name: plan.company_name,
+            ...plan
+        }
+    }));
 });
 
-const getPlansForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return props.workPlans.filter(plan => {
-        if (!plan.start_date || !plan.end_date) return false;
-        return dateStr >= plan.start_date && dateStr <= plan.end_date;
-    });
-};
+// Calendar options
+const calendarOptions = ref({
+    plugins: [dayGridPlugin, interactionPlugin],
+    initialView: 'dayGridMonth',
+    locale: locale.value === 'ar' ? arLocale : 'en',
+    direction: locale.value === 'ar' ? 'rtl' : 'ltr',
+    headerToolbar: {
+        left: 'prev,next',
+        center: 'title',
+        right: ''
+    },
+    buttonText: {
+        today: t('workPlan.calendar.today'),
+    },
+    height: 400,
+    events: calendarEvents.value,
+    eventClick: handleEventClick,
+    dayMaxEvents: 1,
+    moreLinkText: (num) => `+${num}`,
+    firstDay: 0,
+    eventDisplay: 'block',
+});
 
-const getCompanyColor = (companyName) => {
+// Handle event click
+function handleEventClick(info) {
+    const planId = parseInt(info.event.id);
+    selectedPlan.value = props.workPlans.find(p => p.id === planId);
+}
+
+// Get company color
+function getCompanyColor(companyName) {
     return companyColors.value[companyName] || '#6c757d';
-};
+}
 
-const previousMonth = () => {
-    currentDate.value = new Date(
-        currentDate.value.getFullYear(),
-        currentDate.value.getMonth() - 1,
-        1
-    );
-};
+// Format date
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
 
-const nextMonth = () => {
-    currentDate.value = new Date(
-        currentDate.value.getFullYear(),
-        currentDate.value.getMonth() + 1,
-        1
-    );
-};
+// Close plan details
+function closePlanDetails() {
+    selectedPlan.value = null;
+}
 
-const showDayPlans = (day) => {
-    // يمكن إضافة موديل لعرض كل الخطط لهذا اليوم
-    console.log('Show all plans for day:', day);
-};
+// Edit plan
+function editPlan() {
+    emit('edit-plan', selectedPlan.value);
+}
+
+// Watch for locale changes
+watch(() => locale.value, (newLocale) => {
+    if (calendar.value) {
+        const calendarApi = calendar.value.getApi();
+        calendarApi.setOption('locale', newLocale === 'ar' ? arLocale : 'en');
+        calendarApi.setOption('direction', newLocale === 'ar' ? 'rtl' : 'ltr');
+    }
+});
+
+// Watch for workPlans changes
+watch(() => props.workPlans, () => {
+    calendarOptions.value.events = calendarEvents.value;
+}, { deep: true });
 </script>
 
-<style scoped>
-.calendar-container {
-    background: white;
-}
-
-.calendar-header h4 {
-    font-weight: 600;
-    color: #1e293b;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    background-color: #e2e8f0;
-    border: 1px solid #e2e8f0;
-}
-
-.calendar-weekday {
-    background-color: #f8fafc;
-    padding: 0.75rem;
-    text-align: center;
-    font-weight: 600;
-    color: #475569;
-    font-size: 0.875rem;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.calendar-day {
-    background-color: white;
-    min-height: 100px;
-    padding: 0.5rem;
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.calendar-day:hover {
-    background-color: #f8fafc;
-}
-
-.calendar-day.other-month {
-    background-color: #f8fafc;
-    opacity: 0.5;
-}
-
-.calendar-day.today {
-    background-color: #dbeafe;
-    border: 2px solid #3b82f6;
-}
-
-.calendar-day.has-plans {
-    background-color: #fefce8;
-}
-
-.day-number {
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 0.25rem;
+<style>
+/* Compact Calendar Styling */
+.fc {
+    font-family: inherit;
     font-size: 0.875rem;
 }
 
-.calendar-day.other-month .day-number {
-    color: #94a3b8;
-}
-
-.calendar-day.today .day-number {
-    color: #1e40af;
-    font-weight: 700;
-}
-
-.day-plans {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    margin-top: 0.25rem;
-}
-
-.plan-badge {
+.fc .fc-button {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
-    color: white;
-    cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.plan-badge:hover {
-    transform: scale(1.02);
-    opacity: 0.9;
-}
-
-.plan-badge small {
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.more-plans {
-    padding: 0.125rem 0.5rem;
-    background-color: #64748b;
-    color: white;
-    border-radius: 0.25rem;
-    text-align: center;
-    cursor: pointer;
-    font-size: 0.75rem;
-}
-
-.more-plans:hover {
-    background-color: #475569;
-}
-
-.calendar-legend {
-    padding-top: 1rem;
-    border-top: 1px solid #e2e8f0;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
     font-size: 0.875rem;
 }
 
-.legend-color {
-    width: 1rem;
-    height: 1rem;
-    border-radius: 0.25rem;
-    display: inline-block;
+.fc .fc-toolbar-title {
+    font-size: 1rem;
+    font-weight: 600;
 }
 
-/* RTL Support */
-[dir="rtl"] .calendar-grid {
-    direction: rtl;
+.fc .fc-col-header-cell {
+    padding: 0.5rem 0.25rem;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.75rem;
 }
 
-[dir="rtl"] .legend-item {
-    flex-direction: row-reverse;
+.fc .fc-daygrid-day {
+    cursor: pointer;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .calendar-day {
-        min-height: 80px;
-        padding: 0.25rem;
-    }
-    
-    .day-number {
-        font-size: 0.75rem;
-    }
-    
-    .plan-badge small {
-        font-size: 0.65rem;
-    }
-    
-    .calendar-weekday {
-        font-size: 0.75rem;
-        padding: 0.5rem 0.25rem;
-    }
+.fc .fc-daygrid-day-number {
+    padding: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.fc-event {
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 1px 3px;
+    border: none !important;
+}
+
+.fc-event:hover {
+    opacity: 0.8;
+}
+
+.fc .fc-more-link {
+    font-size: 0.7rem;
+    color: var(--bs-primary);
 }
 </style>
