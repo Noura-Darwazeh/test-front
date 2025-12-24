@@ -46,16 +46,15 @@
                                     </span>
                                 </div>
                             </div>
-
-                            <!-- Date Range -->
+                            <!-- Date -->
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">
                                         Date
                                     </label>
                                     <div class="detail-value">
-                                        {{ formatDate(selectedPlan.start_date) }} - {{ formatDate(selectedPlan.end_date)
-                                        }}
+                                        {{ formatDate(selectedPlan.date) }}
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -74,24 +73,13 @@
                             <div class="col-md-6">
                                 <div class="detail-item">
                                     <label class="detail-label">
-                                        {{ $t('workPlan.orderType') }}
+                                        {{ $t('workPlan.orderItems') }}
                                     </label>
-                                    <div class="detail-value">{{ selectedPlan.order_type || '-' }}</div>
+                                    <div class="detail-value">{{ selectedPlan.order_items || '-' }}</div>
                                 </div>
                             </div>
 
-                            <!-- Description -->
-                            <div class="col-12">
-                                <div class="detail-item">
-                                    <label class="detail-label">
 
-                                        {{ $t('workPlan.description') }}
-                                    </label>
-                                    <div class="detail-value description-text">
-                                        {{ selectedPlan.description || 'No description available' }}
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -148,18 +136,15 @@ const calendarEvents = computed(() => {
     return props.workPlans.map(plan => ({
         id: plan.id,
         title: plan.name,
-        start: plan.start_date,
-        end: plan.end_date,
+        start: plan.date,
+        order_name:plan.order_name,
         backgroundColor: "var(--primary-color)",
-
         extendedProps: {
-            description: plan.description,
             company_name: plan.company_name,
             ...plan
         }
     }));
 });
-
 // Calendar options
 const calendarOptions = ref({
     plugins: [dayGridPlugin, interactionPlugin],
@@ -239,7 +224,7 @@ watch(() => props.workPlans, () => {
     font-weight: 600;
 }
 
-.fc .fc-col-header-cell a{
+.fc .fc-col-header-cell a {
     padding: 0.5rem 0.25rem;
     font-weight: 600;
     font-size: 0.75rem;

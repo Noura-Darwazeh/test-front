@@ -1236,8 +1236,10 @@ export default {
     // Table Columns
     id: "ID",
     name: "Name",
-    description: "Description",
+    driverName: "Driver",
     companyName: "Company",
+    date: "Date",
+
 
     // Status Values
     active: "Active",
@@ -1256,21 +1258,21 @@ export default {
       name: "Full Name",
       namePlaceholder: "Enter full name",
 
-      description: "Description",
-      descriptionPlaceholder: "Enter description",
-
       company: "Company",
       companyPlaceholder: "Select company",
 
+      date: "Date",
+      datePlaceholder: "Select Date",
+
       driverName: "Driver Name",
       driverNamePlaceholder: "Select Driver Name",
-
       orders: "Orders",
+
       orderName: "Order Name",
       orderNamePlaceholder: "Select Order Name",
 
-      orderPhase: "Order Phase",
-      orderPhasePlaceholder: "Select Phase Type",
+      orderItems: "Order Items",
+      orderItemsPlaceholder: "Select Order Items",
     },
 
     // Validation Messages

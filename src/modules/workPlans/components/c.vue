@@ -100,25 +100,24 @@ const workPlans = ref([
     {
         id: 1,
         name: "Plan 1 ",
+        driver_name: "Sami",
         company_name: "company 1",
         date: "2025-12-20",
-        driver_name: "Sami"
 
     },
     {
         id: 2,
         name: "Plan 2 ",
+        driver_name: "Ahmad",
         company_name: "company 1",
         date: "2025-12-15",
-        driver_name: "Ali"
-
     },
     {
         id: 3,
         name: "Plan 3",
+        driver_name: "Ali",
         company_name: "company 2",
         date: "2025-12-17",
-        driver_name: "Mohammad"
     },
 ]);
 
@@ -126,10 +125,9 @@ const trashedworkPlans = ref([
     {
         id: 5,
         name: "Plan 5",
+        driver_name: "Mohammad",
         company_name: "company 1",
-        date: "2025-12-11",
-
-
+        date: "2025-12-30",
     },
 ]);
 
@@ -155,8 +153,14 @@ const workPlanFields = computed(() => [
             return null;
         }
     },
-
-
+    {
+        name: 'date',
+        label: 'Date',
+        type: 'date',
+        required: false,
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.date : '',
+    },
     {
         name: 'driver_name',
         label: t('workPlan.form.driverName'),
@@ -169,15 +173,6 @@ const workPlanFields = computed(() => [
         ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedworkPlan.value.driver_name : ''
-    },
-
-    {
-        name: 'date',
-        label: 'Date',
-        type: 'date',
-        required: false,
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedworkPlan.value.date : '',
     },
     {
         name: 'company_name',
@@ -192,27 +187,33 @@ const workPlanFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedworkPlan.value.company_name : ''
     },
+
+
     {
-        name: 'orders',
-        label: t('workPlan.form.orders') || 'Orders',
-        type: 'orderRows',
+        name: 'order_name',
+        label: t('workPlan.form.orderName'),
+        type: 'select',
         required: false,
-        colClass: 'col-12',
-        orderLabel: t('workPlan.form.orderName'),
-        itemsLabel: t('workPlan.form.orderItems'),
-        orderOptions: [
+        options: [
             { value: 'order 1', label: 'order 1' },
             { value: 'order 2', label: 'order 2' },
             { value: 'order 3', label: 'order 3' },
         ],
-        itemsOptions: [
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_name : ''
+    },
+    {
+        name: 'order_items',
+        label: t('workPlan.form.orderItems'),
+        type: 'select',
+        required: false,
+        options: [
             { value: 'item 1', label: 'item 1' },
             { value: 'item 2', label: 'item 2' },
             { value: 'item 3', label: 'item 3' },
         ],
-        defaultValue: isEditMode.value
-            ? (selectedworkPlan.value.orders || [{ order: '', item: '' }])
-            : [{ order: '', items: '' }]
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_items : ''
     },
 
 ]);
@@ -221,26 +222,29 @@ const workPlanFields = computed(() => [
 const detailsFields = computed(() => [
     { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('workPlan.name'), colClass: 'col-md-6' },
-    { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
     { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
+
     { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+    { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
+
 ]);
 
 const workPlanColumns = ref([
     { key: "id", label: t("workPlan.id"), sortable: true },
     { key: "name", label: t("workPlan.name"), sortable: true },
-    { key: 'date', label: t('workPlan.date'), sortable: true },
-    { key: 'driver_name', label: t('workPlan.driverName'), sortable: true },
-    { key: 'company_name', label: t('workPlan.companyName') },
+    { key: "driver_name", label: t("workPlan.driverName"), sortable: true },
 
+    { key: 'company_name', label: t('workPlan.companyName'), },
+    { key: 'date', label: t('workPlan.date'), sortable: true },
 
 ]);
 
 const trashedColumns = computed(() => [
     { key: "id", label: t("workPlan.id") },
     { key: "name", label: t("workPlan.name") },
-    { key: 'date', label: t('workPlan.date'), sortable: true },
     { key: 'company_name', label: t('workPlan.companyName') },
+    { key: 'date', label: t('workPlan.date'), sortable: true },
+
 ]);
 
 const visibleColumns = ref([]);
@@ -318,7 +322,6 @@ const handleSubmitworkPlan = (workPlanData) => {
                 ...workPlans.value[index],
                 name: workPlanData.name,
                 company_name: workPlanData.company_name,
-                orders: workPlanData.orders,
             };
             console.log('workPlan updated successfully!');
         }
@@ -328,7 +331,6 @@ const handleSubmitworkPlan = (workPlanData) => {
             id: workPlans.value.length + 1,
             name: workPlanData.name,
             company_name: workPlanData.company_name,
-            orders: workPlanData.orders,
         };
         workPlans.value.push(newworkPlan);
         console.log('workPlan added successfully!');
