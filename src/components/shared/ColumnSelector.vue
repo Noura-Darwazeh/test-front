@@ -1,7 +1,7 @@
 <template>
   <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" menuClass="custom-dropdown" :class="{ rtl: isRTL }">
     <template #trigger>
-      <button class="btn btn-outline-secondary d-flex align-items-center gap-2 shadow-sm" type="button">
+      <button class="btn  d-flex align-items-center gap-2 shadow-sm" type="button">
         <img src="/src/assets/SelectorLines.svg" alt="Columns" width="16" height="16" />
         {{ $t("user.columns") }}
         <img src="/src/assets/dropdown.svg" alt="Dropdown" width="12" height="12" />

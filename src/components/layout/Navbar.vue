@@ -1,5 +1,8 @@
 <template>
-  <nav class="navbar navbar-light bg-white border-bottom p-2" :class="{ rtl: isRTL }">
+  <nav
+    class="navbar navbar-light bg-white border-bottom p-2"
+    :class="{ rtl: isRTL }"
+  >
     <div class="container-fluid px-3 py-2">
       <div class="d-flex align-items-center justify-content-between w-100">
         <h4 class="mb-0 fw-semibold text-dark">
@@ -8,32 +11,59 @@
 
         <div class="d-flex align-items-center gap-3">
           <button class="btn btn-link p-0 position-relative" type="button">
-            <img src="/src/assets/Navbar/Bell.svg" alt="Notifications" width="25" height="25" />
-            <span v-if="notificationCount > 0"
-              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            <img
+              src="/src/assets/Navbar/Bell.svg"
+              alt="Notifications"
+              width="25"
+              height="25"
+            />
+            <span
+              v-if="notificationCount > 0"
+              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+            >
               {{ notificationCount }}
             </span>
           </button>
 
+          <CurrencySelector
+            :position="isRTL ? 'start' : 'end'"
+            @currencyChanged="handleCurrencyChange"
+          />
+
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
               <button class="btn btn-link p-0" type="button">
-                <img src="/src/assets/Navbar/Globe.svg" alt="Language" width="25" height="25" />
+                <img
+                  src="/src/assets/Navbar/Globe.svg"
+                  alt="Language"
+                  width="25"
+                  height="25"
+                />
               </button>
             </template>
             <template #menu="{ close }">
               <ul class="list-unstyled mb-0">
                 <li>
-                  <a class="dropdown-item" href="#" @click.prevent="
-                    switchLanguage('EN');
-                  close();
-                  ">English</a>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click.prevent="
+                      switchLanguage('EN');
+                      close();
+                    "
+                    >English</a
+                  >
                 </li>
                 <li>
-                  <a class="dropdown-item" href="#" @click.prevent="
-                    switchLanguage('AR');
-                  close();
-                  ">العربية</a>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click.prevent="
+                      switchLanguage('AR');
+                      close();
+                    "
+                    >العربية</a
+                  >
                 </li>
               </ul>
             </template>
@@ -41,30 +71,62 @@
 
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
-              <button class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none" type="button">
-                <img :src="userAvatar" alt="User profile picture" class="rounded-circle" width="36" height="36" />
+              <button
+                class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none"
+                type="button"
+              >
+                <img
+                  :src="userAvatar"
+                  alt="User profile picture"
+                  class="rounded-circle"
+                  width="36"
+                  height="36"
+                />
                 <span class="d-none d-md-inline text-dark">{{ userName }}</span>
-                <img src="/src/assets/Navbar/DropDown.svg" alt="Dropdown" width="16" height="16" />
+                <img
+                  src="/src/assets/Navbar/DropDown.svg"
+                  alt="Dropdown"
+                  width="16"
+                  height="16"
+                />
               </button>
             </template>
             <template #menu="{ close }">
               <ul class="list-unstyled mb-0">
                 <li>
-                  <a class="dropdown-item" href="#" @click.prevent="handleProfile(close)">{{ $t("navbar.profile") }}</a>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click.prevent="handleProfile(close)"
+                    >{{ $t("navbar.profile") }}</a
+                  >
                 </li>
                 <li>
-                  <a class="dropdown-item" href="#" @click.prevent="handleSettings(close)">{{ $t("navbar.settings")
-                  }}</a>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click.prevent="handleSettings(close)"
+                    >{{ $t("navbar.settings") }}</a
+                  >
                 </li>
                 <li>
                   <hr class="dropdown-divider" />
                 </li>
                 <li>
-                  <a class="dropdown-item" href="#" @click.prevent="handleSwitchUser(close)">{{ $t("navbar.SwitchUser")
-                  }}</a>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click.prevent="handleSwitchUser(close)"
+                    >{{ $t("navbar.SwitchUser") }}</a
+                  >
                 </li>
                 <li>
-                  <a class="dropdown-item " href="#" @click.prevent="handleLogout(close)">{{ $t("navbar.logout") }}</a>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click.prevent="handleLogout(close)"
+                    >{{ $t("navbar.logout") }}</a
+                  >
                 </li>
               </ul>
             </template>
@@ -81,6 +143,7 @@ import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { setLocale } from "@/i18n/index";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
+import CurrencySelector from "@/components/shared/CurrencySelector.vue";
 
 const props = defineProps({
   pageTitle: {
@@ -128,6 +191,10 @@ const handleSwitchUser = (close) => {
 const handleLogout = (close) => {
   close();
   console.log("Logout");
+};
+
+const handleCurrencyChange = (currency) => {
+  console.log("Currency changed to:", currency);
 };
 </script>
 

@@ -1,6 +1,6 @@
 <template>
     <div class="calendar-container">
-        <div class="row g-3">
+        <div class="row g-2">
             <!-- Calendar -->
             <div class="col-md-5">
                 <div class="card border-0 shadow-sm">
@@ -9,7 +9,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Plan Details Card -->
             <div class="col-md-7">
                 <div v-if="selectedPlan" class="card border-0 shadow-sm animate-slide-in">
@@ -26,7 +26,8 @@
                             <!-- Plan Name -->
                             <div class="col-12">
                                 <div class="detail-item p-3 bg-light rounded-3">
-                                    <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+                                    <label
+                                        class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
                                         <i class="bi bi-pencil-square me-1"></i>
                                         {{ $t('workPlan.name') }}
                                     </label>
@@ -37,18 +38,21 @@
                             <!-- Driver Name -->
                             <div class="col-md-6">
                                 <div class="detail-item p-3 bg-light rounded-3">
-                                    <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+                                    <label
+                                        class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
                                         <i class="bi bi-person-badge me-1"></i>
                                         {{ $t('workPlan.driverName') }}
                                     </label>
-                                    <div class="detail-value text-dark fw-medium">{{ selectedPlan.driver_name || '-' }}</div>
+                                    <div class="detail-value text-dark fw-medium">{{ selectedPlan.driver_name || '-' }}
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Company -->
                             <div class="col-md-6">
                                 <div class="detail-item p-3 bg-light rounded-3">
-                                    <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+                                    <label
+                                        class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
                                         <i class="bi bi-building me-1"></i>
                                         {{ $t('workPlan.companyName') }}
                                     </label>
@@ -62,7 +66,8 @@
                             <!-- Date -->
                             <div class="col-md-12">
                                 <div class="detail-item p-3 bg-light rounded-3">
-                                    <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+                                    <label
+                                        class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
                                         <i class="bi bi-calendar-event me-1"></i>
                                         {{ $t('workPlan.date') }}
                                     </label>
@@ -76,21 +81,22 @@
                             <!-- Orders Section -->
                             <div class="col-12" v-if="selectedPlan.orders && selectedPlan.orders.length > 0">
                                 <div class="detail-item p-3 bg-light rounded-3">
-                                    <label class="detail-label text-muted small fw-semibold text-uppercase mb-3 d-block">
+                                    <label
+                                        class="detail-label text-muted small fw-semibold text-uppercase mb-3 d-block">
                                         <i class="bi bi-box-seam me-1"></i>
                                         {{ $t('workPlan.orders') }}
                                     </label>
                                     <div class="orders-list">
-                                        <div v-for="(order, index) in selectedPlan.orders" :key="index" 
-                                             class="order-item mb-2 p-3 bg-white rounded border">
+                                        <div v-for="(order, index) in selectedPlan.orders" :key="index"
+                                            class="order-item mb-2 p-3 bg-white rounded border">
                                             <div class="row">
                                                 <div class="col-md-6 mb-2 mb-md-0">
                                                     <span class="badge bg-secondary me-2">{{ index + 1 }}</span>
-                                                    <strong>{{ $t('workPlan.orderName') }}:</strong> 
+                                                    <strong>{{ $t('workPlan.orderName') }}:</strong>
                                                     <span class="text-primary ms-1">{{ order.order || '-' }}</span>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <strong>{{ $t('workPlan.orderItems') }}:</strong> 
+                                                    <strong>{{ $t('workPlan.orderItems') }}:</strong>
                                                     <span class="text-success ms-1">{{ order.items || '-' }}</span>
                                                 </div>
                                             </div>
@@ -238,50 +244,31 @@ watch(() => props.workPlans, () => {
     animation: fadeIn 0.3s ease-in;
 }
 
-@keyframes fadeIn {
+/* @keyframes fadeIn {
     from {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
     }
-}
+} */
 
 .animate-slide-in {
     animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
 }
 
 .detail-item {
     transition: all 0.2s ease;
 }
 
-.detail-item:hover {
-    background-color: #e9ecef !important;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
 
 .order-item {
     transition: all 0.2s ease;
 }
 
-.order-item:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transform: translateX(5px);
-}
 
 .orders-list {
     max-height: 300px;
@@ -292,23 +279,9 @@ watch(() => props.workPlans, () => {
     width: 6px;
 }
 
-.orders-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
 .orders-list::-webkit-scrollbar-thumb {
     background: var(--primary-color);
     border-radius: 10px;
-}
-
-.orders-list::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-.empty-state-icon i {
-    font-size: 4rem;
-    color: #dee2e6;
 }
 
 /* FullCalendar Styling */
@@ -373,15 +346,17 @@ watch(() => props.workPlans, () => {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .col-md-7, .col-md-5 {
+
+    .col-md-7,
+    .col-md-5 {
         flex: 0 0 100%;
         max-width: 100%;
     }
-    
+
     .order-item .row {
         flex-direction: column;
     }
-    
+
     .fc .fc-toolbar {
         flex-direction: column;
         gap: 1rem;

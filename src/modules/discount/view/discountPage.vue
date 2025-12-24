@@ -21,31 +21,13 @@
       <div class="card-body p-0">
         <DataTable :columns="filteredColumns" :data="paginatedDiscounts">
           <template #actions="{ row }">
-            <div class="d-flex gap-1 justify-content-center">
-              <button
-                v-if="row.status === 'active'"
-                @click="stopDiscount(row.id)"
-                class="btn btn-sm btn-outline-danger"
-                :title="$t('discount.actions.stop')"
-              >
-                {{ $t("discount.actions.stop") }}
-              </button>
-              <button
-                v-if="row.status === 'stopped'"
-                @click="activateDiscount(row.id)"
-                class="btn btn-sm btn-outline-success"
-                :title="$t('discount.actions.activate')"
-              >
-                {{ $t("discount.actions.activate") }}
-              </button>
-              <button
-                @click="deleteDiscount(row.id)"
-                class="btn btn-sm btn-outline-secondary"
-                :title="$t('discount.actions.delete')"
-              >
-                {{ $t("discount.actions.delete") }}
-              </button>
-            </div>
+            <Actions
+              :row="row"
+              :editLabel="$t('discount.edit')"
+              :detailsLabel="$t('discount.actions.details')"
+              @edit="handleEdit"
+              @details="handleDetails"
+            />
           </template>
         </DataTable>
         <div class="px-3 pt-1 pb-2 bg-light">
@@ -62,8 +44,8 @@
     <!-- Form Modal for Discount -->
     <FormModal
       :isOpen="isModalOpen"
-      :title="$t('discount.addNew')"
-      :fields="discountFields"
+      :title="isEditMode ? $t('discount.edit') : $t('discount.addNew')"
+      :fields="discountFieldsWithDefaults"
       :showImageUpload="false"
       @close="closeModal"
       @submit="handleAddDiscount"
@@ -80,6 +62,15 @@
       @close="closeTrashedModal"
       @restore="handleRestoreDiscount"
     />
+
+    <!-- Details Modal -->
+    <DetailsModal
+      :isOpen="isDetailsModalOpen"
+      :title="$t('discount.details.title')"
+      :data="selectedDiscount"
+      :fields="detailsFields"
+      @close="closeDetailsModal"
+    />
   </div>
 </template>
 
@@ -90,13 +81,17 @@ import Pagination from "../../../components/shared/Pagination.vue";
 import DiscountHeader from "../components/discountHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import Actions from "../../../components/shared/Actions.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
 
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDiscountFormFields } from "../components/discountFormFields.js";
+import { useCurrency } from "@/composables/useCurrency.js";
 
 const { t } = useI18n();
 const { discountFields } = useDiscountFormFields();
+const { formatPrice, formatPriceWithFallback } = useCurrency();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -104,6 +99,9 @@ const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
+const isDetailsModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedDiscount = ref({});
 
 // Simple local data - following the backend API schema
 const discounts = ref([
@@ -183,8 +181,20 @@ const discountColumns = computed(() => [
     key: "discount_percentage",
     label: t("discount.table.percentage"),
     sortable: true,
+    formatter: (value) => `${value}%`,
   },
-  { key: "value", label: t("discount.table.value"), sortable: false },
+  {
+    key: "value",
+    label: t("discount.table.value"),
+    sortable: false,
+    formatter: (value, row) => {
+      // If type is Price, format as currency, otherwise show as text
+      if (row.type === "Price" && !isNaN(parseFloat(value))) {
+        return formatPrice(parseFloat(value), "USD");
+      }
+      return value;
+    },
+  },
   { key: "start_date", label: t("discount.table.startDate"), sortable: true },
   { key: "end_date", label: t("discount.table.endDate"), sortable: true },
   { key: "company_name", label: t("discount.table.company"), sortable: true },
@@ -201,8 +211,22 @@ const discountColumns = computed(() => [
 const trashedColumns = computed(() => [
   { key: "id", label: t("discount.table.id") },
   { key: "type", label: t("discount.table.type") },
-  { key: "discount_percentage", label: t("discount.table.percentage") },
-  { key: "value", label: t("discount.table.value") },
+  {
+    key: "discount_percentage",
+    label: t("discount.table.percentage"),
+    formatter: (value) => `${value}%`,
+  },
+  {
+    key: "value",
+    label: t("discount.table.value"),
+    formatter: (value, row) => {
+      // If type is Price, format as currency, otherwise show as text
+      if (row.type === "Price" && !isNaN(parseFloat(value))) {
+        return formatPrice(parseFloat(value), "USD");
+      }
+      return value;
+    },
+  },
   { key: "start_date", label: t("discount.table.startDate") },
 ]);
 
@@ -231,11 +255,15 @@ const paginatedDiscounts = computed(() => {
 
 // Action methods
 const openModal = () => {
+  isEditMode.value = false;
+  selectedDiscount.value = {};
   isModalOpen.value = true;
 };
 
 const closeModal = () => {
   isModalOpen.value = false;
+  isEditMode.value = false;
+  selectedDiscount.value = {};
 };
 
 const openTrashedModal = () => {
@@ -247,29 +275,47 @@ const closeTrashedModal = () => {
 };
 
 const handleAddDiscount = (discountData) => {
-  console.log("New discount added:", discountData);
+  console.log("Discount data:", discountData);
 
   const formatDateTime = (dateTimeLocal) => {
     if (!dateTimeLocal) return null;
     return dateTimeLocal.replace("T", " ") + ":00";
   };
 
-  const newDiscount = {
-    id: discounts.value.length + 1,
-    type: discountData.type,
-    discount_percentage: parseFloat(discountData.discount_percentage),
-    start_date: formatDateTime(discountData.start_date),
-    end_date: formatDateTime(discountData.end_date),
-    company_id: parseInt(discountData.company_id),
-    company_name: "Tech Solutions Ltd",
-    value: discountData.value,
-    status: "active",
-    usage_count: 0,
-    created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
-  };
+  if (isEditMode.value) {
+    // Update existing discount
+    const index = discounts.value.findIndex(d => d.id === selectedDiscount.value.id);
+    if (index > -1) {
+      discounts.value[index] = {
+        ...discounts.value[index],
+        type: discountData.type,
+        discount_percentage: parseFloat(discountData.discount_percentage),
+        start_date: formatDateTime(discountData.start_date),
+        end_date: formatDateTime(discountData.end_date),
+        company_id: parseInt(discountData.company_id),
+        value: discountData.value,
+      };
+      console.log("Discount updated successfully!");
+    }
+  } else {
+    // Add new discount
+    const newDiscount = {
+      id: discounts.value.length + 1,
+      type: discountData.type,
+      discount_percentage: parseFloat(discountData.discount_percentage),
+      start_date: formatDateTime(discountData.start_date),
+      end_date: formatDateTime(discountData.end_date),
+      company_id: parseInt(discountData.company_id),
+      company_name: "Tech Solutions Ltd",
+      value: discountData.value,
+      status: "active",
+      usage_count: 0,
+      created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
+    };
 
-  discounts.value.push(newDiscount);
-  console.log("Discount added successfully!");
+    discounts.value.push(newDiscount);
+    console.log("Discount added successfully!");
+  }
 };
 
 const handleRestoreDiscount = (discount) => {
@@ -282,33 +328,62 @@ const handleRestoreDiscount = (discount) => {
   console.log("Discount has been restored successfully!");
 };
 
-const stopDiscount = (discountId) => {
-  const discount = discounts.value.find((d) => d.id === discountId);
-  if (discount) {
-    discount.status = "stopped";
-    console.log("Discount stopped successfully!");
-  }
+const handleEdit = (discount) => {
+  isEditMode.value = true;
+  selectedDiscount.value = { ...discount };
+  isModalOpen.value = true;
 };
 
-const activateDiscount = (discountId) => {
-  const discount = discounts.value.find((d) => d.id === discountId);
-  if (discount) {
-    discount.status = "active";
-    console.log("Discount activated successfully!");
-  }
+const handleDetails = (discount) => {
+  selectedDiscount.value = { ...discount };
+  isDetailsModalOpen.value = true;
 };
 
-const deleteDiscount = (discountId) => {
-  const index = discounts.value.findIndex((d) => d.id === discountId);
-  if (index > -1) {
-    const discount = discounts.value[index];
-    // Move to trash
-    trashedDiscounts.value.push({ ...discount, status: "deleted" });
-    // Remove from active discounts
-    discounts.value.splice(index, 1);
-    console.log("Discount deleted successfully!");
-  }
+const closeDetailsModal = () => {
+  isDetailsModalOpen.value = false;
+  selectedDiscount.value = {};
 };
+
+// Update form fields to support edit mode
+const discountFieldsWithDefaults = computed(() => {
+  return discountFields.value.map(field => ({
+    ...field,
+    defaultValue: isEditMode.value ? selectedDiscount.value[field.name] : field.defaultValue || ''
+  }));
+});
+
+// Details fields configuration
+const detailsFields = computed(() => [
+  { key: "id", label: t("discount.table.id"), colClass: "col-md-6" },
+  { key: "type", label: t("discount.table.type"), colClass: "col-md-6" },
+  {
+    key: "discount_percentage",
+    label: t("discount.table.percentage"),
+    colClass: "col-md-6",
+    translator: (value) => `${value}%`
+  },
+  {
+    key: "value",
+    label: t("discount.table.value"),
+    colClass: "col-md-6",
+    translator: (value) => {
+      if (selectedDiscount.value.type === "Price" && !isNaN(parseFloat(value))) {
+        return formatPrice(parseFloat(value), "USD");
+      }
+      return value;
+    }
+  },
+  { key: "start_date", label: t("discount.table.startDate"), colClass: "col-md-6" },
+  { key: "end_date", label: t("discount.table.endDate"), colClass: "col-md-6" },
+  { key: "company_name", label: t("discount.table.company"), colClass: "col-md-6" },
+  { key: "usage_count", label: t("discount.table.usageCount"), colClass: "col-md-6" },
+  {
+    key: "status",
+    label: t("discount.table.status"),
+    colClass: "col-md-6",
+    translationKey: "discountStatus"
+  },
+]);
 
 watch([searchText, selectedGroups], () => {
   currentPage.value = 1;

@@ -69,13 +69,33 @@
                   </option>
                 </select>
 
+                <!-- Multi-Select Dropdown -->
+                <select
+                  v-else-if="field.type === 'multiselect'"
+                  :id="field.name"
+                  class="form-select"
+                  v-model="formData[field.name]"
+                  :required="field.required"
+                  multiple
+                  :size="field.size || 5"
+                  style="min-height: 120px;"
+                >
+                  <option
+                    v-for="option in field.options"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+
                 <!-- Button field -->
                 <PrimaryButton v-else-if="field.type === 'button'" type="button" :text="field.text || field.label"
                   @click="field.onClick && field.onClick()">
                   {{ field.text || field.label }}
                 </PrimaryButton>
 
-                <!-- Order + Phase dynamic rows with + -->
+                <!-- Order + items dynamic rows with + -->
                 <div v-else-if="field.type === 'orderRows'">
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="fw-semibold">{{ field.label }}</span>
@@ -99,11 +119,11 @@
 
                     <div class="col-md-5">
                       <label class="form-label">
-                        {{ field.phaseLabel || 'Phase' }}
+                        {{ field.itemsLabel || 'items' }}
                       </label>
-                      <select class="form-select" v-model="formData[field.name][index].phase">
-                        <option value="" disabled> Select Phase </option>
-                        <option v-for="option in field.phaseOptions" :key="option.value" :value="option.value">
+                      <select class="form-select" v-model="formData[field.name][index].items">
+                        <option value="" disabled> Select items </option>
+                        <option v-for="option in field.itemsOptions" :key="option.value" :value="option.value">
                           {{ option.label }}
                         </option>
                       </select>
@@ -175,18 +195,7 @@ const initializeForm = () => {
 
   props.fields.forEach((field) => {
     if (field && field.name) {
-      if (field.type === "orderRows") {
-        formData[field.name] =
-          field.defaultValue ||
-          [
-            {
-              order: "",
-              phase: "",
-            },
-          ];
-      } else {
-        formData[field.name] = field.defaultValue || "";
-      }
+      formData[field.name] = field.defaultValue || "";
       errors[field.name] = "";
     }
   });
@@ -198,18 +207,7 @@ const resetForm = () => {
 
   props.fields.forEach((field) => {
     if (field && field.name) {
-      if (field.type === "orderRows") {
-        formData[field.name] =
-          field.defaultValue ||
-          [
-            {
-              order: "",
-              phase: "",
-            },
-          ];
-      } else {
-        formData[field.name] = field.defaultValue || "";
-      }
+      formData[field.name] = field.defaultValue || "";
       errors[field.name] = "";
     }
   });
@@ -229,7 +227,7 @@ const addOrderRow = (fieldName) => {
   }
   formData[fieldName].push({
     order: "",
-    phase: "",
+    items: "",
   });
 };
 
@@ -300,18 +298,7 @@ const validateForm = () => {
     if (!field || !field.name) return;
     const value = formData[field.name];
 
-    if (field.type === "orderRows" && Array.isArray(value)) {
-      if (field.required) {
-        value.forEach((row) => {
-          if (!row.order || !row.phase) {
-            errors[field.name] = "الرجاء تعبئة كل الأوردرات والفيز";
-            isValid = false;
-          }
-        });
-      }
-      return;
-    }
-
+    // Required validation
     if (field.required && !value) {
       errors[field.name] = `${field.label} is required`;
       isValid = false;

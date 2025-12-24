@@ -1,36 +1,5 @@
 <template>
   <div class="company-price-page-container bg-light">
-    <!-- Currency Selector -->
-    <div class="card border-0 mb-3">
-      <div class="card-body py-2">
-        <div class="row align-items-center">
-          <div class="col-auto">
-            <label class="form-label mb-0 fw-semibold"
-              >{{ $t("companyPrice.displayCurrency") }}:</label
-            >
-          </div>
-          <div class="col-auto">
-            <select
-              v-model="selectedCurrency"
-              class="form-select form-select-sm"
-              style="width: auto"
-            >
-              <option
-                v-for="currency in availableCurrencies"
-                :key="currency.id"
-                :value="currency"
-              >
-                {{ currency.code }} ({{ currency.symbol }})
-              </option>
-            </select>
-          </div>
-          <div class="col-auto text-muted">
-            <small>{{ $t("companyPrice.currencyNote") }}</small>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Company Price Header -->
     <CompanyPriceHeader
       v-model="searchText"
@@ -52,15 +21,13 @@
       <div class="card-body p-0">
         <DataTable :columns="filteredColumns" :data="paginatedCompanyPrices">
           <template #actions="{ row }">
-            <div class="d-flex gap-1 justify-content-center">
-              <button
-                @click="deleteCompanyPrice(row.id)"
-                class="btn btn-sm btn-outline-secondary"
-                :title="$t('companyPrice.actions.delete')"
-              >
-                {{ $t("companyPrice.actions.delete") }}
-              </button>
-            </div>
+            <Actions
+              :row="row"
+              :editLabel="$t('companyPrice.edit')"
+              :detailsLabel="$t('companyPrice.actions.details')"
+              @edit="handleEdit"
+              @details="handleDetails"
+            />
           </template>
         </DataTable>
         <div class="px-3 pt-1 pb-2 bg-light">
@@ -77,8 +44,8 @@
     <!-- Form Modal for Company Price -->
     <FormModal
       :isOpen="isModalOpen"
-      :title="$t('companyPrice.addNew')"
-      :fields="companyPriceFields"
+      :title="isEditMode ? $t('companyPrice.edit') : $t('companyPrice.addNew')"
+      :fields="companyPriceFieldsWithDefaults"
       :showImageUpload="false"
       @close="closeModal"
       @submit="handleAddCompanyPrice"
@@ -90,10 +57,19 @@
       :title="$t('companyPrice.trashed.title')"
       :emptyMessage="$t('companyPrice.trashed.empty')"
       :columns="trashedColumns"
-      :trashedItems="trashedCompanyPrices"
+      :trashedItems="trashedCompanyPricesWithLocalizedData"
       :showDeleteButton="false"
       @close="closeTrashedModal"
       @restore="handleRestoreCompanyPrice"
+    />
+
+    <!-- Details Modal -->
+    <DetailsModal
+      :isOpen="isDetailsModalOpen"
+      :title="$t('companyPrice.details.title')"
+      :data="selectedPrice"
+      :fields="detailsFields"
+      @close="closeDetailsModal"
     />
   </div>
 </template>
@@ -105,12 +81,16 @@ import Pagination from "../../../components/shared/Pagination.vue";
 import CompanyPriceHeader from "../components/companyPriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import Actions from "../../../components/shared/Actions.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
+import { useCurrency } from "@/composables/useCurrency.js";
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
+const { formatPrice, convertAmount, selectedCurrency } = useCurrency();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -118,22 +98,9 @@ const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
-
-// Currency selector for unified display
-const selectedCurrency = ref({
-  id: 1,
-  code: "USD",
-  symbol: "$",
-});
-
-const availableCurrencies = [
-  { id: 1, code: "USD", symbol: "$" },
-  { id: 2, code: "EUR", symbol: "€" },
-  { id: 3, code: "GBP", symbol: "£" },
-  { id: 4, code: "JPY", symbol: "¥" },
-  { id: 5, code: "ILS", symbol: "₪" },
-  { id: 6, code: "JOD", symbol: "JD" },
-];
+const isDetailsModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedPrice = ref({});
 
 // Simple local data - unified currency (prices stored in USD, converted for display)
 const companyPrices = ref([
@@ -182,47 +149,29 @@ const trashedCompanyPrices = ref([
   },
 ]);
 
-// Simple exchange rates (in real app, fetch from API)
-const exchangeRates = {
-  USD: 1.0,
-  EUR: 0.85,
-  GBP: 0.73,
-  JPY: 110.0,
-  ILS: 3.7,
-  JOD: 0.71,
-};
-
 // Add localized item type names and convert prices to selected currency
 const companyPricesWithLocalizedData = computed(() => {
   return companyPrices.value.map((item) => {
-    const convertedPrice =
-      item.price * exchangeRates[selectedCurrency.value.code];
     return {
       ...item,
       itemTypeDisplay: t(
         `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
       ),
-      priceDisplay: `${selectedCurrency.value.symbol}${convertedPrice.toFixed(
-        2
-      )}`,
-      convertedPrice: convertedPrice,
+      priceDisplay: formatPrice(item.price, "USD"),
+      convertedPrice: convertAmount(item.price, "USD"),
     };
   });
 });
 
 const trashedCompanyPricesWithLocalizedData = computed(() => {
   return trashedCompanyPrices.value.map((item) => {
-    const convertedPrice =
-      item.price * exchangeRates[selectedCurrency.value.code];
     return {
       ...item,
       itemTypeDisplay: t(
         `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
       ),
-      priceDisplay: `${selectedCurrency.value.symbol}${convertedPrice.toFixed(
-        2
-      )}`,
-      convertedPrice: convertedPrice,
+      priceDisplay: formatPrice(item.price, "USD"),
+      convertedPrice: convertAmount(item.price, "USD"),
     };
   });
 });
@@ -242,7 +191,9 @@ const companyPriceColumns = computed(() => [
   },
   {
     key: "priceDisplay",
-    label: `${t("companyPrice.table.price")} (${selectedCurrency.value.code})`,
+    label: `${t("companyPrice.table.price")} (${
+      selectedCurrency.value?.code || "USD"
+    })`,
     sortable: true,
   },
   {
@@ -258,7 +209,9 @@ const trashedColumns = computed(() => [
   { key: "itemTypeDisplay", label: t("companyPrice.table.itemType") },
   {
     key: "priceDisplay",
-    label: `${t("companyPrice.table.price")} (${selectedCurrency.value.code})`,
+    label: `${t("companyPrice.table.price")} (${
+      selectedCurrency.value?.code || "USD"
+    })`,
   },
 ]);
 
@@ -287,11 +240,15 @@ const paginatedCompanyPrices = computed(() => {
 
 // Action methods
 const openModal = () => {
+  isEditMode.value = false;
+  selectedPrice.value = {};
   isModalOpen.value = true;
 };
 
 const closeModal = () => {
   isModalOpen.value = false;
+  isEditMode.value = false;
+  selectedPrice.value = {};
 };
 
 const openTrashedModal = () => {
@@ -303,18 +260,7 @@ const closeTrashedModal = () => {
 };
 
 const handleAddCompanyPrice = (priceData) => {
-  console.log("New company price added:", priceData);
-
-  // Check for unique itemType + company_id validation
-  const existingPrice = companyPrices.value.find(
-    (p) =>
-      p.itemType === priceData.itemType &&
-      p.company_id === parseInt(priceData.company_id)
-  );
-  if (existingPrice) {
-    alert(t("companyPrice.validation.duplicateItemType"));
-    return;
-  }
+  console.log("Company price data:", priceData);
 
   // Get company name
   const companies = [
@@ -329,20 +275,64 @@ const handleAddCompanyPrice = (priceData) => {
 
   // Convert entered price to USD for storage (if entered in different currency)
   const enteredPrice = parseFloat(priceData.price);
-  const priceInUSD = enteredPrice / exchangeRates[selectedCurrency.value.code];
+  const priceInUSD = convertAmount(
+    enteredPrice,
+    selectedCurrency.value?.code || "USD",
+    "USD"
+  );
 
-  const newCompanyPrice = {
-    id: Math.max(...companyPrices.value.map((p) => p.id), 0) + 1,
-    price: priceInUSD, // Store in USD
-    itemType: priceData.itemType,
-    company_id: parseInt(priceData.company_id),
-    company_name: company.name,
-    created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
-  };
+  if (isEditMode.value) {
+    // Update existing company price
+    const index = companyPrices.value.findIndex(p => p.id === selectedPrice.value.id);
+    if (index > -1) {
+      // Check for unique itemType + company_id validation (excluding current item)
+      const existingPrice = companyPrices.value.find(
+        (p) =>
+          p.id !== selectedPrice.value.id &&
+          p.itemType === priceData.itemType &&
+          p.company_id === parseInt(priceData.company_id)
+      );
+      if (existingPrice) {
+        alert(t("companyPrice.validation.duplicateItemType"));
+        return;
+      }
 
-  companyPrices.value.push(newCompanyPrice);
+      companyPrices.value[index] = {
+        ...companyPrices.value[index],
+        price: priceInUSD,
+        itemType: priceData.itemType,
+        company_id: parseInt(priceData.company_id),
+        company_name: company.name,
+      };
+      console.log("Company price updated successfully!");
+    }
+  } else {
+    // Check for unique itemType + company_id validation
+    const existingPrice = companyPrices.value.find(
+      (p) =>
+        p.itemType === priceData.itemType &&
+        p.company_id === parseInt(priceData.company_id)
+    );
+    if (existingPrice) {
+      alert(t("companyPrice.validation.duplicateItemType"));
+      return;
+    }
+
+    // Add new company price
+    const newCompanyPrice = {
+      id: Math.max(...companyPrices.value.map((p) => p.id), 0) + 1,
+      price: priceInUSD,
+      itemType: priceData.itemType,
+      company_id: parseInt(priceData.company_id),
+      company_name: company.name,
+      created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
+    };
+
+    companyPrices.value.push(newCompanyPrice);
+    console.log("Company price added successfully!");
+  }
+
   closeModal();
-  console.log("Company price added successfully!");
 };
 
 const handleRestoreCompanyPrice = (price) => {
@@ -357,17 +347,48 @@ const handleRestoreCompanyPrice = (price) => {
   console.log("Company price has been restored successfully!");
 };
 
-const deleteCompanyPrice = (priceId) => {
-  const index = companyPrices.value.findIndex((p) => p.id === priceId);
-  if (index > -1) {
-    const price = companyPrices.value[index];
-    // Move to trash
-    trashedCompanyPrices.value.push(price);
-    // Remove from active prices
-    companyPrices.value.splice(index, 1);
-    console.log("Company price deleted successfully!");
-  }
+const handleEdit = (price) => {
+  isEditMode.value = true;
+  // Use original price data, not the computed version
+  const originalPrice = companyPrices.value.find(p => p.id === price.id);
+  selectedPrice.value = { ...originalPrice };
+  isModalOpen.value = true;
 };
+
+const handleDetails = (price) => {
+  selectedPrice.value = { ...price };
+  isDetailsModalOpen.value = true;
+};
+
+const closeDetailsModal = () => {
+  isDetailsModalOpen.value = false;
+  selectedPrice.value = {};
+};
+
+// Update form fields to support edit mode
+const companyPriceFieldsWithDefaults = computed(() => {
+  return companyPriceFields.value.map(field => ({
+    ...field,
+    defaultValue: isEditMode.value ? selectedPrice.value[field.name] : field.defaultValue || ''
+  }));
+});
+
+// Details fields configuration
+const detailsFields = computed(() => [
+  { key: "id", label: t("companyPrice.table.id"), colClass: "col-md-6" },
+  { key: "company_name", label: t("companyPrice.table.company"), colClass: "col-md-6" },
+  {
+    key: "itemTypeDisplay",
+    label: t("companyPrice.table.itemType"),
+    colClass: "col-md-6"
+  },
+  {
+    key: "priceDisplay",
+    label: `${t("companyPrice.table.price")} (${selectedCurrency.value?.code || "USD"})`,
+    colClass: "col-md-6"
+  },
+  { key: "created_at", label: t("companyPrice.table.createdAt"), colClass: "col-md-6" },
+]);
 
 watch([searchText, selectedGroups], () => {
   currentPage.value = 1;

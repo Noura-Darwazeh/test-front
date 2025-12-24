@@ -1,8 +1,10 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useCurrency } from "@/composables/useCurrency.js";
 
 export function useDiscountFormFields() {
   const { t } = useI18n();
+  const { formatPrice } = useCurrency();
 
   const discountFields = computed(() => [
     {
@@ -125,6 +127,15 @@ export function useDiscountFormFields() {
           }
         }
 
+        return null;
+      },
+      // Add helper text for Price type
+      helperText: (formData) => {
+        if (formData?.type === "Price") {
+          return t("discount.form.priceHelperText", {
+            example: formatPrice(100, "USD"),
+          });
+        }
         return null;
       },
     },

@@ -1,26 +1,13 @@
 <template>
   <div class="dropdown group-filter" ref="dropdownRef">
-    <button
-      @click="isOpen = !isOpen"
-      class="btn btn-outline-secondary dropdown-toggle d-flex align-items-start"
-      type="button"
-    >
+    <button @click="isOpen = !isOpen" class="btn dropdown-toggle d-flex align-items-center bg-white
+" type="button">
       <!-- Chips container (when groups selected) -->
-      <div
-        v-if="selectedGroups.length > 0"
-        class="chips-container d-flex flex-column gap-2 w-100"
-      >
-        <span
-          v-for="group in selectedGroups"
-          :key="group"
-          class="chip d-inline-flex align-items-center gap-2 bg-primary text-white px-2 py-1 rounded"
-        >
+      <div v-if="selectedGroups.length > 0" class="chips-container d-flex flex-column gap-2 w-100">
+        <span v-for="group in selectedGroups" :key="group"
+          class="chip d-inline-flex align-items-center gap-2 bg-primary text-white px-2 py-1 rounded">
           {{ group }}
-          <button
-            @click.stop="removeGroup(group)"
-            class="chip-remove"
-            type="button"
-          >
+          <button @click.stop="removeGroup(group)" class="chip-remove" type="button">
             ×
           </button>
         </span>
@@ -31,51 +18,30 @@
     </button>
 
     <!-- Dropdown menu -->
-    <div
-      class="dropdown-menu dropdown-menu-end p-3 shadow border rounded-3 mt-2"
-      :class="{ show: isOpen }"
-    >
+    <div class="dropdown-menu dropdown-menu-end p-3 shadow border rounded-3 mt-2" :class="{ show: isOpen }">
       <!-- Available groups (not selected) -->
-      <div
-        v-for="group in availableGroups"
-        :key="group"
-        class="dropdown-item py-2 d-flex align-items-center"
-      >
-        <input
-          type="checkbox"
-          :id="`group-${group}`"
-          :value="group"
-          @change="addGroup(group)"
-          class="form-check-input"
-        />
-        <label
-          :for="`group-${group}`"
-          class="form-check-label ms-2 user-select-none flex-fill"
-        >
+      <div v-for="group in availableGroups" :key="group" class="dropdown-item py-2 d-flex align-items-center">
+        <input type="checkbox" :id="`group-${group}`" :value="group" @change="addGroup(group)"
+          class="form-check-input" />
+        <label :for="`group-${group}`" class="form-check-label ms-2 user-select-none flex-fill">
           {{ group }}
         </label>
       </div>
 
       <!-- Empty state -->
-      <div
-        v-if="availableGroups.length === 0 && selectedGroups.length > 0"
-        class="text-muted text-center py-2"
-      >
+      <div v-if="availableGroups.length === 0 && selectedGroups.length > 0" class="text-muted text-center py-2">
         All groups selected
       </div>
       <!-- Clear All button -->
-      <button
-        v-if="selectedGroups.length > 0"
-        @click="clearAll"
-        class="btn btn-sm btn-outline-danger w-100 mb-2"
-        type="button"
-      >
+      <button v-if="selectedGroups.length > 0" @click="clearAll" class="btn btn-sm btn-outline-danger w-100 mb-2"
+        type="button">
         Clear All
       </button>
     </div>
   </div>
 </template>
 <script setup>
+import PrimaryButton from "@/components/shared/PrimaryButton.vue";
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 // ---------------------- Props and Emits ----------------
 const props = defineProps({
@@ -163,6 +129,7 @@ watch(
   min-height: 42px;
   max-height: 42px;
 }
+
 .chips-container {
   max-height: 32px;
   overflow-y: auto;
@@ -174,6 +141,7 @@ watch(
   font-size: 0.75rem;
   flex-shrink: 0;
 }
+
 .chip-remove {
   background: none;
   border: none;
@@ -186,6 +154,7 @@ watch(
   opacity: 0.8;
   transition: opacity 0.2s;
 }
+
 .chip-remove:hover {
   opacity: 1;
 }

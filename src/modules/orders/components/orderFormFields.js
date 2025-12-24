@@ -1,80 +1,193 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useCurrency } from "@/composables/useCurrency.js";
 
 export function useOrderFormFields() {
   const { t } = useI18n();
+  const { availableCurrencies, formatPrice } = useCurrency();
 
   const orderFields = computed(() => [
     {
-      name: "customerName",
-      label: t("orders.form.customerName"),
-      type: "text",
+      name: "to_id",
+      label: t("orders.form.toId"),
+      type: "select",
       required: true,
-      placeholder: t("orders.form.customerNamePlaceholder"),
+      colClass: "col-md-6",
+      options: [
+        { value: 1, label: "Location 1" },
+        { value: 2, label: "Location 2" },
+        { value: 3, label: "Location 3" },
+      ],
+    },
+    {
+      name: "customer_id",
+      label: t("orders.form.customerId"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: 1, label: "John Doe" },
+        { value: 2, label: "Sara Mohammed" },
+        { value: 3, label: "Ahmad Khalil" },
+      ],
+    },
+    {
+      name: "price",
+      label: t("orders.form.price"),
+      type: "number",
+      required: true,
+      placeholder: t("orders.form.pricePlaceholder"),
       colClass: "col-md-6",
       validate: (value) => {
-        if (value.length > 255) return t("orders.validation.customerNameMax");
+        if (isNaN(value) || value <= 0)
+          return t("orders.validation.priceInvalid");
         return null;
       },
     },
     {
-      name: "customerPhone",
-      label: t("orders.form.customerPhone"),
-      type: "tel",
+      name: "currency_id",
+      label: t("orders.form.currencyId"),
+      type: "select",
       required: true,
-      placeholder: t("orders.form.customerPhonePlaceholder"),
       colClass: "col-md-6",
-      validate: (value) => {
-        if (value.length > 20) return t("orders.validation.phoneMax");
-        return null;
-      },
+      options: computed(() =>
+        availableCurrencies.value.map((currency) => ({
+          value: currency.id,
+          label: `${currency.code} (${currency.symbol})`,
+        }))
+      ),
     },
     {
-      name: "items",
-      label: t("orders.form.items"),
-      type: "textarea",
+      name: "lineprice_id",
+      label: t("orders.form.linepriceId"),
+      type: "select",
       required: true,
-      placeholder: t("orders.form.itemsPlaceholder"),
-      colClass: "col-12",
-    },
-    {
-      name: "weight",
-      label: t("orders.form.weight"),
-      type: "number",
-      required: true,
-      placeholder: t("orders.form.weightPlaceholder"),
       colClass: "col-md-6",
+      options: [
+        { value: 1, label: "Line Price 1" },
+        { value: 2, label: "Line Price 2" },
+        { value: 3, label: "Line Price 3" },
+      ],
     },
     {
-      name: "totalPrice",
-      label: t("orders.form.totalPrice"),
-      type: "number",
-      required: true,
-      placeholder: t("orders.form.totalPricePlaceholder"),
-      colClass: "col-md-6",
-    },
-    {
-      name: "pickupLocation",
-      label: t("orders.form.pickupLocation"),
-      type: "text",
-      required: true,
-      placeholder: t("orders.form.pickupLocationPlaceholder"),
-      colClass: "col-md-6",
-    },
-    {
-      name: "deliveryLocation",
-      label: t("orders.form.deliveryLocation"),
-      type: "text",
-      required: true,
-      placeholder: t("orders.form.deliveryLocationPlaceholder"),
-      colClass: "col-md-6",
-    },
-    {
-      name: "estimatedDelivery",
-      label: t("orders.form.estimatedDelivery"),
-      type: "date",
+      name: "discount_id",
+      label: t("orders.form.discountId"),
+      type: "select",
       required: false,
       colClass: "col-md-6",
+      options: [
+        { value: null, label: t("orders.form.noDiscount") },
+        { value: 1, label: "Customer Discount 15%" },
+        { value: 2, label: "Region Discount 10%" },
+        { value: 3, label: "Price Discount 5%" },
+      ],
+    },
+    {
+      name: "company_item_price_id",
+      label: t("orders.form.companyItemPriceId"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: 1, label: `Small & Light - ${formatPrice(25.5, "USD")}` },
+        { value: 2, label: `Small & Heavy - ${formatPrice(45.0, "USD")}` },
+        { value: 3, label: `Big & Light - ${formatPrice(35.75, "USD")}` },
+        { value: 4, label: `Big & Heavy - ${formatPrice(120.0, "USD")}` },
+      ],
+    },
+    {
+      name: "type",
+      label: t("orders.form.type"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: "delivery", label: t("orders.form.typeDelivery") },
+        { value: "return", label: t("orders.form.typeReturn") },
+      ],
+    },
+    {
+      name: "package",
+      label: t("orders.form.package"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: "one", label: t("orders.form.packageOne") },
+        { value: "multi", label: t("orders.form.packageMulti") },
+      ],
+    },
+    {
+      name: "case",
+      label: t("orders.form.case"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: "Full", label: t("orders.form.caseFull") },
+        { value: "Part", label: t("orders.form.casePart") },
+        { value: "Fast", label: t("orders.form.caseFast") },
+      ],
+      conditionalOptions: (formData) => {
+        if (formData.package === "multi") {
+          return [{ value: "Full", label: t("orders.form.caseFull") }];
+        }
+        return [
+          { value: "Full", label: t("orders.form.caseFull") },
+          { value: "Part", label: t("orders.form.casePart") },
+          { value: "Fast", label: t("orders.form.caseFast") },
+        ];
+      },
+    },
+    {
+      name: "parent_order_id",
+      label: t("orders.form.parentOrderId"),
+      type: "select",
+      required: false,
+      colClass: "col-md-6",
+      options: [
+        { value: null, label: t("orders.form.noParentOrder") },
+        { value: 1, label: "Order #1" },
+        { value: 2, label: "Order #2" },
+        { value: 3, label: "Order #3" },
+      ],
+      conditionalRequired: (formData) => formData.type === "return",
+    },
+    {
+      name: "company_id",
+      label: t("orders.form.companyId"),
+      type: "select",
+      required: false, // Will be required for super admin
+      colClass: "col-md-6",
+      options: [
+        { value: 1, label: "Tech Solutions Ltd" },
+        { value: 2, label: "Fast Delivery Co" },
+        { value: 3, label: "Global Logistics Inc" },
+      ],
+    },
+    {
+      name: "branch_customer_company_id",
+      label: t("orders.form.branchCustomerCompanyId"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: 1, label: "Customer Branch 1" },
+        { value: 2, label: "Customer Branch 2" },
+        { value: 3, label: "Customer Branch 3" },
+      ],
+    },
+    {
+      name: "branch_delivery_company_id",
+      label: t("orders.form.branchDeliveryCompanyId"),
+      type: "select",
+      required: true,
+      colClass: "col-md-6",
+      options: [
+        { value: 1, label: "Delivery Branch 1" },
+        { value: 2, label: "Delivery Branch 2" },
+        { value: 3, label: "Delivery Branch 3" },
+      ],
     },
   ]);
 

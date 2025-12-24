@@ -95,6 +95,11 @@ const formatValue = (field) => {
     return 'N/A';
   }
   
+  // Special case for orders array
+  if (field.key === 'orders' && Array.isArray(value)) {
+    return value.map(order => `${order.order}: ${order.items}`).join(' | ');
+  }
+
   // If field has a translator function
   if (field.translator && typeof field.translator === 'function') {
     return field.translator(value);

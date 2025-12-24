@@ -1,4 +1,3 @@
-
 export default {
   navbar: {
     notifications: "الإشعارات",
@@ -16,7 +15,6 @@ export default {
     pageTitle: "إدارة المستخدمين",
     pageSubtitle: "إدارة مستخدمي النظام وصلاحياتهم",
 
-
     // الإجراءات
     searchPlaceholder: "البحث عن المستخدمين...",
     search: "بحث",
@@ -26,7 +24,6 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
-
 
     // أعمدة الجدول
     id: "المعرف",
@@ -44,21 +41,17 @@ export default {
     status: "الحالة",
     company: "الشركة",
 
-
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
-
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
-
     // الفلاتر
     filterByRole: "تصفية حسب الدور",
-
 
     // حقول النموذج
     form: {
@@ -80,7 +73,6 @@ export default {
       removeImage: "إزالة",
     },
 
-
     // رسائل التحقق
     validation: {
       nameRequired: "الاسم مطلوب",
@@ -101,7 +93,6 @@ export default {
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
     },
 
-
     // العناصر المحذوفة
     trashed: {
       title: "المستخدمون المحذوفون",
@@ -114,13 +105,11 @@ export default {
     details: "التفاصيل",
   },
 
-
   driver: {
     // عناوين الصفحة
     title: "جدول السائقين",
     pageTitle: "إدارة السائقين",
     pageSubtitle: "إدارة سائقي التوصيل وتفاصيلهم",
-
 
     // الإجراءات
     searchPlaceholder: "البحث عن سائقين...",
@@ -131,7 +120,6 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
-
 
     // أعمدة الجدول
     id: "المعرف",
@@ -150,21 +138,17 @@ export default {
     language: "اللغة",
     company: "الشركة",
 
-
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
-
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
-
     // الفلاتر
     filterByStatus: "تصفية حسب الحالة",
-
 
     // حقول النموذج
     form: {
@@ -194,7 +178,6 @@ export default {
       removeImage: "إزالة",
     },
 
-
     // رسائل التحقق
     validation: {
       nameRequired: "اسم السائق مطلوب",
@@ -217,7 +200,6 @@ export default {
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
     },
-
 
     // العناصر المحذوفة
     trashed: {
@@ -283,7 +265,6 @@ export default {
       phoneMax: "يجب ألا يتجاوز رقم الهاتف 20 حرفاً",
       companyRequired: "الشركة مطلوبة",
       locationRequired: "الموقع مطلوب",
-
     },
 
     // العناصر المحذوفة
@@ -365,12 +346,12 @@ export default {
     },
     branches: {
       title: "الفروع",
-      empty: "لا توجد فروع متاحة"
+      empty: "لا توجد فروع متاحة",
     },
 
     lines: {
       title: "الخطوط",
-      empty: "لا توجد خطوط متاحة"
+      empty: "لا توجد خطوط متاحة",
     },
     edit: "تعديل",
     details: "التفاصيل",
@@ -396,7 +377,6 @@ export default {
     company: "الشركة",
     location: "الموقع",
 
-
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
@@ -416,8 +396,8 @@ export default {
       companyPlaceholder: "حدد الشركة",
 
       companies: {
-        "company1": "شركة 1",
-        "company2": "شركة 2",
+        company1: "شركة 1",
+        company2: "شركة 2",
       },
     },
 
@@ -456,7 +436,6 @@ export default {
     name: "الاسم",
     region: "المنطقة",
     company: "الشركة",
-
 
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
@@ -659,19 +638,6 @@ export default {
     filterBy: "تصفية حسب",
   },
 
-  common: {
-    save: "حفظ",
-    cancel: "إلغاء",
-    close: "إغلاق",
-    saving: "جاري الحفظ...",
-    loading: "جاري التحميل...",
-    confirm: "تأكيد",
-    yes: "نعم",
-    no: "لا",
-    required: "مطلوب",
-    optional: "اختياري",
-  },
-
   roles: {
     Admin: "مسؤول",
     User: "مستخدم",
@@ -731,7 +697,6 @@ export default {
       timezonePlaceholder: "ادخل المنطقة الزمنية",
     },
 
-
     // رسائل التحقق
     validation: {
       nameRequired: "اسم المنطقة مطلوب",
@@ -740,7 +705,6 @@ export default {
       keyRequired: "مفتاح المنطقة مطلوب",
 
       timezoneMax: "يجب ألا يتجاوز 255 حرفاً",
-
     },
 
     // العناصر المحذوفة
@@ -795,17 +759,14 @@ export default {
     table: {
       id: "رقم الطلب",
       customer: "العميل",
-      customerPhone: "الهاتف",
       company: "الشركة",
-      driver: "السائق",
+      type: "النوع",
+      package: "الحزمة",
+      case: "الحالة",
+      price: "السعر",
+      currency: "العملة",
       status: "الحالة",
-      total: "المبلغ الإجمالي",
-      weight: "الوزن (كغ)",
-      items: "العناصر",
-      pickup: "موقع الاستلام",
-      delivery: "موقع التوصيل",
-      date: "تاريخ الطلب",
-      estimatedDelivery: "التوصيل المتوقع",
+      createdAt: "تاريخ الإنشاء",
     },
 
     // قيم حالة الطلب
@@ -842,46 +803,80 @@ export default {
 
     // حقول النموذج
     form: {
-      customerName: "اسم العميل",
-      customerNamePlaceholder: "أدخل الاسم الكامل للعميل",
-      customerPhone: "هاتف العميل",
-      customerPhonePlaceholder: "0599000000",
-      items: "وصف العناصر",
-      itemsPlaceholder: "اوصف العناصر المراد توصيلها",
-      weight: "الوزن (كغ)",
-      weightPlaceholder: "أدخل الوزن الإجمالي",
-      totalPrice: "المبلغ الإجمالي",
-      totalPricePlaceholder: "أدخل السعر الإجمالي",
-      pickupLocation: "موقع الاستلام",
-      pickupLocationPlaceholder: "أدخل عنوان الاستلام",
-      deliveryLocation: "موقع التوصيل",
-      deliveryLocationPlaceholder: "أدخل عنوان التوصيل",
-      estimatedDelivery: "تاريخ التوصيل المتوقع",
-      driver: "تعيين سائق",
-      driverPlaceholder: "اختر السائق",
-      company: "الشركة",
-      companyPlaceholder: "اختر الشركة",
-      status: "حالة الطلب",
-      statusPlaceholder: "اختر الحالة",
-      notes: "ملاحظات خاصة",
-      notesPlaceholder: "أي تعليمات خاصة للتوصيل",
+      toId: "الموقع المقصود",
+      customerId: "العميل",
+      selectCustomer: "اختر العميل",
+      selectLocation: "اختر الموقع",
+      selectParentOrder: "اختر الطلب الأصلي",
+      price: "السعر",
+      pricePlaceholder: "أدخل مبلغ السعر",
+      currencyId: "العملة",
+      linepriceId: "سعر الخط",
+      discountId: "الخصم",
+      noDiscount: "بدون خصم",
+      companyItemPriceId: "سعر عنصر الشركة",
+      type: "نوع الطلب",
+      typeDelivery: "توصيل",
+      typeReturn: "إرجاع",
+      package: "نوع الحزمة",
+      packageOne: "حزمة واحدة",
+      packageMulti: "حزم متعددة",
+      case: "نوع الحالة",
+      caseFull: "كامل",
+      casePart: "جزئي",
+      caseFast: "سريع",
+      parentOrderId: "الطلب الأصلي",
+      noParentOrder: "لا يوجد طلب أصلي",
+      companyId: "الشركة",
+      branchCustomerCompanyId: "فرع العميل",
+      branchDeliveryCompanyId: "فرع التوصيل",
+    },
+
+    // المعالج
+    wizard: {
+      title: "إنشاء طلب جديد",
+      step1: "المعلومات الأساسية",
+      step2: "التسعير والتفاصيل",
+      step3: "عناصر الطلب",
+      basicInfo: "معلومات الطلب الأساسية",
+      pricingDetails: "التسعير والتفاصيل",
+      orderItems: "عناصر الطلب",
+      itemsList: "قائمة عناصر الطلب",
+      addItem: "إضافة عنصر",
+      noItems: "لم يتم إضافة عناصر بعد. انقر على 'إضافة عنصر' للبدء.",
+      itemName: "اسم العنصر",
+      itemQuantity: "الكمية",
+      itemDescription: "الوصف",
+      singlePackageInfo:
+        "الطلبات أحادية الحزمة يمكن أن تحتوي على عنصر واحد فقط",
+      singlePackageLimit: "الحزمة الواحدة يمكن أن تحتوي على عنصر طلب واحد فقط. يمكنك إضافة عدة عناصر فرعية داخل هذا العنصر.",
+      multiPackageInfo:
+        "الطلبات متعددة الحزم يجب أن تحتوي على عنصرين على الأقل",
+      packageRules: "قواعد نوع الحزمة",
+      fullCaseRule: "الحالة الكاملة: يمكن أن تكون حزمة واحدة أو عدة حزم",
+      fastPartCaseRule: "الحالة السريعة/الجزئية: يمكن أن تكون حزمة واحدة فقط",
+      previous: "السابق",
+      next: "التالي",
+      submit: "إنشاء الطلب",
+      note: "يمكن إضافة عناصر الطلب بشكل منفصل بعد إنشاء الطلب",
     },
 
     // رسائل التحقق
     validation: {
-      customerNameRequired: "اسم العميل مطلوب",
-      customerNameMax: "يجب ألا يتجاوز اسم العميل 255 حرفاً",
-      customerPhoneRequired: "هاتف العميل مطلوب",
-      phoneMax: "يجب ألا يتجاوز رقم الهاتف 20 حرفاً",
-      itemsRequired: "وصف العناصر مطلوب",
-      weightRequired: "الوزن مطلوب",
-      weightMin: "يجب أن يكون الوزن أكبر من 0",
-      totalPriceRequired: "المبلغ الإجمالي مطلوب",
-      totalPriceMin: "يجب أن يكون المبلغ الإجمالي أكبر من 0",
-      pickupLocationRequired: "موقع الاستلام مطلوب",
-      deliveryLocationRequired: "موقع التوصيل مطلوب",
-      driverRequired: "تعيين السائق مطلوب",
-      companyRequired: "الشركة مطلوبة",
+      priceInvalid: "يجب أن يكون السعر رقماً موجباً صحيحاً",
+      multiPackageMustBeFull: "الطلبات متعددة الحزم يجب أن تكون من نوع 'كامل'",
+      multiPackageOnlyWithFull:
+        "يمكن اختيار الحزم المتعددة فقط عندما تكون الحالة 'كامل'",
+      returnRequiresParentOrder:
+        "طلبات الإرجاع يجب أن تحتوي على رقم الطلب الأصلي",
+      noOrderItems: "مطلوب عنصر واحد على الأقل في الطلب",
+      singlePackageOneItem:
+        "الطلبات أحادية الحزمة يجب أن تحتوي على عنصر واحد فقط",
+      multiPackageMinItems:
+        "الطلبات متعددة الحزم يجب أن تحتوي على عنصرين على الأقل",
+      incompleteOrderItem:
+        "عنصر الطلب {index} غير مكتمل. يرجى ملء جميع الحقول المطلوبة.",
+      multiGroupIdRequired: "عنصر الحزمة المتعددة {index} يتطلب معرف مجموعة.",
     },
 
     // العناصر المحذوفة
@@ -900,6 +895,10 @@ export default {
       deliveryInfo: "معلومات التوصيل",
       timeline: "الجدول الزمني للطلب",
       notes: "الملاحظات",
+      discountPercentage: "نسبة الخصم",
+      orderItems: "عناصر الطلب",
+      quantity: "الكمية",
+      subItems: "العناصر الفرعية",
     },
 
     // تحديثات الحالة
@@ -932,6 +931,35 @@ export default {
     delivered: "تم التوصيل",
     cancelled: "ملغي",
     returned: "مُرجع",
+  },
+
+  // مفاتيح ترجمة أنواع عناصر الطلب
+  orderItemTypes: {
+    multi: "متعدد",
+    part: "جزئي",
+    fast: "سريع",
+  },
+
+  // حقول نموذج عناصر الطلب (مستخدمة في معالج الطلبات)
+  orderItems: {
+    form: {
+      namePlaceholder: "أدخل اسم العنصر",
+      type: "نوع العنصر",
+      typeMulti: "متعدد",
+      typePart: "جزئي",
+      typeFast: "سريع",
+      weight: "الوزن (كغ)",
+      fromCompany: "من الشركة",
+      noFromCompany: "لا توجد شركة مصدر",
+      toCompany: "إلى الشركة",
+      noToCompany: "لا توجد شركة وجهة",
+      warehouse: "المستودع",
+      descriptionPlaceholder: "أدخل وصف العنصر",
+      multiGroupId: "معرف مجموعة الحزم المتعددة",
+      multiGroupIdPlaceholder: "مثال: group_1, shipment_abc",
+      noWeightSelected: "لا يوجد وزن محدد",
+      typeNotSelected: "لم يتم تحديد نوع الطرد",
+    },
   },
 
   // إدارة الخصومات
@@ -1008,11 +1036,17 @@ export default {
       deleted: "محذوف",
     },
 
+    // نافذة التفاصيل
+    details: {
+      title: "تفاصيل الخصم",
+    },
+
     // الإجراءات
     actions: {
       stop: "إيقاف",
       activate: "تفعيل",
       edit: "تعديل",
+      details: "التفاصيل",
       delete: "حذف",
     },
 
@@ -1032,6 +1066,109 @@ export default {
     Line: "خط",
     Weight: "وزن",
     Price: "سعر",
+  },
+
+  // إدارة خطوط السائقين
+  driverLine: {
+    // عناوين الصفحة
+    title: "إدارة خطوط السائقين",
+    pageTitle: "تعيينات خطوط السائقين",
+    pageSubtitle: "إدارة تعيين السائقين لخطوط العمل",
+
+    // الإجراءات
+    searchPlaceholder: "البحث في تعيينات خطوط السائقين...",
+    search: "بحث",
+    columns: "الأعمدة",
+    addNew: "تعيين سائق لخط",
+    export: "تصدير",
+    edit: "تعديل",
+    delete: "حذف",
+    actions: "الإجراءات",
+
+    // أعمدة الجدول
+    table: {
+      id: "المعرف",
+      driver: "السائق",
+      lineWork: "خط العمل",
+      status: "الحالة",
+      assignedAt: "تاريخ التعيين",
+      createdAt: "تاريخ الإنشاء",
+      actions: "الإجراءات",
+    },
+
+    // الفلاتر
+    filterByStatus: "تصفية حسب الحالة",
+
+    // حقول النموذج
+    form: {
+      driver: "السائق",
+      driverPlaceholder: "اختر السائق",
+      drivers: "السائقون",
+      driversPlaceholder:
+        "اختر سائق أو أكثر (اضغط Ctrl/Cmd لاختيار عدة سائقين)",
+      lineWork: "خط العمل",
+      lineWorkPlaceholder: "اختر خط العمل",
+    },
+
+    // قيم الحالة
+    status: {
+      active: "نشط",
+      inactive: "غير نشط",
+    },
+
+    // رسائل التحقق
+    validation: {
+      driverRequired: "السائق مطلوب",
+      driversRequired: "مطلوب سائق واحد على الأقل",
+      lineWorkRequired: "خط العمل مطلوب",
+      duplicateAssignment: "هذا السائق مُعيَّن بالفعل لهذا الخط",
+      driverAlreadyAssigned: "هذا السائق مُعيَّن بالفعل لخط عمل نشط آخر",
+      missingFields: "يرجى ملء جميع الحقول المطلوبة",
+      invalidDriver: "السائق المحدد غير صالح",
+      invalidLineWork: "خط العمل المحدد غير صالح",
+      invalidData: "بيانات السائق أو خط العمل غير صالحة",
+      generalError: "حدث خطأ أثناء إنشاء التعيين",
+    },
+
+    // التعيين الجماعي
+    bulkAssignment: {
+      summary: "{success} تعيين ناجح، {failed} فشل",
+      failedHeader: "التعيينات الفاشلة:",
+    },
+
+    // الإجراءات
+    actions: {
+      activate: "تفعيل",
+      deactivate: "إلغاء تفعيل",
+      edit: "تعديل",
+      details: "التفاصيل",
+      delete: "حذف",
+    },
+
+    // رسائل معلوماتية
+    info: {
+      manageLines: "لإنشاء أو إدارة خطوط العمل، قم بزيارة صفحة إدارة الخطوط.",
+      goToLines: "إدارة الخطوط",
+    },
+
+    // نافذة التفاصيل
+    details: {
+      title: "تفاصيل تعيين خط السائق",
+    },
+
+    // العناصر المحذوفة
+    trashed: {
+      title: "تعيينات خطوط السائقين المحذوفة",
+      empty: "لا توجد تعيينات محذوفة",
+      restore: "استعادة التعيين",
+      delete: "حذف نهائي",
+    },
+  },
+
+  // مفاتيح ترجمة حالة خط السائق
+  driverLineStatus: {
+    active: "نشط",
+    inactive: "غير نشط",
   },
 
   // إدارة أسعار الشركات
@@ -1102,7 +1239,13 @@ export default {
     // الإجراءات
     actions: {
       edit: "تعديل",
+      details: "التفاصيل",
       delete: "حذف",
+    },
+
+    // نافذة التفاصيل
+    details: {
+      title: "تفاصيل سعر الشركة",
     },
 
     // العناصر المحذوفة
@@ -1278,6 +1421,7 @@ export default {
     save: "حفظ",
     cancel: "إلغاء",
     close: "إغلاق",
+    delete: "حذف",
     saving: "جاري الحفظ...",
     loading: "جاري التحميل...",
     confirm: "تأكيد",

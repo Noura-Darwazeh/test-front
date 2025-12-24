@@ -8,9 +8,11 @@ import lines from "../modules/lines/view/lines.vue";
 import linePrice from "../modules/linePrice/view/linePrice.vue";
 import lineWork from "../modules/lineWork/view/lineWork.vue";
 import orders from "../modules/orders/view/orderPage.vue";
+
 import discount from "../modules/discount/view/discountPage.vue";
 import currency from "../modules/currency/view/currency.vue";
 import companyPrice from "../modules/companyPrice/view/companyPrice.vue";
+import driverLine from "../modules/driverLine/view/driverLine.vue";
 import map from "../modules/map/view/mapPage.vue";
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
@@ -135,6 +137,7 @@ const router = createRouter({
         icon: "/src/assets/order/order.svg",
       },
     },
+
     {
       path: "/discount",
       name: "Discount",
@@ -166,6 +169,17 @@ const router = createRouter({
         requireAuth: false,
         showInSidebar: true,
         icon: "/src/assets/itemprice/price.svg",
+      },
+    },
+    {
+      path: "/driver-line",
+      name: "DriverLine",
+      component: driverLine,
+      meta: {
+        titleKey: "driverLine.title",
+        requireAuth: false,
+        showInSidebar: true,
+        icon: "/src/assets/driverline/driverline.svg",
       },
     },
     {

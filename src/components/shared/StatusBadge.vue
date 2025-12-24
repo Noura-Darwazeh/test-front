@@ -37,6 +37,8 @@ const getTranslationKey = () => {
       return `discount.status.${props.status}`;
     case "currency":
       return `currency.status.${props.status}`;
+    case "driverLine":
+      return `driverLine.status.${props.status}`;
     case "user":
       return `user.${props.status}`;
     default:
@@ -57,12 +59,14 @@ const getBadgeClass = () => {
     available: "bg-success",
     delivered: "bg-success",
     completed: "bg-success",
+    ready: "bg-success",
 
     // Warning states
     pending: "bg-warning text-dark",
     on_way: "bg-warning text-dark",
     assigned: "bg-warning text-dark",
     busy: "bg-warning text-dark",
+    in_transit: "bg-warning text-dark",
 
     // Danger states
     inactive: "bg-danger",
@@ -70,6 +74,7 @@ const getBadgeClass = () => {
     cancelled: "bg-danger",
     offline: "bg-danger",
     deleted: "bg-danger",
+    stopped: "bg-danger",
 
     // Info states
     picked_up: "bg-info",

@@ -203,7 +203,7 @@ const workPlanFields = computed(() => [
         required: false,
         colClass: 'col-12',
         orderLabel: t('workPlan.form.orderName'),
-        itemsLabel: t('workPlan.form.orderItems'),  // Changed from phaseLabel
+        itemsLabel: t('workPlan.form.orderItems'),
         orderOptions: [
             { value: 'Order #101', label: 'Order #101' },
             { value: 'Order #102', label: 'Order #102' },
@@ -212,7 +212,7 @@ const workPlanFields = computed(() => [
             { value: 'Order #105', label: 'Order #105' },
             { value: 'Order #106', label: 'Order #106' },
         ],
-        itemsOptions: [  // Changed from phaseOptions
+        itemsOptions: [
             { value: 'Electronics - 5 items', label: 'Electronics - 5 items' },
             { value: 'Furniture - 3 items', label: 'Furniture - 3 items' },
             { value: 'Clothing - 10 items', label: 'Clothing - 10 items' },
@@ -220,11 +220,11 @@ const workPlanFields = computed(() => [
             { value: 'Food Items - 15 items', label: 'Food Items - 15 items' },
             { value: 'Toys - 8 items', label: 'Toys - 8 items' },
         ],
-        // Map orders properly - use 'items' not 'phase'
+
         defaultValue: selectedworkPlan.value.orders && selectedworkPlan.value.orders.length > 0
-            ? selectedworkPlan.value.orders.map(o => ({ 
-                order: o.order, 
-                items: o.items  // Changed from phase
+            ? selectedworkPlan.value.orders.map(o => ({
+                order: o.order,
+                items: o.items
             }))
             : [{ order: '', items: '' }]
     },
@@ -237,6 +237,8 @@ const detailsFields = computed(() => [
     { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
     { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
     { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+    { key: 'orders', label: t('workPlan.orders'), colClass: 'col-md-12' },
+
 ]);
 
 const workPlanColumns = ref([
@@ -322,10 +324,10 @@ const closeTrashedModal = () => {
 
 const handleSubmitworkPlan = (workPlanData) => {
     // Convert orderRows format back to orders array
-    // Now using 'items' directly, no 'phase'
+
     const orders = workPlanData.orders?.map(row => ({
         order: row.order,
-        items: row.items  // Changed from row.phase
+        items: row.items
     })) || [];
 
     if (isEditMode.value) {
@@ -353,7 +355,7 @@ const handleSubmitworkPlan = (workPlanData) => {
         workPlans.value.push(newworkPlan);
         console.log('Work plan added successfully!');
     }
-    
+
     closeFormModal();
 };
 

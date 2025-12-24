@@ -25,7 +25,6 @@ export default {
     delete: "Delete",
     actions: "Actions",
 
-
     // Table Columns
     id: "ID",
     fullName: "Full Name",
@@ -42,21 +41,17 @@ export default {
     status: "Status",
     company: "Company",
 
-
     // Status Values
     active: "Active",
     inactive: "Inactive",
-
 
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
 
-
     // Filters
     filterByRole: "Filter by Role",
-
 
     // Form Fields
     form: {
@@ -78,7 +73,6 @@ export default {
       removeImage: "Remove",
     },
 
-
     // Validation Messages
     validation: {
       nameRequired: "Name is required",
@@ -99,7 +93,6 @@ export default {
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
     },
 
-
     // Trashed Items
     trashed: {
       title: "Trashed Users",
@@ -112,13 +105,11 @@ export default {
     details: "Details",
   },
 
-
   driver: {
     // Page Headers
     title: "Driver Table",
     pageTitle: "Drivers Management",
     pageSubtitle: "Manage delivery drivers and their details",
-
 
     // Actions
     searchPlaceholder: "Search drivers...",
@@ -129,7 +120,6 @@ export default {
     edit: "Edit",
     delete: "Delete",
     actions: "Actions",
-
 
     // Table Columns
     id: "ID",
@@ -148,21 +138,17 @@ export default {
     language: "Language",
     company: "Company",
 
-
     // Status Values
     active: "Active",
     inactive: "Inactive",
-
 
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
 
-
     // Filters
     filterByStatus: "Filter by Status",
-
 
     // Form Fields
     form: {
@@ -192,7 +178,6 @@ export default {
       removeImage: "Remove",
     },
 
-
     // Validation Messages
     validation: {
       nameRequired: "Driver name is required",
@@ -215,7 +200,6 @@ export default {
       imageSize: "Image size must not exceed 200 KB",
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
     },
-
 
     // Trashed Items
     trashed: {
@@ -301,7 +285,6 @@ export default {
     details: "Details",
   },
 
-
   companyNames: {
     "company 1": "Company 1",
     "company 2": "Company 2",
@@ -368,12 +351,12 @@ export default {
     },
     branches: {
       title: "Branches",
-      empty: "No branches available"
+      empty: "No branches available",
     },
 
     lines: {
       title: "Lines",
-      empty: "No lines available"
+      empty: "No lines available",
     },
     //Edit / Details Modal
     edit: "Edit",
@@ -400,7 +383,6 @@ export default {
     company: "company",
     location: "Location",
 
-
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
@@ -421,8 +403,8 @@ export default {
       company: "Company",
       companyPlaceholder: "Select company",
       companies: {
-        "company1": "Company 1",
-        "company2": "Company 2",
+        company1: "Company 1",
+        company2: "Company 2",
       },
     },
 
@@ -464,7 +446,6 @@ export default {
     name: "Name",
     region: "Region",
     company: "Company",
-
 
     // Messages
     noData: "No data available",
@@ -673,22 +654,6 @@ export default {
     filterBy: "Filter By",
   },
 
-
-  // Common Translations
-  common: {
-    save: "Save",
-    cancel: "Cancel",
-    close: "Close",
-    saving: "Saving...",
-    loading: "Loading...",
-    confirm: "Confirm",
-    yes: "Yes",
-    no: "No",
-    required: "Required",
-    optional: "Optional",
-  },
-
-
   // Role Values
   roles: {
     Admin: "Admin",
@@ -723,7 +688,6 @@ export default {
     key: "Key",
     name: "Name",
     timezone: "Timezone",
-
 
     // Messages
     noData: "No data available",
@@ -806,17 +770,14 @@ export default {
     table: {
       id: "Order ID",
       customer: "Customer",
-      customerPhone: "Phone",
       company: "Company",
-      driver: "Driver",
+      type: "Type",
+      package: "Package",
+      case: "Case",
+      price: "Price",
+      currency: "Currency",
       status: "Status",
-      total: "Total Amount",
-      weight: "Weight (kg)",
-      items: "Items",
-      pickup: "Pickup Location",
-      delivery: "Delivery Location",
-      date: "Order Date",
-      estimatedDelivery: "Est. Delivery",
+      createdAt: "Created At",
     },
 
     // Order Status Values
@@ -853,46 +814,75 @@ export default {
 
     // Form Fields
     form: {
-      customerName: "Customer Name",
-      customerNamePlaceholder: "Enter customer full name",
-      customerPhone: "Customer Phone",
-      customerPhonePlaceholder: "0599000000",
-      items: "Items Description",
-      itemsPlaceholder: "Describe the items to be delivered",
-      weight: "Weight (kg)",
-      weightPlaceholder: "Enter total weight",
-      totalPrice: "Total Amount",
-      totalPricePlaceholder: "Enter total price",
-      pickupLocation: "Pickup Location",
-      pickupLocationPlaceholder: "Enter pickup address",
-      deliveryLocation: "Delivery Location",
-      deliveryLocationPlaceholder: "Enter delivery address",
-      estimatedDelivery: "Estimated Delivery Date",
-      driver: "Assign Driver",
-      driverPlaceholder: "Select driver",
-      company: "Company",
-      companyPlaceholder: "Select company",
-      status: "Order Status",
-      statusPlaceholder: "Select status",
-      notes: "Special Notes",
-      notesPlaceholder: "Any special delivery instructions",
+      toId: "To Location",
+      customerId: "Customer",
+      selectCustomer: "Select Customer",
+      selectLocation: "Select Location",
+      selectParentOrder: "Select Parent Order",
+      price: "Price",
+      pricePlaceholder: "Enter price amount",
+      currencyId: "Currency",
+      linepriceId: "Line Price",
+      discountId: "Discount",
+      noDiscount: "No Discount",
+      companyItemPriceId: "Company Item Price",
+      type: "Order Type",
+      typeDelivery: "Delivery",
+      typeReturn: "Return",
+      package: "Package Type",
+      packageOne: "Single Package",
+      packageMulti: "Multiple Packages",
+      case: "Case Type",
+      caseFull: "Full",
+      casePart: "Partial",
+      caseFast: "Fast",
+      parentOrderId: "Parent Order",
+      noParentOrder: "No Parent Order",
+      companyId: "Company",
+      branchCustomerCompanyId: "Customer Branch",
+      branchDeliveryCompanyId: "Delivery Branch",
+    },
+
+    // Wizard
+    wizard: {
+      title: "Create New Order",
+      step1: "Basic Info",
+      step2: "Pricing & Details",
+      step3: "Order Items",
+      basicInfo: "Basic Order Information",
+      pricingDetails: "Pricing & Details",
+      orderItems: "Order Items",
+      itemsList: "Order Items List",
+      addItem: "Add Item",
+      noItems: "No items added yet. Click 'Add Item' to start.",
+      itemName: "Item Name",
+      itemQuantity: "Quantity",
+      itemDescription: "Description",
+      singlePackageInfo: "Single package orders can only have 1 item",
+      singlePackageLimit: "Single package can only have 1 order item. You can add multiple sub-items inside this item.",
+      multiPackageInfo: "Multi-package orders must have at least 2 items",
+      packageRules: "Package Type Rules",
+      fullCaseRule: "Full case: Can be either Single or Multiple packages",
+      fastPartCaseRule: "Fast/Partial case: Can ONLY be Single package",
+      previous: "Previous",
+      next: "Next",
+      submit: "Create Order",
+      note: "Order items can be added separately after creating the order",
     },
 
     // Validation Messages
     validation: {
-      customerNameRequired: "Customer name is required",
-      customerNameMax: "Customer name must not exceed 255 characters",
-      customerPhoneRequired: "Customer phone is required",
-      phoneMax: "Phone number must not exceed 20 characters",
-      itemsRequired: "Items description is required",
-      weightRequired: "Weight is required",
-      weightMin: "Weight must be greater than 0",
-      totalPriceRequired: "Total amount is required",
-      totalPriceMin: "Total amount must be greater than 0",
-      pickupLocationRequired: "Pickup location is required",
-      deliveryLocationRequired: "Delivery location is required",
-      driverRequired: "Driver assignment is required",
-      companyRequired: "Company is required",
+      priceInvalid: "Price must be a valid positive number",
+      multiPackageMustBeFull: "Multi-package orders must have 'Full' case type",
+      multiPackageOnlyWithFull:
+        "Multi-package can only be selected when case is 'Full'",
+      returnRequiresParentOrder: "Return orders must have a parent order ID",
+      noOrderItems: "At least one order item is required",
+      singlePackageOneItem: "Single package orders must have exactly one item",
+      multiPackageMinItems: "Multi-package orders must have at least 2 items",
+      incompleteOrderItem:
+        "Order item {index} is incomplete. Please fill all required fields.",
+      multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
     },
 
     // Trashed Items
@@ -911,6 +901,10 @@ export default {
       deliveryInfo: "Delivery Information",
       timeline: "Order Timeline",
       notes: "Notes",
+      discountPercentage: "Discount Percentage",
+      orderItems: "Order Items",
+      quantity: "Quantity",
+      subItems: "Sub-Items",
     },
 
     // Status Updates
@@ -943,6 +937,35 @@ export default {
     delivered: "Delivered",
     cancelled: "Cancelled",
     returned: "Returned",
+  },
+
+  // Order Item Types Translation Keys
+  orderItemTypes: {
+    multi: "Multi",
+    part: "Part",
+    fast: "Fast",
+  },
+
+  // Order Items Form Fields (used in OrderWizard)
+  orderItems: {
+    form: {
+      namePlaceholder: "Enter item name",
+      type: "Item Type",
+      typeMulti: "Multi",
+      typePart: "Part",
+      typeFast: "Fast",
+      weight: "Weight (kg)",
+      fromCompany: "From Company",
+      noFromCompany: "No Source Company",
+      toCompany: "To Company",
+      noToCompany: "No Destination Company",
+      warehouse: "Warehouse",
+      descriptionPlaceholder: "Enter item description",
+      multiGroupId: "Multi-Package Group ID",
+      multiGroupIdPlaceholder: "e.g., group_1, shipment_abc",
+      noWeightSelected: "No selected weight",
+      typeNotSelected: "No selected Type",
+    },
   },
 
   // Discount Management
@@ -1020,11 +1043,17 @@ export default {
       deleted: "Deleted",
     },
 
+    // Details Modal
+    details: {
+      title: "Discount Details",
+    },
+
     // Actions
     actions: {
       stop: "Stop",
       activate: "Activate",
       edit: "Edit",
+      details: "Details",
       delete: "Delete",
     },
 
@@ -1044,6 +1073,110 @@ export default {
     Line: "Line",
     Weight: "Weight",
     Price: "Price",
+  },
+
+  // Driver Line Management
+  driverLine: {
+    // Page Headers
+    title: "Driver Line Management",
+    pageTitle: "Driver Line Assignments",
+    pageSubtitle: "Manage driver assignments to work lines",
+
+    // Actions
+    searchPlaceholder: "Search driver line assignments...",
+    search: "Search",
+    columns: "Columns",
+    addNew: "Assign Driver to Line",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+
+    // Table Columns
+    table: {
+      id: "ID",
+      driver: "Driver",
+      lineWork: "Work Line",
+      status: "Status",
+      assignedAt: "Assigned At",
+      createdAt: "Created At",
+      actions: "Actions",
+    },
+
+    // Filters
+    filterByStatus: "Filter by Status",
+
+    // Form Fields
+    form: {
+      driver: "Driver",
+      driverPlaceholder: "Select driver",
+      drivers: "Drivers",
+      driversPlaceholder:
+        "Select one or more drivers (hold Ctrl/Cmd to select multiple)",
+      lineWork: "Work Line",
+      lineWorkPlaceholder: "Select work line",
+    },
+
+    // Status Values
+    status: {
+      active: "Active",
+      inactive: "Inactive",
+    },
+
+    // Validation Messages
+    validation: {
+      driverRequired: "Driver is required",
+      driversRequired: "At least one driver is required",
+      lineWorkRequired: "Work line is required",
+      duplicateAssignment: "This driver is already assigned to this work line",
+      driverAlreadyAssigned:
+        "This driver is already assigned to another active work line",
+      missingFields: "Please fill in all required fields",
+      invalidDriver: "Selected driver is not valid",
+      invalidLineWork: "Selected work line is not valid",
+      invalidData: "Invalid driver or work line data",
+      generalError: "An error occurred while creating the assignment",
+    },
+
+    // Bulk Assignment
+    bulkAssignment: {
+      summary: "{success} assignment(s) successful, {failed} failed",
+      failedHeader: "Failed Assignments:",
+    },
+
+    // Actions
+    actions: {
+      activate: "Activate",
+      deactivate: "Deactivate",
+      edit: "Edit",
+      details: "Details",
+      delete: "Delete",
+    },
+
+    // Info Messages
+    info: {
+      manageLines: "To create or manage work lines, visit the Lines Management page.",
+      goToLines: "Manage Lines",
+    },
+
+    // Details Modal
+    details: {
+      title: "Driver Line Assignment Details",
+    },
+
+    // Trashed Items
+    trashed: {
+      title: "Deleted Driver Line Assignments",
+      empty: "No deleted assignments",
+      restore: "Restore Assignment",
+      delete: "Delete Permanently",
+    },
+  },
+
+  // Driver Line Status Translation Keys
+  driverLineStatus: {
+    active: "Active",
+    inactive: "Inactive",
   },
 
   // Company Price Management
@@ -1115,7 +1248,13 @@ export default {
     // Actions
     actions: {
       edit: "Edit",
+      details: "Details",
       delete: "Delete",
+    },
+
+    // Details Modal
+    details: {
+      title: "Company Price Details",
     },
 
     // Trashed Items
@@ -1202,6 +1341,7 @@ export default {
     save: "Save",
     cancel: "Cancel",
     close: "Close",
+    delete: "Delete",
     saving: "Saving...",
     loading: "Loading...",
     confirm: "Confirm",
