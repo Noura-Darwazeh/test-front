@@ -1265,6 +1265,7 @@ export default {
       driverName: "Driver Name",
       driverNamePlaceholder: "Select Driver Name",
 
+      orders: "Orders",
       orderName: "Order Name",
       orderNamePlaceholder: "Select Order Name",
 

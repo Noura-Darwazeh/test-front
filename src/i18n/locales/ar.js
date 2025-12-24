@@ -1231,6 +1231,16 @@ export default {
       descriptionPlaceholder: "أدخل وصف الخطة",
       company: "الشركة",
       companyPlaceholder: "اختر الشركة",
+
+      driverName: "اسم السائق",
+      driverNamePlaceholder: "اختر اسم السائق",
+
+      orders: "الطلبات",
+      orderName: "اسم الطلب",
+      orderNamePlaceholder: "اختر اسم الطلب",
+
+      orderPhase: "مرحلة الطلب",
+      orderPhasePlaceholder: "اختر مرحلة الطلب",
     },
 
     // رسائل التحقق

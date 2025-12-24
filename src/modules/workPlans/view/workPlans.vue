@@ -197,7 +197,7 @@ const workPlanFields = computed(() => [
     },
     {
         name: 'orders',
-        label: t('workPlan.form.orders') || 'Orders',
+        label: t('workPlan.form.orders'),
         type: 'orderRows',
         required: false,
         colClass: 'col-12',
