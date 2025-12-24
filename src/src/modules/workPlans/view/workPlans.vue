@@ -151,7 +151,7 @@ const workPlanFields = computed(() => [
         required: true,
         placeholder: t('workPlan.form.namePlaceholder'),
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.name || '',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.name : '',
         validate: (value) => {
             if (!value || value.trim().length === 0) {
                 return t('workPlan.validation.nameRequired');
@@ -168,12 +168,12 @@ const workPlanFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'Sami Ahmad', label: 'Sami Ahmad' },
-            { value: 'Ali Hassan', label: 'Ali Hassan' },
-            { value: 'Mohammad Khalil', label: 'Mohammad Khalil' },
+            { value: 'driver 1', label: 'Driver 1' },
+            { value: 'driver 2', label: 'Driver 2' },
+            { value: 'driver 3', label: 'Driver 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.driver_name || ''
+        defaultValue: isEditMode.value ? selectedworkPlan.value.driver_name : ''
     },
     {
         name: 'date',
@@ -181,7 +181,7 @@ const workPlanFields = computed(() => [
         type: 'date',
         required: false,
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.date || '',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.date : '',
     },
     {
         name: 'company_name',
@@ -194,7 +194,7 @@ const workPlanFields = computed(() => [
             { value: 'company 3', label: 'Company 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.company_name || ''
+        defaultValue: isEditMode.value ? selectedworkPlan.value.company_name : ''
     },
     {
         name: 'orders',
@@ -203,30 +203,20 @@ const workPlanFields = computed(() => [
         required: false,
         colClass: 'col-12',
         orderLabel: t('workPlan.form.orderName'),
-        itemsLabel: t('workPlan.form.orderItems'),  // Changed from phaseLabel
+        phaseLabel: t('workPlan.form.orderItems'),
         orderOptions: [
-            { value: 'Order #101', label: 'Order #101' },
-            { value: 'Order #102', label: 'Order #102' },
-            { value: 'Order #103', label: 'Order #103' },
-            { value: 'Order #104', label: 'Order #104' },
-            { value: 'Order #105', label: 'Order #105' },
-            { value: 'Order #106', label: 'Order #106' },
+            { value: 'order 1', label: 'Order #101' },
+            { value: 'order 2', label: 'Order #102' },
+            { value: 'order 3', label: 'Order #103' },
         ],
-        itemsOptions: [  // Changed from phaseOptions
-            { value: 'Electronics - 5 items', label: 'Electronics - 5 items' },
-            { value: 'Furniture - 3 items', label: 'Furniture - 3 items' },
-            { value: 'Clothing - 10 items', label: 'Clothing - 10 items' },
-            { value: 'Books - 20 items', label: 'Books - 20 items' },
-            { value: 'Food Items - 15 items', label: 'Food Items - 15 items' },
-            { value: 'Toys - 8 items', label: 'Toys - 8 items' },
+        phaseOptions: [
+            { value: 'items 1', label: 'Electronics - 5 items' },
+            { value: 'items 2', label: 'Furniture - 3 items' },
+            { value: 'items 3', label: 'Clothing - 10 items' },
         ],
-        // Map orders properly - use 'items' not 'phase'
-        defaultValue: selectedworkPlan.value.orders && selectedworkPlan.value.orders.length > 0
-            ? selectedworkPlan.value.orders.map(o => ({ 
-                order: o.order, 
-                items: o.items  // Changed from phase
-            }))
-            : [{ order: '', items: '' }]
+        defaultValue: isEditMode.value && selectedworkPlan.value.orders
+            ? selectedworkPlan.value.orders.map(o => ({ order: o.order, phase: o.items }))
+            : [{ order: '', phase: '' }]
     },
 ]);
 
@@ -322,10 +312,9 @@ const closeTrashedModal = () => {
 
 const handleSubmitworkPlan = (workPlanData) => {
     // Convert orderRows format back to orders array
-    // Now using 'items' directly, no 'phase'
     const orders = workPlanData.orders?.map(row => ({
         order: row.order,
-        items: row.items  // Changed from row.phase
+        items: row.phase
     })) || [];
 
     if (isEditMode.value) {
@@ -353,8 +342,6 @@ const handleSubmitworkPlan = (workPlanData) => {
         workPlans.value.push(newworkPlan);
         console.log('Work plan added successfully!');
     }
-    
-    closeFormModal();
 };
 
 const handleRestoreworkPlan = (workPlan) => {

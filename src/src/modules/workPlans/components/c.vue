@@ -23,6 +23,7 @@
                         </button>
                     </li>
                 </ul>
+
             </div>
         </div>
 
@@ -93,52 +94,40 @@ const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedworkPlan = ref({});
-const activeTab = ref('calendar');
+const activeTab = ref('calendar'); // Default active tab
 
 const workPlans = ref([
     {
         id: 1,
-        name: "Plan 1 - Nablus Route",
+        name: "Plan 1 ",
+        driver_name: "Sami",
         company_name: "company 1",
         date: "2025-12-20",
-        driver_name: "Sami Ahmad",
-        orders: [
-            { order: "Order #101", items: "Electronics - 5 items" },
-            { order: "Order #102", items: "Furniture - 3 items" }
-        ]
+
     },
     {
         id: 2,
-        name: "Plan 2 - Ramallah Route",
+        name: "Plan 2 ",
+        driver_name: "Ahmad",
         company_name: "company 1",
         date: "2025-12-15",
-        driver_name: "Ali Hassan",
-        orders: [
-            { order: "Order #103", items: "Clothing - 10 items" }
-        ]
     },
     {
         id: 3,
-        name: "Plan 3 - Hebron Route",
+        name: "Plan 3",
+        driver_name: "Ali",
         company_name: "company 2",
         date: "2025-12-17",
-        driver_name: "Mohammad Khalil",
-        orders: [
-            { order: "Order #104", items: "Books - 20 items" },
-            { order: "Order #105", items: "Food Items - 15 items" },
-            { order: "Order #106", items: "Toys - 8 items" }
-        ]
     },
 ]);
 
 const trashedworkPlans = ref([
     {
         id: 5,
-        name: "Plan 5 - Deleted Route",
+        name: "Plan 5",
+        driver_name: "Mohammad",
         company_name: "company 1",
-        date: "2025-12-11",
-        driver_name: "Deleted Driver",
-        orders: []
+        date: "2025-12-30",
     },
 ]);
 
@@ -151,16 +140,26 @@ const workPlanFields = computed(() => [
         required: true,
         placeholder: t('workPlan.form.namePlaceholder'),
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.name || '',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.name : '',
         validate: (value) => {
             if (!value || value.trim().length === 0) {
                 return t('workPlan.validation.nameRequired');
             }
+
             if (value.length > 255) {
                 return t('workPlan.validation.nameMax');
             }
+
             return null;
         }
+    },
+    {
+        name: 'date',
+        label: 'Date',
+        type: 'date',
+        required: false,
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.date : '',
     },
     {
         name: 'driver_name',
@@ -168,20 +167,12 @@ const workPlanFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'Sami Ahmad', label: 'Sami Ahmad' },
-            { value: 'Ali Hassan', label: 'Ali Hassan' },
-            { value: 'Mohammad Khalil', label: 'Mohammad Khalil' },
+            { value: 'driver 1', label: 'driver 1' },
+            { value: 'driver 2', label: 'driver 2' },
+            { value: 'driver 3', label: 'driver 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.driver_name || ''
-    },
-    {
-        name: 'date',
-        label: t('workPlan.form.date'),
-        type: 'date',
-        required: false,
-        colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.date || '',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.driver_name : ''
     },
     {
         name: 'company_name',
@@ -194,64 +185,66 @@ const workPlanFields = computed(() => [
             { value: 'company 3', label: 'Company 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.company_name || ''
+        defaultValue: isEditMode.value ? selectedworkPlan.value.company_name : ''
+    },
+
+
+    {
+        name: 'order_name',
+        label: t('workPlan.form.orderName'),
+        type: 'select',
+        required: false,
+        options: [
+            { value: 'order 1', label: 'order 1' },
+            { value: 'order 2', label: 'order 2' },
+            { value: 'order 3', label: 'order 3' },
+        ],
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_name : ''
     },
     {
-        name: 'orders',
-        label: t('workPlan.form.orders') || 'Orders',
-        type: 'orderRows',
+        name: 'order_items',
+        label: t('workPlan.form.orderItems'),
+        type: 'select',
         required: false,
-        colClass: 'col-12',
-        orderLabel: t('workPlan.form.orderName'),
-        itemsLabel: t('workPlan.form.orderItems'),  // Changed from phaseLabel
-        orderOptions: [
-            { value: 'Order #101', label: 'Order #101' },
-            { value: 'Order #102', label: 'Order #102' },
-            { value: 'Order #103', label: 'Order #103' },
-            { value: 'Order #104', label: 'Order #104' },
-            { value: 'Order #105', label: 'Order #105' },
-            { value: 'Order #106', label: 'Order #106' },
+        options: [
+            { value: 'item 1', label: 'item 1' },
+            { value: 'item 2', label: 'item 2' },
+            { value: 'item 3', label: 'item 3' },
         ],
-        itemsOptions: [  // Changed from phaseOptions
-            { value: 'Electronics - 5 items', label: 'Electronics - 5 items' },
-            { value: 'Furniture - 3 items', label: 'Furniture - 3 items' },
-            { value: 'Clothing - 10 items', label: 'Clothing - 10 items' },
-            { value: 'Books - 20 items', label: 'Books - 20 items' },
-            { value: 'Food Items - 15 items', label: 'Food Items - 15 items' },
-            { value: 'Toys - 8 items', label: 'Toys - 8 items' },
-        ],
-        // Map orders properly - use 'items' not 'phase'
-        defaultValue: selectedworkPlan.value.orders && selectedworkPlan.value.orders.length > 0
-            ? selectedworkPlan.value.orders.map(o => ({ 
-                order: o.order, 
-                items: o.items  // Changed from phase
-            }))
-            : [{ order: '', items: '' }]
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedworkPlan.value.order_items : ''
     },
+
 ]);
 
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('workPlan.name'), colClass: 'col-md-6' },
-    { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
     { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
+
     { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+    { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
+
 ]);
 
 const workPlanColumns = ref([
     { key: "id", label: t("workPlan.id"), sortable: true },
     { key: "name", label: t("workPlan.name"), sortable: true },
+    { key: "driver_name", label: t("workPlan.driverName"), sortable: true },
+
+    { key: 'company_name', label: t('workPlan.companyName'), },
     { key: 'date', label: t('workPlan.date'), sortable: true },
-    { key: 'driver_name', label: t('workPlan.driverName'), sortable: true },
-    { key: 'company_name', label: t('workPlan.companyName') },
+
 ]);
 
 const trashedColumns = computed(() => [
     { key: "id", label: t("workPlan.id") },
     { key: "name", label: t("workPlan.name") },
-    { key: 'date', label: t('workPlan.date'), sortable: true },
     { key: 'company_name', label: t('workPlan.companyName') },
+    { key: 'date', label: t('workPlan.date'), sortable: true },
+
 ]);
 
 const visibleColumns = ref([]);
@@ -321,40 +314,27 @@ const closeTrashedModal = () => {
 };
 
 const handleSubmitworkPlan = (workPlanData) => {
-    // Convert orderRows format back to orders array
-    // Now using 'items' directly, no 'phase'
-    const orders = workPlanData.orders?.map(row => ({
-        order: row.order,
-        items: row.items  // Changed from row.phase
-    })) || [];
-
     if (isEditMode.value) {
+        // Update existing workPlan
         const index = workPlans.value.findIndex(d => d.id === selectedworkPlan.value.id);
         if (index > -1) {
             workPlans.value[index] = {
                 ...workPlans.value[index],
                 name: workPlanData.name,
                 company_name: workPlanData.company_name,
-                driver_name: workPlanData.driver_name,
-                date: workPlanData.date,
-                orders: orders,
             };
-            console.log('Work plan updated successfully!');
+            console.log('workPlan updated successfully!');
         }
     } else {
+        // Add new workPlan
         const newworkPlan = {
             id: workPlans.value.length + 1,
             name: workPlanData.name,
             company_name: workPlanData.company_name,
-            driver_name: workPlanData.driver_name,
-            date: workPlanData.date,
-            orders: orders,
         };
         workPlans.value.push(newworkPlan);
-        console.log('Work plan added successfully!');
+        console.log('workPlan added successfully!');
     }
-    
-    closeFormModal();
 };
 
 const handleRestoreworkPlan = (workPlan) => {
@@ -363,7 +343,7 @@ const handleRestoreworkPlan = (workPlan) => {
     if (index > -1) {
         trashedworkPlans.value.splice(index, 1);
     }
-    console.log("Work plan restored successfully!");
+    console.log("workPlan restored successfully!");
 };
 </script>
 
