@@ -195,7 +195,23 @@ const initializeForm = () => {
 
   props.fields.forEach((field) => {
     if (field && field.name) {
-      formData[field.name] = field.defaultValue || "";
+      if (field.type === "orderRows") {
+        formData[field.name] =
+          field.defaultValue ||
+          [
+            {
+              order: "",
+              items: "",
+            },
+          ];
+      } else {
+        // Initialize multiselect fields as arrays
+      if (field.type === 'multiselect') {
+        formData[field.name] = field.defaultValue || [];
+      } else {
+        formData[field.name] = field.defaultValue || "";
+      }
+      }
       errors[field.name] = "";
     }
   });
@@ -207,7 +223,23 @@ const resetForm = () => {
 
   props.fields.forEach((field) => {
     if (field && field.name) {
-      formData[field.name] = field.defaultValue || "";
+      if (field.type === "orderRows") {
+        formData[field.name] =
+          field.defaultValue ||
+          [
+            {
+              order: "",
+              items: "",
+            },
+          ];
+      } else {
+        // Reset multiselect fields as arrays
+      if (field.type === 'multiselect') {
+        formData[field.name] = field.defaultValue || [];
+      } else {
+        formData[field.name] = field.defaultValue || "";
+      }
+      }
       errors[field.name] = "";
     }
   });
@@ -298,11 +330,31 @@ const validateForm = () => {
     if (!field || !field.name) return;
     const value = formData[field.name];
 
-    // Required validation
-    if (field.required && !value) {
-      errors[field.name] = `${field.label} is required`;
-      isValid = false;
+    if (field.type === "orderRows" && Array.isArray(value)) {
+      if (field.required) {
+        value.forEach((row) => {
+          if (!row.order || !row.items) {
+            errors[field.name] = "الرجاء تعبئة كل الأوردرات والفيز";
+            isValid = false;
+          }
+        });
+      }
       return;
+    }
+
+    if (field.required) {
+      // For multiselect, check if array is empty
+      if (field.type === 'multiselect' && (!value || value.length === 0)) {
+        errors[field.name] = `${field.label} is required`;
+        isValid = false;
+        return;
+      }
+      // For other fields, check if value is falsy
+      if (field.type !== 'multiselect' && !value) {
+        errors[field.name] = `${field.label} is required`;
+        isValid = false;
+        return;
+      }
     }
 
     if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
