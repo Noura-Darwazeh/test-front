@@ -122,10 +122,10 @@ const fetchCompanies = async () => {
       value: String(company.id),
       label: company.name
     }));
-    console.log("✅ Companies loaded successfully");
+    console.log("Companies loaded successfully");
   } catch (error) {
     companiesError.value = error.message || "Failed to load companies";
-    console.error("❌ Failed to load companies:", error);
+    console.error("Failed to load companies:", error);
   } finally {
     companiesLoading.value = false;
   }
@@ -221,7 +221,7 @@ const userFields = computed(() => [
     name: "company_name",
     label: t("user.form.company"),
     type: "select",
-    required: true,
+    required: false,
     options: companies.value,
     colClass: "col-md-6",
   },

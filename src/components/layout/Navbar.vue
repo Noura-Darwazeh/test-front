@@ -59,7 +59,7 @@
                   <div class="fw-semibold">{{ authStore.user?.email || authStore.user?.username }}</div>
                   <div class="badge bg-primary mt-1">{{ authStore.userRole }}</div>
                 </li>
-                
+
                 <!-- Profile Link -->
                 <li>
                   <a class="dropdown-item" href="#" @click.prevent="handleProfile(close)">
@@ -67,7 +67,7 @@
                     {{ $t("navbar.profile") }}
                   </a>
                 </li>
-                
+
                 <!-- Settings Link -->
                 <li>
                   <a class="dropdown-item" href="#" @click.prevent="handleSettings(close)">
@@ -75,11 +75,11 @@
                     {{ $t("navbar.settings") }}
                   </a>
                 </li>
-                
+
                 <li>
                   <hr class="dropdown-divider" />
                 </li>
-                
+
                 <!-- Switch User (Only for SuperAdmin) -->
                 <li v-if="authStore.hasRole('SuperAdmin')">
                   <a class="dropdown-item" href="#" @click.prevent="handleSwitchUser(close)">
@@ -87,10 +87,11 @@
                     {{ $t("navbar.SwitchUser") }}
                   </a>
                 </li>
-                
+
                 <!-- Logout -->
                 <li>
-                  <a class="dropdown-item text-danger" href="#" @click.prevent="handleLogout(close)">
+                  <a class="dropdown-item " style="color: var(--color-danger);" href="#"
+                    @click.prevent="handleLogout(close)">
                     <i class="fas fa-sign-out-alt me-2"></i>
                     {{ $t("navbar.logout") }}
                   </a>
@@ -160,13 +161,13 @@ const handleSwitchUser = (close) => {
 
 const handleLogout = async (close) => {
   close();
-  
+
   // Confirm logout
   if (confirm(t("navbar.confirmLogout") || "Are you sure you want to logout?")) {
     try {
       await authStore.logout();
       console.log(" Logout successful");
-      
+
       // Redirect to login
       router.push({ name: "Login" });
     } catch (error) {

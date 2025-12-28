@@ -1,13 +1,13 @@
 import { descending } from "ol/array";
 
 export default {
-  
+
   navbar: {
     notifications: "Notifications",
     profile: "Profile",
     settings: "Settings",
     SwitchUser: "Switch User",
-    logout: "Logout",
+    logout: "Log Out",
     signedInAs: "Signed in as",
     confirmLogout: "Are you sure you want to logout?",
   },

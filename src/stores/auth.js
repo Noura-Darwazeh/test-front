@@ -64,7 +64,7 @@ export const useAuthStore = defineStore("auth", () => {
         setItem("auth_user", data.user);
         setItem("auth_device", data.device);
 
-        console.log("✅ Login successful:", data.user.name);
+        console.log("Login successful:", data.user.name);
         return data;
       } else {
         // Handle unsuccessful login
@@ -82,7 +82,7 @@ export const useAuthStore = defineStore("auth", () => {
         error.value = err.message || "Login failed. Please try again.";
       }
       
-      console.error("❌ Login error:", err);
+      console.error(" Login error:", err);
       throw err;
     } finally {
       isLoading.value = false;
@@ -102,11 +102,11 @@ export const useAuthStore = defineStore("auth", () => {
         });
       }
     } catch (err) {
-      console.error("❌ Logout error:", err);
+      console.error("Logout error:", err);
     } finally {
       // Clear local state
       clearAuthData();
-      console.log("✅ Logout successful");
+      console.log("Logout successful");
     }
   }
 
