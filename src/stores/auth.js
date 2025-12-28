@@ -93,20 +93,48 @@ export const useAuthStore = defineStore("auth", () => {
    * Logout user
    */
   async function logout() {
+    isLoading.value = true;
+    error.value = null;
+
     try {
-      // Call logout endpoint if available
+      // Only call API if we have a token
       if (token.value) {
-        await api.post("/logout").catch(() => {
-          // Ignore logout API errors
-          console.warn("Logout API call failed, proceeding with local logout");
-        });
+        const response = await api.post("/logout");
+        
+        // Check if logout was successful
+        if (response.data.success === true) {
+          console.log(response.data.message);
+          clearAuthData();
+          return { success: true, message: response.data.message };
+        } else {
+          throw new Error(response.data.message || "Logout failed");
+        }
+      } else {
+        // No token, just clear local data
+        console.warn("⚠️ No token found, clearing local data only");
+        clearAuthData();
+        return { success: true, message: "Logged out locally" };
       }
     } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      // Clear local state
+      console.error(" Logout error:", err);
+      
+      // Check if it's an authentication error (401)
+      if (err.response?.status === 401 || err.response?.data?.success === false) {
+        // Token is invalid/expired, clear it anyway
+        console.warn("Invalid token detected, clearing local data");
+        clearAuthData();
+        return { 
+          success: true, 
+          message: "Session expired, logged out locally" 
+        };
+      }
+      
+      // For other errors, show error but still clear data
+      error.value = err.message || "Logout failed";
       clearAuthData();
-      console.log("Logout successful");
+      throw err;
+    } finally {
+      isLoading.value = false;
     }
   }
 
