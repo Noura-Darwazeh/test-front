@@ -26,19 +26,34 @@ export const useAuthStore = defineStore("auth", () => {
    * @param {Object} credentials - Login credentials {login, password}
    * @returns {Promise<Object>} User data
    */
+/**
+   * Login user with username or email
+   * @param {Object} credentials - Login credentials {login, password}
+   * @returns {Promise<Object>} User data
+   */
   async function login(credentials) {
     isLoading.value = true;
     error.value = null;
 
     try {
+      // Validate input
+      if (!credentials.login || !credentials.login.trim()) {
+        throw new Error("Email or username is required");
+      }
+
+      if (!credentials.password) {
+        throw new Error("Password is required");
+      }
+
       const response = await api.post("/login", {
-        login: credentials.login,
+        login: credentials.login.trim(), // Backend accepts both email and username
         password: credentials.password,
       });
 
       const data = response.data;
 
-      if (data.success) {
+      // Check if login was successful
+      if (data.success === true) {
         // Save auth data
         user.value = data.user;
         token.value = data.token;
@@ -49,14 +64,25 @@ export const useAuthStore = defineStore("auth", () => {
         setItem("auth_user", data.user);
         setItem("auth_device", data.device);
 
-        console.log("Login successful:", data.user.name);
+        console.log("✅ Login successful:", data.user.name);
         return data;
       } else {
+        // Handle unsuccessful login
         throw new Error(data.message || "Login failed");
       }
     } catch (err) {
-      error.value = err.message || "Login failed";
-      console.error(" Login error:", err);
+      // Handle different error scenarios
+      if (err.response?.data?.success === false) {
+        error.value = err.response.data.message || "Invalid credentials";
+      } else if (err.response?.status === 401) {
+        error.value = "Invalid username/email or password";
+      } else if (err.response?.status === 422) {
+        error.value = "Please check your input and try again";
+      } else {
+        error.value = err.message || "Login failed. Please try again.";
+      }
+      
+      console.error("❌ Login error:", err);
       throw err;
     } finally {
       isLoading.value = false;
