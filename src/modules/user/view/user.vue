@@ -18,14 +18,31 @@
 
     <div class="card border-0">
       <div class="card-body p-0">
-        <DataTable :columns="filteredColumns" :data="paginatedUsers" />
-        <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination
-            :totalItems="filteredUsers.length"
-            :itemsPerPage="itemsPerPage"
-            :currentPage="currentPage"
-            @update:currentPage="(page) => (currentPage = page)"
-          />
+        <!-- Loading State -->
+        <div v-if="usersStore.loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">{{ $t('common.loading') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="usersStore.error" class="alert alert-danger m-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ usersStore.error }}
+        </div>
+
+        <!-- Data Table -->
+        <div v-else>
+          <DataTable :columns="filteredColumns" :data="paginatedUsers" />
+          <div class="px-3 pt-1 pb-2 bg-light">
+            <Pagination
+              :totalItems="filteredUsers.length"
+              :itemsPerPage="itemsPerPage"
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -57,85 +74,76 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
-import ActionsDropdown from "../../../components/shared/Actions.vue";
-import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
-import StatusBadge from "../../../components/shared/StatusBadge.vue";
+import { useUsersManagementStore } from "../store/usersManagement.js";
+import { VALIDATION_LIMITS } from "../constants/userConstants.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
+const usersStore = useUsersManagementStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
-const isFormModalOpen = ref(false);
-const isDetailsModalOpen = ref(false);
+const isModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
-const isEditMode = ref(false);
-const selectedUser = ref({});
 
-const users = ref([
-  {
-    id: 1,
-    name: "John Doe",
-    username: "johndoe",
-    email: "john@example.com",
-    image: "path/test",
-    phone_number: "0598549638",
-    role: "Admin",
-    company_name: "company 1",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Ahmad Ali",
-    username: "ahmadali",
-    email: "ahmad@example.com",
-    image: "path/test",
-    phone_number: "0598549639",
-    role: "Supervisor",
-    company_name: "company 2",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Sami Hassan",
-    username: "samihassan",
-    email: "sami@example.com",
-    image: "path/test",
-    phone_number: "0598549640",
-    role: "Employee",
-    company_name: "company 3",
-    status: "inactive",
-  },
+// Dynamic data from API
+const companies = ref([]);
+const companiesLoading = ref(false);
+const companiesError = ref(null);
+
+const roles = ref([
+  { value: "SuperAdmin", translationKey: "SuperAdmin" },
+  { value: "Admin", translationKey: "Admin" },
+  { value: "Supervisor", translationKey: "Supervisor" },
+  { value: "Employee", translationKey: "Employee" },
 ]);
 
-const trashedUsers = ref([
-  {
-    id: 101,
-    name: "Deleted User 1",
-    username: "deleteduser1",
-    email: "deleted1@example.com",
-    phone_number: "0591234567",
-    role: "User",
-    company_name: "company 1",
-  },
-  {
-    id: 102,
-    name: "Deleted User 2",
-    username: "deleteduser2",
-    email: "deleted2@example.com",
-    phone_number: "0597654321",
-    role: "Admin",
-    company_name: "company 2",
-  },
-]);
+// Get users from store
+const users = computed(() => usersStore.users);
+const trashedUsers = computed(() => usersStore.trashedUsers);
+
+// Fetch companies
+const fetchCompanies = async () => {
+  companiesLoading.value = true;
+  companiesError.value = null;
+  try {
+    const companiesResponse = await apiServices.getCompanies();
+    companies.value = companiesResponse.data.data.map(company => ({
+      value: String(company.id),
+      label: company.name
+    }));
+    console.log("✅ Companies loaded successfully");
+  } catch (error) {
+    companiesError.value = error.message || "Failed to load companies";
+    console.error("❌ Failed to load companies:", error);
+  } finally {
+    companiesLoading.value = false;
+  }
+};
+
+// Fetch data on component mount
+onMounted(async () => {
+  try {
+    // Fetch users and companies in parallel
+    await Promise.all([
+      usersStore.fetchUsers(),
+      fetchCompanies()
+    ]);
+    console.log("✅ All data loaded successfully");
+  } catch (error) {
+    console.error("❌ Failed to load data:", error);
+  }
+});
 
 // User Form Fields
 const userFields = computed(() => [
@@ -147,7 +155,7 @@ const userFields = computed(() => [
     placeholder: t("user.form.namePlaceholder"),
     colClass: "col-md-6",
     validate: (value) => {
-      if (value.length > 255) return t("user.validation.nameMax");
+      if (value.length > VALIDATION_LIMITS.NAME_MAX_LENGTH) return t("user.validation.nameMax");
       return null;
     },
   },
@@ -159,7 +167,7 @@ const userFields = computed(() => [
     placeholder: t("user.form.usernamePlaceholder"),
     colClass: "col-md-6",
     validate: (value) => {
-      if (value.length > 255) return t("user.validation.usernameMax");
+      if (value.length > VALIDATION_LIMITS.USERNAME_MAX_LENGTH) return t("user.validation.usernameMax");
       const exists = users.value.some((u) => u.username === value);
       if (exists) return t("user.validation.usernameExists");
       return null;
@@ -173,7 +181,7 @@ const userFields = computed(() => [
     placeholder: t("user.form.emailPlaceholder"),
     colClass: "col-md-6",
     validate: (value) => {
-      if (value && value.length > 255) return t("user.validation.emailMax");
+      if (value && value.length > VALIDATION_LIMITS.EMAIL_MAX_LENGTH) return t("user.validation.emailMax");
       return null;
     },
   },
@@ -182,7 +190,7 @@ const userFields = computed(() => [
     label: t("user.form.password"),
     type: "password",
     required: true,
-    minlength: 6,
+    minlength: VALIDATION_LIMITS.PASSWORD_MIN_LENGTH,
     placeholder: t("user.form.passwordPlaceholder"),
     colClass: "col-md-6",
   },
@@ -194,7 +202,7 @@ const userFields = computed(() => [
     placeholder: t("user.form.phoneNumberPlaceholder"),
     colClass: "col-md-6",
     validate: (value) => {
-      if (value.length > 20) return t("user.validation.phoneMax");
+      if (value.length > VALIDATION_LIMITS.PHONE_MAX_LENGTH) return t("user.validation.phoneMax");
       return null;
     },
   },
@@ -203,11 +211,10 @@ const userFields = computed(() => [
     label: t("user.form.role"),
     type: "select",
     required: true,
-    options: [
-      { value: "Admin", label: t("roles.Admin") },
-      { value: "Supervisor", label: t("roles.Supervisor") },
-      { value: "Employee", label: t("roles.Employee") },
-    ],
+    options: roles.value.map(role => ({
+      value: role.value,
+      label: t(`roles.${role.translationKey}`)
+    })),
     colClass: "col-md-6",
   },
   {
@@ -215,24 +222,9 @@ const userFields = computed(() => [
     label: t("user.form.company"),
     type: "select",
     required: true,
-    options: [
-      { value: "1", label: "Company 1" },
-      { value: "2", label: "Company 2" },
-      { value: "3", label: "Company 3" },
-    ],
+    options: companies.value,
     colClass: "col-md-6",
   },
-]);
-
-// Details Fields
-const detailsFields = computed(() => [
-    { key: 'id', label: t('user.id'), colClass: 'col-md-6' },
-    { key: 'name', label: t('user.fullName'), colClass: 'col-md-6' },
-    { key: 'username', label: t('user.username'), colClass: 'col-md-6' },
-    { key: 'email', label: t('user.email'), colClass: 'col-md-6' },
-    { key: 'phone_number', label: t('user.phoneNumber'), colClass: 'col-md-6' },
-    { key: 'role', label: t('user.userRole'), translationKey: 'roles', colClass: 'col-md-6' },
-    { key: 'company_name', label: t('user.company'), colClass: 'col-md-12' },
 ]);
 
 const userColumns = computed(() => [
@@ -304,37 +296,41 @@ const closeTrashedModal = () => {
   isTrashedModalOpen.value = false;
 };
 
-const handleAddUser = (userData) => {
-  console.log("New user added successfully:", userData);
+const handleAddUser = async (userData) => {
+  try {
+    if (userData.image && userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE) {
+      console.log(t("user.validation.imageSize"));
+      return;
+    }
 
-  if (userData.image && userData.image.size > 200 * 1024) {
-    console.log(t("user.validation.imageSize"));
-    return;
+    const newUser = {
+      name: userData.name,
+      username: userData.username,
+      email: userData.email || "",
+      phone_number: userData.phone_number,
+      role: userData.role,
+      company_id: userData.company_name || null,
+      language: "english", // Default language
+      shared_line: 1, // Default value
+      image: userData.imagePreview || null,
+    };
+
+    await usersStore.addUser(newUser);
+    console.log("✅ User added successfully!");
+    closeModal();
+  } catch (error) {
+    console.error("❌ Failed to add user:", error);
+    alert(error.message || "Failed to add user");
   }
-
-  const newUser = {
-    id: users.value.length + 1,
-    name: userData.name,
-    username: userData.username,
-    email: userData.email || "",
-    phone_number: userData.phone_number,
-    role: userData.role,
-    company_name: userData.company_name || null,
-    image: userData.imagePreview || "path/test",
-  };
-
-  users.value.push(newUser);
-  console.log("User added successfully!");
 };
 
-const handleRestoreUser = (user) => {
-  console.log("Restoring user:", user);
-  users.value.push(user);
-  const index = trashedUsers.value.findIndex((u) => u.id === user.id);
-  if (index > -1) {
-    trashedUsers.value.splice(index, 1);
+const handleRestoreUser = async (user) => {
+  try {
+    await usersStore.restoreUser(user.id);
+    console.log("✅ User restored successfully!");
+  } catch (error) {
+    console.error("❌ Failed to restore user:", error);
   }
-  console.log("User has been restored successfully!");
 };
 </script>
 
