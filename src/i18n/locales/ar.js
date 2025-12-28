@@ -5,7 +5,33 @@ export default {
     settings: "الإعدادات",
     SwitchUser: "تبديل المستخدم",
     logout: "تسجيل الخروج",
+    signedInAs: "مسجل الدخول كـ",
+    confirmLogout: "هل أنت متأكد من تسجيل الخروج؟",
   },
+
+    login: {
+    title: "مرحباً بعودتك",
+    subtitle: "سجل الدخول للوصول إلى لوحة التحكم",
+    emailLabel: "البريد الإلكتروني أو اسم المستخدم",
+    emailPlaceholder: "أدخل البريد الإلكتروني أو اسم المستخدم",
+    passwordLabel: "كلمة المرور",
+    passwordPlaceholder: "••••••••",
+    forgotPassword: "نسيت كلمة المرور؟",
+    signIn: "تسجيل الدخول",
+    signingIn: "جاري تسجيل الدخول...",
+    
+    // Validation
+    validation: {
+      emailRequired: "البريد الإلكتروني أو اسم المستخدم مطلوب",
+      passwordRequired: "كلمة المرور مطلوبة",
+      passwordMinLength: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    },
+    
+    // Success messages
+    loginSuccess: "تم تسجيل الدخول بنجاح! جاري التحويل...",
+  },
+  
   sidebar: {
     logoText: "توصيل PITS",
   },

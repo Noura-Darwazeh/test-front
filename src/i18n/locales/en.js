@@ -1,16 +1,44 @@
 import { descending } from "ol/array";
 
 export default {
+  
   navbar: {
     notifications: "Notifications",
     profile: "Profile",
     settings: "Settings",
     SwitchUser: "Switch User",
     logout: "Logout",
+    signedInAs: "Signed in as",
+    confirmLogout: "Are you sure you want to logout?",
   },
+
+  login: {
+    title: "Welcome Back",
+    subtitle: "Sign in to access your delivery dashboard",
+    emailLabel: "Email or Username",
+    emailPlaceholder: "Enter your email or username",
+    passwordLabel: "Password",
+    passwordPlaceholder: "••••••••",
+    forgotPassword: "Forgot Password?",
+    signIn: "Sign In",
+    signingIn: "Signing In...",
+
+    // Validation
+    validation: {
+      emailRequired: "Email or username is required",
+      passwordRequired: "Password is required",
+      passwordMinLength: "Password must be at least 6 characters",
+      invalidCredentials: "Invalid email or password",
+    },
+
+    // Success messages
+    loginSuccess: "Login successful! Redirecting...",
+  },
+
   sidebar: {
     logoText: "PITS Delivery",
   },
+
   user: {
     // Page Headers
     title: "User Table",
@@ -1367,12 +1395,12 @@ export default {
     companyName: "Company Name",
     date: "Date",
     today: "Today",
-    
+
     tabs: {
       calendar: "Calendar",
       table: "Table"
     },
-    
+
     // Actions
     searchPlaceholder: "Search Work Plans...",
     search: "Search",
@@ -1404,7 +1432,7 @@ export default {
     form: {
       name: "Plan Name",
       namePlaceholder: "Enter work plan name",
-      
+
       company: "Company",
       companyPlaceholder: "Select company",
 
@@ -1413,7 +1441,7 @@ export default {
 
       driverName: "Driver Name",
       driverNamePlaceholder: "Select Driver Name",
-      
+
       orders: "Orders",
       orderName: "Order Name",
       orderNamePlaceholder: "Select Order Name",
@@ -1437,12 +1465,12 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
-    
+
     // Edit / Details Modal
     edit: "Edit",
     details: "Details",
   },
 
 
-// Usage: Add this to your en.js file
+  // Usage: Add this to your en.js file
 };

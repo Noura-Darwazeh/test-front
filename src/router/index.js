@@ -1,4 +1,8 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "../stores/auth.js";
+
+// Import views
 import user from "../modules/user/view/user.vue";
 import driver from "../modules/driver/view/driver.vue";
 import customer from "../modules/customer/view/customer.vue";
@@ -8,7 +12,6 @@ import lines from "../modules/lines/view/lines.vue";
 import linePrice from "../modules/linePrice/view/linePrice.vue";
 import lineWork from "../modules/lineWork/view/lineWork.vue";
 import orders from "../modules/orders/view/orderPage.vue";
-
 import discount from "../modules/discount/view/discountPage.vue";
 import currency from "../modules/currency/view/currency.vue";
 import companyPrice from "../modules/companyPrice/view/companyPrice.vue";
@@ -27,14 +30,33 @@ const router = createRouter({
       redirect: "/user",
     },
     {
+      path: "/login",
+      name: "Login",
+      component: Login,
+      meta: {
+        hiddenLayout: true,
+        requiresGuest: true, // Only accessible when logged out
+      },
+    },
+    {
+      path: "/forgot-password",
+      name: "forgetPassword",
+      component: forgetPassword,
+      meta: {
+        hiddenLayout: true,
+        requiresGuest: true,
+      },
+    },
+    {
       path: "/user",
       name: "User",
       component: user,
       meta: {
         titleKey: "user.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/userIcon.svg",
+        roles: ["SuperAdmin", "Admin"], // Only these roles can access
       },
     },
     {
@@ -43,7 +65,7 @@ const router = createRouter({
       component: driver,
       meta: {
         titleKey: "driver.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/driverIcon.svg",
       },
@@ -54,7 +76,7 @@ const router = createRouter({
       component: customer,
       meta: {
         titleKey: "customer.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/customerIcon.svg",
       },
@@ -65,7 +87,7 @@ const router = createRouter({
       component: company,
       meta: {
         titleKey: "company.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/companyIcon.svg",
       },
@@ -76,7 +98,7 @@ const router = createRouter({
       component: branches,
       meta: {
         titleKey: "branch.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/branchIcon.svg",
       },
@@ -87,7 +109,7 @@ const router = createRouter({
       component: lines,
       meta: {
         titleKey: "lines.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/linesIcon.svg",
       },
@@ -98,7 +120,7 @@ const router = createRouter({
       component: lineWork,
       meta: {
         titleKey: "lineWork.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/linesIcon.svg",
       },
@@ -109,19 +131,18 @@ const router = createRouter({
       component: linePrice,
       meta: {
         titleKey: "linePrice.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/priceIcon.svg",
       },
     },
-
     {
       path: "/regions",
       name: "regions",
       component: regions,
       meta: {
         titleKey: "regions.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/regionsIcon.svg",
       },
@@ -132,19 +153,18 @@ const router = createRouter({
       component: orders,
       meta: {
         titleKey: "orders.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/order/order.svg",
       },
     },
-
     {
       path: "/discount",
       name: "Discount",
       component: discount,
       meta: {
         titleKey: "discount.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/discount/discount.svg",
       },
@@ -155,7 +175,7 @@ const router = createRouter({
       component: currency,
       meta: {
         titleKey: "currency.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/currency/currency.svg",
       },
@@ -166,7 +186,7 @@ const router = createRouter({
       component: companyPrice,
       meta: {
         titleKey: "companyPrice.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/itemprice/price.svg",
       },
@@ -177,17 +197,9 @@ const router = createRouter({
       component: driverLine,
       meta: {
         titleKey: "driverLine.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/driverline/driverline.svg",
-      },
-    },
-    {
-      path: "/login",
-      name: "Login",
-      component: Login,
-      meta: {
-        hiddenLayout: true,
       },
     },
     {
@@ -196,32 +208,63 @@ const router = createRouter({
       component: map,
       meta: {
         titleKey: "map.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/map/mapGlobe.svg",
       },
     },
-    {
-      path: "/forgot-password",
-      name: "forgetPassword",
-      component: forgetPassword,
-      meta: {
-        hiddenLayout: true,
-      },
-    },
-
     {
       path: "/work-plans",
       name: "WorkPlans",
       component: workPlans,
       meta: {
         titleKey: "workPlan.title",
-        requireAuth: false,
+        requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/planIcon.svg",
       },
     },
+    // 404 Not Found Route
+    {
+      path: "/:pathMatch(.*)*",
+      redirect: "/user",
+    },
   ],
+});
+
+// ===== Navigation Guards =====
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+  const isAuthenticated = authStore.isAuthenticated;
+  const userRole = authStore.userRole;
+
+  // Check if route requires authentication
+  if (to.meta.requireAuth && !isAuthenticated) {
+    console.log("🔒 Route requires authentication, redirecting to login");
+    return next({
+      name: "Login",
+      query: { redirect: to.fullPath }, // Save intended destination
+    });
+  }
+
+  // Check if route requires guest (logged out) access
+  if (to.meta.requiresGuest && isAuthenticated) {
+    console.log("✅ Already authenticated, redirecting to dashboard");
+    return next({ name: "User" });
+  }
+
+  // Check role-based access
+  if (to.meta.roles && to.meta.roles.length > 0) {
+    if (!authStore.hasAnyRole(to.meta.roles)) {
+      console.log("Insufficient permissions for this route");
+      // Redirect to first available route for user's role
+      return next({ name: "User" });
+    }
+  }
+
+  // Allow navigation
+  next();
 });
 
 export default router;
