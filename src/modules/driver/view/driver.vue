@@ -1,20 +1,10 @@
 <template>
     <div class="user-page-container bg-light">
-        <DriversHeader 
-            v-model="searchText" 
-            :searchPlaceholder="$t('driver.searchPlaceholder')" 
-            :data="drivers"
-            groupKey="status" 
-            v-model:groupModelValue="selectedGroups" 
-            :groupLabel="$t('driver.filterByStatus')"
-            translationKey="statuses" 
-            :columns="driverColumns" 
-            v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" 
-            :addButtonText="$t('driver.addNew')" 
-            @add-click="openAddModal"
-            @trashed-click="openTrashedModal" 
-        />
+        <DriversHeader v-model="searchText" :searchPlaceholder="$t('driver.searchPlaceholder')" :data="drivers"
+            groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('driver.filterByStatus')"
+            translationKey="statuses" :columns="driverColumns" v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" :addButtonText="$t('driver.addNew')" @add-click="openAddModal"
+            @trashed-click="openTrashedModal" />
 
         <div class="card border-0">
             <div class="card-body p-0">
@@ -36,58 +26,32 @@
                 <div v-else>
                     <DataTable :columns="filteredColumns" :data="paginatedDrivers" :actionsLabel="$t('driver.actions')">
                         <template #actions="{ row }">
-                            <ActionsDropdown 
-                                :row="row" 
-                                :editLabel="$t('driver.edit')"
-                                :detailsLabel="$t('driver.details')" 
-                                @edit="openEditModal" 
-                                @details="openDetailsModal" 
-                            />
+                            <ActionsDropdown :row="row" :editLabel="$t('driver.edit')"
+                                :detailsLabel="$t('driver.details')" @edit="openEditModal"
+                                @details="openDetailsModal" />
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination 
-                            :totalItems="filteredDrivers.length" 
-                            :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage" 
-                            @update:currentPage="(page) => currentPage = page" 
-                        />
+                        <Pagination :totalItems="filteredDrivers.length" :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit Driver -->
-        <FormModal 
-            :isOpen="isFormModalOpen" 
-            :title="isEditMode ? $t('driver.edit') : $t('driver.addNew')" 
-            :fields="driverFields"
-            :showImageUpload="true" 
-            :imageRequired="false"
-            :imageUploadLabel="$t('driver.form.uploadImage')"
-            @close="closeFormModal" 
-            @submit="handleSubmitDriver" 
-        />
+        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('driver.edit') : $t('driver.addNew')"
+            :fields="driverFields" :showImageUpload="true" :imageRequired="false"
+            :imageUploadLabel="$t('driver.form.uploadImage')" @close="closeFormModal" @submit="handleSubmitDriver" />
 
         <!-- Details Modal -->
-        <DetailsModal 
-            :isOpen="isDetailsModalOpen" 
-            :title="$t('driver.details')" 
-            :data="selectedDriver"
-            :fields="detailsFields" 
-            @close="closeDetailsModal" 
-        />
+        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('driver.details')" :data="selectedDriver"
+            :fields="detailsFields" @close="closeDetailsModal" />
 
         <!-- Trashed Drivers Modal -->
-        <TrashedItemsModal
-            :isOpen="isTrashedModalOpen"
-            :title="$t('driver.trashed.title')"
-            :emptyMessage="$t('driver.trashed.empty')"
-            :columns="trashedColumns"
-            :trashedItems="trashedDrivers"
-            @close="closeTrashedModal"
-            @restore="handleRestoreDriver"
-        />
+        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('driver.trashed.title')"
+            :emptyMessage="$t('driver.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedDrivers"
+            @close="closeTrashedModal" @restore="handleRestoreDriver" />
     </div>
 </template>
 
@@ -131,7 +95,7 @@ onMounted(async () => {
     }
 });
 
-// Driver Form Fields
+// Driver Form Fields - FIXED STATUS OPTIONS
 const driverFields = computed(() => [
     {
         name: 'name',
@@ -205,8 +169,8 @@ const driverFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'custom driver', label: t('driverTypes.customDriver') },
-            { value: 'delivery driver', label: t('driverTypes.deliveryDriver') },
+            { value: 'custom driver', label: t('driver.form.driverTypes.customDriver') },
+            { value: 'delivery driver', label: t('driver.form.driverTypes.deliveryDriver') },
         ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedDriver.value.type : ''
@@ -254,10 +218,17 @@ const driverFields = computed(() => [
         options: [
             { value: 'available', label: t('statuses.available') },
             { value: 'busy', label: t('statuses.busy') },
-            { value: 'offline', label: t('statuses.offline') }
+            { value: 'in_holiday', label: t('statuses.in_holiday') }
         ],
         defaultValue: isEditMode.value ? selectedDriver.value.status : 'available',
-        colClass: 'col-md-6'
+        colClass: 'col-md-6',
+        validate: (value) => {
+            const validStatuses = ['available', 'busy', 'in_holiday'];
+            if (value && !validStatuses.includes(value)) {
+                return t('driver.validation.invalidStatus') || 'Invalid status selected. Valid options: available, busy, in_holiday';
+            }
+            return null;
+        }
     },
     {
         name: 'set_location',
@@ -282,7 +253,9 @@ const detailsFields = computed(() => [
     { key: 'status', label: t('driver.status'), translationKey: 'statuses', colClass: 'col-md-6' },
     { key: 'type', label: t('driver.type'), translationKey: 'driverTypes', colClass: 'col-md-6' },
     { key: 'branch_name', label: t('driver.branchName'), colClass: 'col-md-6' },
-    { key: 'vehicle_number', label: t('driver.vehicleNumber'), colClass: 'col-md-12' },
+    { key: 'vehicle_number', label: t('driver.vehicleNumber'), colClass: 'col-md-6' },
+    { key: 'company_name', label: t('driver.company'), colClass: 'col-md-6' },
+
 ]);
 
 const driverColumns = ref([

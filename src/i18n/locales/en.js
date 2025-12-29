@@ -155,15 +155,11 @@ export default {
     username: "Username",
     email: "Email",
     phoneNumber: "Phone Number",
-    location: "Location",
     status: "Status",
     type: "Type",
     branchId: "Branch",
     branchName: "Branch",
     vehicleNumber: "Vehicle Number",
-    createdBy: "Created By",
-    landingPage: "Landing Page",
-    language: "Language",
     company: "Company",
 
     // Status Values
@@ -204,6 +200,10 @@ export default {
       setLocation: "Set Location on Map",
       uploadImage: "Upload Image",
       removeImage: "Remove",
+      driverTypes: {
+        customDriver: "Custom Driver",
+        deliveryDriver: "Delivery Driver",
+      },
     },
 
     // Validation Messages
@@ -694,7 +694,7 @@ export default {
   statuses: {
     available: "Available",
     busy: "Busy",
-    offline: "In Holiday",
+    in_holiday: "In Holiday"
   },
 
   // Regions

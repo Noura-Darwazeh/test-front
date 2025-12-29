@@ -9,7 +9,7 @@ export default {
     confirmLogout: "هل أنت متأكد من تسجيل الخروج؟",
   },
 
-    login: {
+  login: {
     title: "مرحباً بعودتك",
     subtitle: "سجل الدخول للوصول إلى لوحة التحكم",
     emailLabel: "البريد الإلكتروني أو اسم المستخدم",
@@ -19,7 +19,7 @@ export default {
     forgotPassword: "نسيت كلمة المرور؟",
     signIn: "تسجيل الدخول",
     signingIn: "جاري تسجيل الدخول...",
-    
+
     // Validation
     validation: {
       emailRequired: "البريد الإلكتروني أو اسم المستخدم مطلوب",
@@ -27,11 +27,11 @@ export default {
       passwordMinLength: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
       invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
     },
-    
+
     // Success messages
     loginSuccess: "تم تسجيل الدخول بنجاح! جاري التحويل...",
   },
-  
+
   sidebar: {
     logoText: "توصيل PITS",
   },
@@ -134,8 +134,6 @@ export default {
   driver: {
     // عناوين الصفحة
     title: "جدول السائقين",
-    pageTitle: "إدارة السائقين",
-    pageSubtitle: "إدارة سائقي التوصيل وتفاصيلهم",
 
     // الإجراءات
     searchPlaceholder: "البحث عن سائقين...",
@@ -153,15 +151,11 @@ export default {
     username: "اسم المستخدم",
     email: "البريد الإلكتروني",
     phoneNumber: "رقم الهاتف",
-    location: "الموقع",
     status: "الحالة",
     type: "النوع",
     branchId: "الفرع",
     branchName: "الفرع",
     vehicleNumber: "رقم المركبة",
-    createdBy: "أنشئ من قبل",
-    landingPage: "الصفحة الرئيسية",
-    language: "اللغة",
     company: "الشركة",
 
     // قيم الحالة
@@ -180,28 +174,44 @@ export default {
     form: {
       name: "اسم السائق",
       namePlaceholder: "أدخل الاسم الكامل للسائق",
+
       username: "اسم المستخدم",
       usernamePlaceholder: "أدخل اسم مستخدم فريد",
+
       email: "البريد الإلكتروني",
       emailPlaceholder: "driver@example.com (اختياري)",
+
       password: "كلمة المرور",
       passwordPlaceholder: "6 أحرف على الأقل",
+
       phoneNumber: "رقم الهاتف",
       phoneNumberPlaceholder: "0599000000",
+
       type: "نوع السائق",
       typePlaceholder: "اختر نوع السائق",
+      driverTypes: {
+        customDriver: "سائق مخصص",
+        deliveryDriver: "سائق توصيل",
+      },
+
       vehicleNumber: "رقم المركبة",
       vehicleNumberPlaceholder: "22-5566",
+
       branch: "الفرع",
       branchPlaceholder: "اختر الفرع",
+
       company: "الشركة",
       companyPlaceholder: "اختر الشركة",
+
       status: "الحالة",
       statusPlaceholder: "اختر الحالة",
+
       location: "الموقع",
       setLocation: "تحديد الموقع على الخريطة",
+
       uploadImage: "رفع صورة",
       removeImage: "إزالة",
+
     },
 
     // رسائل التحقق
@@ -675,7 +685,7 @@ export default {
   statuses: {
     available: "متاح",
     busy: "مشغول",
-    offline: "في عطلة",
+    in_holiday: "في عطلة"
   },
 
   driverTypes: {
@@ -1367,12 +1377,12 @@ export default {
     companyName: "اسم الشركة",
     date: "التاريخ",
     today: "اليوم",
-    
+
     tabs: {
       calendar: "التقويم",
       table: "الجدول"
     },
-    
+
     // الإجراءات
     searchPlaceholder: "البحث عن خطة عمل...",
     search: "بحث",
@@ -1413,7 +1423,7 @@ export default {
 
       driverName: "اسم السائق",
       driverNamePlaceholder: "اختر اسم السائق",
-      
+
       orders: "الطلبات",
       orderName: "اسم الطلب",
       orderNamePlaceholder: "اختر اسم الطلب",
@@ -1437,7 +1447,7 @@ export default {
       restore: "استعادة",
       delete: "حذف نهائي",
     },
-    
+
     // التعديل والتفاصيل
     edit: "تعديل",
     details: "التفاصيل",
