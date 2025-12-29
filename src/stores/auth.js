@@ -150,7 +150,7 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
-      console.log("✅ Auth initialized from localStorage");
+      console.log("Auth initialized from localStorage");
     }
   }
 
