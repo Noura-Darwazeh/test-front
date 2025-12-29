@@ -40,6 +40,27 @@ class ApiServices {
     return api.post(`/users/${userId}/restore`);
   }
 
+  // ===== Driver Services =====
+  async getDrivers() {
+    return api.get("/drivers");
+  }
+
+  async createDriver(driverData) {
+    return api.post("/drivers", driverData);
+  }
+
+  async updateDriver(driverId, driverData) {
+    return api.put(`/drivers/${driverId}`, driverData);
+  }
+
+  async deleteDriver(driverId) {
+    return api.delete(`/drivers/${driverId}`);
+  }
+
+  async restoreDriver(driverId) {
+    return api.post(`/drivers/${driverId}/restore`);
+  }
+
   // ===== Currency Services =====
   async getCurrencies() {
     return api.get("/currencies");
@@ -58,11 +79,6 @@ class ApiServices {
   // ===== Customer Services =====
   async getCustomers() {
     return api.get("/customers");
-  }
-
-  // ===== Driver Services =====
-  async getDrivers() {
-    return api.get("/drivers");
   }
 
   // ===== Line Price Services =====

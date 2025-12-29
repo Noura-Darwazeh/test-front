@@ -33,7 +33,7 @@ export const useDriverStore = defineStore("driver", () => {
       drivers.value = response.data.data.map((driver) => ({
         id: driver.id,
         name: driver.user?.name || "",
-        username: driver.user?.username || "",
+        username: driver.user?.username || driver.user?.same17 || "",
         email: driver.user?.email || "",
         phone_number: driver.user?.phone_number || "",
         role: driver.user?.role || "Driver",
@@ -41,10 +41,10 @@ export const useDriverStore = defineStore("driver", () => {
         status: driver.status || "available",
         type: driver.type || "delivery driver",
         branch_id: driver.branch_id,
-        branch_name: `Branch ${driver.branch_id}`, // You may need to fetch branch details separately
+        branch_name: `Branch ${driver.branch_id}`,
         vehicle_number: driver.vehicle_number || "",
         company_id: driver.company_id,
-        company_name: `Company ${driver.company_id}`, // You may need to fetch company details separately
+        company_name: `Company ${driver.company_id}`,
         location: driver.location,
         latitude: driver.latitude,
         longitude: driver.longitude,
@@ -54,10 +54,11 @@ export const useDriverStore = defineStore("driver", () => {
         updated_at: driver.updated_at,
       }));
 
+      console.log(`✅ Successfully loaded ${drivers.value.length} drivers`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch drivers";
-      console.error("Error fetching drivers:", err);
+      console.error("❌ Error fetching drivers:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -68,6 +69,18 @@ export const useDriverStore = defineStore("driver", () => {
     loading.value = true;
     error.value = null;
     try {
+      // Validate company_id is required
+      if (!driverData.company_name) {
+        const validationError = new Error("Company is required");
+        validationError.response = {
+          data: {
+            success: false,
+            error: "The company id field is required."
+          }
+        };
+        throw validationError;
+      }
+
       // Transform frontend data to API format
       const apiData = {
         name: driverData.name,
@@ -76,7 +89,7 @@ export const useDriverStore = defineStore("driver", () => {
         password: driverData.password,
         phone_number: driverData.phone_number,
         role: "Driver",
-        company_id: parseInt(driverData.company_name) || null,
+        company_id: parseInt(driverData.company_name),
         language: "english",
         shared_line: 0,
         branch_id: parseInt(driverData.branch_name),
@@ -88,13 +101,20 @@ export const useDriverStore = defineStore("driver", () => {
         image: driverData.imagePreview || null,
       };
 
+      console.log("📤 Sending driver data to API:", {
+        ...apiData,
+        password: "***" // Hide password in logs
+      });
+
       const response = await apiServices.createDriver(apiData);
+
+      console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
       const newDriver = {
         id: response.data.data.id,
         name: response.data.data.user?.name || "",
-        username: response.data.data.user?.username || "",
+        username: response.data.data.user?.username || response.data.data.user?.same17 || "",
         email: response.data.data.user?.email || "",
         phone_number: response.data.data.user?.phone_number || "",
         role: "Driver",
@@ -105,14 +125,28 @@ export const useDriverStore = defineStore("driver", () => {
         vehicle_number: response.data.data.vehicle_number,
         company_id: response.data.data.company_id,
         company_name: `Company ${response.data.data.company_id}`,
+        location: response.data.data.location,
+        latitude: response.data.data.latitude,
+        longitude: response.data.data.longitude,
         image: response.data.data.user?.image || "path/test",
+        created_at: response.data.data.created_at,
+        updated_at: response.data.data.updated_at,
       };
 
       drivers.value.push(newDriver);
+      console.log("✅ Driver added successfully to store");
       return newDriver;
     } catch (err) {
-      error.value = err.message || "Failed to add driver";
-      console.error("Error adding driver:", err);
+      // Handle validation errors
+      if (err.response?.data?.success === false) {
+        error.value = err.response.data.error || err.response.data.message || "Validation failed";
+        console.error("❌ Validation error:", error.value);
+      } else {
+        error.value = err.message || "Failed to add driver";
+        console.error("❌ Error adding driver:", error.value);
+      }
+      
+      console.error("Error details:", err.response?.data || err);
       throw err;
     } finally {
       loading.value = false;
@@ -123,13 +157,25 @@ export const useDriverStore = defineStore("driver", () => {
     loading.value = true;
     error.value = null;
     try {
+      // Validate company_id is required
+      if (!driverData.company_name) {
+        const validationError = new Error("Company is required");
+        validationError.response = {
+          data: {
+            success: false,
+            error: "The company id field is required."
+          }
+        };
+        throw validationError;
+      }
+
       // Transform frontend data to API format
       const apiData = {
         name: driverData.name,
         username: driverData.username,
         email: driverData.email || "",
         phone_number: driverData.phone_number,
-        company_id: parseInt(driverData.company_name) || null,
+        company_id: parseInt(driverData.company_name),
         branch_id: parseInt(driverData.branch_name),
         status: driverData.status,
         type: driverData.type,
@@ -142,6 +188,11 @@ export const useDriverStore = defineStore("driver", () => {
         apiData.password = driverData.password;
       }
 
+      console.log("📤 Updating driver:", {
+        ...apiData,
+        password: apiData.password ? "***" : undefined
+      });
+
       const response = await apiServices.updateDriver(driverId, apiData);
 
       // Update local state
@@ -150,10 +201,9 @@ export const useDriverStore = defineStore("driver", () => {
         drivers.value[index] = {
           ...drivers.value[index],
           name: response.data.data.user?.name || driverData.name,
-          username: response.data.data.user?.username || driverData.username,
+          username: response.data.data.user?.username || response.data.data.user?.same17 || driverData.username,
           email: response.data.data.user?.email || driverData.email,
-          phone_number:
-            response.data.data.user?.phone_number || driverData.phone_number,
+          phone_number: response.data.data.user?.phone_number || driverData.phone_number,
           status: response.data.data.status,
           type: response.data.data.type,
           branch_id: response.data.data.branch_id,
@@ -161,13 +211,22 @@ export const useDriverStore = defineStore("driver", () => {
           vehicle_number: response.data.data.vehicle_number,
           company_id: response.data.data.company_id,
           company_name: `Company ${response.data.data.company_id}`,
+          location: response.data.data.location,
+          latitude: response.data.data.latitude,
+          longitude: response.data.data.longitude,
           image: response.data.data.user?.image || driverData.imagePreview,
+          updated_at: response.data.data.updated_at,
         };
+        console.log("✅ Driver updated successfully");
       }
       return drivers.value[index];
     } catch (err) {
-      error.value = err.message || "Failed to update driver";
-      console.error("Error updating driver:", err);
+      if (err.response?.data?.success === false) {
+        error.value = err.response.data.error || err.response.data.message || "Validation failed";
+      } else {
+        error.value = err.message || "Failed to update driver";
+      }
+      console.error("❌ Error updating driver:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -180,7 +239,6 @@ export const useDriverStore = defineStore("driver", () => {
     try {
       await apiServices.deleteDriver(driverId);
 
-      // Move to trashed
       const index = drivers.value.findIndex((d) => d.id === driverId);
       if (index > -1) {
         const driver = drivers.value.splice(index, 1)[0];
@@ -188,7 +246,7 @@ export const useDriverStore = defineStore("driver", () => {
       }
     } catch (err) {
       error.value = err.message || "Failed to delete driver";
-      console.error("Error deleting driver:", err);
+      console.error("❌ Error deleting driver:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -201,7 +259,6 @@ export const useDriverStore = defineStore("driver", () => {
     try {
       await apiServices.restoreDriver(driverId);
 
-      // Restore to active drivers
       const index = trashedDrivers.value.findIndex((d) => d.id === driverId);
       if (index > -1) {
         const driver = trashedDrivers.value.splice(index, 1)[0];
@@ -209,7 +266,7 @@ export const useDriverStore = defineStore("driver", () => {
       }
     } catch (err) {
       error.value = err.message || "Failed to restore driver";
-      console.error("Error restoring driver:", err);
+      console.error("❌ Error restoring driver:", err);
       throw err;
     } finally {
       loading.value = false;
