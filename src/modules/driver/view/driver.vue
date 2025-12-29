@@ -18,24 +18,41 @@
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedDrivers" :actionsLabel="$t('driver.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown 
-                            :row="row" 
-                            :editLabel="$t('driver.edit')"
-                            :detailsLabel="$t('driver.details')" 
-                            @edit="openEditModal" 
-                            @details="openDetailsModal" 
+                <!-- Loading State -->
+                <div v-if="driverStore.loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{{ $t('common.loading') }}</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="driverStore.error" class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ driverStore.error }}
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <DataTable :columns="filteredColumns" :data="paginatedDrivers" :actionsLabel="$t('driver.actions')">
+                        <template #actions="{ row }">
+                            <ActionsDropdown 
+                                :row="row" 
+                                :editLabel="$t('driver.edit')"
+                                :detailsLabel="$t('driver.details')" 
+                                @edit="openEditModal" 
+                                @details="openDetailsModal" 
+                            />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination 
+                            :totalItems="filteredDrivers.length" 
+                            :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" 
+                            @update:currentPage="(page) => currentPage = page" 
                         />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination 
-                        :totalItems="filteredDrivers.length" 
-                        :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" 
-                        @update:currentPage="(page) => currentPage = page" 
-                    />
+                    </div>
                 </div>
             </div>
         </div>
@@ -61,21 +78,21 @@
             @close="closeDetailsModal" 
         />
 
-    <!-- Trashed Drivers Modal -->
-    <TrashedItemsModal
-      :isOpen="isTrashedModalOpen"
-      :title="$t('driver.trashed.title')"
-      :emptyMessage="$t('driver.trashed.empty')"
-      :columns="trashedColumns"
-      :trashedItems="trashedDrivers"
-      @close="closeTrashedModal"
-      @restore="handleRestoreDriver"
-    />
-  </div>
+        <!-- Trashed Drivers Modal -->
+        <TrashedItemsModal
+            :isOpen="isTrashedModalOpen"
+            :title="$t('driver.trashed.title')"
+            :emptyMessage="$t('driver.trashed.empty')"
+            :columns="trashedColumns"
+            :trashedItems="trashedDrivers"
+            @close="closeTrashedModal"
+            @restore="handleRestoreDriver"
+        />
+    </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
@@ -85,9 +102,11 @@ import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
-import StatusBadge from "../../../components/shared/StatusBadge.vue";
+import { useDriverStore } from "../stores/driverStore.js";
 
 const { t } = useI18n();
+const driverStore = useDriverStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -98,62 +117,19 @@ const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDriver = ref({});
 
-const drivers = ref([
-    {
-        id: 1,
-        name: "Ali Ahmed",
-        username: "alidriver",
-        email: "ali@example.com",
-        phone_number: "0598549638",
-        role: "Driver",
-        region_id: 1,
-        status: 'available',
-        type: 'delivery driver',
-        branch_name: "branch 1",
-        vehicle_number: '125746',
-    },
-    {
-        id: 2,
-        name: "Sara Mohammad",
-        username: "saradriver",
-        email: "sara@example.com",
-        phone_number: "0598549639",
-        role: "Driver",
-        region_id: 2,
-        status: 'busy',
-        type: 'custom driver',
-        branch_name: "branch 1",
-        vehicle_number: '789012',
-    },
-    {
-        id: 3,
-        name: "Ahmed Hassan",
-        username: "ahmeddriver",
-        email: "ahmed@example.com",
-        phone_number: "0598549640",
-        role: "Driver",
-        region_id: 1,
-        status: 'available',
-        type: 'delivery driver',
-        branch_name: "branch 1",
-        vehicle_number: '345678',
-    },
-]);
+// Get drivers from store
+const drivers = computed(() => driverStore.drivers);
+const trashedDrivers = computed(() => driverStore.trashedDrivers);
 
-const trashedDrivers = ref([
-    {
-        id: 201,
-        name: "Deleted Driver 1",
-        username: "deleteddriver1",
-        email: "deleted1@example.com",
-        phone_number: "0591234567",
-        role: "Driver",
-        status: 'offline',
-        type: 'custom driver',
-        branch_name: "branch 1",
-        vehicle_number: '555111',
-    },
-]);
+// Fetch data on component mount
+onMounted(async () => {
+    try {
+        await driverStore.fetchDrivers();
+        console.log("✅ Drivers loaded successfully");
+    } catch (error) {
+        console.error("❌ Failed to load drivers:", error);
+    }
+});
 
 // Driver Form Fields
 const driverFields = computed(() => [
@@ -255,7 +231,7 @@ const driverFields = computed(() => [
             { value: '3', label: 'Branch 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedDriver.value.branch_name : ''
+        defaultValue: isEditMode.value ? String(selectedDriver.value.branch_id) : ''
     },
     {
         name: 'company_name',
@@ -268,7 +244,7 @@ const driverFields = computed(() => [
             { value: '3', label: 'Company 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedDriver.value.company_name : ''
+        defaultValue: isEditMode.value ? String(selectedDriver.value.company_id) : ''
     },
     {
         name: 'status',
@@ -287,7 +263,7 @@ const driverFields = computed(() => [
         name: 'set_location',
         label: t('driver.form.location'),
         type: 'button',
-        required: !isEditMode.value,
+        required: false,
         text: t('driver.form.setLocation'),
         colClass: 'col-md-6',
         onClick: () => {
@@ -310,37 +286,37 @@ const detailsFields = computed(() => [
 ]);
 
 const driverColumns = ref([
-  { key: "id", label: t("driver.id"), sortable: true },
-  { key: "name", label: t("driver.name"), sortable: true },
-  { key: "username", label: t("driver.username"), sortable: true },
-  {
-    key: "status",
-    label: t("driver.status"),
-    sortable: false,
-    component: "StatusBadge",
-    componentProps: { type: "driver" },
-  },
-  { key: "type", label: t("driver.type"), sortable: false },
-  { key: "branch_name", label: t("driver.branchName"), sortable: false },
-  { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
-  { key: "phone_number", label: t("driver.phoneNumber"), sortable: false },
+    { key: "id", label: t("driver.id"), sortable: true },
+    { key: "name", label: t("driver.name"), sortable: true },
+    { key: "username", label: t("driver.username"), sortable: true },
+    {
+        key: "status",
+        label: t("driver.status"),
+        sortable: false,
+        component: "StatusBadge",
+        componentProps: { type: "driver" },
+    },
+    { key: "type", label: t("driver.type"), sortable: false },
+    { key: "branch_name", label: t("driver.branchName"), sortable: false },
+    { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
+    { key: "phone_number", label: t("driver.phoneNumber"), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("driver.id") },
-  { key: "name", label: t("driver.name") },
-  { key: "username", label: t("driver.username") },
-  { key: "status", label: t("driver.status") },
-  { key: "type", label: t("driver.type") },
-  { key: "vehicle_number", label: t("driver.vehicleNumber") },
+    { key: "id", label: t("driver.id") },
+    { key: "name", label: t("driver.name") },
+    { key: "username", label: t("driver.username") },
+    { key: "status", label: t("driver.status") },
+    { key: "type", label: t("driver.type") },
+    { key: "vehicle_number", label: t("driver.vehicleNumber") },
 ]);
 
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-  return driverColumns.value.filter((col) =>
-    visibleColumns.value.includes(col.key)
-  );
+    return driverColumns.value.filter((col) =>
+        visibleColumns.value.includes(col.key)
+    );
 });
 
 const filteredDrivers = computed(() => {
@@ -351,15 +327,15 @@ const filteredDrivers = computed(() => {
 });
 
 const paginatedDrivers = computed(() => {
-  return paginateData(
-    filteredDrivers.value,
-    currentPage.value,
-    itemsPerPage.value
-  );
+    return paginateData(
+        filteredDrivers.value,
+        currentPage.value,
+        itemsPerPage.value
+    );
 });
 
 watch([searchText, selectedGroups], () => {
-  currentPage.value = 1;
+    currentPage.value = 1;
 });
 
 // Add Modal
@@ -394,64 +370,44 @@ const closeDetailsModal = () => {
 };
 
 const openTrashedModal = () => {
-  isTrashedModalOpen.value = true;
+    isTrashedModalOpen.value = true;
 };
 
 const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleSubmitDriver = (driverData) => {
-    if (isEditMode.value) {
-        // Update existing driver
-        const index = drivers.value.findIndex(d => d.id === selectedDriver.value.id);
-        if (index > -1) {
-            drivers.value[index] = {
-                ...drivers.value[index],
-                name: driverData.name,
-                username: driverData.username,
-                email: driverData.email || '',
-                phone_number: driverData.phone_number,
-                status: driverData.status || 'available',
-                type: driverData.type,
-                branch_name: driverData.branch_name,
-                vehicle_number: driverData.vehicle_number,
-                image: driverData.imagePreview || drivers.value[index].image
-            };
-            console.log('Driver updated successfully!');
+const handleSubmitDriver = async (driverData) => {
+    try {
+        if (isEditMode.value) {
+            // Update existing driver
+            await driverStore.updateDriver(selectedDriver.value.id, driverData);
+            console.log('✅ Driver updated successfully!');
+        } else {
+            // Add new driver
+            await driverStore.addDriver(driverData);
+            console.log('✅ Driver added successfully!');
         }
-    } else {
-        // Add new driver
-        const newDriver = {
-            id: drivers.value.length + 1,
-            name: driverData.name,
-            username: driverData.username,
-            email: driverData.email || '',
-            phone_number: driverData.phone_number,
-            role: 'Driver',
-            status: driverData.status || 'available',
-            type: driverData.type,
-            branch_name: driverData.branch_name,
-            vehicle_number: driverData.vehicle_number,
-            image: driverData.imagePreview || 'path/test'
-        };
-        drivers.value.push(newDriver);
-        console.log('Driver added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('❌ Failed to save driver:', error);
+        alert(error.message || 'Failed to save driver');
     }
 };
 
-const handleRestoreDriver = (driver) => {
-    drivers.value.push(driver);
-    const index = trashedDrivers.value.findIndex(d => d.id === driver.id);
-    if (index > -1) {
-        trashedDrivers.value.splice(index, 1);
+const handleRestoreDriver = async (driver) => {
+    try {
+        await driverStore.restoreDriver(driver.id);
+        console.log("✅ Driver restored successfully!");
+    } catch (error) {
+        console.error("❌ Failed to restore driver:", error);
+        alert(error.message || 'Failed to restore driver');
     }
-    console.log("Driver restored successfully!");
 };
 </script>
 
 <style scoped>
 .user-page-container {
-  max-width: 100%;
+    max-width: 100%;
 }
 </style>
