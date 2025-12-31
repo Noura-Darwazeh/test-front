@@ -108,6 +108,26 @@ class ApiServices {
     return api.get("/branchs");
   }
 
+  async createBranch(branchData) {
+    return api.post("/branchs", branchData);
+  }
+
+  async updateBranch(branchId, branchData) {
+    return api.post(`/branchs/${branchId}`, branchData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteBranch(branchId) {
+    return api.delete(`/branchs/${branchId}`);
+  }
+
+  async restoreBranch(branchId) {
+    return api.post(`/restore/branchs/${branchId}`);
+  }
+
   // ===== Company Services =====
   async getCompanies() {
     return api.get("/companies");

@@ -1,8 +1,8 @@
 <template>
     <div class="user-page-container bg-light">
         <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches"
-            groupKey="location" v-model:groupModelValue="selectedGroups" :groupLabel="$t('branch.filterByLocation')"
-            translationKey="branch.locations" :columns="branchColumns" v-model:visibleColumns="visibleColumns"
+            groupKey="company_name" v-model:groupModelValue="selectedGroups" :groupLabel="$t('branch.filterByCompany')"
+            translationKey="" :columns="branchColumns" v-model:visibleColumns="visibleColumns"
             :showAddButton="true" :addButtonText="$t('branch.addNew')" @add-click="openAddModal"
             @trashed-click="openTrashedModal" />
 
@@ -48,6 +48,7 @@ import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import { useBranchesManagementStore } from "../stores/branchesStore";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const branchesStore = useBranchesManagementStore();
@@ -61,17 +62,34 @@ const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedbranch = ref({});
+const companies = ref([]);
 
 // Use store data instead of local refs
 const branches = computed(() => branchesStore.branches);
 const trashedbranches = computed(() => branchesStore.trashedBranches);
 
-// Load branches on component mount
+// Fetch companies for dropdown
+const fetchCompanies = async () => {
+    try {
+        const response = await apiServices.getCompanies();
+        companies.value = response.data.data.map(company => ({
+            value: company.id,
+            label: company.name
+        }));
+    } catch (error) {
+        console.error("Failed to load companies:", error);
+    }
+};
+
+// Load branches and companies on component mount
 onMounted(async () => {
     try {
-        await branchesStore.fetchBranches();
+        await Promise.all([
+            branchesStore.fetchBranches(),
+            fetchCompanies()
+        ]);
     } catch (error) {
-        console.error("Failed to load branches:", error);
+        console.error("Failed to load data:", error);
     }
 });
 
@@ -104,16 +122,13 @@ const branchFields = computed(() => [
         defaultValue: isEditMode.value ? selectedbranch.value.location : ''
     },
     {
-        name: 'company',
+        name: 'company_id',
         label: t('branch.form.company'),
         type: 'select',
         required: true,
-        options: [
-            { value: 'company 1', label: t('lines.form.companies.company1') },
-            { value: 'company 2', label: t('lines.form.companies.company2') },
-        ],
+        options: companies.value,
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedbranch.value.company : ''
+        defaultValue: isEditMode.value ? selectedbranch.value.company_id : ''
     },
 ]);
 
@@ -121,21 +136,23 @@ const branchFields = computed(() => [
 const detailsFields = computed(() => [
     { key: 'id', label: t('branch.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('branch.name'), colClass: 'col-md-6' },
+    { key: 'company_id', label: t('branch.companyId'), colClass: 'col-md-6' },
     { key: 'location', label: t('branch.location'), translationKey: 'branch.locations', colClass: 'col-md-6' },
-    { key: 'company', label: t('branch.company'), colClass: 'col-md-6' },
+    { key: 'company_name', label: t('branch.company'), colClass: 'col-md-6' },
 ]);
 
 const branchColumns = ref([
     { key: "id", label: t("branch.id"), sortable: true },
     { key: "name", label: t("branch.name"), sortable: true },
-    { key: "location", label: t("branch.location"), sortable: false },
-    { key: "company", label: t("branch.company"), sortable: false },
+    { key: "company_id", label: t("branch.companyId"), sortable: true },
+    { key: "company_name", label: t("branch.company"), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
     { key: "id", label: t("branch.id") },
     { key: "name", label: t("branch.name") },
-    { key: "location", label: t("branch.location") },
+    { key: "company_id", label: t("branch.companyId") },
+    { key: "company_name", label: t("branch.company") },
 ]);
 
 const visibleColumns = ref([]);
@@ -148,7 +165,7 @@ const filteredColumns = computed(() => {
 
 const filteredbranches = computed(() => {
     let result = branches.value;
-    result = filterByGroups(result, selectedGroups.value, "location");
+    result = filterByGroups(result, selectedGroups.value, "company_name");
     result = filterData(result, searchText.value);
     return result;
 });

@@ -9,6 +9,39 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   const loading = ref(false);
   const error = ref(null);
 
+  // Helper function to add company_name to branches
+  const enrichBranchesWithCompanyName = async (branchesData) => {
+    try {
+      // Fetch companies to get company names
+      const companiesResponse = await apiServices.getCompanies();
+      const companies = companiesResponse.data.data || [];
+      
+      // Create a map of company_id to company name
+      const companyMap = {};
+      companies.forEach(company => {
+        companyMap[company.id] = company.name;
+      });
+
+      // Add company_name to each branch
+      return branchesData.map(branch => ({
+        ...branch,
+        company_name: branch.company_name || 
+                     branch.company?.name || 
+                     companyMap[branch.company_id] || 
+                     `Company ${branch.company_id || ''}`
+      }));
+    } catch (err) {
+      console.warn("⚠️ Could not fetch companies, using fallback:", err);
+      // If companies fetch fails, use fallback
+      return branchesData.map(branch => ({
+        ...branch,
+        company_name: branch.company_name || 
+                     branch.company?.name || 
+                     `Company ${branch.company_id || ''}`
+      }));
+    }
+  };
+
   // Actions
   const fetchBranches = async () => {
     loading.value = true;
@@ -16,8 +49,8 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     try {
       const response = await apiServices.getBranches();
 
-      // Use backend data directly
-      branches.value = response.data.data;
+      // Enrich branches with company_name
+      branches.value = await enrichBranchesWithCompanyName(response.data.data);
 
       console.log("✅ Branches loaded successfully:", branches.value.length);
       return response.data;
@@ -36,10 +69,11 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     try {
       const response = await apiServices.createBranch(branchData);
 
-      // Add new branch directly from backend response
-      branches.value.push(response.data.data);
+      // Enrich new branch with company_name
+      const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
+      branches.value.push(enrichedBranch);
       console.log("✅ Branch added successfully");
-      return response.data.data;
+      return enrichedBranch;
     } catch (err) {
       error.value = err.message || "Failed to add branch";
       console.error("❌ Error adding branch:", err);
@@ -55,13 +89,14 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     try {
       const response = await apiServices.updateBranch(branchId, branchData);
 
-      // Update local state directly with backend response
+      // Enrich updated branch with company_name
+      const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
       const index = branches.value.findIndex((b) => b.id === branchId);
       if (index > -1) {
-        branches.value[index] = response.data.data;
+        branches.value[index] = enrichedBranch;
       }
       console.log("✅ Branch updated successfully");
-      return branches.value[index];
+      return enrichedBranch;
     } catch (err) {
       error.value = err.message || "Failed to update branch";
       console.error("❌ Error updating branch:", err);
@@ -105,7 +140,9 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
       }
 
       if (response.data?.data) {
-        branches.value.push(response.data.data);
+        // Enrich restored branch with company_name
+        const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
+        branches.value.push(enrichedBranch);
       }
       console.log("✅ Branch restored successfully");
     } catch (err) {
