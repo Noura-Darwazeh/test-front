@@ -15,26 +15,43 @@
 
     <div class="card border-0">
       <div class="card-body p-0">
-        <DataTable :columns="filteredColumns" :data="paginatedCurrencies">
-          <template #actions="{ row }">
-            <div class="d-flex gap-1 justify-content-center">
-              <button
-                @click="deleteCurrency(row.id)"
-                class="btn btn-sm btn-outline-secondary"
-                :title="$t('currency.actions.delete')"
-              >
-                {{ $t("currency.actions.delete") }}
-              </button>
-            </div>
-          </template>
-        </DataTable>
-        <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination
-            :totalItems="filteredCurrencies.length"
-            :itemsPerPage="itemsPerPage"
-            :currentPage="currentPage"
-            @update:currentPage="(page) => (currentPage = page)"
-          />
+        <!-- Loading State -->
+        <div v-if="currenciesStore.loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">{{ $t('common.loading') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="currenciesStore.error" class="alert alert-danger m-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ currenciesStore.error }}
+        </div>
+
+        <!-- Data Table -->
+        <div v-else>
+          <DataTable :columns="filteredColumns" :data="paginatedCurrencies">
+            <template #actions="{ row }">
+              <div class="d-flex gap-1 justify-content-center">
+                <button
+                  @click="deleteCurrency(row.id)"
+                  class="btn btn-sm btn-outline-secondary"
+                  :title="$t('currency.actions.delete')"
+                >
+                  {{ $t("currency.actions.delete") }}
+                </button>
+              </div>
+            </template>
+          </DataTable>
+          <div class="px-3 pt-1 pb-2 bg-light">
+            <Pagination
+              :totalItems="filteredCurrencies.length"
+              :itemsPerPage="itemsPerPage"
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -64,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import CurrencyHeader from "../components/currencyHeader.vue";
@@ -73,9 +90,11 @@ import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue"
 import { filterData, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCurrencyFormFields } from "../components/currencyFormFields.js";
+import { useCurrenciesManagementStore } from "../store/currenciesManagement.js";
 
 const { t, locale } = useI18n();
 const { currencyFields } = useCurrencyFormFields();
+const currenciesStore = useCurrenciesManagementStore();
 
 const searchText = ref("");
 const currentPage = ref(1);
@@ -83,61 +102,19 @@ const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 
-// Simple local data - following the backend API schema
-const currencies = ref([
-  {
-    id: 1,
-    key: "USD",
-    nameenglish: "US Dollar",
-    namearabic: "الدولار الأمريكي",
-    symbol: "$",
-  },
-  {
-    id: 2,
-    key: "EUR",
-    nameenglish: "Euro",
-    namearabic: "اليورو",
-    symbol: "€",
-  },
-  {
-    id: 3,
-    key: "GBP",
-    nameenglish: "British Pound",
-    namearabic: "الجنيه الإسترليني",
-    symbol: "£",
-  },
-  {
-    id: 4,
-    key: "JPY",
-    nameenglish: "Japanese Yen",
-    namearabic: "الين الياباني",
-    symbol: "¥",
-  },
-  {
-    id: 5,
-    key: "ILS",
-    nameenglish: "Israeli Shekel",
-    namearabic: "الشيكل الإسرائيلي",
-    symbol: "₪",
-  },
-  {
-    id: 6,
-    key: "JOD",
-    nameenglish: "Jordanian Dinar",
-    namearabic: "الدينار الأردني",
-    symbol: "JD",
-  },
-]);
+// Get currencies from store
+const currencies = computed(() => currenciesStore.currencies);
+const trashedCurrencies = computed(() => currenciesStore.trashedCurrencies);
 
-const trashedCurrencies = ref([
-  {
-    id: 101,
-    key: "CAD",
-    nameenglish: "Canadian Dollar",
-    namearabic: "الدولار الكندي",
-    symbol: "C$",
-  },
-]);
+// Fetch currencies on component mount
+onMounted(async () => {
+  try {
+    await currenciesStore.fetchCurrencies();
+    console.log("✅ Currencies loaded successfully");
+  } catch (error) {
+    console.error("❌ Failed to load currencies:", error);
+  }
+});
 
 // Table columns
 const currencyColumns = computed(() => [
@@ -208,52 +185,51 @@ const closeTrashedModal = () => {
   isTrashedModalOpen.value = false;
 };
 
-const handleAddCurrency = (currencyData) => {
-  console.log("New currency added:", currencyData);
+const handleAddCurrency = async (currencyData) => {
+  try {
+    // Check for unique key validation
+    const existingCurrency = currencies.value.find(
+      (c) => c.key && c.key.toLowerCase() === currencyData.key.toLowerCase()
+    );
+    if (existingCurrency) {
+      alert(t("currency.validation.keyExists"));
+      return;
+    }
 
-  // Check for unique key validation
-  const existingCurrency = currencies.value.find(
-    (c) => c.key.toLowerCase() === currencyData.key.toLowerCase()
-  );
-  if (existingCurrency) {
-    alert(t("currency.validation.keyExists"));
-    return;
+    // Send to backend
+    const newCurrency = {
+      key: currencyData.key.toUpperCase(),
+      nameenglish: currencyData.nameenglish,
+      namearabic: currencyData.namearabic,
+      symbol: currencyData.symbol,
+    };
+
+    await currenciesStore.addCurrency(newCurrency);
+    console.log("✅ Currency added successfully!");
+    closeModal();
+  } catch (error) {
+    console.error("❌ Failed to add currency:", error);
+    alert(error.message || "Failed to add currency");
   }
-
-  const newCurrency = {
-    id: Math.max(...currencies.value.map((c) => c.id), 0) + 1,
-    key: currencyData.key.toUpperCase(),
-    nameenglish: currencyData.nameenglish,
-    namearabic: currencyData.namearabic,
-    symbol: currencyData.symbol,
-  };
-
-  currencies.value.push(newCurrency);
-  closeModal();
-  console.log("Currency added successfully!");
 };
 
-const handleRestoreCurrency = (currency) => {
-  console.log("Restoring currency:", currency);
-  // Remove the localized name field before adding back to currencies
-  const { name, ...currencyWithoutName } = currency;
-  currencies.value.push(currencyWithoutName);
-  const index = trashedCurrencies.value.findIndex((c) => c.id === currency.id);
-  if (index > -1) {
-    trashedCurrencies.value.splice(index, 1);
+const handleRestoreCurrency = async (currency) => {
+  try {
+    await currenciesStore.restoreCurrency(currency.id);
+    console.log("✅ Currency restored successfully!");
+  } catch (error) {
+    console.error("❌ Failed to restore currency:", error);
+    alert(error.message || "Failed to restore currency");
   }
-  console.log("Currency has been restored successfully!");
 };
 
-const deleteCurrency = (currencyId) => {
-  const index = currencies.value.findIndex((c) => c.id === currencyId);
-  if (index > -1) {
-    const currency = currencies.value[index];
-    // Move to trash
-    trashedCurrencies.value.push(currency);
-    // Remove from active currencies
-    currencies.value.splice(index, 1);
-    console.log("Currency deleted successfully!");
+const deleteCurrency = async (currencyId) => {
+  try {
+    await currenciesStore.deleteCurrency(currencyId);
+    console.log("✅ Currency deleted successfully!");
+  } catch (error) {
+    console.error("❌ Failed to delete currency:", error);
+    alert(error.message || "Failed to delete currency");
   }
 };
 

@@ -68,3 +68,18 @@
   --breakpoint-mobile: 770px;
   --breakpoint-tablet: 1024px;
 }
+
+/* ===== Global Tab Styles ===== */
+/* Trashed tab styling - used across all modules */
+.trashed-tab {
+  color: var(--color-danger) !important;
+}
+
+.trashed-tab.active {
+  color: var(--color-danger) !important;
+  border-bottom-color: var(--color-danger) !important;
+}
+
+.trashed-tab:hover {
+  color: var(--color-danger) !important;
+}

@@ -1,5 +1,4 @@
 import api from "./api.js";
-export { CurrencyService } from "./currencyService.js";
 
 // ===== API Services Singleton =====
 class ApiServices {
@@ -24,12 +23,20 @@ class ApiServices {
     return api.get("/users");
   }
 
+  async getTrashedUsers() {
+    return api.get("/trashed/users");
+  }
+
   async createUser(userData) {
     return api.post("/users", userData);
   }
 
   async updateUser(userId, userData) {
-    return api.put(`/users/${userId}`, userData);
+    return api.post(`/users/${userId}`, userData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
   }
 
   async deleteUser(userId) {
@@ -37,7 +44,17 @@ class ApiServices {
   }
 
   async restoreUser(userId) {
-    return api.post(`/users/${userId}/restore`);
+    return api.post(`/restore/users/${userId}`);
+  }
+
+  async bulkDeleteUsers(userIds) {
+    return api.delete("/bulk-delete/user/users?force=0", {
+      data: { ids: userIds }
+    });
+  }
+
+  async bulkRestoreUsers(userIds) {
+    return api.post("/bulk-restore/user/users", { ids: userIds });
   }
 
   // ===== Driver Services =====
@@ -66,6 +83,26 @@ class ApiServices {
     return api.get("/currencies");
   }
 
+  async createCurrency(currencyData) {
+    return api.post("/currencies", currencyData);
+  }
+
+  async updateCurrency(currencyId, currencyData) {
+    return api.post(`/currencies/${currencyId}`, currencyData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteCurrency(currencyId) {
+    return api.delete(`/currencies/${currencyId}`);
+  }
+
+  async restoreCurrency(currencyId) {
+    return api.post(`/currencies/${currencyId}/restore`);
+  }
+
   // ===== Branches Services =====
   async getBranches() {
     return api.get("/branches");
@@ -74,6 +111,43 @@ class ApiServices {
   // ===== Company Services =====
   async getCompanies() {
     return api.get("/companies");
+  }
+
+  async getTrashedCompanies() {
+    return api.get("/trashed/companies");
+  }
+
+  async createCompany(companyData) {
+    return api.post("/companies", companyData);
+  }
+
+  async updateCompany(companyId, companyData) {
+    return api.post(`/companies/${companyId}`, companyData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteCompany(companyId, force = false) {
+    return api.delete(`/companies/${companyId}?force=${force ? 1 : 0}`);
+  }
+
+  async restoreCompany(companyId) {
+    return api.post(`/restore/companies/${companyId}`);
+  }
+
+  async bulkDeleteCompanies(companyIds, force = false) {
+    const endpoint = force
+      ? "/bulk-delete/company/companies?force=1"
+      : "/bulk-delete/company/companies";
+    return api.delete(endpoint, {
+      data: { ids: companyIds }
+    });
+  }
+
+  async bulkRestoreCompanies(companyIds) {
+    return api.post("/bulk-restore/company/companies", { ids: companyIds });
   }
 
   // ===== Customer Services =====
@@ -94,6 +168,26 @@ class ApiServices {
   // ===== Regions Services =====
   async getRegions() {
     return api.get("/regions");
+  }
+
+  async createRegion(regionData) {
+    return api.post("/regions", regionData);
+  }
+
+  async updateRegion(regionId, regionData) {
+    return api.post(`/regions/${regionId}`, regionData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteRegion(regionId) {
+    return api.delete(`/regions/${regionId}`);
+  }
+
+  async restoreRegion(regionId) {
+    return api.post(`/regions/${regionId}/restore`);
   }
 
   // ===== Company Price Services =====

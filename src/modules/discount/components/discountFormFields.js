@@ -1,10 +1,8 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 export function useDiscountFormFields() {
   const { t } = useI18n();
-  const { formatPrice } = useCurrency();
 
   const discountFields = computed(() => [
     {

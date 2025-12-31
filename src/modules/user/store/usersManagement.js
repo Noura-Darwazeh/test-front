@@ -7,6 +7,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
   const users = ref([]);
   const trashedUsers = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Getters
@@ -25,13 +26,8 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     try {
       const response = await apiServices.getUsers();
 
-      // Map API response with defaults
-      users.value = response.data.data.map((user) => ({
-        ...user,
-        image: user.image || "path/test",
-        company_name: user.company_name || null,
-        status: "active",
-      }));
+      // Use backend data directly, no mapping needed
+      users.value = response.data.data;
 
       return response.data;
     } catch (err) {
@@ -43,22 +39,34 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     }
   };
 
+  const fetchTrashedUsers = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedUsers();
+
+      // Use backend data directly, no mapping needed
+      trashedUsers.value = response.data.data;
+
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed users";
+      console.error("Error fetching trashed users:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   const addUser = async (userData) => {
     loading.value = true;
     error.value = null;
     try {
       const response = await apiServices.createUser(userData);
 
-      // Add new user from API response with defaults
-      const newUser = {
-        ...response.data.data,
-        image: response.data.data.image || "path/test",
-        company_name: response.data.data.company_name || null,
-        status: "active",
-      };
-
-      users.value.push(newUser);
-      return newUser;
+      // Add new user directly from backend response
+      users.value.push(response.data.data);
+      return response.data.data;
     } catch (err) {
       error.value = err.message || "Failed to add user";
       console.error("Error adding user:", err);
@@ -74,15 +82,10 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     try {
       const response = await apiServices.updateUser(userId, userData);
 
-      // Update local state with API response
+      // Update local state directly with backend response
       const index = users.value.findIndex((u) => u.id === userId);
       if (index > -1) {
-        users.value[index] = {
-          ...response.data.data,
-          image: response.data.data.image || "path/test",
-          company_name: response.data.data.company_name || null,
-          status: users.value[index].status, // Preserve existing status
-        };
+        users.value[index] = response.data.data;
       }
       return users.value[index];
     } catch (err) {
@@ -100,12 +103,12 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     try {
       await apiServices.deleteUser(userId);
 
-      // Move to trashed after successful API call
+      // Remove from active users after successful API call
       const index = users.value.findIndex((u) => u.id === userId);
       if (index > -1) {
-        const user = users.value.splice(index, 1)[0];
-        trashedUsers.value.push(user);
+        users.value.splice(index, 1);
       }
+      // Note: Trashed users will be fetched from API when needed
     } catch (err) {
       error.value = err.message || "Failed to delete user";
       console.error("Error deleting user:", err);
@@ -119,13 +122,17 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.restoreUser(userId);
+      const response = await apiServices.restoreUser(userId);
 
-      // Restore to active users after successful API call
+      // Remove from trashed users and add to active users
       const index = trashedUsers.value.findIndex((u) => u.id === userId);
       if (index > -1) {
-        const user = trashedUsers.value.splice(index, 1)[0];
-        users.value.push(user);
+        trashedUsers.value.splice(index, 1);
+      }
+
+      // Add the restored user to active users list
+      if (response.data?.data) {
+        users.value.push(response.data.data);
       }
     } catch (err) {
       error.value = err.message || "Failed to restore user";
@@ -136,20 +143,63 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     }
   };
 
+  const bulkDeleteUsers = async (userIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteUsers(userIds);
+
+      // Remove deleted users from active users list
+      users.value = users.value.filter((u) => !userIds.includes(u.id));
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete users";
+      console.error("Error bulk deleting users:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreUsers = async (userIds) => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.bulkRestoreUsers(userIds);
+
+      // Remove restored users from trashed users list
+      trashedUsers.value = trashedUsers.value.filter((u) => !userIds.includes(u.id));
+
+      // Add restored users to active users list
+      if (response.data?.data) {
+        users.value.push(...response.data.data);
+      }
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore users";
+      console.error("Error bulk restoring users:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   return {
     // State
     users,
     trashedUsers,
     loading,
+    trashedLoading,
     error,
     // Getters
     activeUsers,
     inactiveUsers,
     // Actions
     fetchUsers,
+    fetchTrashedUsers,
     addUser,
     updateUser,
     deleteUser,
     restoreUser,
+    bulkDeleteUsers,
+    bulkRestoreUsers,
   };
 });

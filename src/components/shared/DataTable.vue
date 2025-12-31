@@ -170,7 +170,13 @@ const props = defineProps({
     type: String,
     default: "Actions",
   },
+  modelValue: {
+    type: Array,
+    default: () => [],
+  },
 });
+
+const emit = defineEmits(['update:modelValue']);
 
 const hasActionsSlot = computed(() => !!slots.actions);
 
@@ -196,7 +202,14 @@ const toggleSelectAll = () => {
 };
 
 watch(selectedRows, (newVal) => {
-  selectAll.value = newVal.length === sortedData.value.length;
+  selectAll.value = newVal.length === sortedData.value.length && newVal.length > 0;
+  emit('update:modelValue', newVal);
+});
+
+// Watch for data changes and clear selection if needed
+watch(() => props.data, () => {
+  selectedRows.value = [];
+  selectAll.value = false;
 });
 </script>
 

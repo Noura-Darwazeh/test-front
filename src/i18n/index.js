@@ -2,9 +2,12 @@ import { createI18n } from "vue-i18n";
 import en from "./locales/en.js";
 import ar from "./locales/ar.js";
 
-const saved = localStorage.getItem("lang"); // saved is a constant that gets the language from the localStorage.
-const locale = saved === "ar" || saved === "en" ? saved : "en"; // locale is a constant that sets the default language.
-// and in case saved is not ar or en, the default language is en.
+// Check for user's language preference from profile first, then fall back to saved lang
+const userLanguage = localStorage.getItem("user_language");
+const saved = localStorage.getItem("lang");
+const preferredLang = userLanguage || saved;
+const locale = preferredLang === "ar" || preferredLang === "en" ? preferredLang : "en";
+// If neither is set or they're invalid, default to "en"
 
 export const i18n = createI18n({
   legacy: false, // composition api is used instead of options api.
@@ -22,9 +25,10 @@ function applyDir(current) {
 applyDir(locale);
 
 export function setLocale(lang) {
-  if (lang !== "en" && lang !== "ar") return; // i
-  // f the language is not en or ar, return.
-  i18n.global.locale.value = lang; // i18n.global.locale.value is the language of the application.
-  localStorage.setItem("lang", lang); // This sets the current language in the localStorage to save it for the entire session.
+  if (lang !== "en" && lang !== "ar") return;
+
+  i18n.global.locale.value = lang; // Set the language in the application
+  localStorage.setItem("lang", lang); // Save to localStorage for persistence
+  localStorage.setItem("user_language", lang); // Also update user_language to keep in sync
   applyDir(lang);
 }

@@ -1,10 +1,30 @@
 <template>
     <div class="user-page-container bg-light">
-        <DriversHeader v-model="searchText" :searchPlaceholder="$t('driver.searchPlaceholder')" :data="drivers"
-            groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('driver.filterByStatus')"
-            translationKey="statuses" :columns="driverColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('driver.addNew')" @add-click="openAddModal"
-            @trashed-click="openTrashedModal" />
+        <!-- Floating Validation Error Alert -->
+        <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert" style="min-width: 400px;">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>{{ $t('common.validationError') }}</strong>
+                <p class="mb-0 mt-1">{{ validationError }}</p>
+                <button type="button" class="btn-close" @click="clearValidationError"></button>
+            </div>
+        </div>
+
+        <DriversHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('driver.searchPlaceholder')" 
+            :data="drivers"
+            groupKey="status" 
+            v-model:groupModelValue="selectedGroups" 
+            :groupLabel="$t('driver.filterByStatus')"
+            translationKey="statuses" 
+            :columns="driverColumns" 
+            v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" 
+            :addButtonText="$t('driver.addNew')" 
+            @add-click="openAddModal"
+            @trashed-click="openTrashedModal" 
+        />
 
         <div class="card border-0">
             <div class="card-body p-0">
@@ -26,32 +46,58 @@
                 <div v-else>
                     <DataTable :columns="filteredColumns" :data="paginatedDrivers" :actionsLabel="$t('driver.actions')">
                         <template #actions="{ row }">
-                            <ActionsDropdown :row="row" :editLabel="$t('driver.edit')"
-                                :detailsLabel="$t('driver.details')" @edit="openEditModal"
-                                @details="openDetailsModal" />
+                            <ActionsDropdown 
+                                :row="row" 
+                                :editLabel="$t('driver.edit')"
+                                :detailsLabel="$t('driver.details')" 
+                                @edit="openEditModal" 
+                                @details="openDetailsModal" 
+                            />
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="filteredDrivers.length" :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                        <Pagination 
+                            :totalItems="filteredDrivers.length" 
+                            :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" 
+                            @update:currentPage="(page) => currentPage = page" 
+                        />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit Driver -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('driver.edit') : $t('driver.addNew')"
-            :fields="driverFields" :showImageUpload="true" :imageRequired="false"
-            :imageUploadLabel="$t('driver.form.uploadImage')" @close="closeFormModal" @submit="handleSubmitDriver" />
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('driver.edit') : $t('driver.addNew')" 
+            :fields="driverFields"
+            :showImageUpload="true" 
+            :imageRequired="false"
+            :imageUploadLabel="$t('driver.form.uploadImage')"
+            @close="closeFormModal" 
+            @submit="handleSubmitDriver" 
+        />
 
         <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('driver.details')" :data="selectedDriver"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('driver.details')" 
+            :data="selectedDriver"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
+        />
 
         <!-- Trashed Drivers Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('driver.trashed.title')"
-            :emptyMessage="$t('driver.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedDrivers"
-            @close="closeTrashedModal" @restore="handleRestoreDriver" />
+        <TrashedItemsModal
+            :isOpen="isTrashedModalOpen"
+            :title="$t('driver.trashed.title')"
+            :emptyMessage="$t('driver.trashed.empty')"
+            :columns="trashedColumns"
+            :trashedItems="trashedDrivers"
+            @close="closeTrashedModal"
+            @restore="handleRestoreDriver"
+        />
     </div>
 </template>
 
@@ -80,6 +126,7 @@ const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDriver = ref({});
+const validationError = ref(null);
 
 // Get drivers from store
 const drivers = computed(() => driverStore.drivers);
@@ -253,9 +300,7 @@ const detailsFields = computed(() => [
     { key: 'status', label: t('driver.status'), translationKey: 'statuses', colClass: 'col-md-6' },
     { key: 'type', label: t('driver.type'), translationKey: 'driverTypes', colClass: 'col-md-6' },
     { key: 'branch_name', label: t('driver.branchName'), colClass: 'col-md-6' },
-    { key: 'vehicle_number', label: t('driver.vehicleNumber'), colClass: 'col-md-6' },
-    { key: 'company_name', label: t('driver.company'), colClass: 'col-md-6' },
-
+    { key: 'vehicle_number', label: t('driver.vehicleNumber'), colClass: 'col-md-12' },
 ]);
 
 const driverColumns = ref([
@@ -351,6 +396,9 @@ const closeTrashedModal = () => {
 };
 
 const handleSubmitDriver = async (driverData) => {
+    // Clear previous validation error
+    validationError.value = null;
+    
     try {
         if (isEditMode.value) {
             // Update existing driver
@@ -364,8 +412,41 @@ const handleSubmitDriver = async (driverData) => {
         closeFormModal();
     } catch (error) {
         console.error('❌ Failed to save driver:', error);
-        alert(error.message || 'Failed to save driver');
+        
+        // Check for specific validation errors
+        if (error.response?.data?.success === false && error.response?.data?.error) {
+            const errorMessage = error.response.data.error;
+            
+            // Check for username duplicate error
+            if (errorMessage.includes('username has already been taken')) {
+                validationError.value = t('driver.validation.usernameAlreadyTaken');
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    validationError.value = null;
+                }, 5000);
+                return; // Keep form open for correction
+            }
+            
+            // Check for phone number duplicate in same company error
+            if (errorMessage.includes('already registered as a driver in this company')) {
+                validationError.value = t('driver.validation.phoneAlreadyInCompany');
+                
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    validationError.value = null;
+                }, 5000);
+                return; // Keep form open for correction
+            }
+        }
+        
+        // For other errors, show generic alert
+        alert(error.message || t('common.saveFailed'));
     }
+};
+
+const clearValidationError = () => {
+    validationError.value = null;
 };
 
 const handleRestoreDriver = async (driver) => {

@@ -49,6 +49,8 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -70,11 +72,18 @@ export default {
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
+    activeUsers: "المستخدمون النشطون",
+
+    // Entity names for bulk actions
+    entitySingular: "مستخدم",
+    entityPlural: "مستخدمين",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
+    confirmDeleteTitle: "تأكيد الحذف",
+    confirmDelete: "هل أنت متأكد من حذف هذا المستخدم؟ يمكنك استعادته لاحقًا.",
 
     // الفلاتر
     filterByRole: "تصفية حسب الدور",
@@ -86,13 +95,19 @@ export default {
       username: "اسم المستخدم",
       usernamePlaceholder: "أدخل اسم مستخدم فريد",
       email: "البريد الإلكتروني",
-      emailPlaceholder: "user@example.com (اختياري)",
+      emailPlaceholder: "user{'@'}example.com (اختياري)",
       password: "كلمة المرور",
       passwordPlaceholder: "6 أحرف على الأقل",
       phoneNumber: "رقم الهاتف",
       phoneNumberPlaceholder: "0599000000",
       role: "دور المستخدم",
       rolePlaceholder: "اختر الدور",
+      region: "المنطقة",
+      regionPlaceholder: "اختر المنطقة (اختياري)",
+      noRegion: "لا توجد منطقة",
+      currency: "العملة",
+      currencyPlaceholder: "اختر العملة (اختياري)",
+      noCurrency: "لا توجد عملة",
       company: "الشركة",
       companyPlaceholder: "اختر الشركة",
       uploadImage: "رفع صورة",
@@ -235,6 +250,9 @@ export default {
       imageRequired: "صورة الملف الشخصي مطلوبة",
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
+      usernameAlreadyTaken: "اسم المستخدم مستخدم بالفعل. الرجاء اختيار اسم مستخدم آخر.",
+      phoneAlreadyInCompany: "هذا المستخدم مسجل بالفعل كسائق في هذه الشركة."
+    
     },
 
     // العناصر المحذوفة
@@ -291,6 +309,7 @@ export default {
       companyPlaceholder: "اختر الشركة",
       location: "الموقع",
       setLocation: "تحديد الموقع على الخريطة",
+      uploadImage: "تحميل صورة",
     },
 
     // رسائل التحقق
@@ -351,6 +370,11 @@ export default {
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
     filterByType: "تصفية حسب النوع",
+    companyTypes: {
+      "delivery company": "شركة توصيل",
+      "admin company": "شركة إدارية",
+      "customer company": "شركة عملاء",
+    },
 
     form: {
       name: "اسم الشركة",
@@ -362,6 +386,7 @@ export default {
       types: {
         delivery: "شركة توصيل",
         admin: "شركة إدارية",
+        customer: "شركة عملاء",
       },
     },
 
@@ -380,6 +405,15 @@ export default {
       restore: "استعادة",
       delete: "حذف نهائي",
     },
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "شركة",
+    entityPlural: "شركات",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
     branches: {
       title: "الفروع",
       empty: "لا توجد فروع متاحة",
@@ -1466,5 +1500,17 @@ export default {
     required: "مطلوب",
     optional: "اختياري",
     back: "العودة",
+    validationError: "خطأ في التحقق من الصحة",
+    validationFailed: "فشل التحقق من الصحة",
+    saveFailed: "فشل في الحفظ",
+    restoreFailed: "فشل في الاستعادة",
+    selected: "محدد",
+    active: "نشط",
+
+    // Bulk action confirmation messages
+    bulkDeleteConfirmTitle: "تأكيد الحذف الجماعي",
+    bulkDeleteConfirmMessage: "هل أنت متأكد من حذف {count} {entity}؟",
+    bulkRestoreConfirmTitle: "تأكيد الاستعادة الجماعية",
+    bulkRestoreConfirmMessage: "هل أنت متأكد من استعادة {count} {entity}؟",
   },
 };

@@ -75,11 +75,15 @@ api.interceptors.response.use(
     // Handle HTTP errors
     const { status, data } = error.response;
 
-    console.error(`❌ API Error: ${status}`, {
-      url: error.config?.url,
-      method: error.config?.method,
-      data: data,
-    });
+    // Don't log errors for optional endpoints (exchange-rates)
+    const isOptionalEndpoint = error.config?.url?.includes('/exchange-rates');
+    if (!isOptionalEndpoint) {
+      console.error(`❌ API Error: ${status}`, {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: data,
+      });
+    }
 
     // Handle specific status codes
     switch (status) {

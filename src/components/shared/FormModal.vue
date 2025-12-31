@@ -1,6 +1,12 @@
 <template>
+  <!-- Backdrop -->
+  <Transition name="backdrop">
+    <div v-if="isOpen" class="modal-backdrop" @click.self="closeModal"></div>
+  </Transition>
+
   <!-- Modal -->
-  <div v-if="isOpen" class="modal fade show d-block" tabindex="-1" @click.self="closeModal">
+  <Transition name="modal">
+    <div v-if="isOpen" class="modal d-block" tabindex="-1" @click.self="closeModal">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
       <div class="modal-content shadow-lg border-0 rounded-3">
         <!-- Header -->
@@ -156,13 +162,11 @@
       </div>
     </div>
   </div>
-
-  <!-- Backdrop -->
-  <div v-if="isOpen" class="modal-backdrop fade show"></div>
+  </Transition>
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from "vue";
+import { ref, reactive, watch, onMounted, nextTick } from "vue";
 import PrimaryButton from "./PrimaryButton.vue";
 import uploadIcon from "../../assets/modal/upload.svg";
 import removeIcon from "../../assets/table/recycle.svg";
@@ -418,15 +422,28 @@ onMounted(() => {
   initializeForm();
 });
 
-// Watch for modal open/close
+// Watch for modal open/close with smooth handling and scrollbar compensation
 watch(
   () => props.isOpen,
   (newVal) => {
     if (newVal) {
       initializeForm();
-      document.body.style.overflow = "hidden";
+      // Calculate scrollbar width BEFORE hiding overflow to prevent layout shift
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+      // Apply both styles simultaneously in one operation to minimize reflow
+      requestAnimationFrame(() => {
+        document.body.style.overflow = "hidden";
+        if (scrollbarWidth > 0) {
+          document.body.style.paddingRight = `${scrollbarWidth}px`;
+        }
+      });
     } else {
-      document.body.style.overflow = "";
+      // Remove styles in one operation
+      requestAnimationFrame(() => {
+        document.body.style.overflow = "";
+        document.body.style.paddingRight = "";
+      });
     }
   }
 );
@@ -442,3 +459,88 @@ watch(
   { deep: true }
 );
 </script>
+
+<style scoped>
+/* Backdrop transitions */
+.backdrop-enter-active,
+.backdrop-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.backdrop-enter-from,
+.backdrop-leave-to {
+  opacity: 0;
+}
+
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1040;
+  /* Performance optimizations */
+  will-change: opacity;
+  backface-visibility: hidden;
+}
+
+/* Modal transitions */
+.modal-enter-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active .modal-dialog {
+  transition: transform 0.2s ease-out;
+}
+
+.modal-leave-active .modal-dialog {
+  transition: transform 0.15s ease-in;
+}
+
+.modal-enter-from .modal-dialog {
+  transform: scale(0.9) translateY(-20px);
+}
+
+.modal-leave-to .modal-dialog {
+  transform: scale(0.95);
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /* CSS isolation to prevent affecting main page */
+  contain: layout style paint;
+  will-change: opacity;
+  backface-visibility: hidden;
+  /* Create new stacking context */
+  isolation: isolate;
+}
+
+.modal-dialog {
+  /* Optimize rendering performance */
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.modal-content {
+  /* Prevent layout shifts */
+  contain: layout style;
+}
+</style>

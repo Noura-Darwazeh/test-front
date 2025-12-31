@@ -14,7 +14,7 @@
       <ColumnSelector :columns="columns" :modelValue="visibleColumns"
         @update:modelValue="$emit('update:visibleColumns', $event)" />
       <PrimaryButton v-if="showAddButton"  bgColor="var(--color-success)"  :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
-      <PrimaryButton v-if="showAddButton" bgColor="var(--color-danger)" :iconBefore="trashIcon"
+      <PrimaryButton v-if="showTrashedButton" bgColor="var(--color-danger)" :iconBefore="trashIcon"
         @click="handleTrashedClick" />
     </div>
   </div>
@@ -44,6 +44,10 @@ defineProps({
   addButtonText: {
     type: String,
     default: "Add New",
+  },
+  showTrashedButton: {
+    type: Boolean,
+    default: false,
   },
 });
 

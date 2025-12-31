@@ -1,10 +1,8 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 export function useOrderFormFields() {
   const { t } = useI18n();
-  const { availableCurrencies, formatPrice } = useCurrency();
 
   const orderFields = computed(() => [
     {
@@ -50,12 +48,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: computed(() =>
-        availableCurrencies.value.map((currency) => ({
-          value: currency.id,
-          label: `${currency.code} (${currency.symbol})`,
-        }))
-      ),
+      options: [],  // Populated dynamically from currencies API
     },
     {
       name: "lineprice_id",
@@ -89,10 +82,10 @@ export function useOrderFormFields() {
       required: true,
       colClass: "col-md-6",
       options: [
-        { value: 1, label: `Small & Light - ${formatPrice(25.5, "USD")}` },
-        { value: 2, label: `Small & Heavy - ${formatPrice(45.0, "USD")}` },
-        { value: 3, label: `Big & Light - ${formatPrice(35.75, "USD")}` },
-        { value: 4, label: `Big & Heavy - ${formatPrice(120.0, "USD")}` },
+        { value: 1, label: "Small & Light - $25.50" },
+        { value: 2, label: "Small & Heavy - $45.00" },
+        { value: 3, label: "Big & Light - $35.75" },
+        { value: 4, label: "Big & Heavy - $120.00" },
       ],
     },
     {

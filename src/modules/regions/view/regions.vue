@@ -8,15 +8,32 @@
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedregions" :actionsLabel="$t('regions.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('regions.edit')"
-                            :detailsLabel="$t('regions.details')" @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredregions.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                <!-- Loading State -->
+                <div v-if="regionsStore.loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{{ $t('common.loading') }}</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="regionsStore.error" class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ regionsStore.error }}
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <DataTable :columns="filteredColumns" :data="paginatedregions" :actionsLabel="$t('regions.actions')">
+                        <template #actions="{ row }">
+                            <ActionsDropdown :row="row" :editLabel="$t('regions.edit')"
+                                :detailsLabel="$t('regions.details')" @edit="openEditModal" @details="openDetailsModal" />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination :totalItems="filteredregions.length" :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -37,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
@@ -47,8 +64,11 @@ import { useI18n } from "vue-i18n";
 import RegionsHeader from "../components/regionsHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import { useRegionsManagementStore } from "../store/regionsManagement.js";
 
 const { t } = useI18n();
+const regionsStore = useRegionsManagementStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -59,65 +79,45 @@ const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedregions = ref({});
 
-const regions = ref([
-    {
-        id: 1,
-        key: "1",
-        name: "palestine",
-        timezone: "Asia/Jerusalem"
-    },
-    {
-        id: 2,
-        key: "2",
-        name: "jordan",
-        timezone: "Asia/Amman"
-    },
-]);
+// Get regions from store
+const regions = computed(() => regionsStore.regions);
+const trashedregions = computed(() => regionsStore.trashedRegions);
 
-const trashedregions = ref([
-    {
-        id: 3,
-        key: "3",
-        name: "jordan",
-        timezone: "Asia/Amman"
-    },
-]);
+// Fetch regions on component mount
+onMounted(async () => {
+  try {
+    await regionsStore.fetchRegions();
+    console.log("✅ Regions loaded successfully");
+  } catch (error) {
+    console.error("❌ Failed to load regions:", error);
+  }
+});
 
-// regions Form Fields 
+// regions Form Fields
 const regionsFields = computed(() => [
-    {
-        name: 'key',
-        label: t('regions.form.key'),
-        type: 'text',
-        required: true,
-        placeholder: t('regions.form.keyPlaceholder'),
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedregions.value.key : '',
-    },
     {
         name: 'name',
         label: t('regions.form.name'),
         type: 'text',
         required: true,
         placeholder: t('regions.form.namePlaceholder'),
-        colClass: 'col-md-6',
+        colClass: 'col-md-12',
         defaultValue: isEditMode.value ? selectedregions.value.name : '',
         validate: (value) => {
             if (value.length > 255) return t('regions.validation.nameMax');
             return null;
         }
     },
-
     {
         name: 'timezone',
         label: t('regions.form.timezone'),
         type: 'text',
         required: false,
         placeholder: t('regions.form.timezonePlaceholder'),
-        colClass: 'col-md-6',
+        colClass: 'col-md-12',
         defaultValue: isEditMode.value ? selectedregions.value.timezone : '',
         validate: (value) => {
-            if (value.length > 50) return t('regions.validation.timezoneMax');
+            if (value && value.length > 50) return t('regions.validation.timezoneMax');
             return null;
         }
     },
@@ -126,24 +126,20 @@ const regionsFields = computed(() => [
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('regions.id'), colClass: 'col-md-6' },
-    { key: 'key', label: t('regions.key'), colClass: 'col-md-6' },
     { key: 'name', label: t('regions.name'), colClass: 'col-md-6' },
-    { key: 'timezone', label: t('regions.timezone'), colClass: 'col-md-6' },
-
+    { key: 'timezone', label: t('regions.timezone'), colClass: 'col-md-12' },
 ]);
 
 const regionsColumns = ref([
     { key: "id", label: t("regions.id"), sortable: true },
-    { key: "key", label: t("regions.key"), sortable: true },
     { key: "name", label: t("regions.name"), sortable: true },
     { key: "timezone", label: t("regions.timezone"), sortable: false },
-
 ]);
 
 const trashedColumns = computed(() => [
     { key: "id", label: t("regions.id") },
-    { key: "key", label: t("regions.key") },
     { key: "name", label: t("regions.name") },
+    { key: "timezone", label: t("regions.timezone") },
 ]);
 
 const visibleColumns = ref([]);
@@ -212,39 +208,36 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleSubmitregions = (regionsData) => {
-    if (isEditMode.value) {
-        // Update existing regions
-        const index = regions.value.findIndex(d => d.id === selectedregions.value.id);
-        if (index > -1) {
-            regions.value[index] = {
-                ...regions.value[index],
-                key: regionsData.key,
+const handleSubmitregions = async (regionsData) => {
+    try {
+        if (isEditMode.value) {
+            // Update existing region
+            await regionsStore.updateRegion(selectedregions.value.id, regionsData);
+            console.log('✅ Region updated successfully!');
+        } else {
+            // Add new region
+            const newRegion = {
                 name: regionsData.name,
-                timezone: regionsData.timezone,
+                timezone: regionsData.timezone || null,
             };
-            console.log('regions updated successfully!');
+            await regionsStore.addRegion(newRegion);
+            console.log('✅ Region added successfully!');
         }
-    } else {
-        // Add new regions
-        const newregions = {
-            id: regions.value.length + 1,
-            key: regionsData.key,
-            name: regionsData.name,
-            timezone: regionsData.timezone,
-        };
-        regions.value.push(newregions);
-        console.log('regions added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('❌ Failed to save region:', error);
+        alert(error.message || 'Failed to save region');
     }
 };
 
-const handleRestoreregions = (region) => {
-    regions.value.push(region);
-    const index = trashedregions.value.findIndex(d => d.id === region.id);
-    if (index > -1) {
-        trashedregions.value.splice(index, 1);
+const handleRestoreregions = async (region) => {
+    try {
+        await regionsStore.restoreRegion(region.id);
+        console.log("✅ Region restored successfully!");
+    } catch (error) {
+        console.error("❌ Failed to restore region:", error);
+        alert(error.message || "Failed to restore region");
     }
-    console.log("regions restored successfully!");
 };
 
 </script>

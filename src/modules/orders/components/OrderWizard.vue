@@ -508,10 +508,17 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 const { t } = useI18n();
-const { availableCurrencies, formatPrice } = useCurrency();
+
+// TODO: Fetch currencies from API if needed
+const availableCurrencies = ref([]);
+
+// Simple price formatter
+const formatPrice = (value) => {
+  if (!value || isNaN(value)) return "$0.00";
+  return `$${Number(value).toFixed(2)}`;
+};
 
 const props = defineProps({
   isOpen: {

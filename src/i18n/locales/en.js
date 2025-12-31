@@ -42,6 +42,8 @@ export default {
   user: {
     // Page Headers
     title: "User Table",
+    pageTitle: "Users Management",
+    pageSubtitle: "Manage system users and their permissions",
 
     // Actions
     searchPlaceholder: "Search users...",
@@ -51,6 +53,8 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
 
     // Table Columns
@@ -72,11 +76,18 @@ export default {
     // Status Values
     active: "Active",
     inactive: "Inactive",
+    activeUsers: "Active Users",
+
+    // Entity names for bulk actions
+    entitySingular: "user",
+    entityPlural: "users",
 
     // Messages
     noData: "No data available",
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
+    confirmDeleteTitle: "Confirm Delete",
+    confirmDelete: "Are you sure you want to delete this user? You can restore them later.",
 
     // Filters
     filterByRole: "Filter by Role",
@@ -88,13 +99,19 @@ export default {
       username: "Username",
       usernamePlaceholder: "Enter unique username",
       email: "Email Address",
-      emailPlaceholder: "user@example.com (optional)",
+      emailPlaceholder: "user{'@'}example.com (optional)",
       password: "Password",
       passwordPlaceholder: "Minimum 6 characters",
       phoneNumber: "Phone Number",
       phoneNumberPlaceholder: "0599000000",
       role: "User Role",
       rolePlaceholder: "Select role",
+      region: "Region",
+      regionPlaceholder: "Select region (optional)",
+      noRegion: "No region",
+      currency: "Currency",
+      currencyPlaceholder: "Select currency (optional)",
+      noCurrency: "No currency",
       company: "Company",
       companyPlaceholder: "Select company",
       uploadImage: "Upload Image",
@@ -227,6 +244,9 @@ export default {
       imageRequired: "Profile picture is required",
       imageSize: "Image size must not exceed 200 KB",
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
+      usernameAlreadyTaken: "This username has already been taken. Please choose another username.",
+      phoneAlreadyInCompany: "This user is already registered as a driver in this company."
+    
     },
 
     // Trashed Items
@@ -286,6 +306,7 @@ export default {
       companyPlaceholder: "Select company",
       location: "Location",
       setLocation: "Set Location on Map",
+      uploadImage: "Upload Image",
     },
 
     // Validation Messages
@@ -348,6 +369,7 @@ export default {
     companyTypes: {
       "delivery company": "Delivery Company",
       "admin company": "Admin Company",
+      "customer company": "Customer Company",
     },
     // Form Fields
     form: {
@@ -360,6 +382,7 @@ export default {
       types: {
         delivery: "Delivery Company",
         admin: "Admin Company",
+        customer: "Customer Company",
       },
     },
 
@@ -377,6 +400,15 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
+
+    // Entity Names for Bulk Actions
+    entitySingular: "company",
+    entityPlural: "companies",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
     branches: {
       title: "Branches",
       empty: "No branches available",
@@ -1378,6 +1410,18 @@ export default {
     required: "Required",
     optional: "Optional",
     back: "Back",
+    validationError: "Validation Error",
+    validationFailed: "Validation failed",
+    saveFailed: "Failed to save",
+    restoreFailed: "Failed to restore",
+    selected: "selected",
+    active: "Active",
+
+    // Bulk action confirmation messages
+    bulkDeleteConfirmTitle: "Confirm Bulk Delete",
+    bulkDeleteConfirmMessage: "Are you sure you want to delete {count} {entity}?",
+    bulkRestoreConfirmTitle: "Confirm Bulk Restore",
+    bulkRestoreConfirmMessage: "Are you sure you want to restore {count} {entity}?",
   },
 
   // Updated English translations for Work Plans

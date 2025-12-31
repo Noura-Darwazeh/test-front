@@ -86,11 +86,15 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
-const { formatPrice, convertAmount, selectedCurrency } = useCurrency();
+
+// Simple price formatter
+const formatPrice = (value) => {
+  if (!value || isNaN(value)) return "$0.00";
+  return `$${Number(value).toFixed(2)}`;
+};
 
 const searchText = ref("");
 const selectedGroups = ref([]);

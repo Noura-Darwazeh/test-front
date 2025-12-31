@@ -64,7 +64,16 @@ export const useAuthStore = defineStore("auth", () => {
         setItem("auth_user", data.user);
         setItem("auth_device", data.device);
 
-        console.log("Login successful:", data.user.name);
+        // Set user's preferred language
+        if (data.user?.language) {
+          const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
+          // We need to import setLocale at the top of the file
+          // For now, just store it and let the app initialize it
+          setItem("user_language", uiLang);
+          console.log(`🌐 User language preference: ${data.user.language}`);
+        }
+
+        console.log("✅ Login successful:", data.user.name);
         return data;
       } else {
         // Handle unsuccessful login
@@ -166,6 +175,7 @@ export const useAuthStore = defineStore("auth", () => {
     removeItem("auth_token");
     removeItem("auth_user");
     removeItem("auth_device");
+    removeItem("user_language"); // Clear user's language preference
   }
 
   /**
@@ -182,6 +192,39 @@ export const useAuthStore = defineStore("auth", () => {
   function updateUser(userData) {
     user.value = { ...user.value, ...userData };
     setItem("auth_user", user.value);
+  }
+
+  /**
+   * Update user language in backend and locally
+   * @param {string} language - Language to set (english or arabic)
+   * @returns {Promise<Object>} Updated user data
+   */
+  async function updateUserLanguage(language) {
+    try {
+      if (!user.value?.id) {
+        throw new Error("No user logged in");
+      }
+
+      // Call API to update user language
+      const response = await api.post(`/users/${user.value.id}`, {
+        language: language
+      }, {
+        headers: {
+          'X-HTTP-Method-Override': 'PATCH'
+        }
+      });
+
+      // Update local user data
+      if (response.data?.data) {
+        updateUser(response.data.data);
+        console.log(`✅ User language updated to: ${language}`);
+      }
+
+      return response.data;
+    } catch (err) {
+      console.error("❌ Failed to update user language:", err);
+      throw err;
+    }
   }
 
   /**
@@ -225,6 +268,7 @@ export const useAuthStore = defineStore("auth", () => {
     clearAuthData,
     clearError,
     updateUser,
+    updateUserLanguage,
     hasRole,
     hasAnyRole,
   };

@@ -16,9 +16,6 @@
             </span>
           </button>
 
-          <!-- Currency Selector -->
-          <CurrencySelector :position="isRTL ? 'start' : 'end'" @currencyChanged="handleCurrencyChange" />
-
           <!-- Language Selector -->
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
@@ -112,7 +109,6 @@ import { useI18n } from "vue-i18n";
 import { setLocale } from "@/i18n/index";
 import { useAuthStore } from "@/stores/auth.js";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
-import CurrencySelector from "@/components/shared/CurrencySelector.vue";
 
 const props = defineProps({
   pageTitle: {
@@ -137,8 +133,23 @@ const displayTitle = computed(() => {
 const notificationCount = ref(3);
 const userAvatar = ref("https://via.placeholder.com/36");
 
-const switchLanguage = (lang) => {
-  setLocale(lang.toLowerCase());
+const switchLanguage = async (lang) => {
+  const langLower = lang.toLowerCase();
+
+  // Map UI language codes to backend format
+  const backendLang = langLower === 'ar' ? 'arabic' : 'english';
+
+  try {
+    // Update language in UI immediately
+    setLocale(langLower);
+
+    // Update user language in backend
+    await authStore.updateUserLanguage(backendLang);
+    console.log(`✅ Language switched to ${lang}`);
+  } catch (error) {
+    console.error("❌ Failed to update language preference:", error);
+    // Language is still changed in UI even if API fails
+  }
 };
 
 const handleProfile = (close) => {
@@ -175,10 +186,6 @@ const handleLogout = async (close) => {
       alert("Logout failed. Please try again.");
     }
   }
-};
-
-const handleCurrencyChange = (currency) => {
-  console.log("Currency changed to:", currency);
 };
 </script>
 

@@ -7,7 +7,7 @@
     </span>
 
     <!-- Text -->
-    {{ loading ? loadingText : text }}
+    <span v-if="text">{{ loading ? loadingText : text }}</span>
 
     <!-- Icon after -->
     <span v-if="iconAfter && !loading" class="icon-after" :style="iconStyle">
@@ -22,7 +22,8 @@ import { computed } from "vue";
 const props = defineProps({
   text: {
     type: String,
-    required: true,
+    required: false,
+    default: '',
   },
   loadingText: {
     type: String,

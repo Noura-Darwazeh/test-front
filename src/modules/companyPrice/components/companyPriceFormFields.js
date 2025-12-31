@@ -1,28 +1,15 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 export function useCompanyPriceFormFields() {
   const { t } = useI18n();
-  const { selectedCurrency, formatPrice } = useCurrency();
 
   const companyPriceFields = computed(() => [
     {
       name: "price",
-      label: computed(
-        () =>
-          `${t("companyPrice.form.price")} (${
-            selectedCurrency.value?.code || "USD"
-          })`
-      ),
+      label: t("companyPrice.form.price"),
       type: "number",
-      placeholder: computed(
-        () =>
-          `${t("companyPrice.form.pricePlaceholder")} (${formatPrice(
-            25.5,
-            "USD"
-          )})`
-      ),
+      placeholder: t("companyPrice.form.pricePlaceholder"),
       required: true,
       validation: {
         required: true,

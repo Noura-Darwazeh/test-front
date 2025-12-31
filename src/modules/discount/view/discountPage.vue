@@ -87,11 +87,20 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDiscountFormFields } from "../components/discountFormFields.js";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 const { t } = useI18n();
 const { discountFields } = useDiscountFormFields();
-const { formatPrice, formatPriceWithFallback } = useCurrency();
+
+// Simple price formatters
+const formatPrice = (value) => {
+  if (!value || isNaN(value)) return "$0.00";
+  return `$${Number(value).toFixed(2)}`;
+};
+
+const formatPriceWithFallback = (value, fallbackText = "N/A") => {
+  if (!value || isNaN(value) || value === 0) return fallbackText;
+  return formatPrice(value);
+};
 
 const searchText = ref("");
 const selectedGroups = ref([]);

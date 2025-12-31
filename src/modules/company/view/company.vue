@@ -1,22 +1,78 @@
 <template>
     <div class="user-page-container bg-light">
-        <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
-            groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
-            translationKey="companyTypes" :columns="companyColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal"
-            @trashed-click="openTrashedModal" />
+        <!-- Tabs for Active and Trashed Companies -->
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link" :class="{ active: activeTab === 'active' }" @click="activeTab = 'active'"
+                    style="cursor: pointer">
+                    {{ $t('common.active') }}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link trashed-tab" :class="{ active: activeTab === 'trashed' }" @click="activeTab = 'trashed'"
+                    style="cursor: pointer">
+                    {{ $t('company.trashed.title') }}
+                </a>
+            </li>
+        </ul>
 
-        <div class="card border-0">
-            <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedcompanies" :actionsLabel="$t('company.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('company.edit')"
-                            :detailsLabel="$t('company.details')" @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredcompanies.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+        <!-- Tab Content -->
+        <div v-if="activeTab === 'active'">
+            <!-- Active Companies Tab -->
+            <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
+                groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
+                translationKey="companyTypes" :columns="companyColumns" v-model:visibleColumns="visibleColumns"
+                :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal"
+                :showTrashedButton="false" />
+
+            <!-- Bulk Actions Bar for Active Tab -->
+            <BulkActionsBar :selectedCount="selectedRows.length" entityName="company" :actions="bulkActions"
+                :loading="bulkActionLoading" @action="handleBulkAction" />
+
+            <div class="card border-0">
+                <div class="card-body p-0">
+                    <DataTable :columns="filteredColumns" :data="paginatedcompanies" v-model="selectedRows"
+                        :actionsLabel="$t('company.actions')">
+                        <template #actions="{ row }">
+                            <ActionsDropdown :row="row" :editLabel="$t('company.edit')"
+                                :detailsLabel="$t('company.details')" :deleteLabel="$t('company.delete')"
+                                @edit="openEditModal" @details="openDetailsModal" @delete="handleDeleteCompany" />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination :totalItems="filteredcompanies.length" :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-else>
+            <!-- Trashed Companies Tab -->
+            <CompanyHeader v-model="trashedSearchText" :searchPlaceholder="$t('company.searchPlaceholder')"
+                :data="trashedCompanies" groupKey="type" v-model:groupModelValue="trashedSelectedGroups"
+                :groupLabel="$t('company.filterByType')" translationKey="companyTypes" :columns="companyColumns"
+                v-model:visibleColumns="visibleColumns" :showAddButton="false" :showTrashedButton="false" />
+
+            <!-- Bulk Actions Bar for Trashed Tab -->
+            <BulkActionsBar :selectedCount="selectedRows.length" entityName="company" :actions="bulkActions"
+                :loading="bulkActionLoading" @action="handleBulkAction" />
+
+            <div class="card border-0">
+                <div class="card-body p-0">
+                    <DataTable :columns="filteredColumns" :data="paginatedTrashedCompanies" v-model="selectedRows"
+                        :actionsLabel="$t('company.actions')">
+                        <template #actions="{ row }">
+                            <ActionsDropdown :row="row" :restoreLabel="$t('company.trashed.restore')"
+                                :deleteLabel="$t('company.trashed.delete')" @restore="handleRestoreCompany"
+                                @delete="handleForceDeleteCompany" />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination :totalItems="filteredTrashedCompanies.length" :itemsPerPage="itemsPerPage"
+                            :currentPage="trashedCurrentPage"
+                            @update:currentPage="(page) => trashedCurrentPage = page" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -143,86 +199,71 @@
             </template>
         </DetailsModal>
 
-        <!-- Trashed companies Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('company.trashed.title')"
-            :emptyMessage="$t('company.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedcompanies"
-            @close="closeTrashedModal" @restore="handleRestorecompany" />
+        <!-- Confirmation Modal for Single Delete -->
+        <ConfirmationModal :isOpen="isDeleteConfirmOpen" :title="$t('common.confirm')"
+            :message="deleteConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
+            @confirm="executeDelete" @close="cancelDelete" />
+
+        <!-- Bulk Action Confirmation Modal -->
+        <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="bulkConfirmTitle" :message="bulkConfirmMessage"
+            :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')" @confirm="executeBulkAction"
+            @close="cancelBulkAction" />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import CompanyHeader from "../components/companyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import { useCompanyManagementStore } from "../store/companyManagement.js";
 
 const { t } = useI18n();
+const companyStore = useCompanyManagementStore();
+
+// Tab Management
+const activeTab = ref('active');
+
+// Search and Filters - Active Tab
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
+
+// Search and Filters - Trashed Tab
+const trashedSearchText = ref("");
+const trashedSelectedGroups = ref([]);
+const trashedCurrentPage = ref(1);
+
+// Modal States
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedcompany = ref({});
 
-const companies = ref([
-    {
-        id: 1,
-        name: "Company 1",
-        type: 'delivery company',
-        branches: [
-            { id: 1, name: "Branch Nablus", location: "Nablus, Palestine" },
-            { id: 2, name: "Branch Ramallah", location: "Ramallah, Palestine" }
-        ],
-        lines: [
-            { id: 1, name: "Line North", region: "palestine" },
-            { id: 2, name: "Line South", region: "palestine" }
-        ]
-    },
-    {
-        id: 2,
-        name: "Company 2",
-        type: 'admin company',
-        branches: [
-            { id: 3, name: "Branch Amman", location: "Amman, Jordan" }
-        ],
-        lines: [
-            { id: 3, name: "Line Central", region: "jordan" }
-        ]
-    },
-    {
-        id: 3,
-        name: "Company 3",
-        type: 'delivery company',
-        branches: [
-            { id: 4, name: "Branch Jenin", location: "Jenin, Palestine" },
-            { id: 5, name: "Branch Tulkarm", location: "Tulkarm, Palestine" },
-            { id: 6, name: "Branch Hebron", location: "Hebron, Palestine" }
-        ],
-        lines: [
-            { id: 4, name: "Line East", region: "palestine" },
-            { id: 5, name: "Line West", region: "palestine" }
-        ]
-    },
-]);
+// Selection and Bulk Actions
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
 
-const trashedcompanies = ref([
-    {
-        id: 4,
-        name: "Trashed",
-        type: 'delivery company',
-        branches: [],
-        lines: []
-    },
-]);
+// Single Delete Confirmation
+const isDeleteConfirmOpen = ref(false);
+const pendingDeleteCompany = ref(null);
+const isForceDelete = ref(false);
+
+// Computed - Companies from Store
+const companies = computed(() => companyStore.companies);
+const trashedCompanies = computed(() => companyStore.trashedCompanies);
+const loading = computed(() => companyStore.loading);
+const trashedLoading = computed(() => companyStore.trashedLoading);
 
 // Helper functions for region display
 const getRegionName = (region) => {
@@ -235,7 +276,7 @@ const getRegionBadgeClass = (region) => {
         : 'bg-info bg-opacity-10 text-info';
 };
 
-// company Form Fields 
+// company Form Fields
 const companyFields = computed(() => [
     {
         name: 'name',
@@ -257,8 +298,9 @@ const companyFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'admin company', label: t('company.form.types.admin') },
             { value: 'delivery company', label: t('company.form.types.delivery') },
+            { value: 'admin company', label: t('company.form.types.admin') },
+            { value: 'customer company', label: t('company.form.types.customer') },
         ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedcompany.value.type : ''
@@ -278,12 +320,6 @@ const companyColumns = ref([
     { key: "type", label: t("company.type"), sortable: false },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "id", label: t("company.id") },
-    { key: "name", label: t("company.name") },
-    { key: "type", label: t("company.type") },
-]);
-
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
@@ -292,6 +328,7 @@ const filteredColumns = computed(() => {
     );
 });
 
+// Active Companies Filtering and Pagination
 const filteredcompanies = computed(() => {
     let result = companies.value;
     result = filterByGroups(result, selectedGroups.value, "type");
@@ -307,8 +344,118 @@ const paginatedcompanies = computed(() => {
     );
 });
 
+// Trashed Companies Filtering and Pagination
+const filteredTrashedCompanies = computed(() => {
+    let result = trashedCompanies.value;
+    result = filterByGroups(result, trashedSelectedGroups.value, "type");
+    result = filterData(result, trashedSearchText.value);
+    return result;
+});
+
+const paginatedTrashedCompanies = computed(() => {
+    return paginateData(
+        filteredTrashedCompanies.value,
+        trashedCurrentPage.value,
+        itemsPerPage.value
+    );
+});
+
+// Bulk Actions Configuration
+const bulkActions = computed(() => {
+    if (activeTab.value === 'active') {
+        return [
+            {
+                id: 'delete',
+                label: t('company.bulkDelete'),
+                bgColor: 'var(--color-danger)',
+            },
+        ];
+    } else {
+        return [
+            {
+                id: 'restore',
+                label: t('company.bulkRestore'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'forceDelete',
+                label: t('company.trashed.delete'),
+                bgColor: 'var(--color-danger)',
+            },
+        ];
+    }
+});
+
+// Bulk Confirmation Messages
+const bulkConfirmTitle = computed(() => {
+    if (pendingBulkAction.value === 'delete' || pendingBulkAction.value === 'forceDelete') {
+        return t('common.bulkDeleteConfirmTitle');
+    } else if (pendingBulkAction.value === 'restore') {
+        return t('common.bulkRestoreConfirmTitle');
+    }
+    return '';
+});
+
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const entity = selectedRows.value.length === 1
+        ? t('company.entitySingular')
+        : t('company.entityPlural');
+
+    if (pendingBulkAction.value === 'delete' || pendingBulkAction.value === 'forceDelete') {
+        return t('common.bulkDeleteConfirmMessage', {
+            count: selectedRows.value.length,
+            entity
+        });
+    } else if (pendingBulkAction.value === 'restore') {
+        return t('common.bulkRestoreConfirmMessage', {
+            count: selectedRows.value.length,
+            entity
+        });
+    }
+    return '';
+});
+
+// Single Delete Confirmation Message
+const deleteConfirmMessage = computed(() => {
+    if (!pendingDeleteCompany.value) return '';
+    const entity = t('company.entitySingular');
+    return t('common.bulkDeleteConfirmMessage', { count: 1, entity });
+});
+
+// Watch for search/filter changes
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
+});
+
+watch([trashedSearchText, trashedSelectedGroups], () => {
+    trashedCurrentPage.value = 1;
+});
+
+// Clear selection when switching tabs
+watch(activeTab, () => {
+    selectedRows.value = [];
+});
+
+// Fetch data on mount
+onMounted(async () => {
+    try {
+        await companyStore.fetchCompanies();
+    } catch (error) {
+        console.error("Failed to fetch companies:", error);
+    }
+});
+
+// Watch active tab and fetch trashed companies when needed
+watch(activeTab, async (newTab) => {
+    if (newTab === 'trashed' && trashedCompanies.value.length === 0) {
+        try {
+            await companyStore.fetchTrashedCompanies();
+        } catch (error) {
+            console.error("Failed to fetch trashed companies:", error);
+        }
+    }
 });
 
 // Add Modal
@@ -342,49 +489,113 @@ const closeDetailsModal = () => {
     selectedcompany.value = {};
 };
 
-const openTrashedModal = () => {
-    isTrashedModalOpen.value = true;
-};
-
-const closeTrashedModal = () => {
-    isTrashedModalOpen.value = false;
-};
-
-const handleSubmitcompany = (companyData) => {
-    if (isEditMode.value) {
-        // Update existing company
-        const index = companies.value.findIndex(d => d.id === selectedcompany.value.id);
-        if (index > -1) {
-            companies.value[index] = {
-                ...companies.value[index],
-                name: companyData.name,
-                type: companyData.type,
-                image: companyData.imagePreview || companies.value[index].image
-            };
-            console.log('company updated successfully!');
+const handleSubmitcompany = async (companyData) => {
+    try {
+        if (isEditMode.value) {
+            await companyStore.updateCompany(selectedcompany.value.id, companyData);
+            console.log('✅ Company updated successfully!');
+        } else {
+            await companyStore.addCompany(companyData);
+            console.log('✅ Company added successfully!');
         }
-    } else {
-        // Add new company
-        const newcompany = {
-            id: companies.value.length + 1,
-            name: companyData.name,
-            type: companyData.type,
-            image: companyData.imagePreview || 'path/test',
-            branches: [],
-            lines: []
-        };
-        companies.value.push(newcompany);
-        console.log('company added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('❌ Failed to submit company:', error);
     }
 };
 
-const handleRestorecompany = (company) => {
-    companies.value.push(company);
-    const index = trashedcompanies.value.findIndex(d => d.id === company.id);
-    if (index > -1) {
-        trashedcompanies.value.splice(index, 1);
+// Single Delete Handler (Soft Delete)
+const handleDeleteCompany = (company) => {
+    pendingDeleteCompany.value = company;
+    isForceDelete.value = false;
+    isDeleteConfirmOpen.value = true;
+};
+
+// Single Force Delete Handler (Permanent Delete)
+const handleForceDeleteCompany = (company) => {
+    pendingDeleteCompany.value = company;
+    isForceDelete.value = true;
+    isDeleteConfirmOpen.value = true;
+};
+
+const executeDelete = async () => {
+    if (!pendingDeleteCompany.value) return;
+
+    try {
+        await companyStore.deleteCompany(pendingDeleteCompany.value.id, isForceDelete.value);
+        console.log(`✅ Company ${isForceDelete.value ? 'permanently deleted' : 'deleted'} successfully!`);
+
+        // Refresh trashed list if we're soft deleting from active tab
+        if (!isForceDelete.value && activeTab.value === 'active') {
+            await companyStore.fetchTrashedCompanies();
+        }
+    } catch (error) {
+        console.error('❌ Failed to delete company:', error);
+    } finally {
+        isDeleteConfirmOpen.value = false;
+        pendingDeleteCompany.value = null;
+        isForceDelete.value = false;
     }
-    console.log("company restored successfully!");
+};
+
+const cancelDelete = () => {
+    isDeleteConfirmOpen.value = false;
+    pendingDeleteCompany.value = null;
+    isForceDelete.value = false;
+};
+
+// Restore Handler
+const handleRestoreCompany = async (company) => {
+    try {
+        await companyStore.restoreCompany(company.id);
+        console.log("✅ Company restored successfully!");
+    } catch (error) {
+        console.error("❌ Failed to restore company:", error);
+    }
+};
+
+// Bulk Actions Handler
+const handleBulkAction = ({ actionId }) => {
+    pendingBulkAction.value = actionId;
+
+    // Always show confirmation for bulk actions
+    isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+    bulkActionLoading.value = true;
+
+    try {
+        if (pendingBulkAction.value === 'delete') {
+            // Soft delete from active tab
+            await companyStore.bulkDeleteCompanies(selectedRows.value, false);
+            console.log(`✅ ${selectedRows.value.length} companies deleted successfully!`);
+            // Refresh trashed list
+            await companyStore.fetchTrashedCompanies();
+        } else if (pendingBulkAction.value === 'forceDelete') {
+            // Force delete from trashed tab
+            await companyStore.bulkDeleteCompanies(selectedRows.value, true);
+            console.log(`✅ ${selectedRows.value.length} companies permanently deleted successfully!`);
+        } else if (pendingBulkAction.value === 'restore') {
+            // Restore from trashed tab
+            await companyStore.bulkRestoreCompanies(selectedRows.value);
+            console.log(`✅ ${selectedRows.value.length} companies restored successfully!`);
+        }
+
+        // Clear selection after success
+        selectedRows.value = [];
+    } catch (error) {
+        console.error(`❌ Failed to execute bulk ${pendingBulkAction.value}:`, error);
+    } finally {
+        bulkActionLoading.value = false;
+        isBulkConfirmOpen.value = false;
+        pendingBulkAction.value = null;
+    }
+};
+
+const cancelBulkAction = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
 };
 </script>
 
