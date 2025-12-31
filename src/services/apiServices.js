@@ -105,7 +105,7 @@ class ApiServices {
 
   // ===== Branches Services =====
   async getBranches() {
-    return api.get("/branches");
+    return api.get("/branchs");
   }
 
   // ===== Company Services =====

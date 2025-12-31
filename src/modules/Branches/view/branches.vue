@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
@@ -47,8 +47,11 @@ import { useI18n } from "vue-i18n";
 import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import { useBranchesManagementStore } from "../stores/branchesStore";
 
 const { t } = useI18n();
+const branchesStore = useBranchesManagementStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -59,29 +62,18 @@ const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedbranch = ref({});
 
-const branches = ref([
-    {
-        id: 1,
-        name: "Branch Nablus Central",
-        location: 'nablus',
-        company: 'company 1'
-    },
-    {
-        id: 2,
-        name: "Branch Ramallah Downtown",
-        location: 'ramallah',
-        company: 'company 2'
-    },
-]);
+// Use store data instead of local refs
+const branches = computed(() => branchesStore.branches);
+const trashedbranches = computed(() => branchesStore.trashedBranches);
 
-const trashedbranches = ref([
-    {
-        id: 6,
-        name: "Trashed Branch",
-        location: 'nablus',
-        company: 'company 1'
-    },
-]);
+// Load branches on component mount
+onMounted(async () => {
+    try {
+        await branchesStore.fetchBranches();
+    } catch (error) {
+        console.error("Failed to load branches:", error);
+    }
+});
 
 // branch Form Fields 
 const branchFields = computed(() => [
@@ -212,39 +204,30 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleSubmitbranch = (branchData) => {
-    if (isEditMode.value) {
-        // Update existing branch
-        const index = branches.value.findIndex(d => d.id === selectedbranch.value.id);
-        if (index > -1) {
-            branches.value[index] = {
-                ...branches.value[index],
-                name: branchData.name,
-                company: branchData.company || 'company 1',
-                location: branchData.location,
-            };
+const handleSubmitbranch = async (branchData) => {
+    try {
+        if (isEditMode.value) {
+            // Update existing branch using store action
+            await branchesStore.updateBranch(selectedbranch.value.id, branchData);
             console.log('Branch updated successfully!');
+        } else {
+            // Add new branch using store action
+            await branchesStore.addBranch(branchData);
+            console.log('Branch added successfully!');
         }
-    } else {
-        // Add new branch
-        const newbranch = {
-            id: branches.value.length + 1,
-            name: branchData.name,
-            company: branchData.company,
-            location: branchData.location,
-        };
-        branches.value.push(newbranch);
-        console.log('Branch added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('Error submitting branch:', error);
     }
 };
 
-const handleRestorebranch = (branch) => {
-    branches.value.push(branch);
-    const index = trashedbranches.value.findIndex(d => d.id === branch.id);
-    if (index > -1) {
-        trashedbranches.value.splice(index, 1);
+const handleRestorebranch = async (branch) => {
+    try {
+        await branchesStore.restoreBranch(branch.id);
+        console.log("Branch restored successfully!");
+    } catch (error) {
+        console.error('Error restoring branch:', error);
     }
-    console.log("Branch restored successfully!");
 };
 </script>
 
