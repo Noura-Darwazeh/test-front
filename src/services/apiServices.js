@@ -67,7 +67,7 @@ class ApiServices {
   }
 
   async updateDriver(driverId, driverData) {
-    return api.put(`/drivers/${driverId}`, driverData);
+    return api.patch(`/drivers/${driverId}`, driverData);
   }
 
   async deleteDriver(driverId) {

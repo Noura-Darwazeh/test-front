@@ -145,7 +145,7 @@ export const useDriverStore = defineStore("driver", () => {
         error.value = err.message || "Failed to add driver";
         console.error("❌ Error adding driver:", error.value);
       }
-      
+
       console.error("Error details:", err.response?.data || err);
       throw err;
     } finally {
@@ -180,7 +180,6 @@ export const useDriverStore = defineStore("driver", () => {
         status: driverData.status,
         type: driverData.type,
         vehicle_number: driverData.vehicle_number,
-        image: driverData.imagePreview || null,
       };
 
       // Only include password if it's provided
@@ -188,22 +187,30 @@ export const useDriverStore = defineStore("driver", () => {
         apiData.password = driverData.password;
       }
 
-      console.log("📤 Updating driver:", {
+      // Only include image if it's provided
+      if (driverData.imagePreview) {
+        apiData.image = driverData.imagePreview;
+      }
+
+      console.log(" Updating driver:", {
         ...apiData,
         password: apiData.password ? "***" : undefined
       });
 
       const response = await apiServices.updateDriver(driverId, apiData);
 
-      // Update local state
+      console.log("✅ API Response:", response.data);
+
+      // Update local state with response data
       const index = drivers.value.findIndex((d) => d.id === driverId);
       if (index > -1) {
         drivers.value[index] = {
-          ...drivers.value[index],
+          id: response.data.data.id,
           name: response.data.data.user?.name || driverData.name,
           username: response.data.data.user?.username || response.data.data.user?.same17 || driverData.username,
           email: response.data.data.user?.email || driverData.email,
           phone_number: response.data.data.user?.phone_number || driverData.phone_number,
+          role: "Driver",
           status: response.data.data.status,
           type: response.data.data.type,
           branch_id: response.data.data.branch_id,
@@ -232,6 +239,12 @@ export const useDriverStore = defineStore("driver", () => {
       loading.value = false;
     }
   };
+
+
+
+
+
+
 
   const deleteDriver = async (driverId) => {
     loading.value = true;
