@@ -109,19 +109,6 @@ const branchFields = computed(() => [
         }
     },
     {
-        name: 'location',
-        label: t('branch.form.location'),
-        type: 'select',
-        required: true,
-        options: [
-            { value: 'nablus', label: t('branch.locations.nablus') },
-            { value: 'ramallah', label: t('branch.locations.ramallah') },
-
-        ],
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedbranch.value.location : ''
-    },
-    {
         name: 'company_id',
         label: t('branch.form.company'),
         type: 'select',
@@ -130,28 +117,57 @@ const branchFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedbranch.value.company_id : ''
     },
+    {
+        name: 'latitude',
+        label: t('branch.form.latitude'),
+        type: 'text',
+        required: true,
+        placeholder: '32.2270',
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedbranch.value.latitude : '',
+        validate: (value) => {
+            const lat = parseFloat(value);
+            if (isNaN(lat) || lat < -90 || lat > 90) {
+                return 'Invalid latitude (must be between -90 and 90)';
+            }
+            return null;
+        }
+    },
+    {
+        name: 'longitude',
+        label: t('branch.form.longitude'),
+        type: 'text',
+        required: true,
+        placeholder: '35.2544',
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedbranch.value.longitude : '',
+        validate: (value) => {
+            const lng = parseFloat(value);
+            if (isNaN(lng) || lng < -180 || lng > 180) {
+                return 'Invalid longitude (must be between -180 and 180)';
+            }
+            return null;
+        }
+    },
 ]);
 
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('branch.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('branch.name'), colClass: 'col-md-6' },
-    { key: 'company_id', label: t('branch.companyId'), colClass: 'col-md-6' },
-    { key: 'location', label: t('branch.location'), translationKey: 'branch.locations', colClass: 'col-md-6' },
     { key: 'company_name', label: t('branch.company'), colClass: 'col-md-6' },
+    { key: 'latitude', label: t('branch.form.latitude'), colClass: 'col-md-6' },
+    { key: 'longitude', label: t('branch.form.longitude'), colClass: 'col-md-6' },
 ]);
 
+// عرض فقط Name و Company في الجدول
 const branchColumns = ref([
-    { key: "id", label: t("branch.id"), sortable: true },
     { key: "name", label: t("branch.name"), sortable: true },
-    { key: "company_id", label: t("branch.companyId"), sortable: true },
-    { key: "company_name", label: t("branch.company"), sortable: false },
+    { key: "company_name", label: t("branch.company"), sortable: true },
 ]);
 
 const trashedColumns = computed(() => [
-    { key: "id", label: t("branch.id") },
     { key: "name", label: t("branch.name") },
-    { key: "company_id", label: t("branch.companyId") },
     { key: "company_name", label: t("branch.company") },
 ]);
 
@@ -223,27 +239,38 @@ const closeTrashedModal = () => {
 
 const handleSubmitbranch = async (branchData) => {
     try {
+        // تحضير البيانات بالتنسيق الصحيح
+        const formattedData = {
+            name: branchData.name,
+            company_id: parseInt(branchData.company_id),
+            latitude: branchData.latitude,
+            longitude: branchData.longitude
+        };
+
+        console.log('📤 Submitting branch data:', formattedData);
+
         if (isEditMode.value) {
             // Update existing branch using store action
-            await branchesStore.updateBranch(selectedbranch.value.id, branchData);
-            console.log('Branch updated successfully!');
+            await branchesStore.updateBranch(selectedbranch.value.id, formattedData);
+            console.log('✅ Branch updated successfully!');
         } else {
             // Add new branch using store action
-            await branchesStore.addBranch(branchData);
-            console.log('Branch added successfully!');
+            await branchesStore.addBranch(formattedData);
+            console.log('✅ Branch added successfully!');
         }
         closeFormModal();
     } catch (error) {
-        console.error('Error submitting branch:', error);
+        console.error('❌ Error submitting branch:', error);
+        alert(error.message || 'Failed to save branch');
     }
 };
 
 const handleRestorebranch = async (branch) => {
     try {
         await branchesStore.restoreBranch(branch.id);
-        console.log("Branch restored successfully!");
+        console.log("✅ Branch restored successfully!");
     } catch (error) {
-        console.error('Error restoring branch:', error);
+        console.error('❌ Error restoring branch:', error);
     }
 };
 </script>

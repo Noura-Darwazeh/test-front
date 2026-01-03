@@ -23,8 +23,7 @@
 
         <!-- Dynamic Form Modal for Add/Edit customer -->
         <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('customer.edit') : $t('customer.addNew')"
-            :fields="customerFields" :showImageUpload="true" :imageRequired="false"
-            :imageUploadLabel="$t('customer.form.uploadImage')" @close="closeFormModal"
+            :fields="customerFields" :showImageUpload="false"  @close="closeFormModal"
             @submit="handleSubmitcustomer" />
 
         <!-- Details Modal -->

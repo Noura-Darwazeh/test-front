@@ -154,97 +154,86 @@ export const useDriverStore = defineStore("driver", () => {
   };
 
   const updateDriver = async (driverId, driverData) => {
-    loading.value = true;
-    error.value = null;
-    try {
-      // Validate company_id is required
-      if (!driverData.company_name) {
-        const validationError = new Error("Company is required");
-        validationError.response = {
-          data: {
-            success: false,
-            error: "The company id field is required."
-          }
-        };
-        throw validationError;
-      }
+  loading.value = true;
+  error.value = null;
+  try {
+    // Transform frontend data to API format - ONLY send provided fields
+    const apiData = {};
 
-      // Transform frontend data to API format
-      const apiData = {
-        name: driverData.name,
-        username: driverData.username,
-        email: driverData.email || "",
-        phone_number: driverData.phone_number,
-        company_id: parseInt(driverData.company_name),
-        branch_id: parseInt(driverData.branch_name),
-        status: driverData.status,
-        type: driverData.type,
-        vehicle_number: driverData.vehicle_number,
-      };
-
-      // Only include password if it's provided
-      if (driverData.password && driverData.password.trim() !== "") {
-        apiData.password = driverData.password;
-      }
-
-      // Only include image if it's provided
-      if (driverData.imagePreview) {
-        apiData.image = driverData.imagePreview;
-      }
-
-      console.log(" Updating driver:", {
-        ...apiData,
-        password: apiData.password ? "***" : undefined
-      });
-
-      const response = await apiServices.updateDriver(driverId, apiData);
-
-      console.log("✅ API Response:", response.data);
-
-      // Update local state with response data
-      const index = drivers.value.findIndex((d) => d.id === driverId);
-      if (index > -1) {
-        drivers.value[index] = {
-          id: response.data.data.id,
-          name: response.data.data.user?.name || driverData.name,
-          username: response.data.data.user?.username || response.data.data.user?.same17 || driverData.username,
-          email: response.data.data.user?.email || driverData.email,
-          phone_number: response.data.data.user?.phone_number || driverData.phone_number,
-          role: "Driver",
-          status: response.data.data.status,
-          type: response.data.data.type,
-          branch_id: response.data.data.branch_id,
-          branch_name: `Branch ${response.data.data.branch_id}`,
-          vehicle_number: response.data.data.vehicle_number,
-          company_id: response.data.data.company_id,
-          company_name: `Company ${response.data.data.company_id}`,
-          location: response.data.data.location,
-          latitude: response.data.data.latitude,
-          longitude: response.data.data.longitude,
-          image: response.data.data.user?.image || driverData.imagePreview,
-          updated_at: response.data.data.updated_at,
-        };
-        console.log("✅ Driver updated successfully");
-      }
-      return drivers.value[index];
-    } catch (err) {
-      if (err.response?.data?.success === false) {
-        error.value = err.response.data.error || err.response.data.message || "Validation failed";
-      } else {
-        error.value = err.message || "Failed to update driver";
-      }
-      console.error("❌ Error updating driver:", err);
-      throw err;
-    } finally {
-      loading.value = false;
+    // Add only provided fields
+    if (driverData.name) apiData.name = driverData.name;
+    if (driverData.username) apiData.username = driverData.username;
+    if (driverData.email !== undefined) apiData.email = driverData.email || "";
+    if (driverData.phone_number) apiData.phone_number = driverData.phone_number;
+    if (driverData.status) apiData.status = driverData.status;
+    if (driverData.type) apiData.type = driverData.type;
+    if (driverData.vehicle_number) apiData.vehicle_number = driverData.vehicle_number;
+    
+    if (driverData.company_name) {
+      apiData.company_id = parseInt(driverData.company_name);
     }
-  };
+    if (driverData.branch_name) {
+      apiData.branch_id = parseInt(driverData.branch_name);
+    }
 
+    // Only include password if it's provided
+    if (driverData.password && driverData.password.trim() !== "") {
+      apiData.password = driverData.password;
+    }
 
+    // Only include image if it's provided
+    if (driverData.imagePreview) {
+      apiData.image = driverData.imagePreview;
+    }
 
+    console.log("📤 Updating driver:", {
+      ...apiData,
+      password: apiData.password ? "***" : undefined
+    });
 
+    const response = await apiServices.updateDriver(driverId, apiData);
 
+    console.log("✅ API Response:", response.data);
 
+    // Update local state with response data
+    const index = drivers.value.findIndex((d) => d.id === driverId);
+    if (index > -1) {
+      drivers.value[index] = {
+        id: response.data.data.id,
+        name: response.data.data.user?.name || drivers.value[index].name,
+        username: response.data.data.user?.username || response.data.data.user?.same17 || drivers.value[index].username,
+        email: response.data.data.user?.email || drivers.value[index].email,
+        phone_number: response.data.data.user?.phone_number || drivers.value[index].phone_number,
+        role: "Driver",
+        status: response.data.data.status,
+        type: response.data.data.type,
+        branch_id: response.data.data.branch_id,
+        branch_name: `Branch ${response.data.data.branch_id}`,
+        vehicle_number: response.data.data.vehicle_number,
+        company_id: response.data.data.company_id,
+        company_name: `Company ${response.data.data.company_id}`,
+        location: response.data.data.location,
+        latitude: response.data.data.latitude,
+        longitude: response.data.data.longitude,
+        image: response.data.data.user?.image || drivers.value[index].image,
+        updated_at: response.data.data.updated_at,
+      };
+      console.log("✅ Driver updated successfully");
+    }
+    return drivers.value[index];
+  } catch (err) {
+    if (err.response?.data?.success === false) {
+      error.value = err.response.data.error || err.response.data.message || "Validation failed";
+    } else {
+      error.value = err.message || "Failed to update driver";
+    }
+    console.error("❌ Error updating driver:", err);
+    throw err;
+  } finally {
+    loading.value = false;
+  }
+};
+  
 
   const deleteDriver = async (driverId) => {
     loading.value = true;
