@@ -9,7 +9,7 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   const loading = ref(false);
   const error = ref(null);
 
-  // Helper function to add company_name to branches
+  // Helper function to add company_name to branches and flatten location
   const enrichBranchesWithCompanyName = async (branchesData) => {
     try {
       // Fetch companies to get company names
@@ -22,13 +22,16 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
         companyMap[company.id] = company.name;
       });
 
-      // Add company_name to each branch
+      // Add company_name to each branch and flatten location object
       return branchesData.map(branch => ({
         ...branch,
         company_name: branch.company_name || 
                      branch.company?.name || 
                      companyMap[branch.company_id] || 
-                     `Company ${branch.company_id || ''}`
+                     `Company ${branch.company_id || ''}`,
+        // Flatten location if it's an object
+        latitude: branch.latitude || branch.location?.latitude || '',
+        longitude: branch.longitude || branch.location?.longitude || ''
       }));
     } catch (err) {
       console.warn("⚠️ Could not fetch companies, using fallback:", err);
@@ -37,7 +40,9 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
         ...branch,
         company_name: branch.company_name || 
                      branch.company?.name || 
-                     `Company ${branch.company_id || ''}`
+                     `Company ${branch.company_id || ''}`,
+        latitude: branch.latitude || branch.location?.latitude || '',
+        longitude: branch.longitude || branch.location?.longitude || ''
       }));
     }
   };
@@ -49,7 +54,7 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     try {
       const response = await apiServices.getBranches();
 
-      // Enrich branches with company_name
+      // Enrich branches with company_name and flatten location
       branches.value = await enrichBranchesWithCompanyName(response.data.data);
 
       console.log("✅ Branches loaded successfully:", branches.value.length);
@@ -67,9 +72,12 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     loading.value = true;
     error.value = null;
     try {
+      console.log("📤 Sending branch data to API:", branchData);
       const response = await apiServices.createBranch(branchData);
 
-      // Enrich new branch with company_name
+      console.log("📥 API Response:", response.data);
+
+      // Enrich new branch with company_name and flatten location
       const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
       branches.value.push(enrichedBranch);
       console.log("✅ Branch added successfully");
@@ -77,6 +85,13 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     } catch (err) {
       error.value = err.message || "Failed to add branch";
       console.error("❌ Error adding branch:", err);
+      
+      // Log detailed error information
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+      }
+      
       throw err;
     } finally {
       loading.value = false;
@@ -87,9 +102,12 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     loading.value = true;
     error.value = null;
     try {
+      console.log("📤 Updating branch with data:", branchData);
       const response = await apiServices.updateBranch(branchId, branchData);
 
-      // Enrich updated branch with company_name
+      console.log("📥 Update Response:", response.data);
+
+      // Enrich updated branch with company_name and flatten location
       const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
       const index = branches.value.findIndex((b) => b.id === branchId);
       if (index > -1) {
@@ -100,6 +118,13 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     } catch (err) {
       error.value = err.message || "Failed to update branch";
       console.error("❌ Error updating branch:", err);
+      
+      // Log detailed error information
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+      }
+      
       throw err;
     } finally {
       loading.value = false;
@@ -140,7 +165,7 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
       }
 
       if (response.data?.data) {
-        // Enrich restored branch with company_name
+        // Enrich restored branch with company_name and flatten location
         const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
         branches.value.push(enrichedBranch);
       }
