@@ -203,14 +203,14 @@ const linePriceFields = computed(() => [
         required: true,
         options: [
             { value: 'return', label: t('linePrice.form.types.return') },
-            { value: 'one_way', label: t('linePrice.form.types.oneWay') },
+            { value: 'delivery', label: t('linePrice.form.types.delivery') },
         ],
         colClass: 'col-md-12',
         defaultValue: isEditMode.value ? selectedLinePrice.value.type : '',
         validate: (value) => {
-            const validTypes = ['return', 'one_way'];
+            const validTypes = ['return', 'delivery'];
             if (value && !validTypes.includes(value)) {
-                return t('linePrice.validation.invalidType') || 'Invalid type selected. Valid options: return, one_way';
+                return t('linePrice.validation.invalidType') || 'Invalid type selected. Valid options: return, delivery';
             }
             return null;
         }
@@ -229,7 +229,7 @@ const detailsFields = computed(() => [
         label: t('linePrice.type'), 
         colClass: 'col-md-6',
         translator: (value) => {
-            return value === 'return' ? t('linePrice.form.types.return') : t('linePrice.form.types.oneWay');
+            return value === 'return' ? t('linePrice.form.types.return') : t('linePrice.form.types.delivery');
         }
     },
     { key: 'created_at', label: t('linePrice.createdAt'), colClass: 'col-md-6' },
