@@ -195,7 +195,6 @@ class ApiServices {
   }
 
   // ===== Line Price Services =====
-  // ===== Line Price Services =====
   async getLinePrices() {
     return api.get("/line_prices");
   }
@@ -291,7 +290,7 @@ class ApiServices {
 
   // ===== Line Work Services =====
   async getLineWorks() {
-    return api.get("/line-works");
+    return api.get("/lineworks");
   }
 
   // ===== Work Plans Services =====

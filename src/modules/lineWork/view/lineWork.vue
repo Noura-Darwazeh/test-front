@@ -1,43 +1,106 @@
 <template>
     <div class="user-page-container bg-light">
-        <lineWorkHeader v-model="searchText" :searchPlaceholder="$t('lineWork.searchPlaceholder')" :data="lineWork"
-            groupKey="company" v-model:groupModelValue="selectedGroups" :groupLabel="$t('lineWork.filterByCompany')"
-            translationKey="companyNames" :columns="lineWorkColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('lineWork.addNew')" @add-click="openAddModal"
-            @trashed-click="openTrashedModal" />
+        <!-- Floating Validation Error Alert -->
+        <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert" style="min-width: 400px;">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>{{ $t('common.validationError') }}</strong>
+                <p class="mb-0 mt-1">{{ validationError }}</p>
+                <button type="button" class="btn-close" @click="clearValidationError"></button>
+            </div>
+        </div>
+
+        <lineWorkHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('lineWork.searchPlaceholder')" 
+            :data="lineWorks"
+            groupKey="company" 
+            v-model:groupModelValue="selectedGroups" 
+            :groupLabel="$t('lineWork.filterByCompany')"
+            translationKey="companyNames" 
+            :columns="lineWorkColumns" 
+            v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" 
+            :addButtonText="$t('lineWork.addNew')" 
+            @add-click="openAddModal"
+            @trashed-click="openTrashedModal" 
+        />
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedlineWork" :actionsLabel="$t('lineWork.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('lineWork.edit')"
-                            :detailsLabel="$t('lineWork.details')" @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredlineWork.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                <!-- Loading State -->
+                <div v-if="lineWorkStore.loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{{ $t('common.loading') }}</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="lineWorkStore.error" class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ lineWorkStore.error }}
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <DataTable :columns="filteredColumns" :data="paginatedLineWork" :actionsLabel="$t('lineWork.actions')">
+                        <template #actions="{ row }">
+                            <ActionsDropdown 
+                                :row="row" 
+                                :editLabel="$t('lineWork.edit')" 
+                                :detailsLabel="$t('lineWork.details')"
+                                @edit="openEditModal" 
+                                @details="openDetailsModal" 
+                            />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination 
+                            :totalItems="filteredLineWork.length" 
+                            :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" 
+                            @update:currentPage="(page) => currentPage = page" 
+                        />
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit lineWork -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('lineWork.edit') : $t('lineWork.addNew')"
-            :fields="lineWorkFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitlineWork" />
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('lineWork.edit') : $t('lineWork.addNew')"
+            :fields="lineWorkFields" 
+            :showImageUpload="false" 
+            @close="closeFormModal" 
+            @submit="handleSubmitlineWork" 
+        />
 
         <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('lineWork.details')" :data="selectedlineWork"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('lineWork.details')" 
+            :data="selectedlineWork"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
+        />
 
         <!-- Trashed lineWork Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('lineWork.trashed.title')"
-            :emptyMessage="$t('lineWork.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedlineWork"
-            @close="closeTrashedModal" @restore="handleRestorelineWork" />
+        <TrashedItemsModal 
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('lineWork.trashed.title')"
+            :emptyMessage="$t('lineWork.trashed.empty')" 
+            :columns="trashedColumns" 
+            :trashedItems="trashedLineWork"
+            @close="closeTrashedModal" 
+            @restore="handleRestorelineWork" 
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
@@ -47,8 +110,11 @@ import { useI18n } from "vue-i18n";
 import lineWorkHeader from "../components/lineWorkHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import { useLineWorkStore } from "../stores/lineworkStore.js";
 
 const { t } = useI18n();
+const lineWorkStore = useLineWorkStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -58,32 +124,21 @@ const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedlineWork = ref({});
+const validationError = ref(null);
 
-const lineWork = ref([
-    {
-        id: 1,
-        name: "Nablus - Ramallah",
-        company: 'company 1'
-    },
-    {
-        id: 2,
-        name: "Tulkarm - Nablus",
-        company: 'company 2'
-    },
-    {
-        id: 3,
-        name: "Tulkarm - Jenin ",
-        company: 'company 1'
-    },
-]);
+// Get lineWorks from store
+const lineWorks = computed(() => lineWorkStore.lineWorks);
+const trashedLineWork = computed(() => lineWorkStore.trashedLineWorks);
 
-const trashedlineWork = ref([
-    {
-        id: 6,
-        name: "Trashed Line Work",
-        company: 'company 1'
-    },
-]);
+// Fetch data on component mount
+onMounted(async () => {
+    try {
+        await lineWorkStore.fetchLineWorks();
+        console.log("✅ Line works loaded successfully");
+    } catch (error) {
+        console.error("❌ Failed to load line works:", error);
+    }
+});
 
 // lineWork Form Fields 
 const lineWorkFields = computed(() => [
@@ -93,7 +148,7 @@ const lineWorkFields = computed(() => [
         type: 'text',
         required: true,
         placeholder: t('lineWork.form.namePlaceholder'),
-        colClass: 'col-md-6',
+        colClass: 'col-md-12',
         defaultValue: isEditMode.value ? selectedlineWork.value.name : '',
         validate: (value) => {
             if (value.length > 255) return t('lineWork.validation.nameMax');
@@ -106,11 +161,11 @@ const lineWorkFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'company 1', label: t('lineWork.form.companies.company1') },
-            { value: 'company 2', label: t('lineWork.form.companies.company2') },
+            { value: '1', label: t('lineWork.form.companies.company1') },
+            { value: '2', label: t('lineWork.form.companies.company2') },
         ],
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlineWork.value.company : ''
+        colClass: 'col-md-12',
+        defaultValue: isEditMode.value ? String(selectedlineWork.value.company_id) : ''
     },
 ]);
 
@@ -118,7 +173,9 @@ const lineWorkFields = computed(() => [
 const detailsFields = computed(() => [
     { key: 'id', label: t('lineWork.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('lineWork.name'), colClass: 'col-md-6' },
-    { key: 'company', label: t('lineWork.company'), translationKey: 'companyNames', colClass: 'col-md-6' },
+    { key: 'company', label: t('lineWork.company'), colClass: 'col-md-6' },
+    { key: 'created_at', label: t('lineWork.createdAt'), colClass: 'col-md-6' },
+    { key: 'updated_at', label: t('lineWork.updatedAt'), colClass: 'col-md-6' },
 ]);
 
 const lineWorkColumns = ref([
@@ -141,17 +198,16 @@ const filteredColumns = computed(() => {
     );
 });
 
-const filteredlineWork = computed(() => {
-    let result = lineWork.value;
-    // تم تغيير الفلتر من "location" إلى "company"
+const filteredLineWork = computed(() => {
+    let result = lineWorks.value;
     result = filterByGroups(result, selectedGroups.value, "company");
     result = filterData(result, searchText.value);
     return result;
 });
 
-const paginatedlineWork = computed(() => {
+const paginatedLineWork = computed(() => {
     return paginateData(
-        filteredlineWork.value,
+        filteredLineWork.value,
         currentPage.value,
         itemsPerPage.value
     );
@@ -200,37 +256,52 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleSubmitlineWork = (lineWorkData) => {
-    if (isEditMode.value) {
-        // Update existing lineWork
-        const index = lineWork.value.findIndex(d => d.id === selectedlineWork.value.id);
-        if (index > -1) {
-            lineWork.value[index] = {
-                ...lineWork.value[index],
-                name: lineWorkData.name,
-                company: lineWorkData.company || 'company 1',
-            };
-            console.log('LineWork updated successfully!');
+const handleSubmitlineWork = async (lineWorkData) => {
+    // Clear previous validation error
+    validationError.value = null;
+    
+    try {
+        if (isEditMode.value) {
+            // Update existing lineWork
+            await lineWorkStore.updateLineWork(selectedlineWork.value.id, lineWorkData);
+            console.log('✅ Line work updated successfully!');
+        } else {
+            // Add new lineWork
+            await lineWorkStore.addLineWork(lineWorkData);
+            console.log('✅ Line work added successfully!');
         }
-    } else {
-        // Add new lineWork
-        const newlineWork = {
-            id: lineWork.value.length + 1,
-            name: lineWorkData.name,
-            company: lineWorkData.company,
-        };
-        lineWork.value.push(newlineWork);
-        console.log('LineWork added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('❌ Failed to save line work:', error);
+        
+        // Check for specific validation errors
+        if (error.response?.data?.success === false && error.response?.data?.error) {
+            validationError.value = error.response.data.error;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                validationError.value = null;
+            }, 5000);
+            return; // Keep form open for correction
+        }
+        
+        // For other errors, show generic alert
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
-const handleRestorelineWork = (item) => {
-    lineWork.value.push(item);
-    const index = trashedlineWork.value.findIndex(d => d.id === item.id);
-    if (index > -1) {
-        trashedlineWork.value.splice(index, 1);
+const clearValidationError = () => {
+    validationError.value = null;
+};
+
+const handleRestorelineWork = async (lineWork) => {
+    try {
+        await lineWorkStore.restoreLineWork(lineWork.id);
+        console.log("✅ Line work restored successfully!");
+    } catch (error) {
+        console.error("❌ Failed to restore line work:", error);
+        alert(error.message || 'Failed to restore line work');
     }
-    console.log("LineWork restored successfully!");
 };
 </script>
 
