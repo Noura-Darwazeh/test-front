@@ -29,8 +29,28 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     try {
       const response = await apiServices.getLineWorks();
 
+      console.log("📥 Raw API Response:", response.data);
+
+      // Handle different response structures
+      let rawData;
+      if (Array.isArray(response.data)) {
+        // Direct array response
+        rawData = response.data;
+      } else if (response.data.data) {
+        // Nested data property
+        if (Array.isArray(response.data.data)) {
+          rawData = response.data.data;
+        } else {
+          // Single object in data property
+          rawData = [response.data.data];
+        }
+      } else {
+        // Fallback to empty array
+        rawData = [];
+      }
+
       // Transform API response to match frontend format
-      lineWorks.value = response.data.data.map((lineWork) => ({
+      lineWorks.value = rawData.map((lineWork) => ({
         id: lineWork.id,
         name: lineWork.name || "",
         company_id: lineWork.company_id,
@@ -41,10 +61,12 @@ export const useLineWorkStore = defineStore("lineWork", () => {
       }));
 
       console.log(`✅ Successfully loaded ${lineWorks.value.length} line works`);
+      console.log("Loaded line works:", lineWorks.value);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch line works";
       console.error("❌ Error fetching line works:", err);
+      console.error("Error response:", err.response?.data);
       throw err;
     } finally {
       loading.value = false;
@@ -90,15 +112,18 @@ export const useLineWorkStore = defineStore("lineWork", () => {
 
       console.log("✅ API Response:", response.data);
 
+      // Handle response structure
+      const responseData = response.data.data || response.data;
+
       // Transform response to match frontend format
       const newLineWork = {
-        id: response.data.data.id,
-        name: response.data.data.name || "",
-        company_id: response.data.data.company_id,
-        company: `Company ${response.data.data.company_id}`,
-        created_by: response.data.data.created_by,
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
+        id: responseData.id,
+        name: responseData.name || "",
+        company_id: responseData.company_id,
+        company: `Company ${responseData.company_id}`,
+        created_by: responseData.created_by,
+        created_at: responseData.created_at,
+        updated_at: responseData.updated_at,
       };
 
       lineWorks.value.push(newLineWork);
@@ -137,17 +162,20 @@ export const useLineWorkStore = defineStore("lineWork", () => {
 
       console.log("✅ API Response:", response.data);
 
+      // Handle response structure
+      const responseData = response.data.data || response.data;
+
       // Update local state with response data
       const index = lineWorks.value.findIndex((l) => l.id === lineWorkId);
       if (index > -1) {
         lineWorks.value[index] = {
-          id: response.data.data.id,
-          name: response.data.data.name || lineWorks.value[index].name,
-          company_id: response.data.data.company_id,
-          company: `Company ${response.data.data.company_id}`,
-          created_by: response.data.data.created_by,
-          created_at: response.data.data.created_at,
-          updated_at: response.data.data.updated_at,
+          id: responseData.id,
+          name: responseData.name || lineWorks.value[index].name,
+          company_id: responseData.company_id,
+          company: `Company ${responseData.company_id}`,
+          created_by: responseData.created_by,
+          created_at: responseData.created_at,
+          updated_at: responseData.updated_at,
         };
         console.log("✅ Line work updated successfully");
       }

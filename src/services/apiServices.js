@@ -288,30 +288,30 @@ class ApiServices {
     return api.get("/orders");
   }
 
-  // ===== Line Work Services =====
-  async getLineWorks() {
-    return api.get("/lineworks");
-  }
+// ===== Line Work Services =====
+async getLineWorks() {
+  return api.get("/lineworks");
+}
 
-  async createLineWork(lineWorkData) {
-    return api.post("/lineworks", lineWorkData);
-  }
+async createLineWork(lineWorkData) {
+  return api.post("/lineworks", lineWorkData);
+}
 
-  async updateLineWork(lineWorkId, lineWorkData) {
-    return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
-      headers: {
-        'X-HTTP-Method-Override': 'PATCH'
-      }
-    });
-  }
+async updateLineWork(lineWorkId, lineWorkData) {
+  return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
+    headers: {
+      'X-HTTP-Method-Override': 'PATCH'
+    }
+  });
+}
 
-  async deleteLineWork(lineWorkId) {
-    return api.delete(`/lineworks/${lineWorkId}`);
-  }
+async deleteLineWork(lineWorkId) {
+  return api.delete(`/lineworks/${lineWorkId}`);
+}
 
-  async restoreLineWork(lineWorkId) {
-    return api.post(`/restore/lineworks/${lineWorkId}`);
-  }
+async restoreLineWork(lineWorkId) {
+  return api.post(`/restore/lineworks/${lineWorkId}`);
+}
 
   // ===== Work Plans Services =====
   async getWorkPlans() {

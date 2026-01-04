@@ -127,8 +127,7 @@ const driverLines = ref([
     driver_name: "Ahmed Hassan",
     line_work_id: 1,
     line_work_name: "Jerusalem - Ramallah Line",
-    status: "active",
-    assigned_at: "2024-01-15 10:30:00",
+    
     created_at: "2024-01-15 10:30:00",
   },
   {
@@ -137,8 +136,7 @@ const driverLines = ref([
     driver_name: "Mohammed Ali",
     line_work_id: 2,
     line_work_name: "Nablus - Jenin Line",
-    status: "active",
-    assigned_at: "2024-01-16 09:15:00",
+   
     created_at: "2024-01-16 09:15:00",
   },
   {
@@ -147,8 +145,7 @@ const driverLines = ref([
     driver_name: "Fatima Khalil",
     line_work_id: 3,
     line_work_name: "Hebron - Bethlehem Line",
-    status: "inactive",
-    assigned_at: "2024-01-17 14:20:00",
+   
     created_at: "2024-01-17 14:20:00",
   },
   {
@@ -157,8 +154,7 @@ const driverLines = ref([
     driver_name: "Omar Yousef",
     line_work_id: 4,
     line_work_name: "Gaza - Khan Yunis Line",
-    status: "active",
-    assigned_at: "2024-01-18 11:45:00",
+  
     created_at: "2024-01-18 11:45:00",
   },
 ]);
@@ -170,8 +166,6 @@ const trashedDriverLines = ref([
     driver_name: "Sarah Ibrahim",
     line_work_id: 5,
     line_work_name: "Tulkarm - Qalqilya Line",
-    status: "deleted",
-    assigned_at: "2024-01-10 12:00:00",
     created_at: "2024-01-10 12:00:00",
   },
 ]);
@@ -185,18 +179,7 @@ const driverLineColumns = computed(() => [
     label: t("driverLine.table.lineWork"),
     sortable: true,
   },
-  {
-    key: "status",
-    label: t("driverLine.table.status"),
-    sortable: true,
-    component: "StatusBadge",
-    componentProps: { type: "driverLine" },
-  },
-  {
-    key: "assigned_at",
-    label: t("driverLine.table.assignedAt"),
-    sortable: true,
-  },
+
   { key: "created_at", label: t("driverLine.table.createdAt"), sortable: true },
 ]);
 
@@ -204,7 +187,7 @@ const trashedColumns = computed(() => [
   { key: "id", label: t("driverLine.table.id") },
   { key: "driver_name", label: t("driverLine.table.driver") },
   { key: "line_work_name", label: t("driverLine.table.lineWork") },
-  { key: "assigned_at", label: t("driverLine.table.assignedAt") },
+ 
 ]);
 
 const visibleColumns = ref([]);
@@ -217,7 +200,6 @@ const filteredColumns = computed(() => {
 
 const filteredDriverLines = computed(() => {
   let result = driverLines.value;
-  result = filterByGroups(result, selectedGroups.value, "status");
   result = filterData(result, searchText.value);
   return result;
 });
@@ -321,8 +303,7 @@ const validateDriverAssignment = (driverId, lineWorkId, excludeId = null) => {
     (dl) =>
       dl.id !== excludeId &&
       dl.driver_id === driverId &&
-      dl.line_work_id === lineWorkId &&
-      dl.status === "active"
+      dl.line_work_id === lineWorkId 
   );
   if (existingAssignment) {
     return {
@@ -364,15 +345,13 @@ const createDriverLineAssignment = (driverId, driverName, lineWorkId, lineWorkNa
     driver_name: driverName,
     line_work_id: lineWorkId,
     line_work_name: lineWorkName,
-    status: "active",
-    assigned_at: new Date().toISOString().replace("T", " ").substring(0, 19),
+    
     created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
   };
 };
 
 const handleRestoreDriverLine = (driverLine) => {
   console.log("Restoring driver line:", driverLine);
-  driverLines.value.push({ ...driverLine, status: "active" });
   const index = trashedDriverLines.value.findIndex(
     (dl) => dl.id === driverLine.id
   );
@@ -411,13 +390,7 @@ const detailsFields = computed(() => [
   { key: "id", label: t("driverLine.table.id"), colClass: "col-md-6" },
   { key: "driver_name", label: t("driverLine.table.driver"), colClass: "col-md-6" },
   { key: "line_work_name", label: t("driverLine.table.lineWork"), colClass: "col-md-6" },
-  {
-    key: "status",
-    label: t("driverLine.table.status"),
-    colClass: "col-md-6",
-    translationKey: "driverLineStatus"
-  },
-  { key: "assigned_at", label: t("driverLine.table.assignedAt"), colClass: "col-md-6" },
+
   { key: "created_at", label: t("driverLine.table.createdAt"), colClass: "col-md-6" },
 ]);
 
