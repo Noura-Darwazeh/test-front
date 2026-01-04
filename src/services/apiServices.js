@@ -293,6 +293,26 @@ class ApiServices {
     return api.get("/lineworks");
   }
 
+  async createLineWork(lineWorkData) {
+    return api.post("/lineworks", lineWorkData);
+  }
+
+  async updateLineWork(lineWorkId, lineWorkData) {
+    return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteLineWork(lineWorkId) {
+    return api.delete(`/lineworks/${lineWorkId}`);
+  }
+
+  async restoreLineWork(lineWorkId) {
+    return api.post(`/restore/lineworks/${lineWorkId}`);
+  }
+
   // ===== Work Plans Services =====
   async getWorkPlans() {
     return api.get("/work-plans");
