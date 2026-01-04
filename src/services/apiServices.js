@@ -197,15 +197,15 @@ class ApiServices {
   // ===== Line Price Services =====
   // ===== Line Price Services =====
   async getLinePrices() {
-    return api.get("/line-prices");
+    return api.get("/line_prices");
   }
 
   async createLinePrice(priceData) {
-    return api.post("/line-prices", priceData);
+    return api.post("/line_prices", priceData);
   }
 
   async updateLinePrice(priceId, priceData) {
-    return api.post(`/line-prices/${priceId}`, priceData, {
+    return api.post(`/line_prices/${priceId}`, priceData, {
       headers: {
         'X-HTTP-Method-Override': 'PATCH'
       }
