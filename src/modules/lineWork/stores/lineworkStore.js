@@ -27,39 +27,29 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     loading.value = true;
     error.value = null;
     try {
-      console.log("🔄 Starting fetchLineWorks...");
       const response = await apiServices.getLineWorks();
 
-      console.log("📥 Raw API Response (full):", response);
-      console.log("📥 Response.data:", response.data);
-      console.log("📥 Response.data type:", typeof response.data);
-      console.log("📥 Is Array?:", Array.isArray(response.data));
+      console.log("📥 Raw API Response:", response.data);
 
       // Handle different response structures
       let rawData = [];
       
       if (Array.isArray(response.data)) {
-        console.log("✅ Case 1: Direct array response");
+        // Direct array response
         rawData = response.data;
       } else if (response.data.data) {
-        console.log("✅ Case 2: Nested data property");
-        console.log("   - data.data type:", typeof response.data.data);
-        console.log("   - data.data is Array?:", Array.isArray(response.data.data));
-        
+        // Check if data property exists
         if (Array.isArray(response.data.data)) {
-          console.log("   - Array in data property");
+          // Array in data property
           rawData = response.data.data;
         } else if (typeof response.data.data === 'object' && response.data.data !== null) {
-          console.log("   - Single object in data property - wrapping in array");
+          // Single object in data property - wrap in array
           rawData = [response.data.data];
-          console.log("   - Wrapped object:", rawData);
+          console.log("📦 Single object detected, wrapped in array");
         }
-      } else {
-        console.warn("⚠️ Unexpected response structure - no data found");
       }
 
-      console.log("📋 Processed rawData array:", rawData);
-      console.log("📋 rawData length:", rawData.length);
+      console.log("📋 Processed data array:", rawData);
 
       // Transform API response to match frontend format
       lineWorks.value = rawData.map((lineWork) => ({

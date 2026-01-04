@@ -1,5 +1,15 @@
 <template>
   <div class="driver-line-page-container bg-light">
+    <!-- Floating Validation Error Alert -->
+    <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
+      <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert" style="min-width: 400px;">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <strong>{{ $t('common.validationError') }}</strong>
+        <p class="mb-0 mt-1">{{ validationError }}</p>
+        <button type="button" class="btn-close" @click="clearValidationError"></button>
+      </div>
+    </div>
+
     <!-- Info Banner -->
     <div class="alert alert-info d-flex align-items-center justify-content-between mb-3" role="alert">
       <div class="d-flex align-items-center gap-2">
@@ -36,24 +46,41 @@
 
     <div class="card border-0">
       <div class="card-body p-0">
-        <DataTable :columns="filteredColumns" :data="paginatedDriverLines">
-          <template #actions="{ row }">
-            <Actions
-              :row="row"
-              :editLabel="$t('driverLine.edit')"
-              :detailsLabel="$t('driverLine.actions.details')"
-              @edit="handleEdit"
-              @details="handleDetails"
+        <!-- Loading State -->
+        <div v-if="driverLineStore.loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">{{ $t('common.loading') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="driverLineStore.error" class="alert alert-danger m-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ driverLineStore.error }}
+        </div>
+
+        <!-- Data Table -->
+        <div v-else>
+          <DataTable :columns="filteredColumns" :data="paginatedDriverLines">
+            <template #actions="{ row }">
+              <Actions
+                :row="row"
+                :editLabel="$t('driverLine.edit')"
+                :detailsLabel="$t('driverLine.actions.details')"
+                @edit="handleEdit"
+                @details="handleDetails"
+              />
+            </template>
+          </DataTable>
+          <div class="px-3 pt-1 pb-2 bg-light">
+            <Pagination
+              :totalItems="filteredDriverLines.length"
+              :itemsPerPage="itemsPerPage"
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)"
             />
-          </template>
-        </DataTable>
-        <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination
-            :totalItems="filteredDriverLines.length"
-            :itemsPerPage="itemsPerPage"
-            :currentPage="currentPage"
-            @update:currentPage="(page) => (currentPage = page)"
-          />
+          </div>
         </div>
       </div>
     </div>
@@ -65,7 +92,7 @@
       :fields="driverLineFieldsWithDefaults"
       :showImageUpload="false"
       @close="closeModal"
-      @submit="handleAddDriverLine"
+      @submit="handleSubmitDriverLine"
     />
 
     <!-- Trashed Driver Lines Modal -->
@@ -92,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
@@ -104,10 +131,12 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
+import { useDriverLineStore } from "../stores/driverLineStore.js";
 
 const { t } = useI18n();
 const router = useRouter();
 const { driverLineFields } = useDriverLineFormFields();
+const driverLineStore = useDriverLineStore();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -118,57 +147,21 @@ const isTrashedModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDriverLine = ref({});
+const validationError = ref(null);
 
-// Simple local data - following the backend API schema
-const driverLines = ref([
-  {
-    id: 1,
-    driver_id: 1,
-    driver_name: "Ahmed Hassan",
-    line_work_id: 1,
-    line_work_name: "Jerusalem - Ramallah Line",
-    
-    created_at: "2024-01-15 10:30:00",
-  },
-  {
-    id: 2,
-    driver_id: 2,
-    driver_name: "Mohammed Ali",
-    line_work_id: 2,
-    line_work_name: "Nablus - Jenin Line",
-   
-    created_at: "2024-01-16 09:15:00",
-  },
-  {
-    id: 3,
-    driver_id: 4,
-    driver_name: "Fatima Khalil",
-    line_work_id: 3,
-    line_work_name: "Hebron - Bethlehem Line",
-   
-    created_at: "2024-01-17 14:20:00",
-  },
-  {
-    id: 4,
-    driver_id: 5,
-    driver_name: "Omar Yousef",
-    line_work_id: 4,
-    line_work_name: "Gaza - Khan Yunis Line",
-  
-    created_at: "2024-01-18 11:45:00",
-  },
-]);
+// Get driver lines from store
+const driverLines = computed(() => driverLineStore.driverLines);
+const trashedDriverLines = computed(() => driverLineStore.trashedDriverLines);
 
-const trashedDriverLines = ref([
-  {
-    id: 101,
-    driver_id: 3,
-    driver_name: "Sarah Ibrahim",
-    line_work_id: 5,
-    line_work_name: "Tulkarm - Qalqilya Line",
-    created_at: "2024-01-10 12:00:00",
-  },
-]);
+// Fetch data on component mount
+onMounted(async () => {
+  try {
+    await driverLineStore.fetchDriverLines();
+    console.log("✅ Driver lines loaded successfully");
+  } catch (error) {
+    console.error("❌ Failed to load driver lines:", error);
+  }
+});
 
 // Table columns
 const driverLineColumns = computed(() => [
@@ -179,7 +172,6 @@ const driverLineColumns = computed(() => [
     label: t("driverLine.table.lineWork"),
     sortable: true,
   },
-
   { key: "created_at", label: t("driverLine.table.createdAt"), sortable: true },
 ]);
 
@@ -187,7 +179,6 @@ const trashedColumns = computed(() => [
   { key: "id", label: t("driverLine.table.id") },
   { key: "driver_name", label: t("driverLine.table.driver") },
   { key: "line_work_name", label: t("driverLine.table.lineWork") },
- 
 ]);
 
 const visibleColumns = ref([]);
@@ -233,132 +224,57 @@ const closeTrashedModal = () => {
   isTrashedModalOpen.value = false;
 };
 
-const handleAddDriverLine = (driverLineData) => {
-  console.log("Driver line data:", driverLineData);
-
+const handleSubmitDriverLine = async (driverLineData) => {
+  // Clear previous validation error
+  validationError.value = null;
+  
   try {
-    // Validate input data
-    if (!driverLineData.driver_id || !driverLineData.line_work_id) {
-      alert(t("driverLine.validation.missingFields"));
-      return;
-    }
-
-    const driverId = parseInt(driverLineData.driver_id);
-    const lineWorkId = parseInt(driverLineData.line_work_id);
-
-    // Get driver and line work details
-    const driver = getDriverById(driverId);
-    const lineWork = getLineWorkById(lineWorkId);
-
-    if (!driver || !lineWork) {
-      alert(t("driverLine.validation.invalidData"));
-      return;
-    }
-
     if (isEditMode.value) {
       // Update existing driver line
-      const index = driverLines.value.findIndex(dl => dl.id === selectedDriverLine.value.id);
-      if (index > -1) {
-        // Validate the assignment (excluding current item)
-        const validationResult = validateDriverAssignment(driverId, lineWorkId, selectedDriverLine.value.id);
-        if (!validationResult.valid) {
-          alert(validationResult.error);
-          return;
-        }
-
-        driverLines.value[index] = {
-          ...driverLines.value[index],
-          driver_id: driverId,
-          driver_name: driver.name,
-          line_work_id: lineWorkId,
-          line_work_name: lineWork.name,
-        };
-        console.log("Driver line assignment updated successfully!");
-      }
+      await driverLineStore.updateDriverLine(selectedDriverLine.value.id, driverLineData);
+      console.log('✅ Driver line updated successfully!');
     } else {
-      // Validate the assignment
-      const validationResult = validateDriverAssignment(driverId, lineWorkId);
-      if (!validationResult.valid) {
-        alert(validationResult.error);
-        return;
-      }
-
-      // Create the assignment
-      const newDriverLine = createDriverLineAssignment(driverId, driver.name, lineWorkId, lineWork.name);
-      driverLines.value.push(newDriverLine);
-      console.log("Driver line assignment added successfully!");
+      // Add new driver line
+      await driverLineStore.addDriverLine(driverLineData);
+      console.log('✅ Driver line added successfully!');
     }
-
     closeModal();
   } catch (error) {
-    console.error("Error managing driver line assignment:", error);
-    alert(t("driverLine.validation.generalError"));
-  }
-};
-
-const validateDriverAssignment = (driverId, lineWorkId, excludeId = null) => {
-  // Check for unique driver_id + line_work_id validation
-  // Only prevent duplicate assignment of same driver to same line
-  const existingAssignment = driverLines.value.find(
-    (dl) =>
-      dl.id !== excludeId &&
-      dl.driver_id === driverId &&
-      dl.line_work_id === lineWorkId 
-  );
-  if (existingAssignment) {
-    return {
-      valid: false,
-      error: t("driverLine.validation.duplicateAssignment")
-    };
-  }
-
-  // Drivers can work on multiple lines, so no additional validation needed
-  return { valid: true };
-};
-
-const getDriverById = (driverId) => {
-  const drivers = [
-    { id: 1, name: "Ahmed Hassan" },
-    { id: 2, name: "Mohammed Ali" },
-    { id: 3, name: "Sarah Ibrahim" },
-    { id: 4, name: "Fatima Khalil" },
-    { id: 5, name: "Omar Yousef" },
-  ];
-  return drivers.find((d) => d.id === driverId);
-};
-
-const getLineWorkById = (lineWorkId) => {
-  const lineWorks = [
-    { id: 1, name: "Jerusalem - Ramallah Line" },
-    { id: 2, name: "Nablus - Jenin Line" },
-    { id: 3, name: "Hebron - Bethlehem Line" },
-    { id: 4, name: "Gaza - Khan Yunis Line" },
-    { id: 5, name: "Tulkarm - Qalqilya Line" },
-  ];
-  return lineWorks.find((lw) => lw.id === lineWorkId);
-};
-
-const createDriverLineAssignment = (driverId, driverName, lineWorkId, lineWorkName) => {
-  return {
-    id: Math.max(...driverLines.value.map((dl) => dl.id), 0) + 1,
-    driver_id: driverId,
-    driver_name: driverName,
-    line_work_id: lineWorkId,
-    line_work_name: lineWorkName,
+    console.error('❌ Failed to save driver line:', error);
     
-    created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
-  };
+    // Check for specific validation errors
+    if (error.response?.data?.success === false && error.response?.data?.error) {
+      const errorMessage = error.response.data.error;
+      
+      // Check for duplicate assignment error
+      if (errorMessage.includes('already assigned') || errorMessage.includes('duplicate')) {
+        validationError.value = t('driverLine.validation.duplicateAssignment');
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+          validationError.value = null;
+        }, 5000);
+        return; // Keep form open for correction
+      }
+    }
+    
+    // For other errors, show generic alert
+    alert(error.message || t('common.saveFailed'));
+  }
 };
 
-const handleRestoreDriverLine = (driverLine) => {
-  console.log("Restoring driver line:", driverLine);
-  const index = trashedDriverLines.value.findIndex(
-    (dl) => dl.id === driverLine.id
-  );
-  if (index > -1) {
-    trashedDriverLines.value.splice(index, 1);
+const clearValidationError = () => {
+  validationError.value = null;
+};
+
+const handleRestoreDriverLine = async (driverLine) => {
+  try {
+    await driverLineStore.restoreDriverLine(driverLine.id);
+    console.log("✅ Driver line restored successfully!");
+  } catch (error) {
+    console.error("❌ Failed to restore driver line:", error);
+    alert(error.message || 'Failed to restore driver line');
   }
-  console.log("Driver line assignment has been restored successfully!");
 };
 
 const handleEdit = (driverLine) => {
@@ -390,7 +306,6 @@ const detailsFields = computed(() => [
   { key: "id", label: t("driverLine.table.id"), colClass: "col-md-6" },
   { key: "driver_name", label: t("driverLine.table.driver"), colClass: "col-md-6" },
   { key: "line_work_name", label: t("driverLine.table.lineWork"), colClass: "col-md-6" },
-
   { key: "created_at", label: t("driverLine.table.createdAt"), colClass: "col-md-6" },
 ]);
 
