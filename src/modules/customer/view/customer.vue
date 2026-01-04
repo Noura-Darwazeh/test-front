@@ -1,44 +1,110 @@
 <template>
     <div class="user-page-container bg-light">
-        <CustomerHeader v-model="searchText" :searchPlaceholder="$t('customer.searchPlaceholder')" :data="customers"
-            groupKey="company_name" v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('customer.filterByCompany')" translationKey="" :columns="customerColumns"
-            v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('customer.addNew')"
-            @add-click="openAddModal" @trashed-click="openTrashedModal" />
+        <!-- Floating Validation Error Alert -->
+        <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert" style="min-width: 400px;">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>{{ $t('common.validationError') }}</strong>
+                <p class="mb-0 mt-1">{{ validationError }}</p>
+                <button type="button" class="btn-close" @click="clearValidationError"></button>
+            </div>
+        </div>
+
+        <CustomerHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('customer.searchPlaceholder')" 
+            :data="customers"
+            groupKey="company_name" 
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('customer.filterByCompany')" 
+            translationKey="" 
+            :columns="customerColumns"
+            v-model:visibleColumns="visibleColumns" 
+            :showAddButton="true" 
+            :addButtonText="$t('customer.addNew')"
+            @add-click="openAddModal" 
+            @trashed-click="openTrashedModal" 
+        />
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedcustomers" :actionsLabel="$t('customer.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('customer.edit')"
-                            :detailsLabel="$t('customer.details')" @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredCustomer.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                <!-- Loading State -->
+                <div v-if="customerStore.loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{{ $t('common.loading') }}</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="customerStore.error" class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ customerStore.error }}
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <DataTable 
+                        :columns="filteredColumns" 
+                        :data="paginatedCustomers" 
+                        :actionsLabel="$t('customer.actions')"
+                    >
+                        <template #actions="{ row }">
+                            <ActionsDropdown 
+                                :row="row" 
+                                :editLabel="$t('customer.edit')"
+                                :detailsLabel="$t('customer.details')" 
+                                @edit="openEditModal" 
+                                @details="openDetailsModal" 
+                            />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination 
+                            :totalItems="filteredCustomer.length" 
+                            :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" 
+                            @update:currentPage="(page) => currentPage = page" 
+                        />
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit customer -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('customer.edit') : $t('customer.addNew')"
-            :fields="customerFields" :showImageUpload="false"  @close="closeFormModal"
-            @submit="handleSubmitcustomer" />
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('customer.edit') : $t('customer.addNew')"
+            :fields="customerFields" 
+            :showImageUpload="false"  
+            @close="closeFormModal"
+            @submit="handleSubmitCustomer" 
+        />
 
         <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('customer.details')" :data="selectedCustomer"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('customer.details')" 
+            :data="selectedCustomer"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
+        />
 
         <!-- Trashed customers Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('customer.trashed.title')"
-            :emptyMessage="$t('customer.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedcustomers"
-            @close="closeTrashedModal" @restore="handleRestorecustomer" />
+        <TrashedItemsModal 
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('customer.trashed.title')"
+            :emptyMessage="$t('customer.trashed.empty')" 
+            :columns="trashedColumns" 
+            :trashedItems="trashedCustomers"
+            @close="closeTrashedModal" 
+            @restore="handleRestoreCustomer" 
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
@@ -48,8 +114,11 @@ import { useI18n } from "vue-i18n";
 import CustomerHeader from "../components/customerHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import { useCustomerStore } from "../stores/customerStore.js";
 
 const { t } = useI18n();
+const customerStore = useCustomerStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -59,42 +128,23 @@ const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedCustomer = ref({});
+const validationError = ref(null);
 
-const customers = ref([
-    {
-        id: 1,
-        name: "Sami ",
-        phone_number: "0598549638",
-        company_name: "company 1",
-        location: 'Nablus',
-    },
-    {
-        id: 2,
-        name: "Ali ",
-        phone_number: "0598549638",
-        company_name: "company 1",
-        location: 'Nablus',
-    },
-    {
-        id: 3,
-        name: " Ahmed",
-        phone_number: "0598549638",
-        company_name: "company 2",
-        location: 'Nablus',
-    },
-]);
+// Get customers from store
+const customers = computed(() => customerStore.customers);
+const trashedCustomers = computed(() => customerStore.trashedCustomers);
 
-const trashedcustomers = ref([
-    {
-        id: 3,
-        name: "Mohammad",
-        phone_number: "0598549638",
-        company_name: "company 1",
-        location: 'Nablus',
-    },
-]);
+// Fetch data on component mount
+onMounted(async () => {
+    try {
+        await customerStore.fetchCustomers();
+        console.log("✅ Customers loaded successfully");
+    } catch (error) {
+        console.error("❌ Failed to load customers:", error);
+    }
+});
 
-// customer Form Fields 
+// Customer Form Fields 
 const customerFields = computed(() => [
     {
         name: 'name',
@@ -140,19 +190,19 @@ const customerFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'company 1', label: 'Company 1' },
-            { value: 'company 2', label: 'Company 2' },
-            { value: 'company 3', label: 'Company 3' },
+            { value: '1', label: 'Company 1' },
+            { value: '2', label: 'Company 2' },
+            { value: '3', label: 'Company 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedCustomer.value.company_name : ''
+        defaultValue: isEditMode.value ? String(selectedCustomer.value.company_id) : ''
     },
 
     {
         name: 'set_location',
         label: t('customer.form.location'),
         type: 'button',
-        required: !isEditMode.value,
+        required: false,
         text: t('customer.form.setLocation'),
         colClass: 'col-md-6',
         onClick: () => {
@@ -173,15 +223,14 @@ const customerColumns = ref([
     { key: "id", label: t("customer.id"), sortable: true },
     { key: "name", label: t("customer.name"), sortable: true },
     { key: "phone_number", label: t("customer.phoneNumber"), sortable: false },
-    { key: 'company_name', label: t('customer.companyName'), colClass: 'col-md-6' },
-
+    { key: 'company_name', label: t('customer.companyName'), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
     { key: "id", label: t("customer.id") },
     { key: "name", label: t("customer.name") },
-    { key: "phone_number", label: t("customer.phoneNumber"), sortable: false },
-    { key: 'company_name', label: t('customer.companyName'), colClass: 'col-md-6' },
+    { key: "phone_number", label: t("customer.phoneNumber") },
+    { key: 'company_name', label: t('customer.companyName') },
 ]);
 
 const visibleColumns = ref([]);
@@ -199,7 +248,7 @@ const filteredCustomer = computed(() => {
     return result;
 });
 
-const paginatedcustomers = computed(() => {
+const paginatedCustomers = computed(() => {
     return paginateData(
         filteredCustomer.value,
         currentPage.value,
@@ -250,39 +299,52 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleSubmitcustomer = (customerData) => {
-    if (isEditMode.value) {
-        // Update existing customer
-        const index = customers.value.findIndex(d => d.id === selectedCustomer.value.id);
-        if (index > -1) {
-            customers.value[index] = {
-                ...customers.value[index],
-                name: customerData.name,
-                phone_number: customerData.phone_number,
-                company_name: customerData.company_name,
-            };
-            console.log('customer updated successfully!');
+const handleSubmitCustomer = async (customerData) => {
+    // Clear previous validation error
+    validationError.value = null;
+    
+    try {
+        if (isEditMode.value) {
+            // Update existing customer
+            await customerStore.updateCustomer(selectedCustomer.value.id, customerData);
+            console.log('✅ Customer updated successfully!');
+        } else {
+            // Add new customer
+            await customerStore.addCustomer(customerData);
+            console.log('✅ Customer added successfully!');
         }
-    } else {
-        // Add new customer
-        const newcustomer = {
-            id: customers.value.length + 1,
-            name: customerData.name,
-            phone_number: customerData.phone_number,
-            company_name: customerData.company_name,
-        };
-        customers.value.push(newcustomer);
-        console.log('customer added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('❌ Failed to save customer:', error);
+        
+        // Check for specific validation errors
+        if (error.response?.data?.success === false && error.response?.data?.error) {
+            validationError.value = error.response.data.error;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                validationError.value = null;
+            }, 5000);
+            return; // Keep form open for correction
+        }
+        
+        // For other errors, show generic alert
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
-const handleRestorecustomer = (customer) => {
-    customers.value.push(customer);
-    const index = trashedcustomers.value.findIndex(d => d.id === customer.id);
-    if (index > -1) {
-        trashedcustomers.value.splice(index, 1);
+const clearValidationError = () => {
+    validationError.value = null;
+};
+
+const handleRestoreCustomer = async (customer) => {
+    try {
+        await customerStore.restoreCustomer(customer.id);
+        console.log("✅ Customer restored successfully!");
+    } catch (error) {
+        console.error("❌ Failed to restore customer:", error);
+        alert(error.message || 'Failed to restore customer');
     }
-    console.log("customer restored successfully!");
 };
 </script>
 

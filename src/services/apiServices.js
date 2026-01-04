@@ -127,7 +127,26 @@ class ApiServices {
   async restoreBranch(branchId) {
     return api.post(`/restore/branchs/${branchId}`);
   }
+  // ===== Customer Services =====
+  async getCustomers() {
+    return api.get("/customers");
+  }
 
+  async createCustomer(customerData) {
+    return api.post("/customers", customerData);
+  }
+
+  async updateCustomer(customerId, customerData) {
+    return api.patch(`/customers/${customerId}`, customerData);
+  }
+
+  async deleteCustomer(customerId) {
+    return api.delete(`/customers/${customerId}`);
+  }
+
+  async restoreCustomer(customerId) {
+    return api.post(`/customers/${customerId}/restore`);
+  }
   // ===== Company Services =====
   async getCompanies() {
     return api.get("/companies");
