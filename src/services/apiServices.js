@@ -195,8 +195,29 @@ class ApiServices {
   }
 
   // ===== Line Price Services =====
+  // ===== Line Price Services =====
   async getLinePrices() {
     return api.get("/line-prices");
+  }
+
+  async createLinePrice(priceData) {
+    return api.post("/line-prices", priceData);
+  }
+
+  async updateLinePrice(priceId, priceData) {
+    return api.post(`/line-prices/${priceId}`, priceData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteLinePrice(priceId) {
+    return api.delete(`/line-prices/${priceId}`);
+  }
+
+  async restoreLinePrice(priceId) {
+    return api.post(`/restore/line-prices/${priceId}`);
   }
 
   // ===== Lines Services =====

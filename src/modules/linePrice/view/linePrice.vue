@@ -1,13 +1,23 @@
 <template>
     <div class="user-page-container bg-light">
+        <!-- Floating Validation Error Alert -->
+        <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert" style="min-width: 400px;">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>{{ $t('common.validationError') }}</strong>
+                <p class="mb-0 mt-1">{{ validationError }}</p>
+                <button type="button" class="btn-close" @click="clearValidationError"></button>
+            </div>
+        </div>
+
         <LinePriceHeader 
             v-model="searchText" 
             :searchPlaceholder="$t('linePrice.searchPlaceholder')" 
             :data="linePrices"
-            groupKey="company" 
+            groupKey="type" 
             v-model:groupModelValue="selectedGroups" 
-            :groupLabel="$t('linePrice.filterByCompany')"
-            translationKey="companyNames" 
+            :groupLabel="$t('linePrice.filterByType')"
+            translationKey="priceTypes" 
             :columns="linePriceColumns" 
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true" 
@@ -18,38 +28,79 @@
 
         <div class="card border-0">
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedlinePrices"
-                    :actionsLabel="$t('linePrice.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('linePrice.edit')"
-                            :detailsLabel="$t('linePrice.details')" @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredlinePrices.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                <!-- Loading State -->
+                <div v-if="linePriceStore.loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{{ $t('common.loading') }}</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="linePriceStore.error" class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ linePriceStore.error }}
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <DataTable :columns="filteredColumns" :data="paginatedLinePrices" :actionsLabel="$t('linePrice.actions')">
+                        <template #actions="{ row }">
+                            <ActionsDropdown 
+                                :row="row" 
+                                :editLabel="$t('linePrice.edit')" 
+                                :detailsLabel="$t('linePrice.details')"
+                                @edit="openEditModal" 
+                                @details="openDetailsModal" 
+                            />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination 
+                            :totalItems="filteredLinePrices.length" 
+                            :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" 
+                            @update:currentPage="(page) => currentPage = page" 
+                        />
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Dynamic Form Modal for Add/Edit linePrice -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('linePrice.edit') : $t('linePrice.addNew')"
-            :fields="linePriceFields" :showImageUpload="false" @close="closeFormModal"
-            @submit="handleSubmitlinePrice" />
+        <!-- Dynamic Form Modal for Add/Edit Line Price -->
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('linePrice.edit') : $t('linePrice.addNew')"
+            :fields="linePriceFields" 
+            :showImageUpload="false" 
+            @close="closeFormModal" 
+            @submit="handleSubmitLinePrice" 
+        />
 
         <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('linePrice.details')" :data="selectedlinePrice"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('linePrice.details')" 
+            :data="selectedLinePrice"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
+        />
 
-        <!-- Trashed linePrices Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('linePrice.trashed.title')"
-            :emptyMessage="$t('linePrice.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedlinePrices"
-            @close="closeTrashedModal" @restore="handleRestorelinePrice" />
+        <!-- Trashed Line Prices Modal -->
+        <TrashedItemsModal 
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('linePrice.trashed.title')"
+            :emptyMessage="$t('linePrice.trashed.empty')" 
+            :columns="trashedColumns" 
+            :trashedItems="trashedLinePrices"
+            @close="closeTrashedModal" 
+            @restore="handleRestoreLinePrice" 
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
@@ -59,8 +110,11 @@ import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
+import { useLinePriceStore } from "../stores/linespriceStore.js";
 
 const { t } = useI18n();
+const linePriceStore = useLinePriceStore();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -69,60 +123,37 @@ const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
-const selectedlinePrice = ref({});
+const selectedLinePrice = ref({});
+const validationError = ref(null);
 
-const linePrices = ref([
-    {
-        id: 1,
-        name: "Line 1",
-        price: 50,
-        currency: 'ILS',
-        company: 'company 1',
-        type: 'delivery'
-    },
-    {
-        id: 2,
-        name: "Line 2",
-        price: 75,
-        currency: 'USD',
-        company: 'company 2',
-        type: 'return'
-    },
-    {
-        id: 3,
-        name: "Line 3",
-        price: 100,
-        currency: 'JOD',
-        company: 'company 1',
-        type: 'delivery'
-    },
-]);
+// Get line prices from store
+const linePrices = computed(() => linePriceStore.linePrices);
+const trashedLinePrices = computed(() => linePriceStore.trashedLinePrices);
 
-const trashedlinePrices = ref([
-    {
-        id: 4,
-        name: "Line 4",
-        price: 90,
-        currency: 'USD',
-        company: 'company 2',
-        type: 'delivery'
-    },
-]);
+// Fetch data on component mount
+onMounted(async () => {
+    try {
+        await linePriceStore.fetchLinePrices();
+        console.log("✅ Line prices loaded successfully");
+    } catch (error) {
+        console.error("❌ Failed to load line prices:", error);
+    }
+});
 
-// linePrice Form Fields 
+// Line Price Form Fields 
 const linePriceFields = computed(() => [
     {
-        name: 'name',
-        label: t('linePrice.form.name'),
-        type: 'text',
+        name: 'line_id',
+        label: t('linePrice.form.line'),
+        type: 'select',
         required: true,
-        placeholder: t('linePrice.form.namePlaceholder'),
+        options: [
+            { value: '1', label: 'Line 1' },
+            { value: '2', label: 'Line 2' },
+            { value: '3', label: 'Line 3' },
+        ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlinePrice.value.name : '',
-        validate: (value) => {
-            if (value.length > 255) return t('linePrice.validation.nameMax');
-            return null;
-        }
+        defaultValue: isEditMode.value ? String(selectedLinePrice.value.line_id) : ''
     },
     {
         name: 'price',
@@ -131,36 +162,39 @@ const linePriceFields = computed(() => [
         required: true,
         placeholder: t('linePrice.form.pricePlaceholder'),
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlinePrice.value.price : '',
+        step: '0.01',
+        min: '0',
+        defaultValue: isEditMode.value ? selectedLinePrice.value.price : '',
         validate: (value) => {
-            if (!value || value <= 0) return t('linePrice.validation.priceRequired');
+            if (value <= 0) return t('linePrice.validation.pricePositive');
             return null;
         }
     },
     {
-        name: 'currency',
+        name: 'currency_id',
         label: t('linePrice.form.currency'),
         type: 'select',
         required: true,
         options: [
-            { value: 'ILS', label: t('linePrice.form.currencies.currency3') },
-            { value: 'JOD', label: t('linePrice.form.currencies.currency2') },
-            { value: 'USD', label: t('linePrice.form.currencies.currency1') },
+            { value: '1', label: 'USD' },
+            { value: '2', label: 'EUR' },
+            { value: '3', label: 'ILS' },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlinePrice.value.currency : ''
+        defaultValue: isEditMode.value ? String(selectedLinePrice.value.currency_id) : ''
     },
     {
-        name: 'company',
+        name: 'company_id',
         label: t('linePrice.form.company'),
         type: 'select',
         required: true,
         options: [
-            { value: 'company 1', label: t('linePrice.form.companies.company1') },
-            { value: 'company 2', label: t('linePrice.form.companies.company2') },
+            { value: '1', label: 'Company 1' },
+            { value: '2', label: 'Company 2' },
+            { value: '3', label: 'Company 3' },
         ],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlinePrice.value.company : ''
+        defaultValue: isEditMode.value ? String(selectedLinePrice.value.company_id) : ''
     },
     {
         name: 'type',
@@ -168,38 +202,54 @@ const linePriceFields = computed(() => [
         type: 'select',
         required: true,
         options: [
-            { value: 'delivery', label: t('linePrice.form.types.type1') },
-            { value: 'return', label: t('linePrice.form.types.type2') },
+            { value: 'return', label: t('linePrice.form.types.return') },
+            { value: 'one_way', label: t('linePrice.form.types.oneWay') },
         ],
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedlinePrice.value.type : ''
+        colClass: 'col-md-12',
+        defaultValue: isEditMode.value ? selectedLinePrice.value.type : '',
+        validate: (value) => {
+            const validTypes = ['return', 'one_way'];
+            if (value && !validTypes.includes(value)) {
+                return t('linePrice.validation.invalidType') || 'Invalid type selected. Valid options: return, one_way';
+            }
+            return null;
+        }
     },
 ]);
 
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('linePrice.id'), colClass: 'col-md-6' },
-    { key: 'name', label: t('linePrice.name'), colClass: 'col-md-6' },
+    { key: 'line_name', label: t('linePrice.line'), colClass: 'col-md-6' },
     { key: 'price', label: t('linePrice.price'), colClass: 'col-md-6' },
-    { key: 'currency', label: t('linePrice.currency'), colClass: 'col-md-6' },
-    { key: 'company', label: t('linePrice.company'), translationKey: 'companyNames', colClass: 'col-md-6' },
-    { key: 'type', label: t('linePrice.type'), translationKey: 'linePrice.form.types', colClass: 'col-md-6' },
+    { key: 'currency_code', label: t('linePrice.currency'), colClass: 'col-md-6' },
+    { key: 'company_name', label: t('linePrice.company'), colClass: 'col-md-6' },
+    { 
+        key: 'type', 
+        label: t('linePrice.type'), 
+        colClass: 'col-md-6',
+        translator: (value) => {
+            return value === 'return' ? t('linePrice.form.types.return') : t('linePrice.form.types.oneWay');
+        }
+    },
+    { key: 'created_at', label: t('linePrice.createdAt'), colClass: 'col-md-6' },
+    { key: 'updated_at', label: t('linePrice.updatedAt'), colClass: 'col-md-6' },
 ]);
 
 const linePriceColumns = ref([
     { key: "id", label: t("linePrice.id"), sortable: true },
-    { key: "name", label: t("linePrice.name"), sortable: true },
+    { key: "line_name", label: t("linePrice.line"), sortable: false },
     { key: "price", label: t("linePrice.price"), sortable: true },
-    { key: "currency", label: t("linePrice.currency"), sortable: false },
-    { key: "company", label: t("linePrice.company"), sortable: false },
+    { key: "currency_code", label: t("linePrice.currency"), sortable: false },
+    { key: "company_name", label: t("linePrice.company"), sortable: false },
     { key: "type", label: t("linePrice.type"), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
     { key: "id", label: t("linePrice.id") },
-    { key: "name", label: t("linePrice.name") },
+    { key: "line_name", label: t("linePrice.line") },
     { key: "price", label: t("linePrice.price") },
-    { key: "company", label: t("linePrice.company") },
+    { key: "currency_code", label: t("linePrice.currency") },
     { key: "type", label: t("linePrice.type") },
 ]);
 
@@ -211,16 +261,16 @@ const filteredColumns = computed(() => {
     );
 });
 
-const filteredlinePrices = computed(() => {
+const filteredLinePrices = computed(() => {
     let result = linePrices.value;
-    result = filterByGroups(result, selectedGroups.value, "company");
+    result = filterByGroups(result, selectedGroups.value, "type");
     result = filterData(result, searchText.value);
     return result;
 });
 
-const paginatedlinePrices = computed(() => {
+const paginatedLinePrices = computed(() => {
     return paginateData(
-        filteredlinePrices.value,
+        filteredLinePrices.value,
         currentPage.value,
         itemsPerPage.value
     );
@@ -233,32 +283,32 @@ watch([searchText, selectedGroups], () => {
 // Add Modal
 const openAddModal = () => {
     isEditMode.value = false;
-    selectedlinePrice.value = {};
+    selectedLinePrice.value = {};
     isFormModalOpen.value = true;
 };
 
 // Edit Modal
 const openEditModal = (linePrice) => {
     isEditMode.value = true;
-    selectedlinePrice.value = { ...linePrice };
+    selectedLinePrice.value = { ...linePrice };
     isFormModalOpen.value = true;
 };
 
 // Details Modal
 const openDetailsModal = (linePrice) => {
-    selectedlinePrice.value = { ...linePrice };
+    selectedLinePrice.value = { ...linePrice };
     isDetailsModalOpen.value = true;
 };
 
 const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
-    selectedlinePrice.value = {};
+    selectedLinePrice.value = {};
 };
 
 const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
-    selectedlinePrice.value = {};
+    selectedLinePrice.value = {};
 };
 
 const openTrashedModal = () => {
@@ -269,43 +319,52 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
-const handleSubmitlinePrice = (linePriceData) => {
-    if (isEditMode.value) {
-        // Update existing line price
-        const index = linePrices.value.findIndex(d => d.id === selectedlinePrice.value.id);
-        if (index > -1) {
-            linePrices.value[index] = {
-                ...linePrices.value[index],
-                name: linePriceData.name,
-                price: linePriceData.price,
-                currency: linePriceData.currency,
-                company: linePriceData.company,
-                type: linePriceData.type,
-            };
-            console.log('Line price updated successfully!');
+const handleSubmitLinePrice = async (priceData) => {
+    // Clear previous validation error
+    validationError.value = null;
+    
+    try {
+        if (isEditMode.value) {
+            // Update existing line price
+            await linePriceStore.updateLinePrice(selectedLinePrice.value.id, priceData);
+            console.log('✅ Line price updated successfully!');
+        } else {
+            // Add new line price
+            await linePriceStore.addLinePrice(priceData);
+            console.log('✅ Line price added successfully!');
         }
-    } else {
-        // Add new line price
-        const newlinePrice = {
-            id: linePrices.value.length + 1,
-            name: linePriceData.name,
-            price: linePriceData.price,
-            currency: linePriceData.currency,
-            company: linePriceData.company,
-            type: linePriceData.type,
-        };
-        linePrices.value.push(newlinePrice);
-        console.log('Line price added successfully!');
+        closeFormModal();
+    } catch (error) {
+        console.error('❌ Failed to save line price:', error);
+        
+        // Check for specific validation errors
+        if (error.response?.data?.success === false && error.response?.data?.error) {
+            validationError.value = error.response.data.error;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                validationError.value = null;
+            }, 5000);
+            return; // Keep form open for correction
+        }
+        
+        // For other errors, show generic alert
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
-const handleRestorelinePrice = (linePrice) => {
-    linePrices.value.push(linePrice);
-    const index = trashedlinePrices.value.findIndex(d => d.id === linePrice.id);
-    if (index > -1) {
-        trashedlinePrices.value.splice(index, 1);
+const clearValidationError = () => {
+    validationError.value = null;
+};
+
+const handleRestoreLinePrice = async (linePrice) => {
+    try {
+        await linePriceStore.restoreLinePrice(linePrice.id);
+        console.log("✅ Line price restored successfully!");
+    } catch (error) {
+        console.error("❌ Failed to restore line price:", error);
+        alert(error.message || 'Failed to restore line price');
     }
-    console.log("Line price restored successfully!");
 };
 </script>
 
