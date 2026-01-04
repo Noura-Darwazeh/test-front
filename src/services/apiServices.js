@@ -204,6 +204,25 @@ class ApiServices {
     return api.get("/lines");
   }
 
+  async createLine(lineData) {
+    return api.post("/lines", lineData);
+  }
+
+  async updateLine(lineId, lineData) {
+    return api.post(`/lines/${lineId}`, lineData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+
+  async deleteLine(lineId) {
+    return api.delete(`/lines/${lineId}`);
+  }
+
+  async restoreLine(lineId) {
+    return api.post(`/restore/lines/${lineId}`);
+  }
   // ===== Regions Services =====
   async getRegions() {
     return api.get("/regions");
