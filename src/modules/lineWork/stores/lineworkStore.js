@@ -27,34 +27,46 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     loading.value = true;
     error.value = null;
     try {
+      console.log("🔄 Starting fetchLineWorks...");
       const response = await apiServices.getLineWorks();
 
-      console.log("📥 Raw API Response:", response.data);
+      console.log("📥 Raw API Response (full):", response);
+      console.log("📥 Response.data:", response.data);
+      console.log("📥 Response.data type:", typeof response.data);
+      console.log("📥 Is Array?:", Array.isArray(response.data));
 
       // Handle different response structures
-      let rawData;
+      let rawData = [];
+      
       if (Array.isArray(response.data)) {
-        // Direct array response
+        console.log("✅ Case 1: Direct array response");
         rawData = response.data;
       } else if (response.data.data) {
-        // Nested data property
+        console.log("✅ Case 2: Nested data property");
+        console.log("   - data.data type:", typeof response.data.data);
+        console.log("   - data.data is Array?:", Array.isArray(response.data.data));
+        
         if (Array.isArray(response.data.data)) {
+          console.log("   - Array in data property");
           rawData = response.data.data;
-        } else {
-          // Single object in data property
+        } else if (typeof response.data.data === 'object' && response.data.data !== null) {
+          console.log("   - Single object in data property - wrapping in array");
           rawData = [response.data.data];
+          console.log("   - Wrapped object:", rawData);
         }
       } else {
-        // Fallback to empty array
-        rawData = [];
+        console.warn("⚠️ Unexpected response structure - no data found");
       }
+
+      console.log("📋 Processed rawData array:", rawData);
+      console.log("📋 rawData length:", rawData.length);
 
       // Transform API response to match frontend format
       lineWorks.value = rawData.map((lineWork) => ({
         id: lineWork.id,
         name: lineWork.name || "",
         company_id: lineWork.company_id,
-        company: `Company ${lineWork.company_id}`, // You can map this to actual company names
+        company: `Company ${lineWork.company_id}`,
         created_by: lineWork.created_by,
         created_at: lineWork.created_at,
         updated_at: lineWork.updated_at,
