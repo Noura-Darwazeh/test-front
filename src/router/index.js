@@ -19,6 +19,7 @@ import driverLine from "../modules/driverLine/view/driverLine.vue";
 import map from "../modules/map/view/mapPage.vue";
 import Login from "../modules/login/view/login.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
+import resetPassword from "../modules/resetPassword/view/resetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
 import workPlans from "../modules/workPlans/view/workPlans.vue";
 
@@ -42,6 +43,15 @@ const router = createRouter({
       path: "/forgot-password",
       name: "forgetPassword",
       component: forgetPassword,
+      meta: {
+        hiddenLayout: true,
+        requiresGuest: true,
+      },
+    },
+    {
+      path: "/reset-password",
+      name: "resetPassword",
+      component: resetPassword,
       meta: {
         hiddenLayout: true,
         requiresGuest: true,
@@ -257,7 +267,7 @@ router.beforeEach((to, from, next) => {
   // Check role-based access
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!authStore.hasAnyRole(to.meta.roles)) {
-      console.log("Insufficient permissions for this route");
+      console.log("❌ Insufficient permissions for this route");
       // Redirect to first available route for user's role
       return next({ name: "User" });
     }

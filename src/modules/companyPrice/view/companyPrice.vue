@@ -86,7 +86,6 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
-import { useCurrency } from "@/composables/useCurrency.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();

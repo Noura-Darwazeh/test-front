@@ -20,7 +20,12 @@
                             <TextField id="email" v-model="email" type="email" placeholder="you@example.com"
                                 :required="true" />
                             <small v-if="errors.email" class="text-danger">{{ errors.email }}</small>
+                        </div>
 
+                        <!-- API Error Message -->
+                        <div v-if="apiError" class="alert alert-danger" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            {{ apiError }}
                         </div>
 
                         <!-- Submit Button -->
@@ -29,17 +34,18 @@
                                 type="submit" />
                         </div>
 
-                        <!-- Confirmation Message -->
+                        <!-- Success Message -->
                         <div v-if="sent" class="alert alert-success mt-3" role="alert">
-                            Check your email for the password reset link.
+                            <i class="fas fa-check-circle me-2"></i>
+                            {{ successMessage }}
                         </div>
 
                         <!-- Back to login -->
                         <div class="mt-3 text-center">
-                            <a href="/login" class="text-decoration-none"
+                            <router-link to="/login" class="text-decoration-none"
                                 style="color:var(--primary-color);font-size:14px">
                                 Remember your password? Sign In
-                            </a>
+                            </router-link>
                         </div>
                     </form>
                 </div>
@@ -53,32 +59,99 @@
                     <p class="mb-0">A secure and simple way to regain access to your account.</p>
                 </div>
             </div>
-
         </div>
     </div>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import FormLabel from '../../../components/shared/FormLabel.vue'
 import TextField from '../../../components/shared/TextField.vue'
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
 import packageIcon from '../../../assets/login/package.svg'
+import api from '@/services/api.js'
+import { setItem } from '@/utils/shared/storageUtils.js'
+
+const router = useRouter()
 const email = ref('')
 const submitting = ref(false)
 const sent = ref(false)
 const errors = reactive({ email: '' })
+const apiError = ref('')
+const successMessage = ref('Check your email for the password reset link.')
 
-function onSubmit() {
-    if (!email.value) {
+async function onSubmit() {
+    // Clear previous errors
+    errors.email = ''
+    apiError.value = ''
+
+    // Validate email
+    if (!email.value || !email.value.trim()) {
         errors.email = 'Email is required'
         return
     }
+
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.value)) {
+        errors.email = 'Please enter a valid email address'
+        return
+    }
+
     submitting.value = true
-    setTimeout(() => {
+
+    try {
+        // Call the forgot password API
+        const response = await api.post('/forgotpassword', {
+            email: email.value.trim()
+        })
+
+        console.log('✅ Forgot password API response:', response.data)
+
+        // Check if successful
+        if (response.data.success === true) {
+            // Extract token from response if available
+            const token = response.data.token || response.data.data?.token
+
+            // Save email and token to localStorage
+            setItem('reset_email', email.value.trim())
+            if (token) {
+                setItem('reset_token', token)
+                console.log('💾 Token and email saved to localStorage')
+            } else {
+                console.log('💾 Email saved to localStorage (token will come from URL)')
+            }
+
+            // Update success message with API response
+            successMessage.value = response.data.message || 'Check your email for the password reset link.'
+
+            // Show success message
+            sent.value = true
+
+            // Optional: Redirect after 5 seconds
+            setTimeout(() => {
+                // router.push('/login')
+            }, 5000)
+        } else {
+            throw new Error(response.data.message || 'Failed to send reset link')
+        }
+    } catch (error) {
+        console.error('❌ Forgot password error:', error)
+        
+        // Handle different error scenarios
+        if (error.response?.data?.message) {
+            apiError.value = error.response.data.message
+        } else if (error.response?.status === 404) {
+            apiError.value = 'Email not found in our system'
+        } else if (error.response?.status === 422) {
+            apiError.value = 'Please enter a valid email address'
+        } else {
+            apiError.value = error.message || 'Failed to send reset link. Please try again.'
+        }
+    } finally {
         submitting.value = false
-        sent.value = true
-    }, 1000)
+    }
 }
 </script>
 
