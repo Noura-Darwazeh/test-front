@@ -174,6 +174,16 @@ const { t } = useI18n();
 const usersStore = useUsersManagementStore();
 const authStore = useAuthStore();
 
+// ✅ API Base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+
+// ✅ Helper function to get full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${API_BASE_URL}${imagePath}`;
+};
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -516,12 +526,24 @@ const openModal = () => {
 const openEditModal = (user) => {
   isEditMode.value = true;
   selectedUser.value = { ...user };
+  
+  // ✅ إضافة المسار الكامل للصورة
+  if (selectedUser.value.image) {
+    selectedUser.value.imagePreview = getFullImageUrl(selectedUser.value.image);
+  }
+  
   isModalOpen.value = true;
 };
 
 // Details Modal
 const openDetailsModal = (user) => {
   selectedUser.value = { ...user };
+  
+  // ✅ إضافة المسار الكامل للصورة
+  if (selectedUser.value.image) {
+    selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
+  }
+  
   isDetailsModalOpen.value = true;
 };
 
