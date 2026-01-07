@@ -208,12 +208,8 @@ const roles = ref([
 // Get users from store, excluding logged-in user and SuperAdmin users
 const users = computed(() => {
   return usersStore.users.filter(user => {
-    // Exclude the currently logged-in user
     if (user.id === authStore.user?.id) return false;
-
-    // Exclude SuperAdmin users (case-insensitive)
     if (user.role?.toLowerCase() === 'superadmin') return false;
-
     return true;
   });
 });
@@ -223,7 +219,6 @@ const trashedUsers = computed(() => usersStore.trashedUsers);
 const fetchDropdownData = async () => {
   dataLoading.value = true;
   try {
-    // Fetch regions, currencies, and companies in parallel
     const [regionsResponse, currenciesResponse, companiesResponse] = await Promise.all([
       apiServices.getRegions(),
       apiServices.getCurrencies(),
@@ -256,7 +251,6 @@ const fetchDropdownData = async () => {
 // Fetch data on component mount
 onMounted(async () => {
   try {
-    // Fetch users and dropdown data in parallel
     await Promise.all([
       usersStore.fetchUsers(),
       fetchDropdownData()
@@ -352,8 +346,10 @@ const userFields = computed(() => [
     label: t("user.form.company"),
     type: "select",
     required: false,
-    options: companies.value,
-    placeholder: t("user.form.companyPlaceholder"),
+    options: [
+      { value: "", label: t("user.form.noCompany") },
+      ...companies.value
+    ],
     colClass: "col-md-6",
     defaultValue: isEditMode.value ? String(selectedUser.value.company_id || '') : '',
   },
@@ -418,8 +414,8 @@ const visibleColumns = ref([]);
 // Tab switching function
 const switchTab = async (tab) => {
   activeTab.value = tab;
-  currentPage.value = 1; // Reset pagination
-  selectedRows.value = []; // Clear selection when switching tabs
+  currentPage.value = 1;
+  selectedRows.value = [];
   if (tab === 'trashed') {
     try {
       await usersStore.fetchTrashedUsers();
@@ -483,7 +479,7 @@ const filteredColumns = computed(() => {
   if (activeTab.value === 'active') {
     return columns.filter((col) => visibleColumns.value.includes(col.key));
   }
-  return columns; // Show all columns for trashed users
+  return columns;
 });
 
 // Filtered data based on active tab
@@ -547,50 +543,52 @@ const closeDeleteModal = () => {
 
 const handleSubmitUser = async (userData) => {
   try {
-    if (userData.image && userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE) {
+    // Validate image size
+    if (userData.image && userData.image instanceof File && userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE) {
       console.error("❌ Image size exceeds limit");
+      alert("Image size should not exceed 200KB");
       return;
     }
 
     if (isEditMode.value) {
-      // Update existing user - only send changed fields
-      const updatedUser = {};
+      // Update existing user
+      const updatedData = {};
 
       // Only include fields that have changed
       if (userData.name !== selectedUser.value.name) {
-        updatedUser.name = userData.name;
+        updatedData.name = userData.name;
       }
       if (userData.username !== selectedUser.value.username) {
-        updatedUser.username = userData.username;
+        updatedData.username = userData.username;
       }
       if (userData.email !== selectedUser.value.email) {
-        updatedUser.email = userData.email || '';
+        updatedData.email = userData.email || '';
       }
       if (userData.phone_number !== selectedUser.value.phone_number) {
-        updatedUser.phone_number = userData.phone_number;
+        updatedData.phone_number = userData.phone_number;
       }
       if (userData.role !== selectedUser.value.role) {
-        updatedUser.role = userData.role;
+        updatedData.role = userData.role;
       }
-
-      // Add optional fields only if they have changed or have values
       if (userData.company_id !== selectedUser.value.company_id) {
-        updatedUser.company_id = userData.company_id || null;
+        updatedData.company_id = userData.company_id || null;
       }
       if (userData.region_id !== selectedUser.value.region_id) {
-        updatedUser.region_id = userData.region_id || null;
+        updatedData.region_id = userData.region_id || null;
       }
       if (userData.currency_id !== selectedUser.value.currency_id) {
-        updatedUser.currency_id = userData.currency_id || null;
+        updatedData.currency_id = userData.currency_id || null;
       }
       if (userData.password) {
-        updatedUser.password = userData.password;
+        updatedData.password = userData.password;
       }
-      if (userData.imagePreview) {
-        updatedUser.image = userData.imagePreview;
+      
+      // Add image file if it exists (not base64)
+      if (userData.image && userData.image instanceof File) {
+        updatedData.image = userData.image;
       }
 
-      await usersStore.updateUser(selectedUser.value.id, updatedUser);
+      await usersStore.updateUser(selectedUser.value.id, updatedData);
       console.log("✅ User updated successfully!");
       closeModal();
     } else {
@@ -601,14 +599,18 @@ const handleSubmitUser = async (userData) => {
         password: userData.password,
         phone_number: userData.phone_number,
         role: userData.role,
+        company_id: userData.company_id || null, // ✅ Always send, null if empty
+        region_id: userData.region_id || null,   // ✅ Always send, null if empty
+        currency_id: userData.currency_id || null, // ✅ Always send, null if empty
       };
 
-      // Add optional fields only if they have values
+      // Add optional email field only if provided
       if (userData.email) newUser.email = userData.email;
-      if (userData.company_id) newUser.company_id = userData.company_id;
-      if (userData.region_id) newUser.region_id = userData.region_id;
-      if (userData.currency_id) newUser.currency_id = userData.currency_id;
-      if (userData.imagePreview) newUser.image = userData.imagePreview;
+      
+      // Add image file if it exists (not base64)
+      if (userData.image && userData.image instanceof File) {
+        newUser.image = userData.image;
+      }
 
       await usersStore.addUser(newUser);
       console.log("✅ User added successfully!");
@@ -616,6 +618,7 @@ const handleSubmitUser = async (userData) => {
     }
   } catch (error) {
     console.error("❌ Failed to save user:", error);
+    alert(error.message || "Failed to save user. Please try again.");
   }
 };
 
@@ -623,7 +626,6 @@ const handleRestoreUser = async (user) => {
   try {
     await usersStore.restoreUser(user.id);
     console.log("✅ User restored successfully!");
-    // Refresh trashed users list after restore
     await usersStore.fetchTrashedUsers();
   } catch (error) {
     console.error("❌ Failed to restore user:", error);
@@ -647,11 +649,10 @@ const confirmDelete = async () => {
   }
 };
 
-// Bulk action handler (receives emit from BulkActionsBar)
+// Bulk action handler
 const handleBulkAction = ({ actionId }) => {
   pendingBulkAction.value = actionId;
 
-  // Only show confirmation for delete
   if (actionId === 'delete') {
     isBulkConfirmOpen.value = true;
   } else {
@@ -669,10 +670,9 @@ const executeBulkAction = async () => {
     } else if (pendingBulkAction.value === 'restore') {
       await usersStore.bulkRestoreUsers(selectedRows.value);
       console.log(`✅ ${selectedRows.value.length} users restored successfully!`);
-      await usersStore.fetchTrashedUsers(); // Refresh trashed list
+      await usersStore.fetchTrashedUsers();
     }
 
-    // Clear selection after success
     selectedRows.value = [];
   } catch (error) {
     console.error(`❌ Failed to execute bulk ${pendingBulkAction.value}:`, error);

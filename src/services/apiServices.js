@@ -23,16 +23,49 @@ class ApiServices {
   }
 
   async createEntity(entityPlural, data) {
-    return api.post(`/${entityPlural}`, data);
+    // Check if data contains a file (image)
+    const hasFile = data instanceof FormData || (data.image && data.image instanceof File);
+    
+    if (hasFile && !(data instanceof FormData)) {
+      // Convert to FormData if it has a file but isn't already FormData
+      const formData = new FormData();
+      Object.keys(data).forEach(key => {
+        if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+          formData.append(key, data[key]);
+        }
+      });
+      data = formData;
+    }
+
+    return api.post(`/${entityPlural}`, data, {
+      headers: hasFile ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
   }
 
   async updateEntity(entityPlural, id, data, usePatch = false) {
+    // Check if data contains a file (image)
+    const hasFile = data instanceof FormData || (data.image && data.image instanceof File);
+    
+    if (hasFile && !(data instanceof FormData)) {
+      // Convert to FormData if it has a file but isn't already FormData
+      const formData = new FormData();
+      Object.keys(data).forEach(key => {
+        if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+          formData.append(key, data[key]);
+        }
+      });
+      data = formData;
+    }
+
     if (usePatch) {
-      return api.patch(`/${entityPlural}/${id}`, data);
+      return api.patch(`/${entityPlural}/${id}`, data, {
+        headers: hasFile ? { 'Content-Type': 'multipart/form-data' } : {}
+      });
     } else {
       return api.post(`/${entityPlural}/${id}`, data, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
+          ...(hasFile ? { 'Content-Type': 'multipart/form-data' } : {})
         },
       });
     }
@@ -247,11 +280,6 @@ class ApiServices {
     return this.bulkRestoreEntities("company", "companies", companyIds);
   }
 
-  // ===== Customer Services =====
-  async getCustomers() {
-    return api.get("/customers");
-  }
-
   // ===== Line Price Services =====
   async getLinePrices() {
     return this.getEntities("line_prices");
@@ -396,30 +424,30 @@ class ApiServices {
     return api.get("/statistics/orders");
   }
 
-// ===== Line Work Services =====
-async getLineWorks() {
-  return api.get("/lineworks");
-}
+  // ===== Line Work Services =====
+  async getLineWorks() {
+    return api.get("/lineworks");
+  }
 
-async createLineWork(lineWorkData) {
-  return api.post("/lineworks", lineWorkData);
-}
+  async createLineWork(lineWorkData) {
+    return api.post("/lineworks", lineWorkData);
+  }
 
-async updateLineWork(lineWorkId, lineWorkData) {
-  return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
-    headers: {
-      'X-HTTP-Method-Override': 'PATCH'
-    }
-  });
-}
+  async updateLineWork(lineWorkId, lineWorkData) {
+    return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
 
-async deleteLineWork(lineWorkId) {
-  return api.delete(`/lineworks/${lineWorkId}`);
-}
+  async deleteLineWork(lineWorkId) {
+    return api.delete(`/lineworks/${lineWorkId}`);
+  }
 
-async restoreLineWork(lineWorkId) {
-  return api.post(`/restore/lineworks/${lineWorkId}`);
-}
+  async restoreLineWork(lineWorkId) {
+    return api.post(`/restore/lineworks/${lineWorkId}`);
+  }
 
   // ===== Work Plans Services =====
   async getWorkPlans() {
