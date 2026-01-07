@@ -131,7 +131,9 @@ const displayTitle = computed(() => {
 });
 
 const notificationCount = ref(3);
-const userAvatar = ref("https://via.placeholder.com/36");
+const userAvatar = computed(() => {
+  return authStore.user?.image || "https://via.placeholder.com/36";
+});
 
 const switchLanguage = async (lang) => {
   const langLower = lang.toLowerCase();
@@ -154,8 +156,7 @@ const switchLanguage = async (lang) => {
 
 const handleProfile = (close) => {
   close();
-  console.log("Navigate to profile");
-  // router.push({ name: "Profile" });
+  router.push({ name: "Profile" });
 };
 
 const handleSettings = (close) => {
@@ -177,12 +178,12 @@ const handleLogout = async (close) => {
   if (confirm(t("navbar.confirmLogout") || "Are you sure you want to logout?")) {
     try {
       await authStore.logout();
-      console.log(" Logout successful");
+      console.log("✅ Logout successful");
 
       // Redirect to login
       router.push({ name: "Login" });
     } catch (error) {
-      console.error(" Logout error:", error);
+      console.error("❌ Logout error:", error);
       alert("Logout failed. Please try again.");
     }
   }

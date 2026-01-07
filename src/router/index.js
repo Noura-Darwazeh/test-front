@@ -22,6 +22,7 @@ import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
 import resetPassword from "../modules/resetPassword/view/resetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
 import workPlans from "../modules/workPlans/view/workPlans.vue";
+import Profile from "../modules/profile/view/profile.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,6 +56,16 @@ const router = createRouter({
       meta: {
         hiddenLayout: true,
         requiresGuest: true,
+      },
+    },
+    {
+      path: "/profile",
+      name: "Profile",
+      component: Profile,
+      meta: {
+        titleKey: "profile.title",
+        requireAuth: true,
+        showInSidebar: false, // Don't show in sidebar, accessible from navbar
       },
     },
     {
