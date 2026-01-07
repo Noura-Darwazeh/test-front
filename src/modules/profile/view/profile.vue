@@ -317,8 +317,9 @@ import { setLocale } from '@/i18n/index';
 import cameraIcon from '@/assets/profile/camera.svg';
 import settingIcon from '@/assets/profile/setting.svg';
 import userIcon from '@/assets/sidebar/userIcon.svg';
-// Icons
 
+// ✅ API Base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -490,8 +491,10 @@ const handleImageUpload = (event) => {
     return;
   }
 
+  // ✅ Store the actual File object
   formData.imageFile = file;
 
+  // Create preview
   const reader = new FileReader();
   reader.onload = (e) => {
     formData.imagePreview = e.target.result;
@@ -551,15 +554,25 @@ const handleSaveChanges = async () => {
     if (formData.default_page !== originalData.value.default_page) {
       updatedData.default_page = formData.default_page;
     }
-    if (formData.imagePreview && formData.imageFile) {
-      updatedData.image = formData.imagePreview;
+    
+    // ✅ Add image FILE if it exists (not base64!)
+    if (formData.imageFile && formData.imageFile instanceof File) {
+      updatedData.image = formData.imageFile;
     }
+
+    console.log("📤 Sending data:", updatedData);
 
     const response = await apiServices.updateUser(authStore.user.id, updatedData);
 
     if (response.data?.data) {
-      authStore.updateUser(response.data.data);
-      console.log('✅ Profile updated successfully!');
+      // ✅ Update user in auth store with full image URL
+      const userData = response.data.data;
+      if (userData.image && !userData.image.startsWith('http')) {
+        userData.image = `${API_BASE_URL}${userData.image}`;
+      }
+      authStore.updateUser(userData);
+      
+      console.log('✅ Profile updated successfully!', userData);
       alert(t('profile.updateSuccess'));
       
       // Reset form state

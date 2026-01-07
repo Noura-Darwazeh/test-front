@@ -1,8 +1,17 @@
-
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api.js";
 import { setItem, getItem, removeItem } from "@/utils/shared/storageUtils.js";
+
+// ✅ API Base URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+
+// ✅ Helper function to convert relative image path to full URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${API_BASE_URL}${imagePath}`;
+};
 
 export const useAuthStore = defineStore("auth", () => {
   // ===== State =====
@@ -22,11 +31,6 @@ export const useAuthStore = defineStore("auth", () => {
   // ===== Actions =====
   
   /**
-   * Login user
-   * @param {Object} credentials - Login credentials {login, password}
-   * @returns {Promise<Object>} User data
-   */
-/**
    * Login user with username or email
    * @param {Object} credentials - Login credentials {login, password}
    * @returns {Promise<Object>} User data
@@ -46,7 +50,7 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       const response = await api.post("/login", {
-        login: credentials.login.trim(), // Backend accepts both email and username
+        login: credentials.login.trim(),
         password: credentials.password,
       });
 
@@ -54,6 +58,11 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Check if login was successful
       if (data.success === true) {
+        // ✅ Convert image path to full URL
+        if (data.user?.image) {
+          data.user.image = getFullImageUrl(data.user.image);
+        }
+
         // Save auth data
         user.value = data.user;
         token.value = data.token;
@@ -67,20 +76,17 @@ export const useAuthStore = defineStore("auth", () => {
         // Set user's preferred language
         if (data.user?.language) {
           const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
-          // We need to import setLocale at the top of the file
-          // For now, just store it and let the app initialize it
           setItem("user_language", uiLang);
           console.log(`🌐 User language preference: ${data.user.language}`);
         }
 
         console.log("✅ Login successful:", data.user.name);
+        console.log("📸 User image:", data.user.image);
         return data;
       } else {
-        // Handle unsuccessful login
         throw new Error(data.message || "Login failed");
       }
     } catch (err) {
-      // Handle different error scenarios
       if (err.response?.data?.success === false) {
         error.value = err.response.data.message || "Invalid credentials";
       } else if (err.response?.status === 401) {
@@ -91,7 +97,7 @@ export const useAuthStore = defineStore("auth", () => {
         error.value = err.message || "Login failed. Please try again.";
       }
       
-      console.error(" Login error:", err);
+      console.error("❌ Login error:", err);
       throw err;
     } finally {
       isLoading.value = false;
@@ -106,11 +112,9 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
 
     try {
-      // Only call API if we have a token
       if (token.value) {
         const response = await api.post("/logout");
         
-        // Check if logout was successful
         if (response.data.success === true) {
           console.log(response.data.message);
           clearAuthData();
@@ -119,17 +123,14 @@ export const useAuthStore = defineStore("auth", () => {
           throw new Error(response.data.message || "Logout failed");
         }
       } else {
-        // No token, just clear local data
         console.warn("⚠️ No token found, clearing local data only");
         clearAuthData();
         return { success: true, message: "Logged out locally" };
       }
     } catch (err) {
-      console.error(" Logout error:", err);
+      console.error("❌ Logout error:", err);
       
-      // Check if it's an authentication error (401)
       if (err.response?.status === 401 || err.response?.data?.success === false) {
-        // Token is invalid/expired, clear it anyway
         console.warn("Invalid token detected, clearing local data");
         clearAuthData();
         return { 
@@ -138,7 +139,6 @@ export const useAuthStore = defineStore("auth", () => {
         };
       }
       
-      // For other errors, show error but still clear data
       error.value = err.message || "Logout failed";
       clearAuthData();
       throw err;
@@ -156,10 +156,16 @@ export const useAuthStore = defineStore("auth", () => {
     const savedDevice = getItem("auth_device");
 
     if (savedToken && savedUser) {
+      // ✅ Convert image path to full URL if needed
+      if (savedUser.image && !savedUser.image.startsWith('http')) {
+        savedUser.image = getFullImageUrl(savedUser.image);
+      }
+
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
-      console.log("Auth initialized from localStorage");
+      console.log("✅ Auth initialized from localStorage");
+      console.log("📸 User image:", savedUser.image);
     }
   }
 
@@ -175,7 +181,7 @@ export const useAuthStore = defineStore("auth", () => {
     removeItem("auth_token");
     removeItem("auth_user");
     removeItem("auth_device");
-    removeItem("user_language"); // Clear user's language preference
+    removeItem("user_language");
   }
 
   /**
@@ -190,8 +196,15 @@ export const useAuthStore = defineStore("auth", () => {
    * @param {Object} userData - Updated user data
    */
   function updateUser(userData) {
+    // ✅ Convert image path to full URL if needed
+    if (userData.image && !userData.image.startsWith('http')) {
+      userData.image = getFullImageUrl(userData.image);
+    }
+
     user.value = { ...user.value, ...userData };
     setItem("auth_user", user.value);
+    console.log("✅ User updated:", user.value);
+    console.log("📸 User image:", user.value.image);
   }
 
   /**
@@ -205,7 +218,6 @@ export const useAuthStore = defineStore("auth", () => {
         throw new Error("No user logged in");
       }
 
-      // Call API to update user language
       const response = await api.post(`/users/${user.value.id}`, {
         language: language
       }, {
@@ -214,7 +226,6 @@ export const useAuthStore = defineStore("auth", () => {
         }
       });
 
-      // Update local user data
       if (response.data?.data) {
         updateUser(response.data.data);
         console.log(`✅ User language updated to: ${language}`);
