@@ -12,8 +12,8 @@
                 style="width: 120px; height: 120px"
               >
                 <img
-                  v-if="authStore.user?.image"
-                  :src="authStore.user.image"
+                  v-if="formData.imagePreview || authStore.user?.image"
+                  :src="formData.imagePreview || authStore.user.image"
                   alt="Profile"
                   class="w-100 h-100"
                   style="object-fit: cover"
@@ -27,26 +27,31 @@
               </div>
               <!-- Edit Profile Image Button -->
               <button
-                class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow"
+                class="btn btn-sm rounded-circle position-absolute bottom-0 end-0 shadow"
                 style="width: 36px; height: 36px"
-                @click="openImageModal"
+                @click="triggerFileInput"
                 type="button"
               >
-                <!-- <img :src="cameraIcon" alt="camera" width="16" height="16" />-->
+                <img :src="cameraIcon" alt="camera" width="16" height="16" />
               </button>
+              <input
+                type="file"
+                class="d-none"
+                accept="image/*"
+                @change="handleImageUpload"
+                ref="fileInput"
+              />
             </div>
           </div>
 
           <!-- User Info -->
           <div class="col">
-            <h3 class="mb-1 fw-bold">{{ authStore.user?.name }}</h3>
+            <h3 class="mb-1 fw-bold">{{ formData.name || authStore.user?.name }}</h3>
             <p class="text-muted mb-2">
-              <!-- <img :src="mailIcon" alt="email" width="16" height="16" class="me-2" /> -->
-              {{ authStore.user?.email || $t('profile.noEmail') }}
+              {{ formData.email || authStore.user?.email || $t('profile.noEmail') }}
             </p>
             <p class="text-muted mb-2">
-              <!-- <img :src="phoneIcon" alt="phone" width="16" height="16" class="me-2" /> -->
-              {{ authStore.user?.phone_number }}
+              {{ formData.phone_number || authStore.user?.phone_number }}
             </p>
             <span class="badge" :class="getRoleBadgeClass(authStore.userRole)">
               {{ $t(`roles.${authStore.userRole}`) }}
@@ -56,71 +61,187 @@
       </div>
     </div>
 
-    <!-- Profile Details Cards -->
-    <div class="row g-4">
-      <!-- Personal Information Card -->
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-white border-bottom">
-            <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
-              <!-- <img :src="userInfoIcon" alt="info" width="24" height="24" /> -->
-              {{ $t('profile.personalInfo') }}
-            </h5>
+    <!-- Profile Form -->
+    <form @submit.prevent="handleSaveChanges">
+      <div class="row g-4">
+        <!-- Personal Information Card -->
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom">
+              <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+                <img :src = "userIcon" alt = "user" width="32" height="32" />
+                {{ $t('profile.personalInfo') }}
+              </h5>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+                <!-- ID (Read-only) -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.id')" />
+                  <input
+                    type="text"
+                    class="form-control bg-light"
+                    :value="authStore.user?.id"
+                    disabled
+                  />
+                </div>
+
+                <!-- Full Name -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.fullName')" :required="true" />
+                  <TextField
+                    v-model="formData.name"
+                    type="text"
+                    :placeholder="$t('user.form.namePlaceholder')"
+                    @input="markAsChanged"
+                  />
+                </div>
+
+                <!-- Username -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.username')" :required="true" />
+                  <TextField
+                    v-model="formData.username"
+                    type="text"
+                    :placeholder="$t('user.form.usernamePlaceholder')"
+                    @input="markAsChanged"
+                  />
+                </div>
+
+                <!-- Email -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.email')" />
+                  <TextField
+                    v-model="formData.email"
+                    type="email"
+                    :placeholder="$t('user.form.emailPlaceholder')"
+                    @input="markAsChanged"
+                  />
+                </div>
+
+                <!-- Phone Number -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.phoneNumber')" :required="true" />
+                  <TextField
+                    v-model="formData.phone_number"
+                    type="tel"
+                    :placeholder="$t('user.form.phoneNumberPlaceholder')"
+                    @input="markAsChanged"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="card-body p-4">
-            <div class="row g-3">
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.id') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.id }}
-                  </div>
-                </div>
-              </div>
+        </div>
 
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.fullName') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.name }}
-                  </div>
+        <!-- Account Settings Card -->
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom">
+              <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+                <img :src="settingIcon" alt="settings" width="32" height="32" />
+                {{ $t('profile.accountSettings') }}
+              </h5>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+                <!-- User Role (Read-only) -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.userRole')" />
+                  <input
+                    type="text"
+                    class="form-control bg-light"
+                    :value="$t(`roles.${authStore.userRole}`)"
+                    disabled
+                  />
                 </div>
-              </div>
 
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.username') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.username }}
-                  </div>
+                <!-- Company -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.form.company')" />
+                  <select
+                    v-model="formData.company_id"
+                    class="form-select"
+                    @change="markAsChanged"
+                  >
+                    <option value="">{{ $t('user.form.companyPlaceholder') }}</option>
+                    <option
+                      v-for="company in companies"
+                      :key="company.value"
+                      :value="company.value"
+                    >
+                      {{ company.label }}
+                    </option>
+                  </select>
                 </div>
-              </div>
 
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.email') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.email || $t('profile.noEmail') }}
-                  </div>
+                <!-- Region -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.form.region')" />
+                  <select
+                    v-model="formData.region_id"
+                    class="form-select"
+                    @change="markAsChanged"
+                  >
+                    <option value="">{{ $t('user.form.noRegion') }}</option>
+                    <option
+                      v-for="region in regions"
+                      :key="region.value"
+                      :value="region.value"
+                    >
+                      {{ region.label }}
+                    </option>
+                  </select>
                 </div>
-              </div>
 
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.phoneNumber') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.phone_number }}
-                  </div>
+                <!-- Currency -->
+                <div class="col-12">
+                  <FormLabel :label="$t('user.form.currency')" />
+                  <select
+                    v-model="formData.currency_id"
+                    class="form-select"
+                    @change="markAsChanged"
+                  >
+                    <option value="">{{ $t('user.form.noCurrency') }}</option>
+                    <option
+                      v-for="currency in currencies"
+                      :key="currency.value"
+                      :value="currency.value"
+                    >
+                      {{ currency.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Default Landing Page -->
+                <div class="col-12">
+                  <FormLabel :label="$t('profile.defaultLandingPage')" />
+                  <select
+                    v-model="formData.default_page"
+                    class="form-select"
+                    @change="markAsChanged"
+                  >
+                    <option
+                      v-for="page in availablePages"
+                      :key="page.value"
+                      :value="page.value"
+                    >
+                      {{ page.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Language -->
+                <div class="col-12">
+                  <FormLabel :label="$t('profile.language')" />
+                  <select
+                    v-model="formData.language"
+                    class="form-select"
+                    @change="handleLanguageChange"
+                  >
+                    <option value="english">English</option>
+                    <option value="arabic">العربية</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -128,102 +249,47 @@
         </div>
       </div>
 
-      <!-- Account Settings Card -->
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-white border-bottom">
-            <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
-              <!-- <img :src="settingsIcon" alt="settings" width="24" height="24" /> -->
-              {{ $t('profile.accountSettings') }}
-            </h5>
-          </div>
-          <div class="card-body p-4">
-            <div class="row g-3">
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.userRole') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ $t(`roles.${authStore.userRole}`) }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12" v-if="authStore.user?.company_name">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.company') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.company_name }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12" v-if="authStore.user?.region_name">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.region') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.region_name }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12" v-if="authStore.user?.currency_code">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('user.currency') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.currency_code }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-12">
-                <div class="detail-item p-3 bg-light rounded-3">
-                  <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">
-                    {{ $t('profile.language') }}
-                  </label>
-                  <div class="detail-value text-dark fw-medium">
-                    {{ authStore.user?.language === 'arabic' ? 'العربية' : 'English' }}
-                  </div>
-                </div>
-              </div>
+      <!-- Action Buttons -->
+      <Transition name="slide-up">
+        <div
+          v-if="hasChanges"
+          class="fixed-action-bar bg-white border-top shadow-lg"
+        >
+          <div class="container-fluid">
+            <div class="d-flex gap-3 justify-content-center align-items-center py-3">
+              <PrimaryButton
+                :text="$t('common.cancel')"
+                bgColor="var(--color-secondary)"
+                @click="handleCancel"
+                type="button"
+              />
+              <PrimaryButton
+                :text="$t('common.saveChanges')"
+                bgColor="var(--color-success)"
+                :loading="isSaving"
+                type="submit"
+              />
+              <PrimaryButton
+                :text="$t('profile.changePassword')"
+                bgColor="var(--color-warning)"
+                @click="openPasswordModal"
+                type="button"
+              />
             </div>
           </div>
         </div>
+      </Transition>
+
+      <!-- Change Password Button (when no changes) -->
+      <div v-if="!hasChanges" class="d-flex gap-3 mt-4 justify-content-center">
+        <PrimaryButton
+          :text="$t('profile.changePassword')"
+          bgColor="var(--color-warning)"
+          @click="openPasswordModal"
+          type="button"
+        />
       </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="d-flex gap-3 mt-4 justify-content-center">
-      <PrimaryButton
-        :text="$t('profile.editProfile')"
-       
-        bgColor="var(--primary-color)"
-        @click="openEditModal"
-      />
-      <PrimaryButton
-        :text="$t('profile.changePassword')"
-       
-        bgColor="var(--color-warning)"
-        @click="openPasswordModal"
-      />
-    </div>
-
-    <!-- Edit Profile Modal -->
-    <FormModal
-      :isOpen="isEditModalOpen"
-      :title="$t('profile.editProfile')"
-      :fields="profileFields"
-      :showImageUpload="false"
-      @close="closeEditModal"
-      @submit="handleUpdateProfile"
-    />
+    </form>
 
     <!-- Change Password Modal -->
     <FormModal
@@ -234,156 +300,70 @@
       @close="closePasswordModal"
       @submit="handleChangePassword"
     />
-
-    <!-- Image Upload Modal -->
-    <FormModal
-      :isOpen="isImageModalOpen"
-      :title="$t('profile.changeProfileImage')"
-      :fields="[]"
-      :showImageUpload="true"
-      :imageRequired="false"
-      @close="closeImageModal"
-      @submit="handleUpdateImage"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.js';
 import FormModal from '@/components/shared/FormModal.vue';
 import PrimaryButton from '@/components/shared/PrimaryButton.vue';
+import FormLabel from '@/components/shared/FormLabel.vue';
+import TextField from '@/components/shared/TextField.vue';
 import apiServices from '@/services/apiServices.js';
-
+import { setLocale } from '@/i18n/index';
+import cameraIcon from '@/assets/profile/camera.svg';
+import settingIcon from '@/assets/profile/setting.svg';
+import userIcon from '@/assets/sidebar/userIcon.svg';
 // Icons
-import userIcon from '@/assets/modal/user.svg';
-// import cameraIcon from '@/assets/profile/camera.svg';
-// import mailIcon from '@/assets/profile/mail.svg';
-// import phoneIcon from '@/assets/profile/phone.svg';
-// import userInfoIcon from '@/assets/profile/userInfo.svg';
-// import settingsIcon from '@/assets/profile/settings.svg';
-// import editIcon from '@/assets/table/edit.svg';
-// import lockIcon from '@/assets/profile/lock.svg';
+
 
 const { t } = useI18n();
+const router = useRouter();
 const authStore = useAuthStore();
 
 // State
-const isEditModalOpen = ref(false);
 const isPasswordModalOpen = ref(false);
-const isImageModalOpen = ref(false);
+const isSaving = ref(false);
+const hasChanges = ref(false);
+const fileInput = ref(null);
+
+// Form data
+const formData = reactive({
+  name: '',
+  username: '',
+  email: '',
+  phone_number: '',
+  company_id: '',
+  region_id: '',
+  currency_id: '',
+  language: 'english',
+  default_page: '/user',
+  imagePreview: null,
+  imageFile: null,
+});
+
+// Original data for comparison
+const originalData = ref({});
 
 // Dynamic data
 const regions = ref([]);
 const currencies = ref([]);
 const companies = ref([]);
 
-// Fetch dropdown data
-const fetchDropdownData = async () => {
-  try {
-    const [regionsResponse, currenciesResponse, companiesResponse] = await Promise.all([
-      apiServices.getRegions(),
-      apiServices.getCurrencies(),
-      apiServices.getCompanies()
-    ]);
-
-    regions.value = regionsResponse.data.data.map(region => ({
-      value: String(region.id),
-      label: region.name
+// Available pages for landing page selection
+const availablePages = computed(() => {
+  const routes = router.getRoutes()
+    .filter(route => route.meta?.showInSidebar)
+    .map(route => ({
+      value: route.path,
+      label: route.meta.titleKey ? t(route.meta.titleKey) : route.name
     }));
-
-    currencies.value = currenciesResponse.data.data.map(currency => ({
-      value: String(currency.id),
-      label: `${currency.code} (${currency.symbol})`
-    }));
-
-    companies.value = companiesResponse.data.data.map(company => ({
-      value: String(company.id),
-      label: company.name
-    }));
-  } catch (error) {
-    console.error('❌ Failed to load dropdown data:', error);
-  }
-};
-
-onMounted(() => {
-  fetchDropdownData();
+  
+  return routes;
 });
-
-// Profile Fields
-const profileFields = computed(() => [
-  {
-    name: 'name',
-    label: t('user.form.name'),
-    type: 'text',
-    required: true,
-    placeholder: t('user.form.namePlaceholder'),
-    colClass: 'col-12',
-    defaultValue: authStore.user?.name || '',
-  },
-  {
-    name: 'username',
-    label: t('user.form.username'),
-    type: 'text',
-    required: true,
-    placeholder: t('user.form.usernamePlaceholder'),
-    colClass: 'col-12',
-    defaultValue: authStore.user?.username || '',
-  },
-  {
-    name: 'email',
-    label: t('user.form.email'),
-    type: 'email',
-    required: false,
-    placeholder: t('user.form.emailPlaceholder'),
-    colClass: 'col-12',
-    defaultValue: authStore.user?.email || '',
-  },
-  {
-    name: 'phone_number',
-    label: t('user.form.phoneNumber'),
-    type: 'tel',
-    required: true,
-    placeholder: t('user.form.phoneNumberPlaceholder'),
-    colClass: 'col-12',
-    defaultValue: authStore.user?.phone_number || '',
-  },
-  {
-    name: 'company_id',
-    label: t('user.form.company'),
-    type: 'select',
-    required: false,
-    options: companies.value,
-    placeholder: t('user.form.companyPlaceholder'),
-    colClass: 'col-12',
-    defaultValue: String(authStore.user?.company_id || ''),
-  },
-  {
-    name: 'region_id',
-    label: t('user.form.region'),
-    type: 'select',
-    required: false,
-    options: [
-      { value: '', label: t('user.form.noRegion') },
-      ...regions.value
-    ],
-    colClass: 'col-12',
-    defaultValue: authStore.user?.region_id || '',
-  },
-  {
-    name: 'currency_id',
-    label: t('user.form.currency'),
-    type: 'select',
-    required: false,
-    options: [
-      { value: '', label: t('user.form.noCurrency') },
-      ...currencies.value
-    ],
-    colClass: 'col-12',
-    defaultValue: authStore.user?.currency_id || '',
-  },
-]);
 
 // Password Fields
 const passwordFields = computed(() => [
@@ -416,57 +396,163 @@ const passwordFields = computed(() => [
   },
 ]);
 
-// Modal handlers
-const openEditModal = () => {
-  isEditModalOpen.value = true;
-};
-
-const closeEditModal = () => {
-  isEditModalOpen.value = false;
-};
-
-const openPasswordModal = () => {
-  isPasswordModalOpen.value = true;
-};
-
-const closePasswordModal = () => {
-  isPasswordModalOpen.value = false;
-};
-
-const openImageModal = () => {
-  isImageModalOpen.value = true;
-};
-
-const closeImageModal = () => {
-  isImageModalOpen.value = false;
-};
-
-// Handle profile update
-const handleUpdateProfile = async (userData) => {
+// Fetch dropdown data
+const fetchDropdownData = async () => {
   try {
+    const [regionsResponse, currenciesResponse, companiesResponse] = await Promise.all([
+      apiServices.getRegions(),
+      apiServices.getCurrencies(),
+      apiServices.getCompanies()
+    ]);
+
+    regions.value = regionsResponse.data.data.map(region => ({
+      value: String(region.id),
+      label: region.name
+    }));
+
+    currencies.value = currenciesResponse.data.data.map(currency => ({
+      value: String(currency.id),
+      label: `${currency.code} (${currency.symbol})`
+    }));
+
+    companies.value = companiesResponse.data.data.map(company => ({
+      value: String(company.id),
+      label: company.name
+    }));
+  } catch (error) {
+    console.error('❌ Failed to load dropdown data:', error);
+  }
+};
+
+// Initialize form data
+const initializeFormData = () => {
+  const user = authStore.user;
+  
+  formData.name = user?.name || '';
+  formData.username = user?.username || '';
+  formData.email = user?.email || '';
+  formData.phone_number = user?.phone_number || '';
+  formData.company_id = String(user?.company_id || '');
+  formData.region_id = String(user?.region_id || '');
+  formData.currency_id = String(user?.currency_id || '');
+  formData.language = user?.language || 'english';
+  formData.default_page = user?.default_page || '/user';
+  formData.imagePreview = null;
+  formData.imageFile = null;
+
+  // Store original data
+  originalData.value = {
+    name: formData.name,
+    username: formData.username,
+    email: formData.email,
+    phone_number: formData.phone_number,
+    company_id: formData.company_id,
+    region_id: formData.region_id,
+    currency_id: formData.currency_id,
+    language: formData.language,
+    default_page: formData.default_page,
+  };
+
+  hasChanges.value = false;
+};
+
+// Mark form as changed
+const markAsChanged = () => {
+  // Check if any field has changed
+  const currentData = {
+    name: formData.name,
+    username: formData.username,
+    email: formData.email,
+    phone_number: formData.phone_number,
+    company_id: formData.company_id,
+    region_id: formData.region_id,
+    currency_id: formData.currency_id,
+    language: formData.language,
+    default_page: formData.default_page,
+  };
+
+  hasChanges.value = JSON.stringify(currentData) !== JSON.stringify(originalData.value) || 
+                     formData.imageFile !== null;
+};
+
+// Handle image upload
+const handleImageUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert('Please select a valid image file');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Image size should not exceed 5MB');
+    return;
+  }
+
+  formData.imageFile = file;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    formData.imagePreview = e.target.result;
+    markAsChanged();
+  };
+  reader.readAsDataURL(file);
+};
+
+// Trigger file input
+const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.click();
+  }
+};
+
+// Handle language change
+const handleLanguageChange = async () => {
+  markAsChanged();
+  
+  // Update UI language immediately for better UX
+  const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
+  setLocale(uiLang);
+};
+
+// Handle save changes
+const handleSaveChanges = async () => {
+  try {
+    isSaving.value = true;
+
     const updatedData = {};
 
     // Only include changed fields
-    if (userData.name !== authStore.user?.name) {
-      updatedData.name = userData.name;
+    if (formData.name !== originalData.value.name) {
+      updatedData.name = formData.name;
     }
-    if (userData.username !== authStore.user?.username) {
-      updatedData.username = userData.username;
+    if (formData.username !== originalData.value.username) {
+      updatedData.username = formData.username;
     }
-    if (userData.email !== authStore.user?.email) {
-      updatedData.email = userData.email || '';
+    if (formData.email !== originalData.value.email) {
+      updatedData.email = formData.email || '';
     }
-    if (userData.phone_number !== authStore.user?.phone_number) {
-      updatedData.phone_number = userData.phone_number;
+    if (formData.phone_number !== originalData.value.phone_number) {
+      updatedData.phone_number = formData.phone_number;
     }
-    if (userData.company_id !== authStore.user?.company_id) {
-      updatedData.company_id = userData.company_id || null;
+    if (formData.company_id !== originalData.value.company_id) {
+      updatedData.company_id = formData.company_id || null;
     }
-    if (userData.region_id !== authStore.user?.region_id) {
-      updatedData.region_id = userData.region_id || null;
+    if (formData.region_id !== originalData.value.region_id) {
+      updatedData.region_id = formData.region_id || null;
     }
-    if (userData.currency_id !== authStore.user?.currency_id) {
-      updatedData.currency_id = userData.currency_id || null;
+    if (formData.currency_id !== originalData.value.currency_id) {
+      updatedData.currency_id = formData.currency_id || null;
+    }
+    if (formData.language !== originalData.value.language) {
+      updatedData.language = formData.language;
+    }
+    if (formData.default_page !== originalData.value.default_page) {
+      updatedData.default_page = formData.default_page;
+    }
+    if (formData.imagePreview && formData.imageFile) {
+      updatedData.image = formData.imagePreview;
     }
 
     const response = await apiServices.updateUser(authStore.user.id, updatedData);
@@ -475,12 +561,34 @@ const handleUpdateProfile = async (userData) => {
       authStore.updateUser(response.data.data);
       console.log('✅ Profile updated successfully!');
       alert(t('profile.updateSuccess'));
-      closeEditModal();
+      
+      // Reset form state
+      initializeFormData();
+      hasChanges.value = false;
     }
   } catch (error) {
     console.error('❌ Failed to update profile:', error);
     alert(t('profile.updateError'));
+  } finally {
+    isSaving.value = false;
   }
+};
+
+// Handle cancel
+const handleCancel = () => {
+  if (confirm(t('common.confirmCancel'))) {
+    initializeFormData();
+    hasChanges.value = false;
+  }
+};
+
+// Modal handlers
+const openPasswordModal = () => {
+  isPasswordModalOpen.value = true;
+};
+
+const closePasswordModal = () => {
+  isPasswordModalOpen.value = false;
 };
 
 // Handle password change
@@ -508,30 +616,6 @@ const handleChangePassword = async (passwordData) => {
   }
 };
 
-// Handle image update
-const handleUpdateImage = async (imageData) => {
-  try {
-    if (!imageData.imagePreview) {
-      alert(t('profile.noImageSelected'));
-      return;
-    }
-
-    const response = await apiServices.updateUser(authStore.user.id, {
-      image: imageData.imagePreview,
-    });
-
-    if (response.data?.data) {
-      authStore.updateUser(response.data.data);
-      console.log('✅ Profile image updated successfully!');
-      alert(t('profile.imageUpdateSuccess'));
-      closeImageModal();
-    }
-  } catch (error) {
-    console.error('❌ Failed to update profile image:', error);
-    alert(t('profile.imageUpdateError'));
-  }
-};
-
 // Get role badge class
 const getRoleBadgeClass = (role) => {
   const roleClasses = {
@@ -543,36 +627,65 @@ const getRoleBadgeClass = (role) => {
   };
   return roleClasses[role] || 'bg-secondary';
 };
+
+// Initialize on mount
+onMounted(() => {
+  fetchDropdownData();
+  initializeFormData();
+});
 </script>
 
 <style scoped>
 .profile-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding-bottom: 100px;
 }
 
-.detail-item {
+.form-control,
+.form-select {
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
   transition: all 0.2s ease;
 }
 
-.detail-item:hover {
-  background-color: #e9ecef !important;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
-.detail-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-}
-
-.detail-value {
-  font-size: 1rem;
+.form-control.bg-light {
+  background-color: #f9fafb !important;
+  cursor: not-allowed;
 }
 
 .badge {
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
+}
+
+/* Fixed Action Bar */
+.fixed-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Slide up animation */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 </style>

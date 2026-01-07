@@ -3,10 +3,47 @@ import { ref, computed } from "vue";
 import apiServices from "@/services/apiServices.js";
 
 export const useLinePriceStore = defineStore("linePrice", () => {
+  const normalizeLinePrice = (price) => {
+    const line = price.line_id;
+    const currency = price.currency_id;
+    const company = price.company_id;
+
+    const lineId = typeof line === "object" && line !== null ? line.id : line;
+    const currencyId =
+      typeof currency === "object" && currency !== null ? currency.id : currency;
+    const companyId =
+      typeof company === "object" && company !== null ? company.id : company;
+
+    return {
+      id: price.id,
+      line_id: lineId,
+      line_name:
+        typeof line === "object" && line !== null
+          ? line.name || ""
+          : price.line_name || (lineId ? `Line ${lineId}` : ""),
+      price: parseFloat(price.price),
+      currency_id: currencyId,
+      currency_code:
+        typeof currency === "object" && currency !== null
+          ? currency.symbol || ""
+          : price.currency_code || (currencyId ? `Currency ${currencyId}` : ""),
+      company_id: companyId,
+      company_name:
+        typeof company === "object" && company !== null
+          ? company.name || ""
+          : price.company_name || (companyId ? `Company ${companyId}` : ""),
+      type: price.type,
+      created_by: price.created_by,
+      created_at: price.created_at,
+      updated_at: price.updated_at,
+      deleted_at: price.deleted_at,
+    };
+  };
   // State
   const linePrices = ref([]);
   const trashedLinePrices = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Getters
@@ -66,21 +103,9 @@ export const useLinePriceStore = defineStore("linePrice", () => {
       const response = await apiServices.getLinePrices();
 
       // Transform API response to match frontend format
-      linePrices.value = response.data.data.map((price) => ({
-        id: price.id,
-        line_id: price.line_id,
-        line_name: `Line ${price.line_id}`, // You can map this to actual line names from lines store
-        price: parseFloat(price.price),
-        currency_id: price.currency_id,
-        currency_code: `Currency ${price.currency_id}`, // You can map this to actual currency codes
-        company_id: price.company_id,
-        company_name: `Company ${price.company_id}`, // You can map this to actual company names
-        type: price.type, // 'return' or 'one_way'
-        created_by: price.created_by,
-        created_at: price.created_at,
-        updated_at: price.updated_at,
-        deleted_at: price.deleted_at,
-      }));
+      linePrices.value = response.data.data.map((price) =>
+        normalizeLinePrice(price)
+      );
 
       console.log(`✅ Successfully loaded ${linePrices.value.length} line prices`);
       return response.data;
@@ -169,21 +194,7 @@ export const useLinePriceStore = defineStore("linePrice", () => {
       console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
-      const newPrice = {
-        id: response.data.data.id,
-        line_id: response.data.data.line_id,
-        line_name: `Line ${response.data.data.line_id}`,
-        price: parseFloat(response.data.data.price),
-        currency_id: response.data.data.currency_id,
-        currency_code: `Currency ${response.data.data.currency_id}`,
-        company_id: response.data.data.company_id,
-        company_name: `Company ${response.data.data.company_id}`,
-        type: response.data.data.type,
-        created_by: response.data.data.created_by,
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
-        deleted_at: response.data.data.deleted_at,
-      };
+      const newPrice = normalizeLinePrice(response.data.data);
 
       linePrices.value.push(newPrice);
       console.log("✅ Line price added successfully to store");
@@ -227,21 +238,7 @@ export const useLinePriceStore = defineStore("linePrice", () => {
       // Update local state with response data
       const index = linePrices.value.findIndex((p) => p.id === priceId);
       if (index > -1) {
-        linePrices.value[index] = {
-          id: response.data.data.id,
-          line_id: response.data.data.line_id,
-          line_name: `Line ${response.data.data.line_id}`,
-          price: parseFloat(response.data.data.price),
-          currency_id: response.data.data.currency_id,
-          currency_code: `Currency ${response.data.data.currency_id}`,
-          company_id: response.data.data.company_id,
-          company_name: `Company ${response.data.data.company_id}`,
-          type: response.data.data.type,
-          created_by: response.data.data.created_by,
-          created_at: response.data.data.created_at,
-          updated_at: response.data.data.updated_at,
-          deleted_at: response.data.data.deleted_at,
-        };
+        linePrices.value[index] = normalizeLinePrice(response.data.data);
         console.log("✅ Line price updated successfully");
       }
       return linePrices.value[index];
@@ -279,6 +276,28 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     }
   };
 
+  const fetchTrashedLinePrices = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedLinePrices();
+
+      // Transform API response to match frontend format
+      trashedLinePrices.value = response.data.data.map((price) =>
+        normalizeLinePrice(price)
+      );
+
+      console.log(`✅ Successfully loaded ${trashedLinePrices.value.length} trashed line prices`);
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed line prices";
+      console.error("❌ Error fetching trashed line prices:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   const restoreLinePrice = async (priceId) => {
     loading.value = true;
     error.value = null;
@@ -300,11 +319,69 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     }
   };
 
+  const bulkDeleteLinePrices = async (priceIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteLinePrices(priceIds, force);
+
+      if (force) {
+        // Permanent delete - remove from trashedLinePrices
+        trashedLinePrices.value = trashedLinePrices.value.filter(
+          (price) => !priceIds.includes(price.id)
+        );
+      } else {
+        // Soft delete - move from linePrices to trashedLinePrices
+        const deletedPrices = linePrices.value.filter((price) =>
+          priceIds.includes(price.id)
+        );
+        linePrices.value = linePrices.value.filter(
+          (price) => !priceIds.includes(price.id)
+        );
+        trashedLinePrices.value.push(...deletedPrices);
+      }
+
+      console.log(`✅ Successfully bulk deleted ${priceIds.length} line prices`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete line prices";
+      console.error("❌ Error bulk deleting line prices:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreLinePrices = async (priceIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreLinePrices(priceIds);
+
+      // Move line prices from trashedLinePrices to linePrices
+      const restoredPrices = trashedLinePrices.value.filter((price) =>
+        priceIds.includes(price.id)
+      );
+      trashedLinePrices.value = trashedLinePrices.value.filter(
+        (price) => !priceIds.includes(price.id)
+      );
+      linePrices.value.push(...restoredPrices);
+
+      console.log(`✅ Successfully bulk restored ${priceIds.length} line prices`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore line prices";
+      console.error("❌ Error bulk restoring line prices:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     linePrices,
     trashedLinePrices,
     loading,
+    trashedLoading,
     error,
     // Getters
     pricesByLine,
@@ -313,9 +390,12 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     pricesByCurrency,
     // Actions
     fetchLinePrices,
+    fetchTrashedLinePrices,
     addLinePrice,
     updateLinePrice,
     deleteLinePrice,
     restoreLinePrice,
+    bulkDeleteLinePrices,
+    bulkRestoreLinePrices,
   };
 });

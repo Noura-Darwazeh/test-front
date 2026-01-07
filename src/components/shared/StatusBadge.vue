@@ -57,28 +57,25 @@ const getBadgeClass = () => {
     // Success states
     active: "bg-success",
     available: "bg-success",
-    delivered: "bg-success",
+    done: "bg-success",
     completed: "bg-success",
     ready: "bg-success",
 
     // Warning states
     pending: "bg-warning text-dark",
-    on_way: "bg-warning text-dark",
-    assigned: "bg-warning text-dark",
     busy: "bg-warning text-dark",
-    in_transit: "bg-warning text-dark",
 
     // Danger states
     inactive: "bg-danger",
     expired: "bg-danger",
+    failed: "bg-danger",
     cancelled: "bg-danger",
     offline: "bg-danger",
     deleted: "bg-danger",
     stopped: "bg-danger",
 
     // Info states
-    picked_up: "bg-info",
-    returned: "bg-info",
+    in_progress: "bg-info",
 
     // Secondary states
     draft: "bg-secondary",

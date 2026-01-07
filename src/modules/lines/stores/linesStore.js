@@ -7,6 +7,7 @@ export const useLinesStore = defineStore("lines", () => {
   const lines = ref([]);
   const trashedLines = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Getters
@@ -217,6 +218,36 @@ export const useLinesStore = defineStore("lines", () => {
     }
   };
 
+  const fetchTrashedLines = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedLines();
+
+      // Transform API response to match frontend format
+      trashedLines.value = response.data.data.map((line) => ({
+        id: line.id,
+        name: line.name || "",
+        region_id: line.region_id,
+        region: `Region ${line.region_id}`,
+        company_id: line.company_id,
+        company: `Company ${line.company_id}`,
+        created_by: line.created_by,
+        created_at: line.created_at,
+        updated_at: line.updated_at,
+      }));
+
+      console.log(`✅ Successfully loaded ${trashedLines.value.length} trashed lines`);
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed lines";
+      console.error("❌ Error fetching trashed lines:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   const restoreLine = async (lineId) => {
     loading.value = true;
     error.value = null;
@@ -238,20 +269,81 @@ export const useLinesStore = defineStore("lines", () => {
     }
   };
 
+  const bulkDeleteLines = async (lineIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteLines(lineIds, force);
+
+      if (force) {
+        // Permanent delete - remove from trashedLines
+        trashedLines.value = trashedLines.value.filter(
+          (line) => !lineIds.includes(line.id)
+        );
+      } else {
+        // Soft delete - move from lines to trashedLines
+        const deletedLines = lines.value.filter((line) =>
+          lineIds.includes(line.id)
+        );
+        lines.value = lines.value.filter(
+          (line) => !lineIds.includes(line.id)
+        );
+        trashedLines.value.push(...deletedLines);
+      }
+
+      console.log(`✅ Successfully bulk deleted ${lineIds.length} lines`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete lines";
+      console.error("❌ Error bulk deleting lines:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreLines = async (lineIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreLines(lineIds);
+
+      // Move lines from trashedLines to lines
+      const restoredLines = trashedLines.value.filter((line) =>
+        lineIds.includes(line.id)
+      );
+      trashedLines.value = trashedLines.value.filter(
+        (line) => !lineIds.includes(line.id)
+      );
+      lines.value.push(...restoredLines);
+
+      console.log(`✅ Successfully bulk restored ${lineIds.length} lines`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore lines";
+      console.error("❌ Error bulk restoring lines:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     lines,
     trashedLines,
     loading,
+    trashedLoading,
     error,
     // Getters
     linesByRegion,
     linesByCompany,
     // Actions
     fetchLines,
+    fetchTrashedLines,
     addLine,
     updateLine,
     deleteLine,
     restoreLine,
+    bulkDeleteLines,
+    bulkRestoreLines,
   };
 });

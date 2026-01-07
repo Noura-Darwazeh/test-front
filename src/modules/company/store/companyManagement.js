@@ -101,7 +101,7 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteCompany(companyId, force);
+      await apiServices.deleteEntity('companies', companyId, force);
 
       if (force) {
         // Permanent delete from trashed companies
@@ -130,7 +130,7 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.restoreCompany(companyId);
+      const response = await apiServices.restoreEntity('companies', companyId);
 
       // Remove from trashed companies and add to active companies
       const index = trashedCompanies.value.findIndex((c) => c.id === companyId);
@@ -159,7 +159,7 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     }
     error.value = null;
     try {
-      await apiServices.bulkDeleteCompanies(companyIds, force);
+      await apiServices.bulkDeleteEntities('company', 'companies', companyIds, force);
 
       if (force) {
         // Remove permanently deleted companies from trashed list
@@ -185,7 +185,7 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.bulkRestoreCompanies(companyIds);
+      const response = await apiServices.bulkRestoreEntities('company', 'companies', companyIds);
 
       // Remove restored companies from trashed companies list
       trashedCompanies.value = trashedCompanies.value.filter((c) => !companyIds.includes(c.id));

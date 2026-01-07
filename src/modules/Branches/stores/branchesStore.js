@@ -7,6 +7,7 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   const branches = ref([]);
   const trashedBranches = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Helper function to add company_name to branches and flatten location
@@ -152,6 +153,26 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     }
   };
 
+  const fetchTrashedBranches = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedBranches();
+
+      // Enrich branches with company_name and flatten location
+      trashedBranches.value = await enrichBranchesWithCompanyName(response.data.data);
+
+      console.log(`✅ Successfully loaded ${trashedBranches.value.length} trashed branches`);
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed branches";
+      console.error("❌ Error fetching trashed branches:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   const restoreBranch = async (branchId) => {
     loading.value = true;
     error.value = null;
@@ -179,17 +200,78 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     }
   };
 
+  const bulkDeleteBranches = async (branchIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteBranches(branchIds, force);
+
+      if (force) {
+        // Permanent delete - remove from trashedBranches
+        trashedBranches.value = trashedBranches.value.filter(
+          (branch) => !branchIds.includes(branch.id)
+        );
+      } else {
+        // Soft delete - move from branches to trashedBranches
+        const deletedBranches = branches.value.filter((branch) =>
+          branchIds.includes(branch.id)
+        );
+        branches.value = branches.value.filter(
+          (branch) => !branchIds.includes(branch.id)
+        );
+        trashedBranches.value.push(...deletedBranches);
+      }
+
+      console.log(`✅ Successfully bulk deleted ${branchIds.length} branches`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete branches";
+      console.error("❌ Error bulk deleting branches:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreBranches = async (branchIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreBranches(branchIds);
+
+      // Move branches from trashedBranches to branches
+      const restoredBranches = trashedBranches.value.filter((branch) =>
+        branchIds.includes(branch.id)
+      );
+      trashedBranches.value = trashedBranches.value.filter(
+        (branch) => !branchIds.includes(branch.id)
+      );
+      branches.value.push(...restoredBranches);
+
+      console.log(`✅ Successfully bulk restored ${branchIds.length} branches`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore branches";
+      console.error("❌ Error bulk restoring branches:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     branches,
     trashedBranches,
     loading,
+    trashedLoading,
     error,
     // Actions
     fetchBranches,
+    fetchTrashedBranches,
     addBranch,
     updateBranch,
     deleteBranch,
     restoreBranch,
+    bulkDeleteBranches,
+    bulkRestoreBranches,
   };
 });

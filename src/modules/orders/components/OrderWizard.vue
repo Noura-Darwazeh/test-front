@@ -51,9 +51,13 @@
                     <option value="">
                       {{ $t("orders.form.selectCustomer") }}
                     </option>
-                    <option value="1">John Doe</option>
-                    <option value="2">Sara Mohammed</option>
-                    <option value="3">Ahmad Khalil</option>
+                    <option
+                      v-for="customer in customers"
+                      :key="customer.id"
+                      :value="customer.id"
+                    >
+                      {{ customer.name }}
+                    </option>
                   </select>
                 </div>
 
@@ -66,9 +70,13 @@
                     <option value="">
                       {{ $t("orders.form.selectLocation") }}
                     </option>
-                    <option value="1">Location 1</option>
-                    <option value="2">Location 2</option>
-                    <option value="3">Location 3</option>
+                    <option
+                      v-for="customer in customers"
+                      :key="customer.id"
+                      :value="customer.id"
+                    >
+                      {{ customer.name }}
+                    </option>
                   </select>
                 </div>
 
@@ -144,9 +152,13 @@
                     <option value="">
                       {{ $t("orders.form.selectParentOrder") }}
                     </option>
-                    <option value="1">Order #1</option>
-                    <option value="2">Order #2</option>
-                    <option value="3">Order #3</option>
+                    <option
+                      v-for="order in existingOrders"
+                      :key="order.id"
+                      :value="order.id"
+                    >
+                      {{ order.order_code }} - {{ order.customer_name }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -213,9 +225,16 @@
                     class="form-select"
                     required
                   >
-                    <option value="1">Line Price 1</option>
-                    <option value="2">Line Price 2</option>
-                    <option value="3">Line Price 3</option>
+                    <option value="">
+                      {{ $t("orders.form.selectLinePrice") }}
+                    </option>
+                    <option
+                      v-for="linePrice in linePrices"
+                      :key="linePrice.id"
+                      :value="linePrice.id"
+                    >
+                      {{ linePrice.name }} - {{ formatPrice(linePrice.price) }}
+                    </option>
                   </select>
                 </div>
 
@@ -225,9 +244,13 @@
                   }}</label>
                   <select v-model="formData.discount_id" class="form-select">
                     <option value="">{{ $t("orders.form.noDiscount") }}</option>
-                    <option value="1">Customer Discount 15%</option>
-                    <option value="2">Region Discount 10%</option>
-                    <option value="3">Price Discount 5%</option>
+                    <option
+                      v-for="discount in discounts"
+                      :key="discount.id"
+                      :value="discount.id"
+                    >
+                      {{ discount.name }}
+                    </option>
                   </select>
                 </div>
 
@@ -241,12 +264,15 @@
                     class="form-select"
                     required
                   >
+                    <option value="">
+                      {{ $t("orders.form.selectCompanyPrice") }}
+                    </option>
                     <option
-                      v-for="option in companyItemPriceOptions"
-                      :key="option.value"
-                      :value="option.value"
+                      v-for="price in companyPrices"
+                      :key="price.id"
+                      :value="price.id"
                     >
-                      {{ option.label }}
+                      {{ price.name }}
                     </option>
                   </select>
                 </div>
@@ -256,9 +282,16 @@
                     $t("orders.form.companyId")
                   }}</label>
                   <select v-model="formData.company_id" class="form-select">
-                    <option value="1">Tech Solutions Ltd</option>
-                    <option value="2">Fast Delivery Co</option>
-                    <option value="3">Global Logistics Inc</option>
+                    <option value="">
+                      {{ $t("orders.form.selectCompany") }}
+                    </option>
+                    <option
+                      v-for="company in companies"
+                      :key="company.id"
+                      :value="company.id"
+                    >
+                      {{ company.name }}
+                    </option>
                   </select>
                 </div>
 
@@ -272,9 +305,16 @@
                     class="form-select"
                     required
                   >
-                    <option value="1">Customer Branch 1</option>
-                    <option value="2">Customer Branch 2</option>
-                    <option value="3">Customer Branch 3</option>
+                    <option value="">
+                      {{ $t("orders.form.selectBranch") }}
+                    </option>
+                    <option
+                      v-for="branch in branches"
+                      :key="branch.id"
+                      :value="branch.id"
+                    >
+                      {{ branch.name }}
+                    </option>
                   </select>
                 </div>
 
@@ -288,9 +328,16 @@
                     class="form-select"
                     required
                   >
-                    <option value="1">Delivery Branch 1</option>
-                    <option value="2">Delivery Branch 2</option>
-                    <option value="3">Delivery Branch 3</option>
+                    <option value="">
+                      {{ $t("orders.form.selectBranch") }}
+                    </option>
+                    <option
+                      v-for="branch in branches"
+                      :key="branch.id"
+                      :value="branch.id"
+                    >
+                      {{ branch.name }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -410,9 +457,13 @@
                             <option value="">
                               {{ $t("orderItems.form.noFromCompany") }}
                             </option>
-                            <option value="1">Tech Solutions Ltd</option>
-                            <option value="2">Fast Delivery Co</option>
-                            <option value="3">Medical Corp</option>
+                            <option
+                              v-for="company in companies"
+                              :key="company.id"
+                              :value="company.id"
+                            >
+                              {{ company.name }}
+                            </option>
                           </select>
                         </div>
 
@@ -430,9 +481,13 @@
                             <option value="">
                               {{ $t("orderItems.form.noToCompany") }}
                             </option>
-                            <option value="1">Tech Solutions Ltd</option>
-                            <option value="2">Fast Delivery Co</option>
-                            <option value="3">Medical Corp</option>
+                            <option
+                              v-for="company in companies"
+                              :key="company.id"
+                              :value="company.id"
+                            >
+                              {{ company.name }}
+                            </option>
                           </select>
                         </div>
 
@@ -511,13 +566,10 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
-// TODO: Fetch currencies from API if needed
-const availableCurrencies = ref([]);
-
 // Simple price formatter
-const formatPrice = (value) => {
-  if (!value || isNaN(value)) return "$0.00";
-  return `$${Number(value).toFixed(2)}`;
+const formatPrice = (value, symbol = "$") => {
+  if (!value || isNaN(value)) return `${symbol}0.00`;
+  return `${symbol}${Number(value).toFixed(2)}`;
 };
 
 const props = defineProps({
@@ -525,7 +577,41 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  customers: {
+    type: Array,
+    default: () => [],
+  },
+  companies: {
+    type: Array,
+    default: () => [],
+  },
+  currencies: {
+    type: Array,
+    default: () => [],
+  },
+  linePrices: {
+    type: Array,
+    default: () => [],
+  },
+  discounts: {
+    type: Array,
+    default: () => [],
+  },
+  branches: {
+    type: Array,
+    default: () => [],
+  },
+  companyPrices: {
+    type: Array,
+    default: () => [],
+  },
+  existingOrders: {
+    type: Array,
+    default: () => [],
+  },
 });
+
+const availableCurrencies = computed(() => props.currencies);
 
 const emit = defineEmits(["close", "submit"]);
 
@@ -556,21 +642,6 @@ const formData = ref({
 
 const orderItems = ref([]);
 const selectedOrderItems = ref([]);
-
-// Computed properties for dynamic options
-const currencyOptions = computed(() =>
-  availableCurrencies.value.map((currency) => ({
-    value: currency.id,
-    label: `${currency.code} (${currency.symbol})`,
-  }))
-);
-
-const companyItemPriceOptions = computed(() => [
-  { value: "1", label: `Small & Light - ${formatPrice(25.5, "USD")}` },
-  { value: "2", label: `Small & Heavy - ${formatPrice(45.0, "USD")}` },
-  { value: "3", label: `Big & Light - ${formatPrice(35.75, "USD")}` },
-  { value: "4", label: `Big & Heavy - ${formatPrice(120.0, "USD")}` },
-]);
 
 // Conditional logic for package selection based on case
 const isMultiDisabled = computed(() => {
@@ -679,20 +750,53 @@ const submitOrder = () => {
   // Validate each order item
   for (let i = 0; i < orderItems.value.length; i++) {
     const item = orderItems.value[i];
-    if (!item.name || !item.quantity || !item.weight || !item.warehouse_id) {
+    if (!item.name || !item.quantity || !item.selected_weight_id || !item.warehouse_id) {
       alert(t("orders.validation.incompleteOrderItem", { index: i + 1 }));
       return;
     }
 
-    if (item.type === "multi" && !item.multi_group_id) {
-      alert(t("orders.validation.multiGroupIdRequired", { index: i + 1 }));
+    // Validate from_company_id for Fast case
+    if (formData.value.case === "Fast" && !item.from_company_id) {
+      alert(t("orders.validation.fromCompanyRequired", { index: i + 1 }));
+      return;
+    }
+
+    // Validate to_company_id for Part case
+    if (formData.value.case === "Part" && !item.to_company_id) {
+      alert(t("orders.validation.toCompanyRequired", { index: i + 1 }));
       return;
     }
   }
 
+  // Transform order items to API format
+  const transformedOrderItems = orderItems.value.map((item) => ({
+    name: item.name,
+    description: item.description || "",
+    quantity: parseInt(item.quantity),
+    weight: parseInt(item.selected_weight_id), // Convert selected_weight_id to weight
+    from_company_id: item.from_company_id ? parseInt(item.from_company_id) : null,
+    to_company_id: item.to_company_id ? parseInt(item.to_company_id) : null,
+    warehouse_id: parseInt(item.warehouse_id),
+    multi_group_id: item.multi_group_id || null,
+    items: [], // Nested items array (empty for now)
+  }));
+
+  // Build order data matching API format
   const orderData = {
-    ...formData.value,
-    order_items: orderItems.value,
+    from_company_id: parseInt(formData.value.branch_customer_company_id),
+    to_id: parseInt(formData.value.to_id),
+    price: parseFloat(formData.value.price),
+    currency_id: parseInt(formData.value.currency_id),
+    lineprice_id: parseInt(formData.value.lineprice_id),
+    discount_id: formData.value.discount_id ? parseInt(formData.value.discount_id) : null,
+    company_item_price_id: parseInt(formData.value.company_item_price_id),
+    case: formData.value.case,
+    type: formData.value.type,
+    package: formData.value.package,
+    parent_order_id: formData.value.parent_order_id ? parseInt(formData.value.parent_order_id) : null,
+    company_id: parseInt(formData.value.company_id),
+    is_delivery_price_from_customer: 0, // Default value
+    order_items: transformedOrderItems,
   };
 
   emit("submit", orderData);

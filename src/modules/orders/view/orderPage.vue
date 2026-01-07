@@ -1,5 +1,43 @@
 <template>
   <div class="orders-page-container bg-light">
+    <!-- Time Period Selector -->
+    <div class="mb-3">
+      <div class="btn-group" role="group" aria-label="Time period filter">
+        <button
+          type="button"
+          class="btn"
+          :class="selectedTimePeriod === 'all' ? 'btn-primary' : 'btn-outline-primary'"
+          @click="selectedTimePeriod = 'all'"
+        >
+          {{ $t('orders.stats.allTime') }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="selectedTimePeriod === 'today' ? 'btn-primary' : 'btn-outline-primary'"
+          @click="selectedTimePeriod = 'today'"
+        >
+          {{ $t('orders.stats.today') }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="selectedTimePeriod === 'month' ? 'btn-primary' : 'btn-outline-primary'"
+          @click="selectedTimePeriod = 'month'"
+        >
+          {{ $t('orders.stats.thisMonth') }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="selectedTimePeriod === 'year' ? 'btn-primary' : 'btn-outline-primary'"
+          @click="selectedTimePeriod = 'year'"
+        >
+          {{ $t('orders.stats.thisYear') }}
+        </button>
+      </div>
+    </div>
+
     <!-- Statistics Cards -->
     <div class="row mb-4">
       <div
@@ -22,7 +60,7 @@
     <OrdersHeader
       v-model="searchText"
       :searchPlaceholder="$t('orders.searchPlaceholder')"
-      :data="orders"
+      :data="ordersStore.orders"
       :groupKey="'status'"
       v-model:groupModelValue="selectedGroups"
       :groupLabel="$t('orders.filterByStatus')"
@@ -47,8 +85,10 @@
               :row="row"
               :editLabel="$t('orders.actions.edit')"
               :detailsLabel="$t('orders.actions.view')"
+              :deleteLabel="$t('orders.actions.delete')"
               @edit="editOrder"
               @details="viewOrderDetails"
+              @delete="handleDeleteOrder"
             />
           </template>
         </DataTable>
@@ -66,6 +106,14 @@
     <!-- Order Wizard -->
     <OrderWizard
       :isOpen="isWizardOpen"
+      :customers="customers"
+      :companies="companies"
+      :currencies="currencies"
+      :linePrices="linePrices"
+      :discounts="discounts"
+      :branches="branches"
+      :companyPrices="companyPrices"
+      :existingOrders="ordersStore.orders"
       @close="closeModal"
       @submit="handleAddOrder"
     />
@@ -86,10 +134,12 @@
       :title="$t('orders.trashed.title')"
       :emptyMessage="$t('orders.trashed.empty')"
       :columns="trashedColumns"
-      :trashedItems="trashedOrders"
-      :showDeleteButton="false"
+      :trashedItems="ordersStore.trashedOrders"
+      :showDeleteButton="true"
+      :deleteLabel="$t('orders.actions.deletePermanently')"
       @close="closeTrashedModal"
       @restore="handleRestoreOrder"
+      @delete="handlePermanentDeleteOrder"
     />
 
     <!-- Details Modal -->
@@ -124,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import StatCard from "../../../components/shared/StatCard.vue";
@@ -137,14 +187,17 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useOrderFormFields } from "../components/orderFormFields.js";
+import { useOrdersStore } from "../store/ordersStore.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const { orderFields } = useOrderFormFields();
+const ordersStore = useOrdersStore();
 
 // Simple price formatter
-const formatPrice = (value) => {
-  if (!value || isNaN(value)) return "$0.00";
-  return `$${Number(value).toFixed(2)}`;
+const formatPrice = (value, currencySymbol = "$") => {
+  if (!value || isNaN(value)) return `${currencySymbol}0.00`;
+  return `${currencySymbol}${Number(value).toFixed(2)}`;
 };
 
 const searchText = ref("");
@@ -158,163 +211,131 @@ const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedOrder = ref({});
 
-// Simple local data - following the backend API schema
-const orders = ref([
-  {
-    id: 1,
-    to_id: 1,
-    customer_id: 1,
-    customer_name: "John Doe",
-    price: 150.0,
-    currency_id: 1,
-    currency_code: "USD",
-    lineprice_id: 1,
-    discount_id: 1,
-    discount_percentage: 15.5,
-    company_item_price_id: 1,
-    type: "delivery",
-    package: "one",
-    case: "Full",
-    parent_order_id: null,
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    branch_customer_company_id: 1,
-    branch_delivery_company_id: 1,
-    order_items: [
-      {
-        id: 1,
-        name: "Electronics Package",
-        quantity: 1,
-        items: [
-          { name: "Laptop", quantity: 1 },
-          { name: "Mouse", quantity: 1 },
-        ],
-      },
-    ],
-    status: "pending",
-    created_at: "2024-01-15 10:30:00",
-  },
-  {
-    id: 2,
-    to_id: 2,
-    customer_id: 2,
-    customer_name: "Sara Mohammed",
-    price: 75.5,
-    currency_id: 1,
-    currency_code: "USD",
-    lineprice_id: 2,
-    discount_id: null,
-    discount_percentage: 0,
-    company_item_price_id: 2,
-    type: "delivery",
-    package: "multi",
-    case: "Full",
-    parent_order_id: null,
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    branch_customer_company_id: 2,
-    branch_delivery_company_id: 1,
-    order_items: [
-      {
-        id: 1,
-        name: "Documents",
-        quantity: 5,
-        items: [
-          { name: "Contract", quantity: 2 },
-          { name: "Invoice", quantity: 3 },
-        ],
-      },
-      {
-        id: 2,
-        name: "Books",
-        quantity: 3,
-        items: [{ name: "Manual", quantity: 3 }],
-      },
-    ],
-    status: "on_way",
-    created_at: "2024-01-14 09:15:00",
-  },
-  {
-    id: 3,
-    to_id: 3,
-    customer_id: 3,
-    customer_name: "Ahmad Khalil",
-    price: 200.0,
-    currency_id: 2,
-    currency_code: "EUR",
-    lineprice_id: 1,
-    discount_id: 2,
-    discount_percentage: 10.0,
-    company_item_price_id: 4,
-    type: "return",
-    package: "one",
-    case: "Fast",
-    parent_order_id: 1,
-    company_id: 2,
-    company_name: "Fast Delivery Co",
-    branch_customer_company_id: 3,
-    branch_delivery_company_id: 2,
-    order_items: [
-      {
-        id: 1,
-        name: "Returned Item",
-        quantity: 1,
-        items: [{ name: "Defective Product", quantity: 1 }],
-      },
-    ],
-    status: "delivered",
-    created_at: "2024-01-13 14:20:00",
-  },
-]);
+// Dropdown data for order creation
+const customers = ref([]);
+const companies = ref([]);
+const currencies = ref([]);
+const linePrices = ref([]);
+const discounts = ref([]);
+const branches = ref([]);
+const companyPrices = ref([]);
 
-const trashedOrders = ref([
-  {
-    id: 101,
-    to_id: 1,
-    customer_id: 1,
-    customer_name: "Deleted Customer",
-    price: 50.0,
-    currency_id: 1,
-    currency_code: "USD",
-    type: "delivery",
-    package: "one",
-    case: "Part",
-    status: "cancelled",
-    created_at: "2024-01-10 12:00:00",
-  },
-]);
+// Fetch orders, statistics, and dropdown data on component mount
+onMounted(async () => {
+  await Promise.all([
+    ordersStore.fetchOrders(),
+    ordersStore.fetchStatistics(),
+    fetchDropdownData(),
+  ]);
+});
 
-// Order statistics - simple computed like user/driver pages
-const orderStats = computed(() => [
-  {
-    key: "total",
-    count: filteredOrders.value.length,
-    icon: "fas fa-box",
-    iconClass: "stat-icon-blue",
-    filterValue: null,
-  },
-  {
-    key: "delivered",
-    count: filteredOrders.value.filter((o) => o.status === "delivered").length,
-    icon: "fas fa-check-circle",
-    iconClass: "stat-icon-green",
-    filterValue: "delivered",
-  },
-  {
-    key: "onWay",
-    count: filteredOrders.value.filter((o) => o.status === "on_way").length,
-    icon: "fas fa-truck",
-    iconClass: "stat-icon-orange",
-    filterValue: "on_way",
-  },
-  {
-    key: "pending",
-    count: filteredOrders.value.filter((o) => o.status === "pending").length,
-    icon: "fas fa-clock",
-    iconClass: "stat-icon-red",
-    filterValue: "pending",
-  },
-]);
+// Fetch all dropdown data required for order creation
+const fetchDropdownData = async () => {
+  try {
+    const [
+      customersRes,
+      companiesRes,
+      currenciesRes,
+      linePricesRes,
+      discountsRes,
+      branchesRes,
+      companyPricesRes,
+    ] = await Promise.all([
+      apiServices.getCustomers(),
+      apiServices.getCompanies(),
+      apiServices.getCurrencies(),
+      apiServices.getLinePrices(),
+      apiServices.getDiscounts(),
+      apiServices.getBranches(),
+      apiServices.getCompanyPrices(),
+    ]);
+
+    customers.value = customersRes.data.data || [];
+    companies.value = companiesRes.data.data || [];
+    currencies.value = currenciesRes.data.data || [];
+    linePrices.value = linePricesRes.data.data || [];
+    discounts.value = discountsRes.data.data || [];
+    branches.value = branchesRes.data.data || [];
+    companyPrices.value = companyPricesRes.data.data || [];
+
+    console.log("✅ Successfully loaded all dropdown data for order creation");
+  } catch (err) {
+    console.error("❌ Error fetching dropdown data:", err);
+  }
+};
+
+// Time period selection
+const selectedTimePeriod = ref("all");
+
+// Order statistics - using API statistics
+const orderStats = computed(() => {
+  const stats = ordersStore.statistics;
+
+  // Helper to get count for a specific status from orders_by_status array
+  const getStatusCount = (status) => {
+    const statusData = stats.orders_by_status.find((s) => s.status === status);
+    return statusData?.count || 0;
+  };
+
+  // Get time-based order count
+  const getTimePeriodCount = () => {
+    switch (selectedTimePeriod.value) {
+      case "today":
+        return stats.today?.orders || 0;
+      case "month":
+        return stats.month?.orders || 0;
+      case "year":
+        return stats.year?.orders || 0;
+      default:
+        return stats.total_orders || 0;
+    }
+  };
+
+  return [
+    {
+      key: "total",
+      count: getTimePeriodCount(),
+      icon: "fas fa-box",
+      iconClass: "stat-icon-blue",
+      filterValue: null,
+    },
+    {
+      key: "totalProfit",
+      count: formatPrice(stats.total_profit || 0),
+      icon: "fas fa-dollar-sign",
+      iconClass: "stat-icon-success",
+      filterValue: null,
+    },
+    {
+      key: "pending",
+      count: getStatusCount("pending"),
+      icon: "fas fa-clock",
+      iconClass: "stat-icon-warning",
+      filterValue: "pending",
+    },
+    {
+      key: "inProgress",
+      count: getStatusCount("in_progress"),
+      icon: "fas fa-spinner",
+      iconClass: "stat-icon-info",
+      filterValue: "in_progress",
+    },
+    {
+      key: "done",
+      count: getStatusCount("done"),
+      icon: "fas fa-check-circle",
+      iconClass: "stat-icon-green",
+      filterValue: "done",
+    },
+    {
+      key: "failed",
+      count: getStatusCount("failed"),
+      icon: "fas fa-times-circle",
+      iconClass: "stat-icon-red",
+      filterValue: "failed",
+    },
+  ];
+});
 
 // Table columns
 const orderColumns = computed(() => [
@@ -328,7 +349,7 @@ const orderColumns = computed(() => [
     key: "price",
     label: t("orders.table.price"),
     sortable: true,
-    formatter: (value, row) => formatPrice(value, row.currency_code),
+    formatter: (value, row) => formatPrice(value, row.currency_symbol),
   },
   {
     key: "status",
@@ -348,7 +369,7 @@ const trashedColumns = computed(() => [
   {
     key: "price",
     label: t("orders.table.price"),
-    formatter: (value, row) => formatPrice(value, row.currency_code),
+    formatter: (value, row) => formatPrice(value, row.currency_symbol),
   },
   { key: "created_at", label: t("orders.table.createdAt") },
 ]);
@@ -361,9 +382,9 @@ const filteredColumns = computed(() => {
   );
 });
 
-// Simple filtering - exactly like user/driver pages
+// Simple filtering - using store data
 const filteredOrders = computed(() => {
-  let result = orders.value;
+  let result = ordersStore.orders;
   result = filterByGroups(result, selectedGroups.value, "status");
   result = filterData(result, searchText.value);
   return result;
@@ -394,7 +415,8 @@ const closeModal = () => {
   isWizardOpen.value = false;
 };
 
-const openTrashedModal = () => {
+const openTrashedModal = async () => {
+  await ordersStore.fetchTrashedOrders();
   isTrashedModalOpen.value = true;
 };
 
@@ -402,31 +424,41 @@ const closeTrashedModal = () => {
   isTrashedModalOpen.value = false;
 };
 
-const handleAddOrder = (orderData) => {
-  console.log("New order added:", orderData);
-
-  const newOrder = {
-    id: orders.value.length + 1,
-    ...orderData,
-    customer_name: "New Customer",
-    company_name: "Default Company",
-    currency_code: "USD",
-    status: "pending",
-    created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
-  };
-
-  orders.value.push(newOrder);
-  console.log("Order added successfully!");
+const handleAddOrder = async (orderData) => {
+  try {
+    await ordersStore.addOrder(orderData);
+    await ordersStore.fetchStatistics(); // Refresh statistics
+    closeModal();
+  } catch (err) {
+    console.error("Failed to add order:", err);
+  }
 };
 
-const handleRestoreOrder = (order) => {
-  console.log("Restoring order:", order);
-  orders.value.push(order);
-  const index = trashedOrders.value.findIndex((o) => o.id === order.id);
-  if (index > -1) {
-    trashedOrders.value.splice(index, 1);
+const handleDeleteOrder = async (order) => {
+  try {
+    await ordersStore.deleteOrder(order.id);
+    await ordersStore.fetchStatistics(); // Refresh statistics
+  } catch (err) {
+    console.error("Failed to delete order:", err);
   }
-  console.log("Order has been restored successfully!");
+};
+
+const handleRestoreOrder = async (order) => {
+  try {
+    await ordersStore.restoreOrder(order.id);
+    await ordersStore.fetchStatistics(); // Refresh statistics
+  } catch (err) {
+    console.error("Failed to restore order:", err);
+  }
+};
+
+const handlePermanentDeleteOrder = async (order) => {
+  try {
+    await ordersStore.deleteOrder(order.id, true); // force = true for permanent delete
+    await ordersStore.fetchStatistics(); // Refresh statistics
+  } catch (err) {
+    console.error("Failed to permanently delete order:", err);
+  }
 };
 
 const viewOrderDetails = (order) => {
@@ -451,60 +483,14 @@ const closeDetailsModal = () => {
   selectedOrder.value = {};
 };
 
-const handleEditOrder = (orderData) => {
-  console.log("Editing order:", orderData);
-
-  // Find company name from company_id
-  const companies = [
-    { id: 1, name: "Tech Solutions Ltd" },
-    { id: 2, name: "Fast Delivery Co" },
-    { id: 3, name: "Global Logistics Inc" },
-  ];
-
-  const company = companies.find((c) => c.id === parseInt(orderData.company_id));
-
-  // Find customer name from customer_id
-  const customers = [
-    { id: 1, name: "John Doe" },
-    { id: 2, name: "Sara Mohammed" },
-    { id: 3, name: "Ahmad Khalil" },
-  ];
-
-  const customer = customers.find((c) => c.id === parseInt(orderData.customer_id));
-
-  // Find currency code from currency_id
-  const currencyMap = {
-    1: "USD",
-    2: "EUR",
-    3: "GBP",
-  };
-
-  const index = orders.value.findIndex((o) => o.id === selectedOrder.value.id);
-  if (index > -1) {
-    orders.value[index] = {
-      ...orders.value[index],
-      to_id: parseInt(orderData.to_id),
-      customer_id: parseInt(orderData.customer_id),
-      customer_name: customer?.name || orders.value[index].customer_name,
-      price: parseFloat(orderData.price),
-      currency_id: parseInt(orderData.currency_id),
-      currency_code: currencyMap[parseInt(orderData.currency_id)] || "USD",
-      lineprice_id: parseInt(orderData.lineprice_id),
-      discount_id: orderData.discount_id ? parseInt(orderData.discount_id) : null,
-      company_item_price_id: parseInt(orderData.company_item_price_id),
-      type: orderData.type,
-      package: orderData.package,
-      case: orderData.case,
-      parent_order_id: orderData.parent_order_id ? parseInt(orderData.parent_order_id) : null,
-      company_id: parseInt(orderData.company_id),
-      company_name: company?.name || orders.value[index].company_name,
-      branch_customer_company_id: parseInt(orderData.branch_customer_company_id),
-      branch_delivery_company_id: parseInt(orderData.branch_delivery_company_id),
-    };
-    console.log("Order updated successfully!");
+const handleEditOrder = async (orderData) => {
+  try {
+    await ordersStore.updateOrder(selectedOrder.value.id, orderData);
+    await ordersStore.fetchStatistics(); // Refresh statistics
+    closeFormModal();
+  } catch (err) {
+    console.error("Failed to update order:", err);
   }
-
-  closeFormModal();
 };
 
 // Update form fields to support edit mode
@@ -553,7 +539,7 @@ const detailsFields = computed(() => [
     key: "price",
     label: t("orders.table.price"),
     colClass: "col-md-6",
-    translator: (value) => formatPrice(selectedOrder.value.price, selectedOrder.value.currency_code)
+    translator: (value) => formatPrice(selectedOrder.value.price, selectedOrder.value.currency_symbol)
   },
   {
     key: "discount_percentage",
@@ -578,5 +564,10 @@ watch([searchText, selectedGroups], () => {
 <style scoped>
 .orders-page-container {
   max-width: 100%;
+}
+
+.btn-group .btn {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
 }
 </style>

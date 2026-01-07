@@ -1,22 +1,105 @@
 <template>
     <div class="user-page-container bg-light">
-        <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches"
-            groupKey="company_name" v-model:groupModelValue="selectedGroups" :groupLabel="$t('branch.filterByCompany')"
-            translationKey="" :columns="branchColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('branch.addNew')" @add-click="openAddModal"
-            @trashed-click="openTrashedModal" />
+        <BranchesHeader
+            v-model="searchText"
+            :searchPlaceholder="$t('branch.searchPlaceholder')"
+            :data="branches"
+            groupKey="company_name"
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('branch.filterByCompany')"
+            translationKey=""
+            :columns="branchColumns"
+            v-model:visibleColumns="visibleColumns"
+            :showAddButton="true"
+            :addButtonText="$t('branch.addNew')"
+            @add-click="openAddModal"
+        />
 
         <div class="card border-0">
+            <!-- Tabs -->
+            <div class="card-header bg-white border-bottom">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <button
+                            class="nav-link"
+                            :class="{ active: activeTab === 'active' }"
+                            @click="switchTab('active')"
+                        >
+                            {{ $t('branch.activeBranches') }}
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button
+                            class="nav-link trashed-tab"
+                            :class="{ active: activeTab === 'trashed' }"
+                            @click="switchTab('trashed')"
+                        >
+                            {{ $t('branch.trashed.title') }}
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
             <div class="card-body p-0">
-                <DataTable :columns="filteredColumns" :data="paginatedbranches" :actionsLabel="$t('branch.actions')">
-                    <template #actions="{ row }">
-                        <ActionsDropdown :row="row" :editLabel="$t('branch.edit')" :detailsLabel="$t('branch.details')"
-                            @edit="openEditModal" @details="openDetailsModal" />
-                    </template>
-                </DataTable>
-                <div class="px-3 pt-1 pb-2 bg-light">
-                    <Pagination :totalItems="filteredbranches.length" :itemsPerPage="itemsPerPage"
-                        :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                <!-- Bulk Actions Bar -->
+                <BulkActionsBar
+                    :selectedCount="selectedRows.length"
+                    entityName="branch"
+                    :actions="bulkActions"
+                    :loading="bulkActionLoading"
+                    @action="handleBulkAction"
+                />
+
+                <!-- Loading State -->
+                <div v-if="currentLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{{ $t('common.loading') }}</p>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="branchesStore.error" class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ branchesStore.error }}
+                </div>
+
+                <!-- Data Table -->
+                <div v-else>
+                    <DataTable
+                        :columns="filteredColumns"
+                        :data="paginatedData"
+                        :actionsLabel="$t('branch.actions')"
+                        v-model="selectedRows"
+                    >
+                        <template #actions="{ row }">
+                            <!-- Active Branches Actions -->
+                            <ActionsDropdown
+                                v-if="activeTab === 'active'"
+                                :row="row"
+                                :editLabel="$t('branch.edit')"
+                                :detailsLabel="$t('branch.details')"
+                                @edit="openEditModal"
+                                @details="openDetailsModal"
+                            />
+                            <!-- Trashed Branches Actions -->
+                            <PrimaryButton
+                                v-else
+                                text="Restore"
+                                bgColor="var(--color-success)"
+                                class="d-inline-flex align-items-center"
+                                @click="handleRestorebranch(row)"
+                            />
+                        </template>
+                    </DataTable>
+                    <div class="px-3 pt-1 pb-2 bg-light">
+                        <Pagination
+                            :totalItems="currentFilteredData.length"
+                            :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage"
+                            @update:currentPage="(page) => currentPage = page"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -29,10 +112,16 @@
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('branch.details')" :data="selectedbranch"
             :fields="detailsFields" @close="closeDetailsModal" />
 
-        <!-- Trashed branches Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('branch.trashed.title')"
-            :emptyMessage="$t('branch.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedbranches"
-            @close="closeTrashedModal" @restore="handleRestorebranch" />
+        <!-- Bulk Action Confirmation Modal -->
+        <ConfirmationModal
+            :isOpen="isBulkConfirmOpen"
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage"
+            :confirmText="$t('common.confirm')"
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction"
+            @close="cancelBulkAction"
+        />
     </div>
 </template>
 
@@ -42,11 +131,13 @@ import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import { useBranchesManagementStore } from "../stores/branchesStore";
 import apiServices from "@/services/apiServices.js";
 
@@ -59,10 +150,16 @@ const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedbranch = ref({});
 const companies = ref([]);
+const activeTab = ref('active');
+const selectedRows = ref([]);
+
+// Bulk action state
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
 
 // Use store data instead of local refs
 const branches = computed(() => branchesStore.branches);
@@ -179,16 +276,29 @@ const filteredColumns = computed(() => {
     );
 });
 
-const filteredbranches = computed(() => {
-    let result = branches.value;
-    result = filterByGroups(result, selectedGroups.value, "company_name");
+// Get current data based on active tab
+const currentData = computed(() => {
+    return activeTab.value === 'active' ? branches.value : trashedbranches.value;
+});
+
+// Get current loading state based on active tab
+const currentLoading = computed(() => {
+    return activeTab.value === 'active' ? branchesStore.loading : branchesStore.trashedLoading;
+});
+
+// Filter current data
+const currentFilteredData = computed(() => {
+    let result = currentData.value;
+    if (activeTab.value === 'active') {
+        result = filterByGroups(result, selectedGroups.value, "company_name");
+    }
     result = filterData(result, searchText.value);
     return result;
 });
 
-const paginatedbranches = computed(() => {
+const paginatedData = computed(() => {
     return paginateData(
-        filteredbranches.value,
+        currentFilteredData.value,
         currentPage.value,
         itemsPerPage.value
     );
@@ -229,12 +339,100 @@ const closeDetailsModal = () => {
     selectedbranch.value = {};
 };
 
-const openTrashedModal = () => {
-    isTrashedModalOpen.value = true;
+// Tab switching function
+const switchTab = async (tab) => {
+    activeTab.value = tab;
+    currentPage.value = 1;
+    selectedRows.value = [];
+    if (tab === 'trashed') {
+        try {
+            await branchesStore.fetchTrashedBranches();
+        } catch (error) {
+            console.error("❌ Failed to fetch trashed branches:", error);
+        }
+    }
 };
 
-const closeTrashedModal = () => {
-    isTrashedModalOpen.value = false;
+// Bulk actions configuration
+const bulkActions = computed(() => {
+    if (activeTab.value === 'active') {
+        return [
+            {
+                id: 'delete',
+                label: t('branch.bulkDelete'),
+                icon: 'fa-trash',
+                bgColor: 'var(--color-danger)'
+            }
+        ];
+    } else {
+        return [
+            {
+                id: 'restore',
+                label: t('branch.bulkRestore'),
+                icon: 'fa-undo',
+                bgColor: 'var(--color-success)'
+            },
+            {
+                id: 'permanentDelete',
+                label: t('common.permanentDelete'),
+                icon: 'fa-trash-alt',
+                bgColor: 'var(--color-danger)'
+            }
+        ];
+    }
+});
+
+// Bulk confirm message
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const count = selectedRows.value.length;
+    const entityName = count === 1 ? t('branch.entitySingular') : t('branch.entityPlural');
+
+    if (pendingBulkAction.value === 'delete') {
+        return t('common.bulkDeleteConfirm', { count, entity: entityName });
+    } else if (pendingBulkAction.value === 'permanentDelete') {
+        return t('common.bulkPermanentDeleteConfirm', { count, entity: entityName });
+    } else if (pendingBulkAction.value === 'restore') {
+        return t('common.bulkRestoreConfirm', { count, entity: entityName });
+    }
+    return '';
+});
+
+// Bulk action handler
+const handleBulkAction = ({ actionId }) => {
+    pendingBulkAction.value = actionId;
+    isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+    bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+
+    try {
+        if (pendingBulkAction.value === 'delete') {
+            await branchesStore.bulkDeleteBranches(selectedRows.value, false);
+            console.log("✅ Branches soft deleted successfully");
+        } else if (pendingBulkAction.value === 'permanentDelete') {
+            await branchesStore.bulkDeleteBranches(selectedRows.value, true);
+            console.log("✅ Branches permanently deleted successfully");
+        } else if (pendingBulkAction.value === 'restore') {
+            await branchesStore.bulkRestoreBranches(selectedRows.value);
+            console.log("✅ Branches restored successfully");
+        }
+
+        selectedRows.value = [];
+        pendingBulkAction.value = null;
+    } catch (error) {
+        console.error("❌ Bulk action failed:", error);
+    } finally {
+        bulkActionLoading.value = false;
+    }
+};
+
+const cancelBulkAction = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
 };
 
 const handleSubmitbranch = async (branchData) => {

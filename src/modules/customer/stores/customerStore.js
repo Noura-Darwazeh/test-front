@@ -7,6 +7,7 @@ export const useCustomerStore = defineStore("customer", () => {
   const customers = ref([]);
   const trashedCustomers = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Getters
@@ -200,6 +201,40 @@ export const useCustomerStore = defineStore("customer", () => {
     }
   };
 
+  const fetchTrashedCustomers = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedCustomers();
+
+      // Transform API response to match frontend format
+      trashedCustomers.value = response.data.data.map((customer) => ({
+        id: customer.id,
+        name: customer.name || "",
+        phone_number: customer.phone_number || "",
+        company_id: customer.company_id,
+        company_name: `Company ${customer.company_id}`,
+        location: customer.location
+          ? `${customer.location.coordinates[1]}, ${customer.location.coordinates[0]}`
+          : "",
+        latitude: customer.latitude || null,
+        longitude: customer.longitude || null,
+        created_at: customer.created_at,
+        updated_at: customer.updated_at,
+        created_by: customer.created_by,
+      }));
+
+      console.log(`✅ Successfully loaded ${trashedCustomers.value.length} trashed customers`);
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed customers";
+      console.error("❌ Error fetching trashed customers:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   const restoreCustomer = async (customerId) => {
     loading.value = true;
     error.value = null;
@@ -221,19 +256,80 @@ export const useCustomerStore = defineStore("customer", () => {
     }
   };
 
+  const bulkDeleteCustomers = async (customerIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteCustomers(customerIds, force);
+
+      if (force) {
+        // Permanent delete - remove from trashedCustomers
+        trashedCustomers.value = trashedCustomers.value.filter(
+          (customer) => !customerIds.includes(customer.id)
+        );
+      } else {
+        // Soft delete - move from customers to trashedCustomers
+        const deletedCustomers = customers.value.filter((customer) =>
+          customerIds.includes(customer.id)
+        );
+        customers.value = customers.value.filter(
+          (customer) => !customerIds.includes(customer.id)
+        );
+        trashedCustomers.value.push(...deletedCustomers);
+      }
+
+      console.log(`✅ Successfully bulk deleted ${customerIds.length} customers`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete customers";
+      console.error("❌ Error bulk deleting customers:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreCustomers = async (customerIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreCustomers(customerIds);
+
+      // Move customers from trashedCustomers to customers
+      const restoredCustomers = trashedCustomers.value.filter((customer) =>
+        customerIds.includes(customer.id)
+      );
+      trashedCustomers.value = trashedCustomers.value.filter(
+        (customer) => !customerIds.includes(customer.id)
+      );
+      customers.value.push(...restoredCustomers);
+
+      console.log(`✅ Successfully bulk restored ${customerIds.length} customers`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore customers";
+      console.error("❌ Error bulk restoring customers:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     customers,
     trashedCustomers,
     loading,
+    trashedLoading,
     error,
     // Getters
     customersByCompany,
     // Actions
     fetchCustomers,
+    fetchTrashedCustomers,
     addCustomer,
     updateCustomer,
     deleteCustomer,
     restoreCustomer,
+    bulkDeleteCustomers,
+    bulkRestoreCustomers,
   };
 });

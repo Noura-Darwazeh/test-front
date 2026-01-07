@@ -1,7 +1,6 @@
 import { descending } from "ol/array";
 
 export default {
-
   navbar: {
     notifications: "Notifications",
     profile: "Profile",
@@ -87,7 +86,8 @@ export default {
     rowsPerPage: "Rows per page",
     showingEntries: "Showing {from} to {to} of {total} entries",
     confirmDeleteTitle: "Confirm Delete",
-    confirmDelete: "Are you sure you want to delete this user? You can restore them later.",
+    confirmDelete:
+      "Are you sure you want to delete this user? You can restore them later.",
 
     // Filters
     filterByRole: "Filter by Role",
@@ -99,7 +99,7 @@ export default {
       username: "Username",
       usernamePlaceholder: "Enter unique username",
       email: "Email Address",
-      emailPlaceholder: "user{'@'}example.com (optional)",
+      emailPlaceholder: "Enter email address (optional)",
       password: "Password",
       passwordPlaceholder: "Minimum 6 characters",
       phoneNumber: "Phone Number",
@@ -164,6 +164,8 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
 
     // Table Columns
@@ -182,6 +184,11 @@ export default {
     // Status Values
     active: "Active",
     inactive: "Inactive",
+    activeDrivers: "Active Drivers",
+
+    // Entity names for bulk actions
+    entitySingular: "driver",
+    entityPlural: "drivers",
 
     // Messages
     noData: "No data available",
@@ -198,7 +205,7 @@ export default {
       username: "Username",
       usernamePlaceholder: "Enter unique username",
       email: "Email Address",
-      emailPlaceholder: "driver@example.com (optional)",
+      emailPlaceholder: "Enter email address (optional)",
       password: "Password",
       passwordPlaceholder: "Minimum 6 characters",
       phoneNumber: "Phone Number",
@@ -246,7 +253,7 @@ export default {
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
       usernameAlreadyTaken: "This username has already been taken. Please choose another username.",
       phoneAlreadyInCompany: "This user is already registered as a driver in this company."
-    
+
     },
 
     // Trashed Items
@@ -272,6 +279,8 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
 
     // Table Columns
@@ -287,6 +296,11 @@ export default {
     // Status Values
     active: "Active",
     inactive: "Inactive",
+    activeCustomers: "Active Customers",
+
+    // Entity names for bulk actions
+    entitySingular: "customer",
+    entityPlural: "customers",
 
     // Messages
     noData: "No data available",
@@ -435,6 +449,8 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
 
     // Table Columns
@@ -442,6 +458,13 @@ export default {
     name: "Name",
     company: "company",
     location: "Location",
+
+    // Status Values
+    activeBranches: "Active Branches",
+
+    // Entity names for bulk actions
+    entitySingular: "branch",
+    entityPlural: "branchs",
 
     // Messages
     noData: "No data available",
@@ -499,6 +522,8 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
 
     // Table Columns
@@ -506,6 +531,13 @@ export default {
     name: "Name",
     region: "Region",
     company: "Company",
+
+    // Status Values
+    activeLines: "Active Lines",
+
+    // Entity names for bulk actions
+    entitySingular: "line",
+    entityPlural: "lines",
 
     // Messages
     noData: "No data available",
@@ -567,6 +599,8 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
 
     // Table Columns
@@ -576,6 +610,13 @@ export default {
     currency: "Currency",
     type: "Type",
     company: "Company",
+
+    // Status Values
+    activeLinePrices: "Active Line Prices",
+
+    // Entity names for bulk actions
+    entitySingular: "line_price",
+    entityPlural: "line_prices",
 
     // Messages
     noData: "No data available",
@@ -726,7 +767,7 @@ export default {
   statuses: {
     available: "Available",
     busy: "Busy",
-    in_holiday: "In Holiday"
+    in_holiday: "In Holiday",
   },
 
   // Regions
@@ -821,9 +862,15 @@ export default {
     // Statistics Cards
     stats: {
       total: "Total Orders",
-      delivered: "Delivered",
-      onWay: "On the Way",
+      totalProfit: "Total Profit",
       pending: "Pending",
+      inProgress: "In Progress",
+      done: "Completed",
+      failed: "Failed",
+      allTime: "All Time",
+      today: "Today",
+      thisMonth: "This Month",
+      thisYear: "This Year",
     },
 
     // Table Columns
@@ -843,12 +890,9 @@ export default {
     // Order Status Values
     status: {
       pending: "Pending",
-      assigned: "Assigned",
-      picked_up: "Picked Up",
-      on_way: "On the Way",
-      delivered: "Delivered",
-      cancelled: "Cancelled",
-      returned: "Returned",
+      in_progress: "In Progress",
+      done: "Completed",
+      failed: "Failed",
     },
 
     // Actions
@@ -919,7 +963,8 @@ export default {
       itemQuantity: "Quantity",
       itemDescription: "Description",
       singlePackageInfo: "Single package orders can only have 1 item",
-      singlePackageLimit: "Single package can only have 1 order item. You can add multiple sub-items inside this item.",
+      singlePackageLimit:
+        "Single package can only have 1 order item. You can add multiple sub-items inside this item.",
       multiPackageInfo: "Multi-package orders must have at least 2 items",
       packageRules: "Package Type Rules",
       fullCaseRule: "Full case: Can be either Single or Multiple packages",
@@ -943,6 +988,8 @@ export default {
       incompleteOrderItem:
         "Order item {index} is incomplete. Please fill all required fields.",
       multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
+      fromCompanyRequired: "Order item {index} requires a from company for Fast case.",
+      toCompanyRequired: "Order item {index} requires a to company for Part case.",
     },
 
     // Trashed Items
@@ -991,12 +1038,9 @@ export default {
   // Order Status Translation Keys
   orderStatus: {
     pending: "Pending",
-    assigned: "Assigned",
-    picked_up: "Picked Up",
-    on_way: "On the Way",
-    delivered: "Delivered",
-    cancelled: "Cancelled",
-    returned: "Returned",
+    in_progress: "In Progress",
+    done: "Completed",
+    failed: "Failed",
   },
 
   // Order Item Types Translation Keys
@@ -1215,7 +1259,8 @@ export default {
 
     // Info Messages
     info: {
-      manageLines: "To create or manage work lines, visit the Lines Management page.",
+      manageLines:
+        "To create or manage work lines, visit the Lines Management page.",
       goToLines: "Manage Lines",
     },
 
@@ -1416,25 +1461,29 @@ export default {
     restoreFailed: "Failed to restore",
     selected: "selected",
     active: "Active",
+    saveChanges: "Save Changes",
+    confirmCancel: "Are you sure you want to cancel? All unsaved changes will be lost.",
 
     // Bulk action confirmation messages
     bulkDeleteConfirmTitle: "Confirm Bulk Delete",
-    bulkDeleteConfirmMessage: "Are you sure you want to delete {count} {entity}?",
+    bulkDeleteConfirmMessage:
+      "Are you sure you want to delete {count} {entity}?",
     bulkRestoreConfirmTitle: "Confirm Bulk Restore",
-    bulkRestoreConfirmMessage: "Are you sure you want to restore {count} {entity}?",
+    bulkRestoreConfirmMessage:
+      "Are you sure you want to restore {count} {entity}?",
   },
 
   // Updated English translations for Work Plans
   workPlan: {
     // Page Headers
     title: "Work Plan Management",
-    planDetails: 'Plan Details',
-    orderName: 'Order Name',
-    orderType: 'Order Type',
-    orderItems: 'Order Items',
-    orders: 'Orders',
-    noOrders: 'No orders available for this plan',
-    selectDate: 'Select a date from calendar to view plan details',
+    planDetails: "Plan Details",
+    orderName: "Order Name",
+    orderType: "Order Type",
+    orderItems: "Order Items",
+    orders: "Orders",
+    noOrders: "No orders available for this plan",
+    selectDate: "Select a date from calendar to view plan details",
     driverName: "Driver Name",
     companyName: "Company Name",
     date: "Date",
@@ -1442,7 +1491,7 @@ export default {
 
     tabs: {
       calendar: "Calendar",
-      table: "Table"
+      table: "Table",
     },
 
     // Actions
@@ -1515,6 +1564,37 @@ export default {
     details: "Details",
   },
 
+  profile: {
+    title: "Profile",
+    personalInfo: "Personal Information",
+    accountSettings: "Account Settings",
+    editProfile: "Edit Profile",
+    changePassword: "Change Password",
+    changeProfileImage: "Change Profile Image",
+    currentPassword: "Current Password",
+    newPassword: "New Password",
+    confirmPassword: "Confirm Password",
+    currentPasswordPlaceholder: "Enter current password",
+    newPasswordPlaceholder: "Enter new password",
+    confirmPasswordPlaceholder: "Confirm new password",
+    language: "Language",
+    defaultLandingPage: "Default Landing Page",
+    noEmail: "No email provided",
+    updateSuccess: "Profile updated successfully!",
+    updateError: "Failed to update profile. Please try again.",
+    passwordChangeSuccess: "Password changed successfully!",
+    passwordChangeError: "Failed to change password. Please try again.",
+    passwordMismatch: "Passwords do not match!",
+    imageUpdateSuccess: "Profile image updated successfully!",
+    imageUpdateError: "Failed to update profile image.",
+    noImageSelected: "Please select an image first.",
+  },
 
-  // Usage: Add this to your en.js file
+  roles: {
+    SuperAdmin: "Super Admin",
+    Admin: "Admin",
+    Employee: "Employee",
+    Supervisor: "Supervisor",
+    Driver: "Driver",
+  },
 };

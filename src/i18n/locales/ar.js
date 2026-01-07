@@ -95,7 +95,7 @@ export default {
       username: "اسم المستخدم",
       usernamePlaceholder: "أدخل اسم مستخدم فريد",
       email: "البريد الإلكتروني",
-      emailPlaceholder: "user{'@'}example.com (اختياري)",
+      emailPlaceholder: "أدخل عنوان البريد الإلكتروني (اختياري)",
       password: "كلمة المرور",
       passwordPlaceholder: "6 أحرف على الأقل",
       phoneNumber: "رقم الهاتف",
@@ -158,6 +158,8 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -176,6 +178,11 @@ export default {
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
+    activeDrivers: "السائقين النشطين",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "driver",
+    entityPlural: "drivers",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -194,7 +201,7 @@ export default {
       usernamePlaceholder: "أدخل اسم مستخدم فريد",
 
       email: "البريد الإلكتروني",
-      emailPlaceholder: "driver@example.com (اختياري)",
+      emailPlaceholder: "أدخل عنوان البريد الإلكتروني (اختياري)",
 
       password: "كلمة المرور",
       passwordPlaceholder: "6 أحرف على الأقل",
@@ -226,7 +233,6 @@ export default {
 
       uploadImage: "رفع صورة",
       removeImage: "إزالة",
-
     },
 
     // رسائل التحقق
@@ -252,7 +258,7 @@ export default {
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
       usernameAlreadyTaken: "اسم المستخدم مستخدم بالفعل. الرجاء اختيار اسم مستخدم آخر.",
       phoneAlreadyInCompany: "هذا المستخدم مسجل بالفعل كسائق في هذه الشركة."
-    
+
     },
 
     // العناصر المحذوفة
@@ -278,6 +284,8 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -290,6 +298,11 @@ export default {
     // قيم الحالة
     active: "نشط",
     inactive: "غير نشط",
+    activeCustomers: "العملاء النشطين",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "customer",
+    entityPlural: "customers",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -439,6 +452,8 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -446,6 +461,13 @@ export default {
     name: "اسم الفرع",
     company: "الشركة",
     location: "الموقع",
+
+    // قيم الحالة
+    activeBranches: "الفروع النشطة",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "branch",
+    entityPlural: "branchs",
 
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
@@ -499,6 +521,8 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -506,6 +530,13 @@ export default {
     name: "الاسم",
     region: "المنطقة",
     company: "الشركة",
+
+    // قيم الحالة
+    activeLines: "الخطوط النشطة",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "line",
+    entityPlural: "lines",
 
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
@@ -563,6 +594,8 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -572,6 +605,13 @@ export default {
     currency: "العملة",
     type: "النوع",
     company: "الشركة",
+
+    // قيم الحالة
+    activeLinePrices: "أسعار الخطوط النشطة",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "line_price",
+    entityPlural: "line_prices",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -719,7 +759,7 @@ export default {
   statuses: {
     available: "متاح",
     busy: "مشغول",
-    in_holiday: "في عطلة"
+    in_holiday: "في عطلة",
   },
 
   driverTypes: {
@@ -820,9 +860,15 @@ export default {
     // بطاقات الإحصائيات
     stats: {
       total: "إجمالي الطلبات",
-      delivered: "تم التوصيل",
-      onWay: "في الطريق",
+      totalProfit: "إجمالي الأرباح",
       pending: "في الانتظار",
+      inProgress: "قيد التنفيذ",
+      done: "مكتمل",
+      failed: "فشل",
+      allTime: "كل الأوقات",
+      today: "اليوم",
+      thisMonth: "هذا الشهر",
+      thisYear: "هذا العام",
     },
 
     // أعمدة الجدول
@@ -842,12 +888,9 @@ export default {
     // قيم حالة الطلب
     status: {
       pending: "في الانتظار",
-      assigned: "تم التعيين",
-      picked_up: "تم الاستلام",
-      on_way: "في الطريق",
-      delivered: "تم التوصيل",
-      cancelled: "ملغي",
-      returned: "مُرجع",
+      in_progress: "قيد التنفيذ",
+      done: "مكتمل",
+      failed: "فشل",
     },
 
     // الإجراءات
@@ -919,7 +962,8 @@ export default {
       itemDescription: "الوصف",
       singlePackageInfo:
         "الطلبات أحادية الحزمة يمكن أن تحتوي على عنصر واحد فقط",
-      singlePackageLimit: "الحزمة الواحدة يمكن أن تحتوي على عنصر طلب واحد فقط. يمكنك إضافة عدة عناصر فرعية داخل هذا العنصر.",
+      singlePackageLimit:
+        "الحزمة الواحدة يمكن أن تحتوي على عنصر طلب واحد فقط. يمكنك إضافة عدة عناصر فرعية داخل هذا العنصر.",
       multiPackageInfo:
         "الطلبات متعددة الحزم يجب أن تحتوي على عنصرين على الأقل",
       packageRules: "قواعد نوع الحزمة",
@@ -947,6 +991,8 @@ export default {
       incompleteOrderItem:
         "عنصر الطلب {index} غير مكتمل. يرجى ملء جميع الحقول المطلوبة.",
       multiGroupIdRequired: "عنصر الحزمة المتعددة {index} يتطلب معرف مجموعة.",
+      fromCompanyRequired: "عنصر الطلب {index} يتطلب شركة مصدر للحالة السريعة.",
+      toCompanyRequired: "عنصر الطلب {index} يتطلب شركة وجهة للحالة الجزئية.",
     },
 
     // العناصر المحذوفة
@@ -995,12 +1041,9 @@ export default {
   // مفاتيح ترجمة حالة الطلب
   orderStatus: {
     pending: "في الانتظار",
-    assigned: "تم التعيين",
-    picked_up: "تم الاستلام",
-    on_way: "في الطريق",
-    delivered: "تم التوصيل",
-    cancelled: "ملغي",
-    returned: "مُرجع",
+    in_progress: "قيد التنفيذ",
+    done: "مكتمل",
+    failed: "فشل",
   },
 
   // مفاتيح ترجمة أنواع عناصر الطلب
@@ -1400,13 +1443,13 @@ export default {
   workPlan: {
     // عناوين الصفحة
     title: "ادارة خطط العمل",
-    planDetails: 'تفاصيل الخطة',
-    orderName: 'اسم الطلب',
-    orderType: 'نوع الطلب',
-    orderItems: 'عناصر الطلب',
-    orders: 'الطلبات',
-    noOrders: 'لا توجد طلبات متاحة لهذه الخطة',
-    selectDate: 'اختر تاريخ من التقويم لعرض تفاصيل الخطة',
+    planDetails: "تفاصيل الخطة",
+    orderName: "اسم الطلب",
+    orderType: "نوع الطلب",
+    orderItems: "عناصر الطلب",
+    orders: "الطلبات",
+    noOrders: "لا توجد طلبات متاحة لهذه الخطة",
+    selectDate: "اختر تاريخ من التقويم لعرض تفاصيل الخطة",
     driverName: "اسم السائق",
     companyName: "اسم الشركة",
     date: "التاريخ",
@@ -1414,7 +1457,7 @@ export default {
 
     tabs: {
       calendar: "التقويم",
-      table: "الجدول"
+      table: "الجدول",
     },
 
     // الإجراءات
@@ -1486,6 +1529,38 @@ export default {
     edit: "تعديل",
     details: "التفاصيل",
   },
+  profile: {
+    title: "الملف الشخصي",
+    personalInfo: "المعلومات الشخصية",
+    accountSettings: "إعدادات الحساب",
+    editProfile: "تعديل الملف الشخصي",
+    changePassword: "تغيير كلمة المرور",
+    changeProfileImage: "تغيير صورة الملف الشخصي",
+    currentPassword: "كلمة المرور الحالية",
+    newPassword: "كلمة المرور الجديدة",
+    confirmPassword: "تأكيد كلمة المرور",
+    currentPasswordPlaceholder: "أدخل كلمة المرور الحالية",
+    newPasswordPlaceholder: "أدخل كلمة المرور الجديدة",
+    confirmPasswordPlaceholder: "أكد كلمة المرور الجديدة",
+    language: "اللغة",
+    defaultLandingPage: "الصفحة الافتراضية",
+    noEmail: "لم يتم تقديم بريد إلكتروني",
+    updateSuccess: "تم تحديث الملف الشخصي بنجاح!",
+    updateError: "فشل تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.",
+    passwordChangeSuccess: "تم تغيير كلمة المرور بنجاح!",
+    passwordChangeError: "فشل تغيير كلمة المرور. يرجى المحاولة مرة أخرى.",
+    passwordMismatch: "كلمات المرور غير متطابقة!",
+    imageUpdateSuccess: "تم تحديث صورة الملف الشخصي بنجاح!",
+    imageUpdateError: "فشل تحديث صورة الملف الشخصي.",
+    noImageSelected: "الرجاء اختيار صورة أولاً.",
+  },
+  roles: {
+    SuperAdmin: "مدير عام",
+    Admin: "مدير",
+    Employee: "موظف",
+    Supervisor: "مشرف",
+    Driver: "سائق",
+  },
   // الترجمات المشتركة
   common: {
     save: "حفظ",
@@ -1506,11 +1581,14 @@ export default {
     restoreFailed: "فشل في الاستعادة",
     selected: "محدد",
     active: "نشط",
+    saveChanges: "حفظ التغييرات",
+    confirmCancel: "هل أنت متأكد من الإلغاء؟ سيتم فقدان جميع التغييرات غير المحفوظة.",
 
-    // Bulk action confirmation messages
     bulkDeleteConfirmTitle: "تأكيد الحذف الجماعي",
     bulkDeleteConfirmMessage: "هل أنت متأكد من حذف {count} {entity}؟",
     bulkRestoreConfirmTitle: "تأكيد الاستعادة الجماعية",
     bulkRestoreConfirmMessage: "هل أنت متأكد من استعادة {count} {entity}؟",
   },
+
+
 };

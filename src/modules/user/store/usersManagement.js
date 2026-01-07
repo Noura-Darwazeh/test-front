@@ -101,7 +101,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteUser(userId);
+      await apiServices.deleteEntity('users', userId, false);
 
       // Remove from active users after successful API call
       const index = users.value.findIndex((u) => u.id === userId);
@@ -122,7 +122,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.restoreUser(userId);
+      const response = await apiServices.restoreEntity('users', userId);
 
       // Remove from trashed users and add to active users
       const index = trashedUsers.value.findIndex((u) => u.id === userId);
@@ -147,7 +147,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.bulkDeleteUsers(userIds);
+      await apiServices.bulkDeleteEntities('user', 'users', userIds, false);
 
       // Remove deleted users from active users list
       users.value = users.value.filter((u) => !userIds.includes(u.id));
@@ -164,7 +164,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.bulkRestoreUsers(userIds);
+      const response = await apiServices.bulkRestoreEntities('user', 'users', userIds);
 
       // Remove restored users from trashed users list
       trashedUsers.value = trashedUsers.value.filter((u) => !userIds.includes(u.id));

@@ -7,6 +7,7 @@ export const useDriverStore = defineStore("driver", () => {
   const drivers = ref([]);
   const trashedDrivers = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Getters
@@ -255,6 +256,48 @@ export const useDriverStore = defineStore("driver", () => {
     }
   };
 
+  const fetchTrashedDrivers = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedDrivers();
+
+      // Transform API response to match frontend format
+      trashedDrivers.value = response.data.data.map((driver) => ({
+        id: driver.id,
+        name: driver.user?.name || "",
+        username: driver.user?.username || driver.user?.same17 || "",
+        email: driver.user?.email || "",
+        phone_number: driver.user?.phone_number || "",
+        role: driver.user?.role || "Driver",
+        region_id: driver.user?.region_id || null,
+        status: driver.status || "available",
+        type: driver.type || "delivery driver",
+        branch_id: driver.branch_id,
+        branch_name: `Branch ${driver.branch_id}`,
+        vehicle_number: driver.vehicle_number || "",
+        company_id: driver.company_id,
+        company_name: `Company ${driver.company_id}`,
+        location: driver.location,
+        latitude: driver.latitude,
+        longitude: driver.longitude,
+        image: driver.user?.image || "path/test",
+        created_by: driver.created_by,
+        created_at: driver.created_at,
+        updated_at: driver.updated_at,
+      }));
+
+      console.log(`✅ Successfully loaded ${trashedDrivers.value.length} trashed drivers`);
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed drivers";
+      console.error("❌ Error fetching trashed drivers:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
   const restoreDriver = async (driverId) => {
     loading.value = true;
     error.value = null;
@@ -275,11 +318,69 @@ export const useDriverStore = defineStore("driver", () => {
     }
   };
 
+  const bulkDeleteDrivers = async (driverIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteDrivers(driverIds, force);
+
+      if (force) {
+        // Permanent delete - remove from trashedDrivers
+        trashedDrivers.value = trashedDrivers.value.filter(
+          (driver) => !driverIds.includes(driver.id)
+        );
+      } else {
+        // Soft delete - move from drivers to trashedDrivers
+        const deletedDrivers = drivers.value.filter((driver) =>
+          driverIds.includes(driver.id)
+        );
+        drivers.value = drivers.value.filter(
+          (driver) => !driverIds.includes(driver.id)
+        );
+        trashedDrivers.value.push(...deletedDrivers);
+      }
+
+      console.log(`✅ Successfully bulk deleted ${driverIds.length} drivers`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete drivers";
+      console.error("❌ Error bulk deleting drivers:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreDrivers = async (driverIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreDrivers(driverIds);
+
+      // Move drivers from trashedDrivers to drivers
+      const restoredDrivers = trashedDrivers.value.filter((driver) =>
+        driverIds.includes(driver.id)
+      );
+      trashedDrivers.value = trashedDrivers.value.filter(
+        (driver) => !driverIds.includes(driver.id)
+      );
+      drivers.value.push(...restoredDrivers);
+
+      console.log(`✅ Successfully bulk restored ${driverIds.length} drivers`);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore drivers";
+      console.error("❌ Error bulk restoring drivers:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     drivers,
     trashedDrivers,
     loading,
+    trashedLoading,
     error,
     // Getters
     activeDrivers,
@@ -287,9 +388,12 @@ export const useDriverStore = defineStore("driver", () => {
     offlineDrivers,
     // Actions
     fetchDrivers,
+    fetchTrashedDrivers,
     addDriver,
     updateDriver,
     deleteDriver,
     restoreDriver,
+    bulkDeleteDrivers,
+    bulkRestoreDrivers,
   };
 });

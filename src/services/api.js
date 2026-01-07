@@ -1,6 +1,5 @@
 import axios from "axios";
 import { getItem, removeItem } from "@/utils/shared/storageUtils";
-
 // ---- axios instance ----
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35/api",
@@ -76,7 +75,7 @@ api.interceptors.response.use(
     const { status, data } = error.response;
 
     // Don't log errors for optional endpoints (exchange-rates)
-    const isOptionalEndpoint = error.config?.url?.includes('/exchange-rates');
+    const isOptionalEndpoint = error.config?.url?.includes("/exchange-rates");
     if (!isOptionalEndpoint) {
       console.error(`❌ API Error: ${status}`, {
         url: error.config?.url,

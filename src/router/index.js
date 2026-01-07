@@ -29,7 +29,14 @@ const router = createRouter({
   routes: [
     {
       path: "/",
-      redirect: "/user",
+      redirect: (to) => {
+        // Redirect to user's default page or /user
+        const authStore = useAuthStore();
+        if (authStore.isAuthenticated && authStore.user?.default_page) {
+          return authStore.user.default_page;
+        }
+        return "/user";
+      },
     },
     {
       path: "/login",
@@ -37,7 +44,7 @@ const router = createRouter({
       component: Login,
       meta: {
         hiddenLayout: true,
-        requiresGuest: true, // Only accessible when logged out
+        requiresGuest: true,
       },
     },
     {
@@ -65,7 +72,7 @@ const router = createRouter({
       meta: {
         titleKey: "profile.title",
         requireAuth: true,
-        showInSidebar: false, // Don't show in sidebar, accessible from navbar
+        showInSidebar: false,
       },
     },
     {
@@ -77,7 +84,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/userIcon.svg",
-        roles: ["SuperAdmin", "Admin"], // Only these roles can access
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -147,7 +154,7 @@ const router = createRouter({
       },
     },
     {
-      path: "/line-price",
+      path: "/line_price",
       name: "linePrice",
       component: linePrice,
       meta: {
@@ -245,10 +252,15 @@ const router = createRouter({
         icon: "/src/assets/sidebar/planIcon.svg",
       },
     },
-    // 404 Not Found Route
     {
       path: "/:pathMatch(.*)*",
-      redirect: "/user",
+      redirect: (to) => {
+        const authStore = useAuthStore();
+        if (authStore.isAuthenticated && authStore.user?.default_page) {
+          return authStore.user.default_page;
+        }
+        return "/user";
+      },
     },
   ],
 });
@@ -265,22 +277,24 @@ router.beforeEach((to, from, next) => {
     console.log("🔒 Route requires authentication, redirecting to login");
     return next({
       name: "Login",
-      query: { redirect: to.fullPath }, // Save intended destination
+      query: { redirect: to.fullPath },
     });
   }
 
   // Check if route requires guest (logged out) access
   if (to.meta.requiresGuest && isAuthenticated) {
-    console.log("✅ Already authenticated, redirecting to dashboard");
-    return next({ name: "User" });
+    console.log("✅ Already authenticated, redirecting to default page");
+    // Redirect to user's default page
+    const defaultPage = authStore.user?.default_page || "/user";
+    return next(defaultPage);
   }
 
   // Check role-based access
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!authStore.hasAnyRole(to.meta.roles)) {
       console.log("❌ Insufficient permissions for this route");
-      // Redirect to first available route for user's role
-      return next({ name: "User" });
+      const defaultPage = authStore.user?.default_page || "/user";
+      return next(defaultPage);
     }
   }
 

@@ -90,12 +90,11 @@ import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
 
-// Import currency composable properly
-const { 
-  selectedCurrency, 
-  convertAmount, 
-  formatPrice 
-} = useCurrency();
+// Simple price formatter
+const formatPrice = (value) => {
+  if (!value || isNaN(value)) return "$0.00";
+  return `$${Number(value).toFixed(2)}`;
+};
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -107,11 +106,11 @@ const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedPrice = ref({});
 
-// Simple local data - unified currency (prices stored in USD, converted for display)
+// Simple local data
 const companyPrices = ref([
   {
     id: 1,
-    price: 25.5, // Base price in USD
+    price: 25.5,
     itemType: "small_size & light_weight",
     company_id: 1,
     company_name: "Tech Solutions Ltd",
@@ -154,7 +153,7 @@ const trashedCompanyPrices = ref([
   },
 ]);
 
-// Add localized item type names and convert prices to selected currency
+// Add localized item type names
 const companyPricesWithLocalizedData = computed(() => {
   return companyPrices.value.map((item) => {
     return {
@@ -162,8 +161,7 @@ const companyPricesWithLocalizedData = computed(() => {
       itemTypeDisplay: t(
         `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
       ),
-      priceDisplay: formatPrice(item.price, "USD"),
-      convertedPrice: convertAmount(item.price, "USD"),
+      priceDisplay: formatPrice(item.price),
     };
   });
 });
@@ -175,8 +173,7 @@ const trashedCompanyPricesWithLocalizedData = computed(() => {
       itemTypeDisplay: t(
         `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
       ),
-      priceDisplay: formatPrice(item.price, "USD"),
-      convertedPrice: convertAmount(item.price, "USD"),
+      priceDisplay: formatPrice(item.price),
     };
   });
 });
@@ -196,9 +193,7 @@ const companyPriceColumns = computed(() => [
   },
   {
     key: "priceDisplay",
-    label: `${t("companyPrice.table.price")} (${
-      selectedCurrency.value?.code || "USD"
-    })`,
+    label: t("companyPrice.table.price"),
     sortable: true,
   },
   {
@@ -214,9 +209,7 @@ const trashedColumns = computed(() => [
   { key: "itemTypeDisplay", label: t("companyPrice.table.itemType") },
   {
     key: "priceDisplay",
-    label: `${t("companyPrice.table.price")} (${
-      selectedCurrency.value?.code || "USD"
-    })`,
+    label: t("companyPrice.table.price"),
   },
 ]);
 
@@ -278,17 +271,13 @@ const handleAddCompanyPrice = (priceData) => {
     (c) => c.id === parseInt(priceData.company_id)
   );
 
-  // Convert entered price to USD for storage (if entered in different currency)
-  const enteredPrice = parseFloat(priceData.price);
-  const priceInUSD = convertAmount(
-    enteredPrice,
-    selectedCurrency.value?.code || "USD",
-    "USD"
-  );
+  const price = parseFloat(priceData.price);
 
   if (isEditMode.value) {
     // Update existing company price
-    const index = companyPrices.value.findIndex(p => p.id === selectedPrice.value.id);
+    const index = companyPrices.value.findIndex(
+      (p) => p.id === selectedPrice.value.id
+    );
     if (index > -1) {
       // Check for unique itemType + company_id validation (excluding current item)
       const existingPrice = companyPrices.value.find(
@@ -304,7 +293,7 @@ const handleAddCompanyPrice = (priceData) => {
 
       companyPrices.value[index] = {
         ...companyPrices.value[index],
-        price: priceInUSD,
+        price: price,
         itemType: priceData.itemType,
         company_id: parseInt(priceData.company_id),
         company_name: company.name,
@@ -326,7 +315,7 @@ const handleAddCompanyPrice = (priceData) => {
     // Add new company price
     const newCompanyPrice = {
       id: Math.max(...companyPrices.value.map((p) => p.id), 0) + 1,
-      price: priceInUSD,
+      price: price,
       itemType: priceData.itemType,
       company_id: parseInt(priceData.company_id),
       company_name: company.name,
@@ -355,7 +344,7 @@ const handleRestoreCompanyPrice = (price) => {
 const handleEdit = (price) => {
   isEditMode.value = true;
   // Use original price data, not the computed version
-  const originalPrice = companyPrices.value.find(p => p.id === price.id);
+  const originalPrice = companyPrices.value.find((p) => p.id === price.id);
   selectedPrice.value = { ...originalPrice };
   isModalOpen.value = true;
 };
@@ -372,27 +361,37 @@ const closeDetailsModal = () => {
 
 // Update form fields to support edit mode
 const companyPriceFieldsWithDefaults = computed(() => {
-  return companyPriceFields.value.map(field => ({
+  return companyPriceFields.value.map((field) => ({
     ...field,
-    defaultValue: isEditMode.value ? selectedPrice.value[field.name] : field.defaultValue || ''
+    defaultValue: isEditMode.value
+      ? selectedPrice.value[field.name]
+      : field.defaultValue || "",
   }));
 });
 
 // Details fields configuration
 const detailsFields = computed(() => [
   { key: "id", label: t("companyPrice.table.id"), colClass: "col-md-6" },
-  { key: "company_name", label: t("companyPrice.table.company"), colClass: "col-md-6" },
+  {
+    key: "company_name",
+    label: t("companyPrice.table.company"),
+    colClass: "col-md-6",
+  },
   {
     key: "itemTypeDisplay",
     label: t("companyPrice.table.itemType"),
-    colClass: "col-md-6"
+    colClass: "col-md-6",
   },
   {
     key: "priceDisplay",
-    label: `${t("companyPrice.table.price")} (${selectedCurrency.value?.code || "USD"})`,
-    colClass: "col-md-6"
+    label: t("companyPrice.table.price"),
+    colClass: "col-md-6",
   },
-  { key: "created_at", label: t("companyPrice.table.createdAt"), colClass: "col-md-6" },
+  {
+    key: "created_at",
+    label: t("companyPrice.table.createdAt"),
+    colClass: "col-md-6",
+  },
 ]);
 
 watch([searchText, selectedGroups], () => {
