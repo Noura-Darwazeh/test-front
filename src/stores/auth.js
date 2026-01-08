@@ -3,10 +3,10 @@ import { ref, computed } from "vue";
 import api from "@/services/api.js";
 import { setItem, getItem, removeItem } from "@/utils/shared/storageUtils.js";
 
-// ✅ API Base URL
+// API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
 
-// ✅ Helper function to convert relative image path to full URL
+// Helper function to convert relative image path to full URL
 const getFullImageUrl = (imagePath) => {
   if (!imagePath) return null;
   if (imagePath.startsWith('http')) return imagePath;
@@ -104,9 +104,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  /**
-   * Logout user
-   */
   async function logout() {
     isLoading.value = true;
     error.value = null;
@@ -147,9 +144,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  /**
-   * Initialize auth from localStorage
-   */
   function initializeAuth() {
     const savedToken = getItem("auth_token");
     const savedUser = getItem("auth_user");
@@ -169,9 +163,6 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  /**
-   * Clear all auth data
-   */
   function clearAuthData() {
     user.value = null;
     token.value = null;
@@ -184,9 +175,7 @@ export const useAuthStore = defineStore("auth", () => {
     removeItem("user_language");
   }
 
-  /**
-   * Clear error message
-   */
+
   function clearError() {
     error.value = null;
   }
