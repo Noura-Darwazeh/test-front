@@ -99,7 +99,7 @@ class ApiServices {
   }
 
   async forgotPassword(email) {
-    return api.post("/forgot-password", { email });
+    return api.post("/forgot_password", { email });
   }
 
   // ===== User Services =====
@@ -281,13 +281,58 @@ class ApiServices {
     return this.getTrashedEntities("companies");
   }
 
-  async createCompany(companyData) {
-    return this.createEntity("companies", companyData);
-  }
+// Updated createCompany method for apiServices.js
+// Replace the existing createCompany method with this:
 
-  async updateCompany(companyId, companyData) {
-    return this.updateEntity("companies", companyId, companyData, false);
+async createCompany(companyData) {
+  // If there are branches, send them as form data to match API format
+  if (companyData.branches && companyData.branches.length > 0) {
+    const formData = new FormData();
+    formData.append('name', companyData.name);
+    formData.append('type', companyData.type);
+    
+    // Add branches as indexed array: branches[0][name], branches[1][name], etc.
+    companyData.branches.forEach((branch, index) => {
+      if (branch.name && branch.name.trim() !== '') {
+        formData.append(`branches[${index}][name]`, branch.name);
+      }
+    });
+    
+    return api.post('/companies', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
   }
+  
+  // If no branches, send as regular JSON
+  return this.createEntity("companies", companyData);
+}
+
+// Also update updateCompany to support branches:
+async updateCompany(companyId, companyData) {
+  // If there are branches, send them as form data
+  if (companyData.branches && companyData.branches.length > 0) {
+    const formData = new FormData();
+    formData.append('name', companyData.name);
+    formData.append('type', companyData.type);
+    
+    // Add branches as indexed array
+    companyData.branches.forEach((branch, index) => {
+      if (branch.name && branch.name.trim() !== '') {
+        formData.append(`branches[${index}][name]`, branch.name);
+      }
+    });
+    
+    return api.post(`/companies/${companyId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
+  }
+  
+  // If no branches, use default method
+  return this.updateEntity("companies", companyId, companyData, false);
+}
 
   async deleteCompany(companyId, force = false) {
     return this.deleteEntity("companies", companyId, force);
@@ -586,7 +631,7 @@ class ApiServices {
     }
 
   async updateLineWork(lineWorkId, lineWorkData) {
-    return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
+    return api.post(`/line_works/${lineWorkId}`, lineWorkData, {
       headers: {
         'X-HTTP-Method-Override': 'PATCH'
       }

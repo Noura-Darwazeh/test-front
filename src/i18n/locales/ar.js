@@ -452,6 +452,8 @@ export default {
       typePlaceholder: "اختر نوع الشركة",
       uploadImage: "رفع صورة",
       removeImage: "إزالة",
+      branches: "الفروع",
+      branchName: "اسم الفرع",
       types: {
         delivery: "شركة توصيل",
         admin: "شركة إدارية",
@@ -466,6 +468,8 @@ export default {
       imageRequired: "صورة الشركة مطلوبة",
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
+      branchNameRequired: "اسم الفرع مطلوب"
+
     },
 
     trashed: {

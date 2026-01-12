@@ -205,7 +205,7 @@ async function onSubmit() {
 
     try {
         // Call the reset password API
-        const response = await api.post('/resetpassword', {
+        const response = await api.post('/reset_password', {
             token: token.value,
             email: email.value,
             password: form.password,

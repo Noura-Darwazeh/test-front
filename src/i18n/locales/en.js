@@ -453,6 +453,8 @@ export default {
       typePlaceholder: "Select company type",
       uploadImage: "Upload Image",
       removeImage: "Remove",
+      branches: "Branches",
+      branchName: "Branch Name",
       types: {
         delivery: "Delivery Company",
         admin: "Admin Company",
@@ -838,17 +840,17 @@ export default {
     searchPlaceholder: "Search Regions...",
     search: "Search",
     columns: "Columns",
-      addNew: "Add Region",
-      export: "Export",
-      edit: "Edit",
-      delete: "Delete",
-      actions: "Actions",
-      bulkDelete: "Delete Selected",
-      bulkRestore: "Restore Selected",
+    addNew: "Add Region",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
 
-      // Entity names for bulk actions
-      entitySingular: "region",
-      entityPlural: "regions",
+    // Entity names for bulk actions
+    entitySingular: "region",
+    entityPlural: "regions",
 
     // Table Columns
     id: "ID",
@@ -919,17 +921,17 @@ export default {
     searchPlaceholder: "Search orders...",
     search: "Search",
     columns: "Columns",
-      addNew: "Add Order",
-      export: "Export",
-      edit: "Edit",
-      delete: "Delete",
-      actionsLabel: "Actions",
-      bulkDelete: "Delete Selected",
-      bulkRestore: "Restore Selected",
+    addNew: "Add Order",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actionsLabel: "Actions",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
 
-      // Entity names for bulk actions
-      entitySingular: "order",
-      entityPlural: "orders",
+    // Entity names for bulk actions
+    entitySingular: "order",
+    entityPlural: "orders",
 
     // Statistics Cards
     stats: {
@@ -969,14 +971,14 @@ export default {
     },
 
     // Actions
-      actions: {
-        view: "View Details",
-        edit: "Edit Order",
-        delete: "Delete",
-        deletePermanently: "Delete Permanently",
-        assignDriver: "Assign Driver",
-        updateStatus: "Update Status",
-        track: "Track Order",
+    actions: {
+      view: "View Details",
+      edit: "Edit Order",
+      delete: "Delete",
+      deletePermanently: "Delete Permanently",
+      assignDriver: "Assign Driver",
+      updateStatus: "Update Status",
+      track: "Track Order",
       print: "Print",
       cancel: "Cancel Order",
     },
@@ -1158,17 +1160,17 @@ export default {
     searchPlaceholder: "Search discounts...",
     search: "Search",
     columns: "Columns",
-      addNew: "Add Discount",
-      export: "Export",
-      edit: "Edit",
-      delete: "Delete",
-      actions: "Actions",
-      bulkDelete: "Delete Selected",
-      bulkRestore: "Restore Selected",
+    addNew: "Add Discount",
+    export: "Export",
+    edit: "Edit",
+    delete: "Delete",
+    actions: "Actions",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
 
-      // Entity names for bulk actions
-      entitySingular: "discount",
-      entityPlural: "discounts",
+    // Entity names for bulk actions
+    entitySingular: "discount",
+    entityPlural: "discounts",
 
     // Table Columns
     table: {
@@ -1572,6 +1574,8 @@ export default {
       invalidImageFile: "Please select a valid image file",
       imageMaxSize: "Image size should not exceed {size}MB",
       orderRowRequired: "Order and items are required",
+      branchNameRequired: "Branch name is required"
+
     },
 
     // Bulk action confirmation messages

@@ -154,6 +154,35 @@
                   </div>
                 </div>
 
+                <!-- Branch name dynamic rows with + -->
+                <div v-else-if="field.type === 'branchRows'">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-semibold">{{ field.label }}</span>
+
+                    <PrimaryButton type="button" @click="addBranchRow(field.name)" bgColor="var(--color-success)"
+                      :iconBefore="addIcon" />
+                  </div>
+
+                  <div v-for="(row, index) in formData[field.name]" :key="index" class="row g-2 align-items-end mb-2">
+                    <div class="col-md-10">
+                      <label class="form-label">
+                        {{ field.branchLabel || t('company.form.branchName') }}
+                      </label>
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        v-model="formData[field.name][index].name"
+                        :placeholder="field.branchLabel || t('company.form.branchName')"
+                      />
+                    </div>
+
+                    <div class="col-md-2">
+                      <PrimaryButton type="button" @click="removeBranchRow(field.name, index)"
+                        bgColor="var(--color-danger)" :iconBefore="crossIcon" />
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Error Message -->
                 <small v-if="errors[field.name]" class="text-danger">
                   {{ errors[field.name] }}
@@ -227,6 +256,15 @@ const initializeForm = () => {
               items: "",
             },
           ];
+      } else if (field.type === "branchRows") {
+        // NEW: Handle branchRows
+        formData[field.name] =
+          field.defaultValue ||
+          [
+            {
+              name: "",
+            },
+          ];
       } else {
         // Initialize multiselect fields as arrays
       if (field.type === 'multiselect') {
@@ -253,6 +291,15 @@ const resetForm = () => {
             {
               order: "",
               items: "",
+            },
+          ];
+      } else if (field.type === "branchRows") {
+        // NEW: Handle branchRows
+        formData[field.name] =
+          field.defaultValue ||
+          [
+            {
+              name: "",
             },
           ];
       } else {
@@ -287,6 +334,21 @@ const addOrderRow = (fieldName) => {
 };
 
 const removeOrderRow = (fieldName, index) => {
+  if (!Array.isArray(formData[fieldName])) return;
+  formData[fieldName].splice(index, 1);
+};
+
+// Add / Remove branch rows
+const addBranchRow = (fieldName) => {
+  if (!Array.isArray(formData[fieldName])) {
+    formData[fieldName] = [];
+  }
+  formData[fieldName].push({
+    name: ""
+  });
+};
+
+const removeBranchRow = (fieldName, index) => {
   if (!Array.isArray(formData[fieldName])) return;
   formData[fieldName].splice(index, 1);
 };
@@ -361,6 +423,18 @@ const validateForm = () => {
             isValid = false;
           }
         });
+      }
+      return;
+    }
+
+    // NEW: Validate branchRows
+    if (field.type === "branchRows" && Array.isArray(value)) {
+      if (field.required) {
+        const hasEmptyBranch = value.some(row => !row.name || row.name.trim() === "");
+        if (hasEmptyBranch) {
+          errors[field.name] = t("common.validation.branchNameRequired");
+          isValid = false;
+        }
       }
       return;
     }

@@ -79,8 +79,8 @@
 
         <!-- Dynamic Form Modal for Add/Edit company -->
         <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('company.edit') : $t('company.addNew')"
-            :fields="companyFields" :showImageUpload="true" :imageRequired="false"
-            :imageUploadLabel="$t('company.form.uploadImage')" @close="closeFormModal" @submit="handleSubmitcompany" />
+            :fields="companyFields" :showImageUpload="false"
+            @close="closeFormModal" @submit="handleSubmitcompany" />
 
         <!-- Details Modal with Branches and Lines -->
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('company.details')" :data="selectedcompany"
@@ -276,7 +276,7 @@ const getRegionBadgeClass = (region) => {
         : 'bg-info bg-opacity-10 text-info';
 };
 
-// company Form Fields
+// company Form Fields - UPDATED WITH BRANCHES
 const companyFields = computed(() => [
     {
         name: 'name',
@@ -304,6 +304,18 @@ const companyFields = computed(() => [
         ],
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedcompany.value.type : ''
+    },
+
+    {
+        name: 'branches',
+        label: t('company.form.branches'),
+        type: 'branchRows',
+        required: false,
+        colClass: 'col-12',
+        branchLabel: t('company.form.branchName'),
+        defaultValue: isEditMode.value && selectedcompany.value.branches && selectedcompany.value.branches.length > 0
+            ? selectedcompany.value.branches.map(b => ({ name: b.name }))
+            : [{ name: '' }]
     },
 ]);
 
@@ -491,16 +503,30 @@ const closeDetailsModal = () => {
 
 const handleSubmitcompany = async (companyData) => {
     try {
+        // Prepare branches data as array for API
+        const branches = companyData.branches?.map(row => ({
+            name: row.name
+        })) || [];
+
+        const payload = {
+            name: companyData.name,
+            type: companyData.type,
+            branches: branches
+        };
+
+        console.log('📤 Sending company data:', payload);
+
         if (isEditMode.value) {
-            await companyStore.updateCompany(selectedcompany.value.id, companyData);
+            await companyStore.updateCompany(selectedcompany.value.id, payload);
             console.log('✅ Company updated successfully!');
         } else {
-            await companyStore.addCompany(companyData);
+            await companyStore.addCompany(payload);
             console.log('✅ Company added successfully!');
         }
         closeFormModal();
     } catch (error) {
         console.error('❌ Failed to submit company:', error);
+        alert(error.message || 'Failed to save company');
     }
 };
 
