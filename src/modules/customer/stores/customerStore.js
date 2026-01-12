@@ -10,6 +10,62 @@ export const useCustomerStore = defineStore("customer", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  const extractIdName = (value, fallbackId = null, fallbackName = "") => {
+    if (Array.isArray(value)) {
+      return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
+    }
+    if (value && typeof value === "object") {
+      return {
+        id: value.id ?? fallbackId,
+        name: value.name ?? value.label ?? fallbackName,
+      };
+    }
+    if (value === null || value === undefined) {
+      return { id: fallbackId, name: fallbackName };
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return { id: fallbackId, name: fallbackName };
+      const asNumber = Number(trimmed);
+      if (!Number.isNaN(asNumber)) {
+        return { id: trimmed, name: fallbackName };
+      }
+      return { id: fallbackId, name: trimmed };
+    }
+    return { id: value, name: fallbackName };
+  };
+
+  const formatLocation = (location) => {
+    if (!location) return "";
+    if (Array.isArray(location.coordinates) && location.coordinates.length >= 2) {
+      return `${location.coordinates[1]}, ${location.coordinates[0]}`;
+    }
+    return "";
+  };
+
+  const normalizeCustomer = (customer) => {
+    const companyInfo = extractIdName(customer.company ?? customer.company_id);
+    const companyId = companyInfo.id;
+    const companyName =
+      customer.company_name ||
+      companyInfo.name ||
+      (companyId ? `Company ${companyId}` : "");
+
+    return {
+      id: customer.id,
+      name: customer.name || "",
+      phone_number: customer.phone_number || "",
+      company_id: companyId,
+      company_name: companyName,
+      location: formatLocation(customer.location),
+      latitude: customer.latitude || null,
+      longitude: customer.longitude || null,
+      created_at: customer.created_at,
+      updated_at: customer.updated_at,
+      created_by: customer.created_by,
+    };
+  };
+
   // Getters
   const customersByCompany = computed(() => {
     const grouped = {};
@@ -31,21 +87,7 @@ export const useCustomerStore = defineStore("customer", () => {
       const response = await apiServices.getCustomers();
 
       // Transform API response to match frontend format
-      customers.value = response.data.data.map((customer) => ({
-        id: customer.id,
-        name: customer.name || "",
-        phone_number: customer.phone_number || "",
-        company_id: customer.company_id,
-        company_name: `Company ${customer.company_id}`,
-        location: customer.location 
-          ? `${customer.location.coordinates[1]}, ${customer.location.coordinates[0]}` 
-          : "",
-        latitude: customer.latitude || null,
-        longitude: customer.longitude || null,
-        created_at: customer.created_at,
-        updated_at: customer.updated_at,
-        created_by: customer.created_by,
-      }));
+      customers.value = response.data.data.map(normalizeCustomer);
 
       console.log(`✅ Successfully loaded ${customers.value.length} customers`);
       return response.data;
@@ -90,20 +132,7 @@ export const useCustomerStore = defineStore("customer", () => {
       console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
-      const newCustomer = {
-        id: response.data.data.id,
-        name: response.data.data.name || "",
-        phone_number: response.data.data.phone_number || "",
-        company_id: response.data.data.company_id,
-        company_name: `Company ${response.data.data.company_id}`,
-        location: response.data.data.location 
-          ? `${response.data.data.location.coordinates[1]}, ${response.data.data.location.coordinates[0]}` 
-          : "",
-        latitude: response.data.data.latitude,
-        longitude: response.data.data.longitude,
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
-      };
+      const newCustomer = normalizeCustomer(response.data.data);
 
       customers.value.push(newCustomer);
       console.log("✅ Customer added successfully to store");
@@ -151,19 +180,10 @@ export const useCustomerStore = defineStore("customer", () => {
       // Update local state with response data
       const index = customers.value.findIndex((c) => c.id === customerId);
       if (index > -1) {
-        customers.value[index] = {
-          id: response.data.data.id,
-          name: response.data.data.name || customers.value[index].name,
-          phone_number: response.data.data.phone_number || customers.value[index].phone_number,
-          company_id: response.data.data.company_id,
-          company_name: `Company ${response.data.data.company_id}`,
-          location: response.data.data.location 
-            ? `${response.data.data.location.coordinates[1]}, ${response.data.data.location.coordinates[0]}` 
-            : customers.value[index].location,
-          latitude: response.data.data.latitude,
-          longitude: response.data.data.longitude,
-          updated_at: response.data.data.updated_at,
-        };
+        customers.value[index] = normalizeCustomer({
+          ...customers.value[index],
+          ...response.data.data,
+        });
         console.log("✅ Customer updated successfully");
       }
       return customers.value[index];
@@ -208,21 +228,7 @@ export const useCustomerStore = defineStore("customer", () => {
       const response = await apiServices.getTrashedCustomers();
 
       // Transform API response to match frontend format
-      trashedCustomers.value = response.data.data.map((customer) => ({
-        id: customer.id,
-        name: customer.name || "",
-        phone_number: customer.phone_number || "",
-        company_id: customer.company_id,
-        company_name: `Company ${customer.company_id}`,
-        location: customer.location
-          ? `${customer.location.coordinates[1]}, ${customer.location.coordinates[0]}`
-          : "",
-        latitude: customer.latitude || null,
-        longitude: customer.longitude || null,
-        created_at: customer.created_at,
-        updated_at: customer.updated_at,
-        created_by: customer.created_by,
-      }));
+      trashedCustomers.value = response.data.data.map(normalizeCustomer);
 
       console.log(`✅ Successfully loaded ${trashedCustomers.value.length} trashed customers`);
       return response.data;

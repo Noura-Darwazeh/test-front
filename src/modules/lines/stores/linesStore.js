@@ -10,6 +10,57 @@ export const useLinesStore = defineStore("lines", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  const extractIdName = (value, fallbackId = null, fallbackName = "") => {
+    if (Array.isArray(value)) {
+      return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
+    }
+    if (value && typeof value === "object") {
+      return {
+        id: value.id ?? fallbackId,
+        name: value.name ?? value.label ?? fallbackName,
+      };
+    }
+    if (value === null || value === undefined) {
+      return { id: fallbackId, name: fallbackName };
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return { id: fallbackId, name: fallbackName };
+      const asNumber = Number(trimmed);
+      if (!Number.isNaN(asNumber)) {
+        return { id: trimmed, name: fallbackName };
+      }
+      return { id: fallbackId, name: trimmed };
+    }
+    return { id: value, name: fallbackName };
+  };
+
+  const normalizeLine = (line) => {
+    const regionInfo = extractIdName(line.region ?? line.region_id);
+    const companyInfo = extractIdName(line.company ?? line.company_id);
+    const regionId = regionInfo.id;
+    const companyId = companyInfo.id;
+
+    return {
+      id: line.id,
+      name: line.name || "",
+      region_id: regionId,
+      region:
+        line.region_name ||
+        regionInfo.name ||
+        (regionId ? `Region ${regionId}` : ""),
+      company_id: companyId,
+      company:
+        line.company_name ||
+        companyInfo.name ||
+        (companyId ? `Company ${companyId}` : ""),
+      created_by: line.created_by,
+      created_at: line.created_at,
+      updated_at: line.updated_at,
+      deleted_at: line.deleted_at,
+    };
+  };
+
   // Getters
   const linesByRegion = computed(() => {
     const grouped = {};
@@ -43,17 +94,7 @@ export const useLinesStore = defineStore("lines", () => {
       const response = await apiServices.getLines();
 
       // Transform API response to match frontend format
-      lines.value = response.data.data.map((line) => ({
-        id: line.id,
-        name: line.name || "",
-        region_id: line.region_id,
-        region: `Region ${line.region_id}`, // You can map this to actual region names
-        company_id: line.company_id,
-        company: `Company ${line.company_id}`, // You can map this to actual company names
-        created_by: line.created_by,
-        created_at: line.created_at,
-        updated_at: line.updated_at,
-      }));
+      lines.value = response.data.data.map(normalizeLine);
 
       console.log(`✅ Successfully loaded ${lines.value.length} lines`);
       return response.data;
@@ -118,17 +159,7 @@ export const useLinesStore = defineStore("lines", () => {
       console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
-      const newLine = {
-        id: response.data.data.id,
-        name: response.data.data.name || "",
-        region_id: response.data.data.region_id,
-        region: `Region ${response.data.data.region_id}`,
-        company_id: response.data.data.company_id,
-        company: `Company ${response.data.data.company_id}`,
-        created_by: response.data.data.created_by,
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
-      };
+      const newLine = normalizeLine(response.data.data);
 
       lines.value.push(newLine);
       console.log("✅ Line added successfully to store");
@@ -170,17 +201,10 @@ export const useLinesStore = defineStore("lines", () => {
       // Update local state with response data
       const index = lines.value.findIndex((l) => l.id === lineId);
       if (index > -1) {
-        lines.value[index] = {
-          id: response.data.data.id,
-          name: response.data.data.name || lines.value[index].name,
-          region_id: response.data.data.region_id,
-          region: `Region ${response.data.data.region_id}`,
-          company_id: response.data.data.company_id,
-          company: `Company ${response.data.data.company_id}`,
-          created_by: response.data.data.created_by,
-          created_at: response.data.data.created_at,
-          updated_at: response.data.data.updated_at,
-        };
+        lines.value[index] = normalizeLine({
+          ...lines.value[index],
+          ...response.data.data,
+        });
         console.log("✅ Line updated successfully");
       }
       return lines.value[index];
@@ -225,17 +249,7 @@ export const useLinesStore = defineStore("lines", () => {
       const response = await apiServices.getTrashedLines();
 
       // Transform API response to match frontend format
-      trashedLines.value = response.data.data.map((line) => ({
-        id: line.id,
-        name: line.name || "",
-        region_id: line.region_id,
-        region: `Region ${line.region_id}`,
-        company_id: line.company_id,
-        company: `Company ${line.company_id}`,
-        created_by: line.created_by,
-        created_at: line.created_at,
-        updated_at: line.updated_at,
-      }));
+      trashedLines.value = response.data.data.map(normalizeLine);
 
       console.log(`✅ Successfully loaded ${trashedLines.value.length} trashed lines`);
       return response.data;

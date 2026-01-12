@@ -10,6 +10,71 @@ export const useDriverStore = defineStore("driver", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  const extractIdName = (value, fallbackId = null, fallbackName = "") => {
+    if (Array.isArray(value)) {
+      return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
+    }
+    if (value && typeof value === "object") {
+      return {
+        id: value.id ?? fallbackId,
+        name: value.name ?? value.label ?? fallbackName,
+      };
+    }
+    if (value === null || value === undefined) {
+      return { id: fallbackId, name: fallbackName };
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return { id: fallbackId, name: fallbackName };
+      const asNumber = Number(trimmed);
+      if (!Number.isNaN(asNumber)) {
+        return { id: trimmed, name: fallbackName };
+      }
+      return { id: fallbackId, name: trimmed };
+    }
+    return { id: value, name: fallbackName };
+  };
+
+  const normalizeDriver = (driver) => {
+    const companyInfo = extractIdName(driver.company ?? driver.company_id);
+    const branchInfo = extractIdName(driver.branch ?? driver.branch_id);
+    const companyId = companyInfo.id;
+    const branchId = branchInfo.id;
+
+    return {
+      id: driver.id,
+      name: driver.user?.name || driver.name || "",
+      username:
+        driver.user?.username || driver.user?.same17 || driver.username || "",
+      email: driver.user?.email || driver.email || "",
+      phone_number: driver.user?.phone_number || driver.phone_number || "",
+      role: driver.user?.role || driver.role || "Driver",
+      region_id: driver.user?.region_id ?? driver.region_id ?? null,
+      status: driver.status || "available",
+      type: driver.type || "delivery driver",
+      branch_id: branchId ?? null,
+      branch_name:
+        driver.branch?.name ||
+        driver.branch_name ||
+        branchInfo.name ||
+        (branchId ? `Branch ${branchId}` : ""),
+      vehicle_number: driver.vehicle_number || "",
+      company_id: companyId ?? null,
+      company_name:
+        driver.company?.name ||
+        driver.company_name ||
+        companyInfo.name ||
+        (companyId ? `Company ${companyId}` : ""),
+      location: driver.location,
+      latitude: driver.latitude,
+      longitude: driver.longitude,
+      image: driver.user?.image || driver.image || "path/test",
+      created_by: driver.created_by,
+      created_at: driver.created_at,
+      updated_at: driver.updated_at,
+    };
+  };
+
   // Getters
   const activeDrivers = computed(() =>
     drivers.value.filter((driver) => driver.status === "available")
@@ -31,35 +96,7 @@ export const useDriverStore = defineStore("driver", () => {
       const response = await apiServices.getDrivers();
 
       // Transform API response to match frontend format
-      drivers.value = response.data.data.map((driver) => ({
-        id: driver.id,
-        name: driver.user?.name || "",
-        username: driver.user?.username || driver.user?.same17 || "",
-        email: driver.user?.email || "",
-        phone_number: driver.user?.phone_number || "",
-        role: driver.user?.role || "Driver",
-        region_id: driver.user?.region_id || null,
-        status: driver.status || "available",
-        type: driver.type || "delivery driver",
-        branch_id: driver.branch_id,
-        branch_name:
-          driver.branch?.name ||
-          driver.branch_name ||
-          (driver.branch_id ? `Branch ${driver.branch_id}` : ""),
-        vehicle_number: driver.vehicle_number || "",
-        company_id: driver.company_id,
-        company_name:
-          driver.company?.name ||
-          driver.company_name ||
-          (driver.company_id ? `Company ${driver.company_id}` : ""),
-        location: driver.location,
-        latitude: driver.latitude,
-        longitude: driver.longitude,
-        image: driver.user?.image || "path/test",
-        created_by: driver.created_by,
-        created_at: driver.created_at,
-        updated_at: driver.updated_at,
-      }));
+      drivers.value = response.data.data.map(normalizeDriver);
 
       console.log(`✅ Successfully loaded ${drivers.value.length} drivers`);
       return response.data;
@@ -118,37 +155,7 @@ export const useDriverStore = defineStore("driver", () => {
       console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
-      const newDriver = {
-        id: response.data.data.id,
-        name: response.data.data.user?.name || "",
-        username: response.data.data.user?.username || response.data.data.user?.same17 || "",
-        email: response.data.data.user?.email || "",
-        phone_number: response.data.data.user?.phone_number || "",
-        role: "Driver",
-        status: response.data.data.status,
-        type: response.data.data.type,
-        branch_id: response.data.data.branch_id,
-        branch_name:
-          response.data.data.branch?.name ||
-          response.data.data.branch_name ||
-          (response.data.data.branch_id
-            ? `Branch ${response.data.data.branch_id}`
-            : ""),
-        vehicle_number: response.data.data.vehicle_number,
-        company_id: response.data.data.company_id,
-        company_name:
-          response.data.data.company?.name ||
-          response.data.data.company_name ||
-          (response.data.data.company_id
-            ? `Company ${response.data.data.company_id}`
-            : ""),
-        location: response.data.data.location,
-        latitude: response.data.data.latitude,
-        longitude: response.data.data.longitude,
-        image: response.data.data.user?.image || "path/test",
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
-      };
+      const newDriver = normalizeDriver(response.data.data);
 
       drivers.value.push(newDriver);
       console.log("✅ Driver added successfully to store");
@@ -215,36 +222,10 @@ export const useDriverStore = defineStore("driver", () => {
     // Update local state with response data
     const index = drivers.value.findIndex((d) => d.id === driverId);
     if (index > -1) {
-      drivers.value[index] = {
-        id: response.data.data.id,
-        name: response.data.data.user?.name || drivers.value[index].name,
-        username: response.data.data.user?.username || response.data.data.user?.same17 || drivers.value[index].username,
-        email: response.data.data.user?.email || drivers.value[index].email,
-        phone_number: response.data.data.user?.phone_number || drivers.value[index].phone_number,
-        role: "Driver",
-        status: response.data.data.status,
-        type: response.data.data.type,
-        branch_id: response.data.data.branch_id,
-        branch_name:
-          response.data.data.branch?.name ||
-          response.data.data.branch_name ||
-          (response.data.data.branch_id
-            ? `Branch ${response.data.data.branch_id}`
-            : ""),
-        vehicle_number: response.data.data.vehicle_number,
-        company_id: response.data.data.company_id,
-        company_name:
-          response.data.data.company?.name ||
-          response.data.data.company_name ||
-          (response.data.data.company_id
-            ? `Company ${response.data.data.company_id}`
-            : ""),
-        location: response.data.data.location,
-        latitude: response.data.data.latitude,
-        longitude: response.data.data.longitude,
-        image: response.data.data.user?.image || drivers.value[index].image,
-        updated_at: response.data.data.updated_at,
-      };
+      drivers.value[index] = normalizeDriver({
+        ...drivers.value[index],
+        ...response.data.data,
+      });
       console.log("✅ Driver updated successfully");
     }
     return drivers.value[index];
@@ -289,35 +270,7 @@ export const useDriverStore = defineStore("driver", () => {
       const response = await apiServices.getTrashedDrivers();
 
       // Transform API response to match frontend format
-      trashedDrivers.value = response.data.data.map((driver) => ({
-        id: driver.id,
-        name: driver.user?.name || "",
-        username: driver.user?.username || driver.user?.same17 || "",
-        email: driver.user?.email || "",
-        phone_number: driver.user?.phone_number || "",
-        role: driver.user?.role || "Driver",
-        region_id: driver.user?.region_id || null,
-        status: driver.status || "available",
-        type: driver.type || "delivery driver",
-        branch_id: driver.branch_id,
-        branch_name:
-          driver.branch?.name ||
-          driver.branch_name ||
-          (driver.branch_id ? `Branch ${driver.branch_id}` : ""),
-        vehicle_number: driver.vehicle_number || "",
-        company_id: driver.company_id,
-        company_name:
-          driver.company?.name ||
-          driver.company_name ||
-          (driver.company_id ? `Company ${driver.company_id}` : ""),
-        location: driver.location,
-        latitude: driver.latitude,
-        longitude: driver.longitude,
-        image: driver.user?.image || "path/test",
-        created_by: driver.created_by,
-        created_at: driver.created_at,
-        updated_at: driver.updated_at,
-      }));
+      trashedDrivers.value = response.data.data.map(normalizeDriver);
 
       console.log(`✅ Successfully loaded ${trashedDrivers.value.length} trashed drivers`);
       return response.data;

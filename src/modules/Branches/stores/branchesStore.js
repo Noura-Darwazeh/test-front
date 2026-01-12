@@ -10,6 +10,31 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  const extractIdName = (value, fallbackId = null, fallbackName = "") => {
+    if (Array.isArray(value)) {
+      return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
+    }
+    if (value && typeof value === "object") {
+      return {
+        id: value.id ?? fallbackId,
+        name: value.name ?? value.label ?? fallbackName,
+      };
+    }
+    if (value === null || value === undefined) {
+      return { id: fallbackId, name: fallbackName };
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return { id: fallbackId, name: fallbackName };
+      const asNumber = Number(trimmed);
+      if (!Number.isNaN(asNumber)) {
+        return { id: trimmed, name: fallbackName };
+      }
+      return { id: fallbackId, name: trimmed };
+    }
+    return { id: value, name: fallbackName };
+  };
+
   // Helper function to add company_name to branches and flatten location
   const enrichBranchesWithCompanyName = async (branchesData) => {
     try {
@@ -24,27 +49,43 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
       });
 
       // Add company_name to each branch and flatten location object
-      return branchesData.map(branch => ({
-        ...branch,
-        company_name: branch.company_name || 
-                     branch.company?.name || 
-                     companyMap[branch.company_id] || 
-                     `Company ${branch.company_id || ''}`,
-        // Flatten location if it's an object
-        latitude: branch.latitude || branch.location?.latitude || '',
-        longitude: branch.longitude || branch.location?.longitude || ''
-      }));
+      return branchesData.map((branch) => {
+        const companyInfo = extractIdName(branch.company ?? branch.company_id);
+        const companyId = companyInfo.id;
+        const companyName =
+          branch.company_name ||
+          companyInfo.name ||
+          companyMap[companyId] ||
+          (companyId ? `Company ${companyId}` : "");
+
+        return {
+          ...branch,
+          company_id: companyId ?? null,
+          company_name: companyName,
+          // Flatten location if it's an object
+          latitude: branch.latitude || branch.location?.latitude || "",
+          longitude: branch.longitude || branch.location?.longitude || "",
+        };
+      });
     } catch (err) {
       console.warn("⚠️ Could not fetch companies, using fallback:", err);
       // If companies fetch fails, use fallback
-      return branchesData.map(branch => ({
-        ...branch,
-        company_name: branch.company_name || 
-                     branch.company?.name || 
-                     `Company ${branch.company_id || ''}`,
-        latitude: branch.latitude || branch.location?.latitude || '',
-        longitude: branch.longitude || branch.location?.longitude || ''
-      }));
+      return branchesData.map((branch) => {
+        const companyInfo = extractIdName(branch.company ?? branch.company_id);
+        const companyId = companyInfo.id;
+        const companyName =
+          branch.company_name ||
+          companyInfo.name ||
+          (companyId ? `Company ${companyId}` : "");
+
+        return {
+          ...branch,
+          company_id: companyId ?? null,
+          company_name: companyName,
+          latitude: branch.latitude || branch.location?.latitude || "",
+          longitude: branch.longitude || branch.location?.longitude || "",
+        };
+      });
     }
   };
 

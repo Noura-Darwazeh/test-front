@@ -92,6 +92,36 @@ const displayFields = computed(() => {
   return props.fields.filter(field => props.data[field.key] !== undefined);
 });
 
+const normalizeDisplayValue = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    const candidate = value.length === 2 ? value[1] ?? value[0] : value;
+    if (Array.isArray(candidate)) {
+      return candidate.map(normalizeDisplayValue).filter(Boolean).join(", ");
+    }
+    if (typeof candidate === "object" && candidate !== null) {
+      return normalizeDisplayValue(candidate);
+    }
+    return normalizeDisplayValue(candidate);
+  }
+  if (typeof value === "object") {
+    if (value.name !== undefined) return normalizeDisplayValue(value.name);
+    if (value.label !== undefined) return normalizeDisplayValue(value.label);
+    if (value.symbol !== undefined) return normalizeDisplayValue(value.symbol);
+    if (value.code !== undefined) return normalizeDisplayValue(value.code);
+    if (value.id !== undefined) return normalizeDisplayValue(value.id);
+    try {
+      return JSON.stringify(value);
+    } catch (err) {
+      return "";
+    }
+  }
+  return "";
+};
+
 const formatValue = (field) => {
   const value = props.data[field.key];
 
@@ -109,13 +139,20 @@ const formatValue = (field) => {
     return field.translator(value);
   }
 
-  // If field has translation key
-  if (field.translationKey) {
-    const translated = t(`${field.translationKey}.${value}`);
-    return translated !== `${field.translationKey}.${value}` ? translated : value;
+  const normalizedValue = normalizeDisplayValue(value);
+  if (!normalizedValue) {
+    return 'N/A';
   }
 
-  return value;
+  // If field has translation key
+  if (field.translationKey) {
+    const translated = t(`${field.translationKey}.${normalizedValue}`);
+    return translated !== `${field.translationKey}.${normalizedValue}`
+      ? translated
+      : normalizedValue;
+  }
+
+  return normalizedValue;
 };
 
 const closeModal = () => {

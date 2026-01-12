@@ -35,22 +35,39 @@ export const useAuthStore = defineStore("auth", () => {
   
   const userName = computed(() => user.value?.name || "");
 
+  const normalizeDisplayName = (name, fallback = "") => {
+    if (name === null || name === undefined) return fallback;
+    if (typeof name === "string" || typeof name === "number") {
+      return String(name);
+    }
+    if (Array.isArray(name)) {
+      const candidate = name[1] ?? name[0];
+      return normalizeDisplayName(candidate, fallback);
+    }
+    if (typeof name === "object") {
+      if (name.name !== undefined) return normalizeDisplayName(name.name, fallback);
+      if (name.label !== undefined) return normalizeDisplayName(name.label, fallback);
+      if (name.en !== undefined) return normalizeDisplayName(name.en, fallback);
+      if (name.ar !== undefined) return normalizeDisplayName(name.ar, fallback);
+    }
+    return fallback;
+  };
+
   const parseIdNamePair = (value, fallbackId = null, fallbackName = "") => {
+    let id = fallbackId;
+    let name = fallbackName;
+
     if (Array.isArray(value)) {
-      return {
-        id: value[0] ?? fallbackId,
-        name: value[1] ?? fallbackName,
-      };
+      id = value[0] ?? fallbackId;
+      name = value[1] ?? fallbackName;
+    } else if (value && typeof value === "object") {
+      id = value.id ?? fallbackId;
+      name = value.name ?? fallbackName;
+    } else if (value !== undefined && value !== null) {
+      id = value;
     }
 
-    if (value && typeof value === "object") {
-      return {
-        id: value.id ?? fallbackId,
-        name: value.name ?? fallbackName,
-      };
-    }
-
-    return { id: value ?? fallbackId, name: fallbackName };
+    return { id, name: normalizeDisplayName(name, fallbackName) };
   };
 
   const userCompany = computed(() =>

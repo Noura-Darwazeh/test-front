@@ -1,96 +1,136 @@
 <template>
     <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light" style="padding:32px;">
         <div class="row shadow rounded-4 bg-white overflow-hidden g-0" style="max-width:1200px; width:100%">
-            <!-- LEFT: FORM -->
-            <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
-                <div style="max-width: 420px; width: 100%;">
-                    <div class="text-center mb-4">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-                            style="width:64px;height:64px;background:var(--primary-color);color:#fff">
-                            <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
-                        </div>
-                        <h3 class="mb-0">Reset Your Password</h3>
-                        <p class="text-muted">Enter your new password to regain access to your account.</p>
-                    </div>
-
-                    <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
-                        <!-- New Password Field -->
-                        <div class="mb-3">
-                            <FormLabel label="New Password" for-id="password" :required="true" />
-                            <TextField 
-                                id="password" 
-                                v-model="form.password" 
-                                type="password" 
-                                placeholder="••••••••"
-                                :minlength="6" 
-                                :required="true" 
-                            />
-                            <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
-                            <small v-else class="text-muted d-block mt-1">
-                                Password must be at least 6 characters
-                            </small>
-                        </div>
-
-                        <!-- Confirm Password Field -->
-                        <div class="mb-3">
-                            <FormLabel label="Confirm Password" for-id="password_confirmation" :required="true" />
-                            <TextField 
-                                id="password_confirmation" 
-                                v-model="form.password_confirmation" 
-                                type="password" 
-                                placeholder="••••••••"
-                                :minlength="6" 
-                                :required="true" 
-                            />
-                            <small v-if="errors.password_confirmation" class="text-danger">
-                                {{ errors.password_confirmation }}
-                            </small>
-                        </div>
-
-                        <!-- API Error Message -->
-                        <div v-if="apiError" class="alert alert-danger" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            {{ apiError }}
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="mb-3">
-                            <PrimaryButton 
-                                text="Reset Password" 
-                                loading-text="Resetting..." 
-                                :loading="submitting"
-                                :disabled="!isFormValid"
-                                type="submit" 
-                            />
-                        </div>
-
-                        <!-- Success Message -->
-                        <div v-if="success" class="alert alert-success mt-3" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            {{ successMessage }}
-                            <br>
-                            <small>Redirecting to login...</small>
-                        </div>
-
-                        <!-- Back to login -->
-                        <div class="mt-3 text-center">
-                            <router-link to="/login" class="text-decoration-none"
-                                style="color:var(--primary-color);font-size:14px">
-                                Back to Sign In
-                            </router-link>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- RIGHT: -->
-            <div class="col-12 col-lg-6 d-none d-lg-flex align-items-center justify-content-center"
-                style="background: var(--primary-color); color: #fff; min-height:600px; padding: 40px;">
+            <!-- Loading State -->
+            <div v-if="isValidatingToken" class="col-12 d-flex align-items-center justify-content-center" style="min-height:600px; padding: 48px 40px;">
                 <div class="text-center">
-                    <h2 class="mb-3">Secure Password Reset</h2>
-                    <p class="mb-0">Create a strong password to protect your account.</p>
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 class="mb-2">Validating reset link...</h5>
+                    <p class="text-muted">Please wait while we verify your reset token.</p>
                 </div>
             </div>
+
+            <!-- Invalid Token State -->
+            <div v-else-if="!isTokenValid" class="col-12 d-flex align-items-center justify-content-center" style="min-height:600px; padding: 48px 40px;">
+                <div class="text-center" style="max-width: 420px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                        style="width:64px;height:64px;background:#dc3545;color:#fff">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 28px;"></i>
+                    </div>
+                    <h3 class="mb-3 text-danger">Invalid Reset Link</h3>
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        {{ apiError }}
+                    </div>
+                    <p class="text-muted mb-4">
+                        Reset links expire after 60 minutes for security reasons.
+                    </p>
+                    <PrimaryButton 
+                        text="Request New Reset Link" 
+                        @click="router.push('/forgot-password')"
+                        bg-color="var(--primary-color)"
+                    />
+                    <div class="mt-3">
+                        <small class="text-muted">Redirecting in 5 seconds...</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Valid Token - Show Reset Form -->
+            <template v-else>
+                <!-- LEFT: FORM -->
+                <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
+                    <div style="max-width: 420px; width: 100%;">
+                        <div class="text-center mb-4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                                style="width:64px;height:64px;background:var(--primary-color);color:#fff">
+                                <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
+                            </div>
+                            <h3 class="mb-0">Reset Your Password</h3>
+                            <p class="text-muted">Enter your new password to regain access to your account.</p>
+                        </div>
+
+                        <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
+                            <!-- New Password Field -->
+                            <div class="mb-3">
+                                <FormLabel label="New Password" for-id="password" :required="true" />
+                                <TextField 
+                                    id="password" 
+                                    v-model="form.password" 
+                                    type="password" 
+                                    placeholder="••••••••"
+                                    :minlength="6" 
+                                    :required="true" 
+                                />
+                                <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
+                                <small v-else class="text-muted d-block mt-1">
+                                    Password must be at least 6 characters
+                                </small>
+                            </div>
+
+                            <!-- Confirm Password Field -->
+                            <div class="mb-3">
+                                <FormLabel label="Confirm Password" for-id="password_confirmation" :required="true" />
+                                <TextField 
+                                    id="password_confirmation" 
+                                    v-model="form.password_confirmation" 
+                                    type="password" 
+                                    placeholder="••••••••"
+                                    :minlength="6" 
+                                    :required="true" 
+                                />
+                                <small v-if="errors.password_confirmation" class="text-danger">
+                                    {{ errors.password_confirmation }}
+                                </small>
+                            </div>
+
+                            <!-- API Error Message -->
+                            <div v-if="apiError && isTokenValid" class="alert alert-danger" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                {{ apiError }}
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="mb-3">
+                                <PrimaryButton 
+                                    text="Reset Password" 
+                                    loading-text="Resetting..." 
+                                    :loading="submitting"
+                                    :disabled="!isFormValid"
+                                    type="submit" 
+                                />
+                            </div>
+
+                            <!-- Success Message -->
+                            <div v-if="success" class="alert alert-success mt-3" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                {{ successMessage }}
+                                <br>
+                                <small>Redirecting to login...</small>
+                            </div>
+
+                            <!-- Back to login -->
+                            <div class="mt-3 text-center">
+                                <router-link to="/login" class="text-decoration-none"
+                                    style="color:var(--primary-color);font-size:14px">
+                                    Back to Sign In
+                                </router-link>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Info Section -->
+                <div class="col-12 col-lg-6 d-none d-lg-flex align-items-center justify-content-center"
+                    style="background: var(--primary-color); color: #fff; min-height:600px; padding: 40px;">
+                    <div class="text-center">
+                        <h2 class="mb-3">Secure Password Reset</h2>
+                        <p class="mb-0">Create a strong password to protect your account.</p>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 </template>
@@ -122,12 +162,60 @@ const submitting = ref(false)
 const success = ref(false)
 const apiError = ref('')
 const successMessage = ref('Password reset successfully!')
+const isValidatingToken = ref(true)
+const isTokenValid = ref(false)
 
 // Get token and email from URL or localStorage
 const token = ref('')
 const email = ref('')
 
-onMounted(() => {
+/**
+ * Validate the reset token with the API
+ */
+async function validateResetToken() {
+    try {
+        isValidatingToken.value = true
+        apiError.value = ''
+
+        console.log('🔍 Validating reset token...')
+
+        const response = await api.get('/password/reset/validate', {
+            params: {
+                token: token.value,
+                email: email.value
+            }
+        })
+
+        if (response.data.success === true) {
+            console.log('✅ Token is valid')
+            isTokenValid.value = true
+        } else {
+            throw new Error(response.data.message || 'Invalid token')
+        }
+    } catch (err) {
+        console.error('❌ Token validation failed:', err)
+        
+        isTokenValid.value = false
+        
+        // Handle different error scenarios
+        if (err.response?.data?.message) {
+            apiError.value = err.response.data.message
+        } else if (err.response?.status === 400 || err.response?.status === 404) {
+            apiError.value = 'Invalid or expired reset link. The link may have expired after 60 minutes.'
+        } else {
+            apiError.value = err.message || 'Invalid or expired reset link. Please request a new password reset.'
+        }
+
+        // Redirect to forgot password after 5 seconds
+        setTimeout(() => {
+            router.push('/forgot-password')
+        }, 5000)
+    } finally {
+        isValidatingToken.value = false
+    }
+}
+
+onMounted(async () => {
     // Try to get token and email from URL query parameters
     token.value = route.query.token || getItem('reset_token', '')
     email.value = route.query.email || getItem('reset_email', '')
@@ -136,6 +224,8 @@ onMounted(() => {
     if (!token.value || !email.value) {
         console.error('❌ Missing token or email')
         apiError.value = 'Invalid reset link. Please request a new password reset.'
+        isValidatingToken.value = false
+        isTokenValid.value = false
         
         // Redirect to forgot password after 3 seconds
         setTimeout(() => {
@@ -143,6 +233,9 @@ onMounted(() => {
         }, 3000)
     } else {
         console.log('✅ Token and email loaded:', { email: email.value, hasToken: !!token.value })
+        
+        // Validate the token with the API
+        await validateResetToken()
     }
 })
 
@@ -271,6 +364,10 @@ async function onSubmit() {
 <style scoped>
 .icon-white {
     filter: brightness(0) invert(1);
+}
+
+.spinner-border {
+    border-width: 0.25rem;
 }
 
 @media (max-width: 991px) {

@@ -17,8 +17,13 @@
                         <!-- Email Field -->
                         <div class="mb-3">
                             <FormLabel label="Email Address" for-id="email" :required="true" />
-                            <TextField id="email" v-model="email" type="email" placeholder="you@example.com"
-                                :required="true" />
+                            <TextField 
+                                id="email" 
+                                v-model="email" 
+                                type="email" 
+                                placeholder="you@example.com"
+                                :required="true" 
+                            />
                             <small v-if="errors.email" class="text-danger">{{ errors.email }}</small>
                         </div>
 
@@ -30,8 +35,12 @@
 
                         <!-- Submit Button -->
                         <div class="mb-3">
-                            <PrimaryButton text="Send Reset Link" loading-text="Sending..." :loading="submitting"
-                                type="submit" />
+                            <PrimaryButton 
+                                text="Send Reset Link" 
+                                loading-text="Sending..." 
+                                :loading="submitting"
+                                type="submit" 
+                            />
                         </div>
 
                         <!-- Success Message -->
@@ -70,7 +79,7 @@ import FormLabel from '../../../components/shared/FormLabel.vue'
 import TextField from '../../../components/shared/TextField.vue'
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
 import packageIcon from '../../../assets/login/package.svg'
-import api from '@/services/api.js'
+import apiServices from '@/services/apiServices.js'
 import { setItem } from '@/utils/shared/storageUtils.js'
 
 const router = useRouter()
@@ -102,10 +111,8 @@ async function onSubmit() {
     submitting.value = true
 
     try {
-        // Call the forgot password API
-        const response = await api.post('/forgotpassword', {
-            email: email.value.trim()
-        })
+        // ✅ Use apiServices instead of direct API call
+        const response = await apiServices.forgotPassword(email.value.trim())
 
         console.log('✅ Forgot password API response:', response.data)
 

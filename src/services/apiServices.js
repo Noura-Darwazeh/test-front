@@ -1,3 +1,4 @@
+// src/services/apiServices.js
 import api from "./api.js";
 
 // ===== API Services Singleton =====
@@ -98,8 +99,27 @@ class ApiServices {
     return api.post("/login", credentials);
   }
 
+  /**
+   * Send forgot password email
+   * @param {string} email - User's email address
+   * @returns {Promise} API response
+   */
   async forgotPassword(email) {
     return api.post("/forgot_password", { email });
+  }
+
+  /**
+   * Reset password with token
+   * @param {Object} data - Reset password data {token, email, password, password_confirmation}
+   * @returns {Promise} API response
+   */
+  async resetPassword(data) {
+    return api.post("/reset_password", data, {
+      params: {
+        token: data.token,
+        email: data.email
+      }
+    });
   }
 
   // ===== User Services =====
@@ -281,58 +301,54 @@ class ApiServices {
     return this.getTrashedEntities("companies");
   }
 
-// Updated createCompany method for apiServices.js
-// Replace the existing createCompany method with this:
-
-async createCompany(companyData) {
-  // If there are branches, send them as form data to match API format
-  if (companyData.branches && companyData.branches.length > 0) {
-    const formData = new FormData();
-    formData.append('name', companyData.name);
-    formData.append('type', companyData.type);
+  async createCompany(companyData) {
+    // If there are branches, send them as form data to match API format
+    if (companyData.branches && companyData.branches.length > 0) {
+      const formData = new FormData();
+      formData.append('name', companyData.name);
+      formData.append('type', companyData.type);
+      
+      // Add branches as indexed array: branches[0][name], branches[1][name], etc.
+      companyData.branches.forEach((branch, index) => {
+        if (branch.name && branch.name.trim() !== '') {
+          formData.append(`branches[${index}][name]`, branch.name);
+        }
+      });
+      
+      return api.post('/companies', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
     
-    // Add branches as indexed array: branches[0][name], branches[1][name], etc.
-    companyData.branches.forEach((branch, index) => {
-      if (branch.name && branch.name.trim() !== '') {
-        formData.append(`branches[${index}][name]`, branch.name);
-      }
-    });
-    
-    return api.post('/companies', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    // If no branches, send as regular JSON
+    return this.createEntity("companies", companyData);
   }
-  
-  // If no branches, send as regular JSON
-  return this.createEntity("companies", companyData);
-}
 
-// Also update updateCompany to support branches:
-async updateCompany(companyId, companyData) {
-  // If there are branches, send them as form data
-  if (companyData.branches && companyData.branches.length > 0) {
-    const formData = new FormData();
-    formData.append('name', companyData.name);
-    formData.append('type', companyData.type);
+  async updateCompany(companyId, companyData) {
+    // If there are branches, send them as form data
+    if (companyData.branches && companyData.branches.length > 0) {
+      const formData = new FormData();
+      formData.append('name', companyData.name);
+      formData.append('type', companyData.type);
+      
+      // Add branches as indexed array
+      companyData.branches.forEach((branch, index) => {
+        if (branch.name && branch.name.trim() !== '') {
+          formData.append(`branches[${index}][name]`, branch.name);
+        }
+      });
+      
+      return api.post(`/companies/${companyId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-HTTP-Method-Override': 'PATCH'
+        }
+      });
+    }
     
-    // Add branches as indexed array
-    companyData.branches.forEach((branch, index) => {
-      if (branch.name && branch.name.trim() !== '') {
-        formData.append(`branches[${index}][name]`, branch.name);
-      }
-    });
-    
-    return api.post(`/companies/${companyId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        'X-HTTP-Method-Override': 'PATCH'
-      }
-    });
+    // If no branches, use default method
+    return this.updateEntity("companies", companyId, companyData, false);
   }
-  
-  // If no branches, use default method
-  return this.updateEntity("companies", companyId, companyData, false);
-}
 
   async deleteCompany(companyId, force = false) {
     return this.deleteEntity("companies", companyId, force);
@@ -621,32 +637,25 @@ async updateCompany(companyId, companyData) {
     return api.get("/statistics/orders");
   }
 
-    // ===== Line Work Services =====
-    async getLineWorks() {
-      return this.getEntities("line_works");
-    }
-
-    async createLineWork(lineWorkData) {
-      return this.createEntity("line_works", lineWorkData);
-    }
-
-  async updateLineWork(lineWorkId, lineWorkData) {
-    return api.post(`/line_works/${lineWorkId}`, lineWorkData, {
-      headers: {
-        'X-HTTP-Method-Override': 'PATCH'
-      }
-    });
+  // ===== Line Work Services =====
+  async getLineWorks() {
+    return this.getEntities("line_works");
   }
+
+  async createLineWork(lineWorkData) {
+    return this.createEntity("line_works", lineWorkData);
+  }
+
   async updateLineWork(lineWorkId, lineWorkData) {
     return this.updateEntity("line_works", lineWorkId, lineWorkData, true);
   }
 
-    async deleteLineWork(lineWorkId, force = false) {
-      return this.deleteEntity("line_works", lineWorkId, force);
-    }
+  async deleteLineWork(lineWorkId, force = false) {
+    return this.deleteEntity("line_works", lineWorkId, force);
+  }
 
-    async restoreLineWork(lineWorkId) {
-      return this.restoreEntity("line_works", lineWorkId);
+  async restoreLineWork(lineWorkId) {
+    return this.restoreEntity("line_works", lineWorkId);
   }
 
   async getTrashedLineWorks() {
@@ -664,7 +673,7 @@ async updateCompany(companyId, companyData) {
 
   async bulkRestoreLineWorks(lineWorkIds) {
     return this.bulkRestoreEntities("line_work", "line_works", lineWorkIds);
-    }
+  }
 
   // ===== Work Plans Services =====
   async getWorkPlans() {
