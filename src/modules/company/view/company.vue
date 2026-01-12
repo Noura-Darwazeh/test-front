@@ -64,8 +64,8 @@
                         :actionsLabel="$t('company.actions')">
                         <template #actions="{ row }">
                             <ActionsDropdown :row="row" :restoreLabel="$t('company.trashed.restore')"
-                                :deleteLabel="$t('company.trashed.delete')" @restore="handleRestoreCompany"
-                                @delete="handleForceDeleteCompany" />
+                                :deleteLabel="$t('company.trashed.delete')" :showEdit="false" :showDetails="false"
+                                :showRestore="true" @restore="handleRestoreCompany" @delete="handleForceDeleteCompany" />
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">

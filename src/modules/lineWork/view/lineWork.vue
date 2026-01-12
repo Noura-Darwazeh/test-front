@@ -22,6 +22,7 @@
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true" 
             :addButtonText="$t('lineWork.addNew')" 
+            :showTrashedButton="true"
             @add-click="openAddModal"
             @trashed-click="openTrashedModal" 
         />
@@ -31,7 +32,7 @@
                 <!-- Loading State -->
                 <div v-if="lineWorkStore.loading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
                     <p class="mt-2">{{ $t('common.loading') }}</p>
                 </div>
@@ -44,14 +45,25 @@
 
                 <!-- Data Table -->
                 <div v-else>
-                    <DataTable :columns="filteredColumns" :data="paginatedLineWork" :actionsLabel="$t('lineWork.actions')">
+                    <BulkActionsBar
+                        :selectedCount="selectedRows.length"
+                        entityName="lineWork"
+                        :actions="bulkActions"
+                        :loading="bulkActionLoading"
+                        @action="handleBulkAction"
+                    />
+                    <DataTable :columns="filteredColumns" :data="paginatedLineWork" :actionsLabel="$t('lineWork.actions')"
+                        v-model="selectedRows">
                         <template #actions="{ row }">
                             <ActionsDropdown 
                                 :row="row" 
                                 :editLabel="$t('lineWork.edit')" 
-                                :detailsLabel="$t('lineWork.details')"
+                                :detailsLabel="$t('lineWork.details')" 
+                                :deleteLabel="$t('lineWork.delete')" 
+                                :confirmDelete="true"
                                 @edit="openEditModal" 
                                 @details="openDetailsModal" 
+                                @delete="handleDeleteLineWork" 
                             />
                         </template>
                     </DataTable>
@@ -93,8 +105,24 @@
             :emptyMessage="$t('lineWork.trashed.empty')" 
             :columns="trashedColumns" 
             :trashedItems="trashedLineWork"
+            :showDeleteButton="true"
+            entityName="lineWork"
+            :bulkActions="trashedBulkActions"
+            :bulkLoading="bulkActionLoading"
             @close="closeTrashedModal" 
             @restore="handleRestorelineWork" 
+            @delete="handlePermanentDeleteLineWork"
+            @bulk-action="handleTrashedBulkAction"
+        />
+
+        <ConfirmationModal
+            :isOpen="isBulkConfirmOpen"
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage"
+            :confirmText="$t('common.confirm')"
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction"
+            @close="cancelBulkAction"
         />
     </div>
 </template>
@@ -105,15 +133,19 @@ import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import lineWorkHeader from "../components/lineWorkHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import { useLineWorkStore } from "../stores/lineworkStore.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const lineWorkStore = useLineWorkStore();
+const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -125,6 +157,10 @@ const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedlineWork = ref({});
 const validationError = ref(null);
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
 
 // Get lineWorks from store
 const lineWorks = computed(() => lineWorkStore.lineWorks);
@@ -160,12 +196,13 @@ const lineWorkFields = computed(() => [
         label: t('lineWork.form.company'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: t('lineWork.form.companies.company1') },
-            { value: '2', label: t('lineWork.form.companies.company2') },
-        ],
+        options: companyOption.value.length
+            ? companyOption.value
+            : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-12',
-        defaultValue: isEditMode.value ? String(selectedlineWork.value.company_id) : ''
+        defaultValue: companyId.value,
+        locked: true,
+        hidden: true
     },
 ]);
 
@@ -213,6 +250,36 @@ const paginatedLineWork = computed(() => {
     );
 });
 
+const bulkActions = computed(() => [
+    {
+        id: 'delete',
+        label: t('lineWork.bulkDelete'),
+        bgColor: 'var(--color-danger)'
+    }
+]);
+
+const trashedBulkActions = computed(() => [
+    {
+        id: 'restore',
+        label: t('lineWork.bulkRestore'),
+        bgColor: 'var(--color-success)'
+    },
+    {
+        id: 'permanentDelete',
+        label: t('common.permanentDelete'),
+        bgColor: 'var(--color-danger)'
+    }
+]);
+
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const count = selectedRows.value.length;
+    const entity = count === 1 ? t('lineWork.entitySingular') : t('lineWork.entityPlural');
+
+    return t('common.bulkDeleteConfirm', { count, entity });
+});
+
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
@@ -248,8 +315,14 @@ const closeDetailsModal = () => {
     selectedlineWork.value = {};
 };
 
-const openTrashedModal = () => {
-    isTrashedModalOpen.value = true;
+const openTrashedModal = async () => {
+    try {
+        await lineWorkStore.fetchTrashedLineWorks();
+    } catch (error) {
+        console.error("Failed to load trashed line works:", error);
+    } finally {
+        isTrashedModalOpen.value = true;
+    }
 };
 
 const closeTrashedModal = () => {
@@ -261,13 +334,17 @@ const handleSubmitlineWork = async (lineWorkData) => {
     validationError.value = null;
     
     try {
+        const payload = {
+            ...lineWorkData,
+            company: companyId.value || lineWorkData.company,
+        };
         if (isEditMode.value) {
             // Update existing lineWork
-            await lineWorkStore.updateLineWork(selectedlineWork.value.id, lineWorkData);
+            await lineWorkStore.updateLineWork(selectedlineWork.value.id, payload);
             console.log('✅ Line work updated successfully!');
         } else {
             // Add new lineWork
-            await lineWorkStore.addLineWork(lineWorkData);
+            await lineWorkStore.addLineWork(payload);
             console.log('✅ Line work added successfully!');
         }
         closeFormModal();
@@ -297,12 +374,76 @@ const clearValidationError = () => {
 const handleRestorelineWork = async (lineWork) => {
     try {
         await lineWorkStore.restoreLineWork(lineWork.id);
-        console.log("✅ Line work restored successfully!");
+        console.log("Line work restored successfully!");
     } catch (error) {
-        console.error("❌ Failed to restore line work:", error);
-        alert(error.message || 'Failed to restore line work');
+        console.error("Failed to restore line work:", error);
+        alert(error.message || "Failed to restore line work");
     }
 };
+
+const handlePermanentDeleteLineWork = async (lineWork) => {
+    try {
+        await lineWorkStore.deleteLineWork(lineWork.id, true);
+        console.log("Line work permanently deleted successfully!");
+    } catch (error) {
+        console.error("Failed to permanently delete line work:", error);
+        alert(error.message || t("common.saveFailed"));
+    }
+};
+
+const handleBulkAction = ({ actionId }) => {
+    pendingBulkAction.value = actionId;
+    isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+    if (!pendingBulkAction.value) return;
+    bulkActionLoading.value = true;
+
+    try {
+        await lineWorkStore.bulkDeleteLineWorks(selectedRows.value, false);
+        selectedRows.value = [];
+    } catch (error) {
+        console.error("Failed to bulk delete line works:", error);
+    } finally {
+        bulkActionLoading.value = false;
+        isBulkConfirmOpen.value = false;
+        pendingBulkAction.value = null;
+    }
+};
+
+const cancelBulkAction = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
+};
+
+const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
+    if (!selectedIds.length) return;
+    bulkActionLoading.value = true;
+
+    try {
+        if (actionId === "restore") {
+            await lineWorkStore.bulkRestoreLineWorks(selectedIds);
+        } else if (actionId === "permanentDelete") {
+            await lineWorkStore.bulkDeleteLineWorks(selectedIds, true);
+        }
+    } catch (error) {
+        console.error("Failed to perform bulk action on line works:", error);
+    } finally {
+        bulkActionLoading.value = false;
+    }
+};
+
+const handleDeleteLineWork = async (lineWork) => {
+    try {
+        await lineWorkStore.deleteLineWork(lineWork.id);
+        console.log("?o. Line work deleted successfully!");
+    } catch (error) {
+        console.error("??O Failed to delete line work:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
 </script>
 
 <style scoped>
@@ -310,3 +451,4 @@ const handleRestorelineWork = async (lineWork) => {
     max-width: 100%;
 }
 </style>
+

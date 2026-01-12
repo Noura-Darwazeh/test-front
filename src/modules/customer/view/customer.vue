@@ -63,7 +63,7 @@
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
                     <p class="mt-2">{{ $t('common.loading') }}</p>
                 </div>
@@ -89,13 +89,16 @@
                                 :row="row"
                                 :editLabel="$t('customer.edit')"
                                 :detailsLabel="$t('customer.details')"
+                                :deleteLabel="$t('customer.delete')"
+                                :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
+                                @delete="handleDeleteCustomer"
                             />
                             <!-- Trashed Customers Actions -->
                             <PrimaryButton
                                 v-else
-                                text="Restore"
+                                :text="$t('customer.trashed.restore')"
                                 bgColor="var(--color-success)"
                                 class="d-inline-flex align-items-center"
                                 @click="handleRestoreCustomer(row)"
@@ -160,9 +163,11 @@ import { useI18n } from "vue-i18n";
 import CustomerHeader from "../components/customerHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useCustomerStore } from "../stores/customerStore.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const customerStore = useCustomerStore();
+const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -240,13 +245,13 @@ const customerFields = computed(() => [
         label: t('customer.form.company'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: 'Company 1' },
-            { value: '2', label: 'Company 2' },
-            { value: '3', label: 'Company 3' },
-        ],
+        options: companyOption.value.length
+            ? companyOption.value
+            : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? String(selectedCustomer.value.company_id) : ''
+        defaultValue: companyId.value,
+        locked: true,
+        hidden: true
     },
 
     {
@@ -456,13 +461,17 @@ const handleSubmitCustomer = async (customerData) => {
     validationError.value = null;
     
     try {
+        const payload = {
+            ...customerData,
+            company_name: companyId.value || customerData.company_name,
+        };
         if (isEditMode.value) {
             // Update existing customer
-            await customerStore.updateCustomer(selectedCustomer.value.id, customerData);
+            await customerStore.updateCustomer(selectedCustomer.value.id, payload);
             console.log('✅ Customer updated successfully!');
         } else {
             // Add new customer
-            await customerStore.addCustomer(customerData);
+            await customerStore.addCustomer(payload);
             console.log('✅ Customer added successfully!');
         }
         closeFormModal();
@@ -498,6 +507,17 @@ const handleRestoreCustomer = async (customer) => {
         alert(error.message || 'Failed to restore customer');
     }
 };
+
+const handleDeleteCustomer = async (customer) => {
+    try {
+        await customerStore.deleteCustomer(customer.id);
+        console.log("?o. Customer deleted successfully!");
+    } catch (error) {
+        console.error("??O Failed to delete customer:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
 </script>
 
 <style scoped>

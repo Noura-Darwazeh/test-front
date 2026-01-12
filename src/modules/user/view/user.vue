@@ -8,12 +8,12 @@
       v-model:groupModelValue="selectedGroups"
       :groupLabel="$t('user.filterByRole')"
       translationKey="roles"
-      :columns="userColumns"
-      v-model:visibleColumns="visibleColumns"
-      :showAddButton="true"
-      :addButtonText="$t('user.addNew')"
-      @add-click="openModal"
-    />
+    :columns="userColumns"
+    v-model:visibleColumns="visibleColumns"
+    :showAddButton="isSuperAdmin"
+    :addButtonText="$t('user.addNew')"
+    @add-click="openModal"
+  />
 
     <div class="card border-0">
       <!-- Tabs -->
@@ -53,7 +53,7 @@
         <!-- Loading State -->
         <div v-if="currentLoading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">{{ $t('common.loading') }}</span>
           </div>
           <p class="mt-2">{{ $t('common.loading') }}</p>
         </div>
@@ -88,7 +88,7 @@
               <!-- Trashed Users Actions -->
               <PrimaryButton
                 v-else
-                text="Restore"
+                :text="$t('user.trashed.restore')"
                 bgColor="var(--color-success)"
                 class="d-inline-flex align-items-center"
                 @click="handleRestoreUser(row)"
@@ -169,6 +169,7 @@ import { useUsersManagementStore } from "../store/usersManagement.js";
 import { VALIDATION_LIMITS } from "../constants/userConstants.js";
 import apiServices from "@/services/apiServices.js";
 import { useAuthStore } from "@/stores/auth.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const usersStore = useUsersManagementStore();
@@ -183,6 +184,8 @@ const getFullImageUrl = (imagePath) => {
   if (imagePath.startsWith('http')) return imagePath;
   return `${API_BASE_URL}${imagePath}`;
 };
+const { companyId, companyOption, currencyId } = useAuthDefaults();
+const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -215,11 +218,33 @@ const roles = ref([
   { value: "Driver", label: "Driver" },
 ]);
 
+const resolveIdValue = (value) => {
+  if (Array.isArray(value)) {
+    return value[0] === null || value[0] === undefined ? "" : String(value[0]);
+  }
+  if (value && typeof value === "object") {
+    return value.id === null || value.id === undefined ? "" : String(value.id);
+  }
+  return value === null || value === undefined ? "" : String(value);
+};
+
+const normalizeUserForEdit = (user) => ({
+  ...user,
+  company_id: resolveIdValue(user.company_id ?? user.company),
+  region_id: resolveIdValue(user.region_id ?? user.region),
+  currency_id: resolveIdValue(user.currency_id ?? user.currency),
+});
+
 // Get users from store, excluding logged-in user and SuperAdmin users
 const users = computed(() => {
   return usersStore.users.filter(user => {
     if (user.id === authStore.user?.id) return false;
-    if (user.role?.toLowerCase() === 'superadmin') return false;
+
+    // Exclude SuperAdmin users (case-insensitive)
+    // Handle role as array or string
+    const userRole = Array.isArray(user.role) ? user.role[0] : user.role;
+    if (userRole?.toLowerCase() === 'superadmin') return false;
+
     return true;
   });
 });
@@ -356,12 +381,20 @@ const userFields = computed(() => [
     label: t("user.form.company"),
     type: "select",
     required: false,
-    options: [
-      { value: "", label: t("user.form.noCompany") },
-      ...companies.value
-    ],
+    options: isSuperAdmin.value
+      ? companies.value
+      : companyOption.value.length
+        ? companyOption.value
+        : [{ value: "", label: t("common.noCompanyAssigned") }],
+    placeholder: t("user.form.companyPlaceholder"),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? String(selectedUser.value.company_id || '') : '',
+    defaultValue: isEditMode.value
+      ? (selectedUser.value.company_id || companyId.value)
+      : isSuperAdmin.value
+        ? ""
+        : companyId.value,
+    locked: !isSuperAdmin.value,
+    hidden: !isSuperAdmin.value,
   },
   {
     name: "region_id",
@@ -385,7 +418,9 @@ const userFields = computed(() => [
       ...currencies.value
     ],
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.currency_id : '',
+    defaultValue: isEditMode.value
+      ? selectedUser.value.currency_id
+      : currencyId.value,
   },
 ]);
 

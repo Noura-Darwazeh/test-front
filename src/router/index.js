@@ -32,8 +32,9 @@ const router = createRouter({
       redirect: (to) => {
         // Redirect to user's default page or /user
         const authStore = useAuthStore();
-        if (authStore.isAuthenticated && authStore.user?.default_page) {
-          return authStore.user.default_page;
+        const defaultPage = authStore.user?.default_page || authStore.user?.landing_page;
+        if (authStore.isAuthenticated && defaultPage) {
+          return defaultPage;
         }
         return "/user";
       },
@@ -256,8 +257,9 @@ const router = createRouter({
       path: "/:pathMatch(.*)*",
       redirect: (to) => {
         const authStore = useAuthStore();
-        if (authStore.isAuthenticated && authStore.user?.default_page) {
-          return authStore.user.default_page;
+        const defaultPage = authStore.user?.default_page || authStore.user?.landing_page;
+        if (authStore.isAuthenticated && defaultPage) {
+          return defaultPage;
         }
         return "/user";
       },
@@ -285,7 +287,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresGuest && isAuthenticated) {
     console.log("✅ Already authenticated, redirecting to default page");
     // Redirect to user's default page
-    const defaultPage = authStore.user?.default_page || "/user";
+    const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || "/user";
     return next(defaultPage);
   }
 
@@ -293,8 +295,15 @@ router.beforeEach((to, from, next) => {
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!authStore.hasAnyRole(to.meta.roles)) {
       console.log("❌ Insufficient permissions for this route");
-      const defaultPage = authStore.user?.default_page || "/user";
-      return next(defaultPage);
+      const defaultPage = authStore.user?.default_page || authStore.user?.landing_page;
+
+      // Prevent infinite redirect if default page is the restricted page
+      if (defaultPage === to.path) {
+        console.warn("⚠️ Default page has role restrictions, redirecting to /driver");
+        return next("/driver");
+      }
+
+      return next(defaultPage || "/driver");
     }
   }
 

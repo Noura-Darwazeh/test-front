@@ -7,6 +7,7 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
   const currencies = ref([]);
   const trashedCurrencies = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Actions
@@ -68,17 +69,39 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     }
   };
 
-  const deleteCurrency = async (currencyId) => {
+  const fetchTrashedCurrencies = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedCurrencies();
+      trashedCurrencies.value = response.data.data;
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed currencies";
+      console.error("Error fetching trashed currencies:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
+  const deleteCurrency = async (currencyId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteCurrency(currencyId);
+      await apiServices.deleteCurrency(currencyId, force);
 
-      // Move to trashed after successful API call
-      const index = currencies.value.findIndex((c) => c.id === currencyId);
-      if (index > -1) {
-        const currency = currencies.value.splice(index, 1)[0];
-        trashedCurrencies.value.push(currency);
+      if (force) {
+        trashedCurrencies.value = trashedCurrencies.value.filter(
+          (currency) => currency.id !== currencyId
+        );
+      } else {
+        // Move to trashed after successful API call
+        const index = currencies.value.findIndex((c) => c.id === currencyId);
+        if (index > -1) {
+          const currency = currencies.value.splice(index, 1)[0];
+          trashedCurrencies.value.push(currency);
+        }
       }
     } catch (err) {
       error.value = err.message || "Failed to delete currency";
@@ -110,17 +133,71 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     }
   };
 
+  const bulkDeleteCurrencies = async (currencyIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteCurrencies(currencyIds, force);
+
+      if (force) {
+        trashedCurrencies.value = trashedCurrencies.value.filter(
+          (currency) => !currencyIds.includes(currency.id)
+        );
+      } else {
+        const deleted = currencies.value.filter((currency) =>
+          currencyIds.includes(currency.id)
+        );
+        currencies.value = currencies.value.filter(
+          (currency) => !currencyIds.includes(currency.id)
+        );
+        trashedCurrencies.value.push(...deleted);
+      }
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete currencies";
+      console.error("Error bulk deleting currencies:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreCurrencies = async (currencyIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreCurrencies(currencyIds);
+
+      const restored = trashedCurrencies.value.filter((currency) =>
+        currencyIds.includes(currency.id)
+      );
+      trashedCurrencies.value = trashedCurrencies.value.filter(
+        (currency) => !currencyIds.includes(currency.id)
+      );
+      currencies.value.push(...restored);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore currencies";
+      console.error("Error bulk restoring currencies:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     currencies,
     trashedCurrencies,
     loading,
+    trashedLoading,
     error,
     // Actions
     fetchCurrencies,
+    fetchTrashedCurrencies,
     addCurrency,
     updateCurrency,
     deleteCurrency,
     restoreCurrency,
+    bulkDeleteCurrencies,
+    bulkRestoreCurrencies,
   };
 });

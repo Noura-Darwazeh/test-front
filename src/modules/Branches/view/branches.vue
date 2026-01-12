@@ -53,7 +53,7 @@
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
                     <p class="mt-2">{{ $t('common.loading') }}</p>
                 </div>
@@ -79,13 +79,16 @@
                                 :row="row"
                                 :editLabel="$t('branch.edit')"
                                 :detailsLabel="$t('branch.details')"
+                                :deleteLabel="$t('branch.delete')"
+                                :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
+                                @delete="handleDeleteBranch"
                             />
                             <!-- Trashed Branches Actions -->
                             <PrimaryButton
                                 v-else
-                                text="Restore"
+                                :text="$t('branch.trashed.restore')"
                                 bgColor="var(--color-success)"
                                 class="d-inline-flex align-items-center"
                                 @click="handleRestorebranch(row)"
@@ -136,13 +139,14 @@ import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useBranchesManagementStore } from "../stores/branchesStore";
-import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const branchesStore = useBranchesManagementStore();
+const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -152,7 +156,6 @@ const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedbranch = ref({});
-const companies = ref([]);
 const activeTab = ref('active');
 const selectedRows = ref([]);
 
@@ -165,26 +168,10 @@ const pendingBulkAction = ref(null);
 const branches = computed(() => branchesStore.branches);
 const trashedbranches = computed(() => branchesStore.trashedBranches);
 
-// Fetch companies for dropdown
-const fetchCompanies = async () => {
-    try {
-        const response = await apiServices.getCompanies();
-        companies.value = response.data.data.map(company => ({
-            value: company.id,
-            label: company.name
-        }));
-    } catch (error) {
-        console.error("Failed to load companies:", error);
-    }
-};
-
 // Load branches and companies on component mount
 onMounted(async () => {
     try {
-        await Promise.all([
-            branchesStore.fetchBranches(),
-            fetchCompanies()
-        ]);
+        await branchesStore.fetchBranches();
     } catch (error) {
         console.error("Failed to load data:", error);
     }
@@ -210,9 +197,13 @@ const branchFields = computed(() => [
         label: t('branch.form.company'),
         type: 'select',
         required: true,
-        options: companies.value,
+        options: companyOption.value.length
+            ? companyOption.value
+            : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedbranch.value.company_id : ''
+        defaultValue: companyId.value,
+        locked: true,
+        hidden: true
     },
     {
         name: 'latitude',
@@ -440,7 +431,7 @@ const handleSubmitbranch = async (branchData) => {
         // تحضير البيانات بالتنسيق الصحيح
         const formattedData = {
             name: branchData.name,
-            company_id: parseInt(branchData.company_id),
+            company_id: companyId.value ? parseInt(companyId.value) : null,
             latitude: branchData.latitude,
             longitude: branchData.longitude
         };
@@ -471,6 +462,17 @@ const handleRestorebranch = async (branch) => {
         console.error('❌ Error restoring branch:', error);
     }
 };
+
+const handleDeleteBranch = async (branch) => {
+    try {
+        await branchesStore.deleteBranch(branch.id);
+        console.log("?o. Branch deleted successfully!");
+    } catch (error) {
+        console.error("??O Error deleting branch:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
 </script>
 
 <style scoped>

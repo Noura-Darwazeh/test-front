@@ -14,29 +14,90 @@
       :showAddButton="true"
       :addButtonText="$t('companyPrice.addNew')"
       @add-click="openModal"
-      @trashed-click="openTrashedModal"
     />
 
     <div class="card border-0">
+      <!-- Tabs -->
+      <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{ active: activeTab === 'active' }"
+              @click="switchTab('active')"
+            >
+              {{ $t('common.active') }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link trashed-tab"
+              :class="{ active: activeTab === 'trashed' }"
+              @click="switchTab('trashed')"
+            >
+              {{ $t('companyPrice.trashed.title') }}
+            </button>
+          </li>
+        </ul>
+      </div>
       <div class="card-body p-0">
-        <DataTable :columns="filteredColumns" :data="paginatedCompanyPrices">
-          <template #actions="{ row }">
-            <Actions
-              :row="row"
-              :editLabel="$t('companyPrice.edit')"
-              :detailsLabel="$t('companyPrice.actions.details')"
-              @edit="handleEdit"
-              @details="handleDetails"
+        <BulkActionsBar
+          :selectedCount="selectedRows.length"
+          entityName="companyPrice"
+          :actions="bulkActions"
+          :loading="bulkActionLoading"
+          @action="handleBulkAction"
+        />
+        <!-- Loading State -->
+        <div v-if="currentLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">{{ $t('common.loading') }}</span>
+          </div>
+          <p class="mt-2">{{ $t('common.loading') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="companyPriceStore.error" class="alert alert-danger m-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ companyPriceStore.error }}
+        </div>
+
+        <div v-else>
+          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows">
+            <template #actions="{ row }">
+              <Actions
+                v-if="activeTab === 'active'"
+                :row="row"
+                :editLabel="$t('companyPrice.edit')"
+                :detailsLabel="$t('companyPrice.actions.details')"
+                :deleteLabel="$t('companyPrice.actions.delete')"
+                :confirmDelete="true"
+                @edit="handleEdit"
+                @details="handleDetails"
+                @delete="handleDeleteCompanyPrice"
+              />
+              <Actions
+                v-else
+                :row="row"
+                :restoreLabel="$t('companyPrice.trashed.restore')"
+                :deleteLabel="$t('companyPrice.trashed.delete')"
+                :showEdit="false"
+                :showDetails="false"
+                :showRestore="true"
+                :confirmDelete="true"
+                @restore="handleRestoreCompanyPrice"
+                @delete="handlePermanentDeleteCompanyPrice"
+              />
+            </template>
+          </DataTable>
+          <div class="px-3 pt-1 pb-2 bg-light">
+            <Pagination
+              :totalItems="currentFilteredData.length"
+              :itemsPerPage="itemsPerPage"
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)"
             />
-          </template>
-        </DataTable>
-        <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination
-            :totalItems="filteredCompanyPrices.length"
-            :itemsPerPage="itemsPerPage"
-            :currentPage="currentPage"
-            @update:currentPage="(page) => (currentPage = page)"
-          />
+          </div>
         </div>
       </div>
     </div>
@@ -51,18 +112,6 @@
       @submit="handleAddCompanyPrice"
     />
 
-    <!-- Trashed Company Prices Modal -->
-    <TrashedItemsModal
-      :isOpen="isTrashedModalOpen"
-      :title="$t('companyPrice.trashed.title')"
-      :emptyMessage="$t('companyPrice.trashed.empty')"
-      :columns="trashedColumns"
-      :trashedItems="trashedCompanyPricesWithLocalizedData"
-      :showDeleteButton="false"
-      @close="closeTrashedModal"
-      @restore="handleRestoreCompanyPrice"
-    />
-
     <!-- Details Modal -->
     <DetailsModal
       :isOpen="isDetailsModalOpen"
@@ -71,24 +120,39 @@
       :fields="detailsFields"
       @close="closeDetailsModal"
     />
+
+    <ConfirmationModal
+      :isOpen="isBulkConfirmOpen"
+      :title="$t('common.bulkDeleteConfirmTitle')"
+      :message="bulkConfirmMessage"
+      :confirmText="$t('common.confirm')"
+      :cancelText="$t('common.cancel')"
+      @confirm="executeBulkAction"
+      @close="cancelBulkAction"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import CompanyPriceHeader from "../components/companyPriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { useCompanyPriceStore } from "../store/companyPriceStore.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
+const { companyId } = useAuthDefaults();
+const companyPriceStore = useCompanyPriceStore();
 
 // Simple price formatter
 const formatPrice = (value) => {
@@ -101,57 +165,26 @@ const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedPrice = ref({});
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const activeTab = ref('active');
 
-// Simple local data
-const companyPrices = ref([
-  {
-    id: 1,
-    price: 25.5,
-    itemType: "small_size & light_weight",
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    created_at: "2024-01-15 10:30:00",
-  },
-  {
-    id: 2,
-    price: 45.0,
-    itemType: "small_size & heavy_weight",
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    created_at: "2024-01-16 09:15:00",
-  },
-  {
-    id: 3,
-    price: 35.75,
-    itemType: "big_size & light_weight",
-    company_id: 2,
-    company_name: "Fast Delivery Co",
-    created_at: "2024-01-17 14:20:00",
-  },
-  {
-    id: 4,
-    price: 120.0,
-    itemType: "big_size & heavy_weight",
-    company_id: 2,
-    company_name: "Fast Delivery Co",
-    created_at: "2024-01-18 11:45:00",
-  },
-]);
+// Store data
+const companyPrices = computed(() => companyPriceStore.companyPrices);
+const trashedCompanyPrices = computed(() => companyPriceStore.trashedCompanyPrices);
 
-const trashedCompanyPrices = ref([
-  {
-    id: 101,
-    price: 28.99,
-    itemType: "small_size & light_weight",
-    company_id: 3,
-    company_name: "Global Logistics Inc",
-    created_at: "2024-01-10 12:00:00",
-  },
-]);
+onMounted(async () => {
+  try {
+    await companyPriceStore.fetchCompanyPrices();
+  } catch (error) {
+    console.error("Failed to load company prices:", error);
+  }
+});
 
 // Add localized item type names
 const companyPricesWithLocalizedData = computed(() => {
@@ -216,24 +249,87 @@ const trashedColumns = computed(() => [
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-  return companyPriceColumns.value.filter((col) =>
-    visibleColumns.value.includes(col.key)
-  );
+  if (activeTab.value === "active") {
+    return companyPriceColumns.value.filter((col) =>
+      visibleColumns.value.includes(col.key)
+    );
+  }
+  return trashedColumns.value;
 });
 
-const filteredCompanyPrices = computed(() => {
-  let result = companyPricesWithLocalizedData.value;
-  result = filterByGroups(result, selectedGroups.value, "itemType");
+const currentData = computed(() => {
+  return activeTab.value === "active"
+    ? companyPricesWithLocalizedData.value
+    : trashedCompanyPricesWithLocalizedData.value;
+});
+
+const currentLoading = computed(() => {
+  return activeTab.value === "active"
+    ? companyPriceStore.loading
+    : companyPriceStore.trashedLoading;
+});
+
+const currentFilteredData = computed(() => {
+  let result = currentData.value;
+  if (activeTab.value === "active") {
+    result = filterByGroups(result, selectedGroups.value, "itemType");
+  }
   result = filterData(result, searchText.value);
   return result;
 });
 
-const paginatedCompanyPrices = computed(() => {
+const paginatedData = computed(() => {
   return paginateData(
-    filteredCompanyPrices.value,
+    currentFilteredData.value,
     currentPage.value,
     itemsPerPage.value
   );
+});
+
+const bulkActions = computed(() => {
+  if (activeTab.value === "active") {
+    return [
+      {
+        id: "delete",
+        label: t("companyPrice.bulkDelete"),
+        bgColor: "var(--color-danger)",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "restore",
+      label: t("companyPrice.bulkRestore"),
+      bgColor: "var(--color-success)",
+    },
+    {
+      id: "permanentDelete",
+      label: t("common.permanentDelete"),
+      bgColor: "var(--color-danger)",
+    },
+  ];
+});
+
+const bulkConfirmMessage = computed(() => {
+  if (!pendingBulkAction.value) return "";
+
+  const count = selectedRows.value.length;
+  const entity =
+    count === 1
+      ? t("companyPrice.entitySingular")
+      : t("companyPrice.entityPlural");
+
+  if (pendingBulkAction.value === "delete") {
+    return t("common.bulkDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "permanentDelete") {
+    return t("common.bulkPermanentDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "restore") {
+    return t("common.bulkRestoreConfirm", { count, entity });
+  }
+  return "";
 });
 
 // Action methods
@@ -249,96 +345,107 @@ const closeModal = () => {
   selectedPrice.value = {};
 };
 
-const openTrashedModal = () => {
-  isTrashedModalOpen.value = true;
+const switchTab = async (tab) => {
+  activeTab.value = tab;
+  currentPage.value = 1;
+  selectedRows.value = [];
+
+  if (tab === "trashed") {
+    try {
+      await companyPriceStore.fetchTrashedCompanyPrices();
+    } catch (error) {
+      console.error("Failed to load trashed company prices:", error);
+    }
+  }
 };
 
-const closeTrashedModal = () => {
-  isTrashedModalOpen.value = false;
-};
-
-const handleAddCompanyPrice = (priceData) => {
-  console.log("Company price data:", priceData);
-
-  // Get company name
-  const companies = [
-    { id: 1, name: "Tech Solutions Ltd" },
-    { id: 2, name: "Fast Delivery Co" },
-    { id: 3, name: "Global Logistics Inc" },
-  ];
-
-  const company = companies.find(
-    (c) => c.id === parseInt(priceData.company_id)
-  );
+const handleAddCompanyPrice = async (priceData) => {
+  const resolvedCompanyId = companyId.value
+    ? parseInt(companyId.value, 10)
+    : priceData.company_id
+      ? parseInt(priceData.company_id, 10)
+      : null;
 
   const price = parseFloat(priceData.price);
 
-  if (isEditMode.value) {
-    // Update existing company price
-    const index = companyPrices.value.findIndex(
-      (p) => p.id === selectedPrice.value.id
-    );
-    if (index > -1) {
-      // Check for unique itemType + company_id validation (excluding current item)
-      const existingPrice = companyPrices.value.find(
-        (p) =>
-          p.id !== selectedPrice.value.id &&
-          p.itemType === priceData.itemType &&
-          p.company_id === parseInt(priceData.company_id)
-      );
-      if (existingPrice) {
-        alert(t("companyPrice.validation.duplicateItemType"));
-        return;
-      }
-
-      companyPrices.value[index] = {
-        ...companyPrices.value[index],
-        price: price,
-        itemType: priceData.itemType,
-        company_id: parseInt(priceData.company_id),
-        company_name: company.name,
-      };
-      console.log("Company price updated successfully!");
-    }
-  } else {
-    // Check for unique itemType + company_id validation
-    const existingPrice = companyPrices.value.find(
-      (p) =>
-        p.itemType === priceData.itemType &&
-        p.company_id === parseInt(priceData.company_id)
-    );
-    if (existingPrice) {
-      alert(t("companyPrice.validation.duplicateItemType"));
-      return;
-    }
-
-    // Add new company price
-    const newCompanyPrice = {
-      id: Math.max(...companyPrices.value.map((p) => p.id), 0) + 1,
-      price: price,
-      itemType: priceData.itemType,
-      company_id: parseInt(priceData.company_id),
-      company_name: company.name,
-      created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
+  try {
+    const payload = {
+      price,
+      item_type: priceData.itemType,
+      company_id: resolvedCompanyId,
     };
 
-    companyPrices.value.push(newCompanyPrice);
-    console.log("Company price added successfully!");
-  }
+    if (isEditMode.value) {
+      await companyPriceStore.updateCompanyPrice(selectedPrice.value.id, payload);
+      console.log("Company price updated successfully!");
+    } else {
+      await companyPriceStore.addCompanyPrice(payload);
+      console.log("Company price added successfully!");
+    }
 
-  closeModal();
+    closeModal();
+  } catch (error) {
+    console.error("Failed to submit company price:", error);
+  }
 };
 
-const handleRestoreCompanyPrice = (price) => {
-  console.log("Restoring company price:", price);
-  // Remove the localized display fields before adding back
-  const { itemTypeDisplay, priceDisplay, ...priceWithoutDisplay } = price;
-  companyPrices.value.push(priceWithoutDisplay);
-  const index = trashedCompanyPrices.value.findIndex((p) => p.id === price.id);
-  if (index > -1) {
-    trashedCompanyPrices.value.splice(index, 1);
+const handleRestoreCompanyPrice = async (price) => {
+  try {
+    await companyPriceStore.restoreCompanyPrice(price.id);
+    console.log("Company price restored successfully!");
+  } catch (error) {
+    console.error("Failed to restore company price:", error);
   }
-  console.log("Company price has been restored successfully!");
+};
+
+const handleDeleteCompanyPrice = async (price) => {
+  try {
+    await companyPriceStore.deleteCompanyPrice(price.id);
+    console.log("Company price deleted successfully!");
+  } catch (error) {
+    console.error("Failed to delete company price:", error);
+  }
+};
+
+const handlePermanentDeleteCompanyPrice = async (price) => {
+  try {
+    await companyPriceStore.deleteCompanyPrice(price.id, true);
+    console.log("Company price permanently deleted successfully!");
+  } catch (error) {
+    console.error("Failed to permanently delete company price:", error);
+  }
+};
+
+const handleBulkAction = ({ actionId }) => {
+  pendingBulkAction.value = actionId;
+  isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+  if (!pendingBulkAction.value) return;
+  bulkActionLoading.value = true;
+
+  try {
+    if (pendingBulkAction.value === "delete") {
+      await companyPriceStore.bulkDeleteCompanyPrices(selectedRows.value, false);
+    } else if (pendingBulkAction.value === "permanentDelete") {
+      await companyPriceStore.bulkDeleteCompanyPrices(selectedRows.value, true);
+    } else if (pendingBulkAction.value === "restore") {
+      await companyPriceStore.bulkRestoreCompanyPrices(selectedRows.value);
+    }
+    selectedRows.value = [];
+  } catch (error) {
+    console.error("Failed to bulk delete company prices:", error);
+  } finally {
+    bulkActionLoading.value = false;
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
+  }
+};
+
+const cancelBulkAction = () => {
+  isBulkConfirmOpen.value = false;
+  pendingBulkAction.value = null;
 };
 
 const handleEdit = (price) => {
@@ -404,3 +511,5 @@ watch([searchText, selectedGroups], () => {
   max-width: 100%;
 }
 </style>
+
+

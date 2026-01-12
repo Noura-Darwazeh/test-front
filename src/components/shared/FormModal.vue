@@ -38,9 +38,9 @@
                 <div class="d-flex gap-2 justify-content-center">
                   <input type="file" class="d-none" accept="image/*" @change="handleImageUpload" ref="fileInput" />
 
-                  <PrimaryButton text="Upload Image" type="button" @click="triggerFileInput" :iconBefore="uploadIcon" />
+                  <PrimaryButton :text="uploadLabel" type="button" @click="triggerFileInput" :iconBefore="uploadIcon" />
 
-                  <PrimaryButton v-if="imagePreview" text="Remove" type="button" bgColor="#dc3545" @click="removeImage"
+                  <PrimaryButton v-if="imagePreview" :text="removeLabel" type="button" bgColor="#dc3545" @click="removeImage"
                     :iconBefore="removeIcon" />
                 </div>
                 <small v-if="imageError" class="text-danger d-block mt-2">
@@ -51,22 +51,31 @@
 
             <!-- Dynamic Fields -->
             <div class="row g-3">
-              <div v-for="field in fields" :key="field.name" :class="field.colClass || 'col-md-6'">
-                <label class="form-label fw-semibold" :for="field.name">
-                  {{ field.label }}
-                  <span v-if="field.required" class="text-danger">*</span>
-                </label>
+              <div
+                v-for="field in fields"
+                :key="field.name"
+                :class="field.hidden ? 'd-none' : field.colClass || 'col-md-6'"
+              >
+                <input v-if="field.hidden" type="hidden" v-model="formData[field.name]" />
+                <template v-else>
+                  <label class="form-label fw-semibold" :for="field.name">
+                    {{ field.label }}
+                    <span v-if="field.required" class="text-danger">*</span>
+                  </label>
 
                 <!-- Text/Email/Tel/Password/Number/Date Input -->
                 <input
                   v-if="['text', 'email', 'tel', 'password', 'number', 'datetime-local', 'date'].includes(field.type)"
                   :id="field.name" :type="field.type" class="form-control" v-model="formData[field.name]"
                   :placeholder="field.placeholder || field.label" :required="field.required"
-                  :minlength="field.minlength" :step="field.step" :min="field.min" :max="field.max" />
+                  :minlength="field.minlength" :step="field.step" :min="field.min" :max="field.max"
+                  :disabled="field.disabled" :readonly="field.readonly" />
 
                 <!-- Select Dropdown -->
                 <select v-else-if="field.type === 'select'" :id="field.name" class="form-select"
-                  v-model="formData[field.name]" :required="field.required">
+                  v-model="formData[field.name]" :required="field.required"
+                  :disabled="field.disabled || field.locked"
+                  :class="{ 'locked-select': field.locked }">
                   <option value="" disabled>
                     {{ field.placeholder || field.label }}
                   </option>
@@ -82,6 +91,7 @@
                   class="form-select"
                   v-model="formData[field.name]"
                   :required="field.required"
+                  :disabled="field.disabled || field.locked"
                   multiple
                   :size="field.size || 5"
                   style="min-height: 120px;"
@@ -113,10 +123,10 @@
                   <div v-for="(row, index) in formData[field.name]" :key="index" class="row g-2 align-items-end mb-2">
                     <div class="col-md-5">
                       <label class="form-label">
-                        {{ field.orderLabel || 'Order' }}
+                        {{ field.orderLabel || t('common.order') }}
                       </label>
                       <select class="form-select" v-model="formData[field.name][index].order">
-                        <option value="" disabled> Select Order </option>
+                        <option value="" disabled>{{ t('common.selectOrder') }}</option>
                         <option v-for="option in field.orderOptions" :key="option.value" :value="option.value">
                           {{ option.label }}
                         </option>
@@ -125,10 +135,10 @@
 
                     <div class="col-md-5">
                       <label class="form-label">
-                        {{ field.itemsLabel || 'items' }}
+                        {{ field.itemsLabel || t('common.items') }}
                       </label>
                       <select class="form-select" v-model="formData[field.name][index].items">
-                        <option value="" disabled> Select items </option>
+                        <option value="" disabled>{{ t('common.selectItems') }}</option>
                         <option v-for="option in field.itemsOptions" :key="option.value" :value="option.value">
                           {{ option.label }}
                         </option>
@@ -148,13 +158,14 @@
                 <small v-if="errors[field.name]" class="text-danger">
                   {{ errors[field.name] }}
                 </small>
+                </template>
               </div>
             </div>
 
             <!-- Footer -->
             <div class="mt-4 d-flex justify-content-end gap-2">
-              <PrimaryButton text="Cancel" @click="closeModal" bg-color="var(--color-secondary)" />
-              <PrimaryButton text="Save" bgColor="var(--color-success)" loadingText="Saving..." :loading="isSubmitting"
+              <PrimaryButton :text="t('common.cancel')" @click="closeModal" bg-color="var(--color-secondary)" />
+              <PrimaryButton :text="t('common.save')" bgColor="var(--color-success)" :loadingText="t('common.saving')" :loading="isSubmitting"
                 type="submit" />
             </div>
           </form>
@@ -166,7 +177,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, nextTick } from "vue";
+import { ref, reactive, watch, onMounted, nextTick, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import PrimaryButton from "./PrimaryButton.vue";
 import uploadIcon from "../../assets/modal/upload.svg";
 import removeIcon from "../../assets/table/recycle.svg";
@@ -179,11 +191,13 @@ const props = defineProps({
   title: { type: String, default: "Add New" },
   fields: { type: Array, required: true },
   showImageUpload: { type: Boolean, default: true },
-  imageUploadLabel: { type: String, default: "Upload Profile Picture" },
+  imageUploadLabel: { type: String, default: "" },
   imageRequired: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["close", "submit"]);
+
+const { t } = useI18n();
 
 const formData = reactive({});
 const errors = reactive({});
@@ -192,6 +206,11 @@ const imagePreview = ref(null);
 const imageFile = ref(null);
 const imageError = ref("");
 const fileInput = ref(null);
+
+const uploadLabel = computed(() =>
+  props.imageUploadLabel ? props.imageUploadLabel : t("common.uploadImage")
+);
+const removeLabel = computed(() => t("common.remove"));
 
 // Initialize form
 const initializeForm = () => {
@@ -278,12 +297,12 @@ const handleImageUpload = (event) => {
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
-    imageError.value = "Please select a valid image file";
+    imageError.value = t("common.validation.invalidImageFile");
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    imageError.value = "Image size should not exceed 5MB";
+    imageError.value = t("common.validation.imageMaxSize", { size: 5 });
     return;
   }
 
@@ -326,7 +345,7 @@ const validateForm = () => {
   });
 
   if (props.showImageUpload && props.imageRequired && !imageFile.value && !imagePreview.value) {
-    imageError.value = "Profile picture is required";
+    imageError.value = t("common.validation.imageRequired");
     isValid = false;
   }
 
@@ -338,7 +357,7 @@ const validateForm = () => {
       if (field.required) {
         value.forEach((row) => {
           if (!row.order || !row.items) {
-            errors[field.name] = "الرجاء تعبئة كل الأوردرات والفيز";
+            errors[field.name] = t("common.validation.orderRowRequired");
             isValid = false;
           }
         });
@@ -349,26 +368,26 @@ const validateForm = () => {
     if (field.required) {
       // For multiselect, check if array is empty
       if (field.type === 'multiselect' && (!value || value.length === 0)) {
-        errors[field.name] = `${field.label} is required`;
+        errors[field.name] = t("common.validation.requiredField", { field: field.label });
         isValid = false;
         return;
       }
       // For other fields, check if value is falsy
       if (field.type !== 'multiselect' && !value) {
-        errors[field.name] = `${field.label} is required`;
+        errors[field.name] = t("common.validation.requiredField", { field: field.label });
         isValid = false;
         return;
       }
     }
 
     if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      errors[field.name] = "Invalid email format";
+      errors[field.name] = t("common.validation.invalidEmail");
       isValid = false;
       return;
     }
 
     if (field.minlength && value && value.length < field.minlength) {
-      errors[field.name] = `Must be at least ${field.minlength} characters`;
+      errors[field.name] = t("common.validation.minLength", { min: field.minlength });
       isValid = false;
       return;
     }
@@ -542,5 +561,13 @@ watch(
 .modal-content {
   /* Prevent layout shifts */
   contain: layout style;
+}
+
+.locked-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+  padding-right: 0.75rem;
 }
 </style>

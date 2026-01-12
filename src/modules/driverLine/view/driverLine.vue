@@ -41,15 +41,44 @@
       :showAddButton="true"
       :addButtonText="$t('driverLine.addNew')"
       @add-click="openModal"
-      @trashed-click="openTrashedModal"
     />
 
     <div class="card border-0">
+      <!-- Tabs -->
+      <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{ active: activeTab === 'active' }"
+              @click="switchTab('active')"
+            >
+              {{ $t('common.active') }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link trashed-tab"
+              :class="{ active: activeTab === 'trashed' }"
+              @click="switchTab('trashed')"
+            >
+              {{ $t('driverLine.trashed.title') }}
+            </button>
+          </li>
+        </ul>
+      </div>
       <div class="card-body p-0">
+        <BulkActionsBar
+          :selectedCount="selectedRows.length"
+          entityName="driverLine"
+          :actions="bulkActions"
+          :loading="bulkActionLoading"
+          @action="handleBulkAction"
+        />
         <!-- Loading State -->
-        <div v-if="driverLineStore.loading" class="text-center py-5">
+        <div v-if="currentLoading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">{{ $t('common.loading') }}</span>
           </div>
           <p class="mt-2">{{ $t('common.loading') }}</p>
         </div>
@@ -62,20 +91,36 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable :columns="filteredColumns" :data="paginatedDriverLines">
+          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows">
             <template #actions="{ row }">
               <Actions
+                v-if="activeTab === 'active'"
                 :row="row"
                 :editLabel="$t('driverLine.edit')"
                 :detailsLabel="$t('driverLine.actions.details')"
+                :deleteLabel="$t('driverLine.actions.delete')"
+                :confirmDelete="true"
                 @edit="handleEdit"
                 @details="handleDetails"
+                @delete="handleDeleteDriverLine"
+              />
+              <Actions
+                v-else
+                :row="row"
+                :restoreLabel="$t('driverLine.trashed.restore')"
+                :deleteLabel="$t('driverLine.trashed.delete')"
+                :showEdit="false"
+                :showDetails="false"
+                :showRestore="true"
+                :confirmDelete="true"
+                @restore="handleRestoreDriverLine"
+                @delete="handlePermanentDeleteDriverLine"
               />
             </template>
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
             <Pagination
-              :totalItems="filteredDriverLines.length"
+              :totalItems="currentFilteredData.length"
               :itemsPerPage="itemsPerPage"
               :currentPage="currentPage"
               @update:currentPage="(page) => (currentPage = page)"
@@ -95,18 +140,6 @@
       @submit="handleSubmitDriverLine"
     />
 
-    <!-- Trashed Driver Lines Modal -->
-    <TrashedItemsModal
-      :isOpen="isTrashedModalOpen"
-      :title="$t('driverLine.trashed.title')"
-      :emptyMessage="$t('driverLine.trashed.empty')"
-      :columns="trashedColumns"
-      :trashedItems="trashedDriverLines"
-      :showDeleteButton="false"
-      @close="closeTrashedModal"
-      @restore="handleRestoreDriverLine"
-    />
-
     <!-- Details Modal -->
     <DetailsModal
       :isOpen="isDetailsModalOpen"
@@ -114,6 +147,16 @@
       :data="selectedDriverLine"
       :fields="detailsFields"
       @close="closeDetailsModal"
+    />
+
+    <ConfirmationModal
+      :isOpen="isBulkConfirmOpen"
+      :title="$t('common.bulkDeleteConfirmTitle')"
+      :message="bulkConfirmMessage"
+      :confirmText="$t('common.confirm')"
+      :cancelText="$t('common.cancel')"
+      @confirm="executeBulkAction"
+      @close="cancelBulkAction"
     />
   </div>
 </template>
@@ -125,9 +168,10 @@ import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import DriverLineHeader from "../components/driverLineHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
@@ -143,11 +187,15 @@ const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDriverLine = ref({});
 const validationError = ref(null);
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const activeTab = ref('active');
 
 // Get driver lines from store
 const driverLines = computed(() => driverLineStore.driverLines);
@@ -184,23 +232,85 @@ const trashedColumns = computed(() => [
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-  return driverLineColumns.value.filter((col) =>
-    visibleColumns.value.includes(col.key)
-  );
+  if (activeTab.value === "active") {
+    return driverLineColumns.value.filter((col) =>
+      visibleColumns.value.includes(col.key)
+    );
+  }
+  return trashedColumns.value;
 });
 
-const filteredDriverLines = computed(() => {
-  let result = driverLines.value;
+const currentData = computed(() => {
+  return activeTab.value === "active"
+    ? driverLines.value
+    : trashedDriverLines.value;
+});
+
+const currentLoading = computed(() => {
+  return activeTab.value === "active"
+    ? driverLineStore.loading
+    : driverLineStore.trashedLoading;
+});
+
+const currentFilteredData = computed(() => {
+  let result = currentData.value;
+  if (activeTab.value === "active") {
+    result = filterByGroups(result, selectedGroups.value, "status");
+  }
   result = filterData(result, searchText.value);
   return result;
 });
 
-const paginatedDriverLines = computed(() => {
+const paginatedData = computed(() => {
   return paginateData(
-    filteredDriverLines.value,
+    currentFilteredData.value,
     currentPage.value,
     itemsPerPage.value
   );
+});
+
+const bulkActions = computed(() => {
+  if (activeTab.value === "active") {
+    return [
+      {
+        id: "delete",
+        label: t("driverLine.bulkDelete"),
+        bgColor: "var(--color-danger)",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "restore",
+      label: t("driverLine.bulkRestore"),
+      bgColor: "var(--color-success)",
+    },
+    {
+      id: "permanentDelete",
+      label: t("common.permanentDelete"),
+      bgColor: "var(--color-danger)",
+    },
+  ];
+});
+
+const bulkConfirmMessage = computed(() => {
+  if (!pendingBulkAction.value) return "";
+
+  const count = selectedRows.value.length;
+  const entity =
+    count === 1 ? t("driverLine.entitySingular") : t("driverLine.entityPlural");
+
+  if (pendingBulkAction.value === "delete") {
+    return t("common.bulkDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "permanentDelete") {
+    return t("common.bulkPermanentDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "restore") {
+    return t("common.bulkRestoreConfirm", { count, entity });
+  }
+  return "";
 });
 
 // Action methods
@@ -216,12 +326,18 @@ const closeModal = () => {
   selectedDriverLine.value = {};
 };
 
-const openTrashedModal = () => {
-  isTrashedModalOpen.value = true;
-};
+const switchTab = async (tab) => {
+  activeTab.value = tab;
+  currentPage.value = 1;
+  selectedRows.value = [];
 
-const closeTrashedModal = () => {
-  isTrashedModalOpen.value = false;
+  if (tab === "trashed") {
+    try {
+      await driverLineStore.fetchTrashedDriverLines();
+    } catch (error) {
+      console.error("Failed to load trashed driver lines:", error);
+    }
+  }
 };
 
 const handleSubmitDriverLine = async (driverLineData) => {
@@ -270,11 +386,53 @@ const clearValidationError = () => {
 const handleRestoreDriverLine = async (driverLine) => {
   try {
     await driverLineStore.restoreDriverLine(driverLine.id);
-    console.log("✅ Driver line restored successfully!");
+    console.log("Driver line restored successfully!");
   } catch (error) {
-    console.error("❌ Failed to restore driver line:", error);
-    alert(error.message || 'Failed to restore driver line');
+    console.error("Failed to restore driver line:", error);
+    alert(error.message || "Failed to restore driver line");
   }
+};
+
+const handlePermanentDeleteDriverLine = async (driverLine) => {
+  try {
+    await driverLineStore.deleteDriverLine(driverLine.id, true);
+    console.log("Driver line permanently deleted successfully!");
+  } catch (error) {
+    console.error("Failed to permanently delete driver line:", error);
+    alert(error.message || t("common.saveFailed"));
+  }
+};
+
+const handleBulkAction = ({ actionId }) => {
+  pendingBulkAction.value = actionId;
+  isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+  if (!pendingBulkAction.value) return;
+  bulkActionLoading.value = true;
+
+  try {
+    if (pendingBulkAction.value === "delete") {
+      await driverLineStore.bulkDeleteDriverLines(selectedRows.value, false);
+    } else if (pendingBulkAction.value === "permanentDelete") {
+      await driverLineStore.bulkDeleteDriverLines(selectedRows.value, true);
+    } else if (pendingBulkAction.value === "restore") {
+      await driverLineStore.bulkRestoreDriverLines(selectedRows.value);
+    }
+    selectedRows.value = [];
+  } catch (error) {
+    console.error("Failed to bulk delete driver lines:", error);
+  } finally {
+    bulkActionLoading.value = false;
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
+  }
+};
+
+const cancelBulkAction = () => {
+  isBulkConfirmOpen.value = false;
+  pendingBulkAction.value = null;
 };
 
 const handleEdit = (driverLine) => {
@@ -317,6 +475,17 @@ const navigateToLines = () => {
 watch([searchText, selectedGroups], () => {
   currentPage.value = 1;
 });
+
+const handleDeleteDriverLine = async (driverLine) => {
+  try {
+    await driverLineStore.deleteDriverLine(driverLine.id);
+    console.log("?o. Driver line deleted successfully!");
+  } catch (error) {
+    console.error("??O Failed to delete driver line:", error);
+    alert(error.message || t('common.saveFailed'));
+  }
+};
+
 </script>
 
 <style scoped>
@@ -324,3 +493,4 @@ watch([searchText, selectedGroups], () => {
   max-width: 100%;
 }
 </style>
+

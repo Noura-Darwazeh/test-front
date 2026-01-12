@@ -173,6 +173,10 @@ class ApiServices {
     return this.getEntities("currencies");
   }
 
+  async getTrashedCurrencies() {
+    return this.getTrashedEntities("currencies");
+  }
+
   async createCurrency(currencyData) {
     return this.createEntity("currencies", currencyData);
   }
@@ -181,37 +185,58 @@ class ApiServices {
     return this.updateEntity("currencies", currencyId, currencyData, false);
   }
 
+  async deleteCurrency(currencyId, force = false) {
+    return this.deleteEntity("currencies", currencyId, force);
+  }
+
+  async restoreCurrency(currencyId) {
+    return this.restoreEntity("currencies", currencyId);
+  }
+
+  async bulkDeleteCurrencies(currencyIds, force = false) {
+    return this.bulkDeleteEntities(
+      "currency",
+      "currencies",
+      currencyIds,
+      force
+    );
+  }
+
+  async bulkRestoreCurrencies(currencyIds) {
+    return this.bulkRestoreEntities("currency", "currencies", currencyIds);
+  }
+
   // ===== Branches Services =====
   async getBranches() {
-    return this.getEntities("branchs");
+    return this.getEntities("branches");
   }
 
   async getTrashedBranches() {
-    return this.getTrashedEntities("branchs");
+    return this.getTrashedEntities("branches");
   }
 
   async createBranch(branchData) {
-    return this.createEntity("branchs", branchData);
+    return this.createEntity("branches", branchData);
   }
 
   async updateBranch(branchId, branchData) {
-    return this.updateEntity("branchs", branchId, branchData, false);
+    return this.updateEntity("branches", branchId, branchData, false);
   }
 
   async deleteBranch(branchId, force = false) {
-    return this.deleteEntity("branchs", branchId, force);
+    return this.deleteEntity("branches", branchId, force);
   }
 
   async restoreBranch(branchId) {
-    return this.restoreEntity("branchs", branchId);
+    return this.restoreEntity("branches", branchId);
   }
 
   async bulkDeleteBranches(branchIds, force = false) {
-    return this.bulkDeleteEntities("branch", "branchs", branchIds, force);
+    return this.bulkDeleteEntities("branch", "branches", branchIds, force);
   }
 
   async bulkRestoreBranches(branchIds) {
-    return this.bulkRestoreEntities("branch", "branchs", branchIds);
+    return this.bulkRestoreEntities("branch", "branches", branchIds);
   }
 
   // ===== Customer Services =====
@@ -356,6 +381,10 @@ class ApiServices {
     return api.get("/regions");
   }
 
+  async getTrashedRegions() {
+    return this.getTrashedEntities("regions");
+  }
+
   async createRegion(regionData) {
     return api.post("/regions", regionData);
   }
@@ -368,9 +397,62 @@ class ApiServices {
     });
   }
 
+  async deleteRegion(regionId, force = false) {
+    return this.deleteEntity("regions", regionId, force);
+  }
+
+  async restoreRegion(regionId) {
+    return this.restoreEntity("regions", regionId);
+  }
+
+  async bulkDeleteRegions(regionIds, force = false) {
+    return this.bulkDeleteEntities("region", "regions", regionIds, force);
+  }
+
+  async bulkRestoreRegions(regionIds) {
+    return this.bulkRestoreEntities("region", "regions", regionIds);
+  }
+
   // ===== Company Price Services =====
   async getCompanyPrices() {
     return api.get("/company_item_prices");
+  }
+
+  async getTrashedCompanyPrices() {
+    return this.getTrashedEntities("company_item_prices");
+  }
+
+  async createCompanyPrice(priceData) {
+    return this.createEntity("company_item_prices", priceData);
+  }
+
+  async updateCompanyPrice(priceId, priceData) {
+    return this.updateEntity("company_item_prices", priceId, priceData, false);
+  }
+
+  async deleteCompanyPrice(priceId, force = false) {
+    return this.deleteEntity("company_item_prices", priceId, force);
+  }
+
+  async restoreCompanyPrice(priceId) {
+    return this.restoreEntity("company_item_prices", priceId);
+  }
+
+  async bulkDeleteCompanyPrices(priceIds, force = false) {
+    return this.bulkDeleteEntities(
+      "company_item_price",
+      "company_item_prices",
+      priceIds,
+      force
+    );
+  }
+
+  async bulkRestoreCompanyPrices(priceIds) {
+    return this.bulkRestoreEntities(
+      "company_item_price",
+      "company_item_prices",
+      priceIds
+    );
   }
 
   // ===== Discount Services =====
@@ -378,9 +460,79 @@ class ApiServices {
     return api.get("/discounts");
   }
 
+  async getTrashedDiscounts() {
+    return this.getTrashedEntities("discounts");
+  }
+
+  async createDiscount(discountData) {
+    return this.createEntity("discounts", discountData);
+  }
+
+  async updateDiscount(discountId, discountData) {
+    return this.updateEntity("discounts", discountId, discountData, false);
+  }
+
+  async deleteDiscount(discountId, force = false) {
+    return this.deleteEntity("discounts", discountId, force);
+  }
+
+  async restoreDiscount(discountId) {
+    return this.restoreEntity("discounts", discountId);
+  }
+
+  async bulkDeleteDiscounts(discountIds, force = false) {
+    return this.bulkDeleteEntities("discount", "discounts", discountIds, force);
+  }
+
+  async bulkRestoreDiscounts(discountIds) {
+    return this.bulkRestoreEntities("discount", "discounts", discountIds);
+  }
+
   // ===== Driver Line Services =====
   async getDriverLines() {
-    return api.get("/driver-lines");
+    return this.getEntities("driver_lines");
+  }
+
+  async getTrashedDriverLines() {
+    return this.getTrashedEntities("driver_lines");
+  }
+
+  async createDriverLine(driverLineData) {
+    return this.createEntity("driver_lines", driverLineData);
+  }
+
+  async updateDriverLine(driverLineId, driverLineData) {
+    return this.updateEntity(
+      "driver_lines",
+      driverLineId,
+      driverLineData,
+      true
+    );
+  }
+
+  async deleteDriverLine(driverLineId, force = false) {
+    return this.deleteEntity("driver_lines", driverLineId, force);
+  }
+
+  async restoreDriverLine(driverLineId) {
+    return this.restoreEntity("driver_lines", driverLineId);
+  }
+
+  async bulkDeleteDriverLines(driverLineIds, force = false) {
+    return this.bulkDeleteEntities(
+      "driver_line",
+      "driver_lines",
+      driverLineIds,
+      force
+    );
+  }
+
+  async bulkRestoreDriverLines(driverLineIds) {
+    return this.bulkRestoreEntities(
+      "driver_line",
+      "driver_lines",
+      driverLineIds
+    );
   }
 
   // ===== Orders Services =====
@@ -424,14 +576,14 @@ class ApiServices {
     return api.get("/statistics/orders");
   }
 
-  // ===== Line Work Services =====
-  async getLineWorks() {
-    return api.get("/lineworks");
-  }
+    // ===== Line Work Services =====
+    async getLineWorks() {
+      return this.getEntities("line_works");
+    }
 
-  async createLineWork(lineWorkData) {
-    return api.post("/lineworks", lineWorkData);
-  }
+    async createLineWork(lineWorkData) {
+      return this.createEntity("line_works", lineWorkData);
+    }
 
   async updateLineWork(lineWorkId, lineWorkData) {
     return api.post(`/lineworks/${lineWorkId}`, lineWorkData, {
@@ -440,18 +592,71 @@ class ApiServices {
       }
     });
   }
-
-  async deleteLineWork(lineWorkId) {
-    return api.delete(`/lineworks/${lineWorkId}`);
+  async updateLineWork(lineWorkId, lineWorkData) {
+    return this.updateEntity("line_works", lineWorkId, lineWorkData, true);
   }
 
-  async restoreLineWork(lineWorkId) {
-    return api.post(`/restore/lineworks/${lineWorkId}`);
+    async deleteLineWork(lineWorkId, force = false) {
+      return this.deleteEntity("line_works", lineWorkId, force);
+    }
+
+    async restoreLineWork(lineWorkId) {
+      return this.restoreEntity("line_works", lineWorkId);
   }
+
+  async getTrashedLineWorks() {
+    return this.getTrashedEntities("line_works");
+  }
+
+  async bulkDeleteLineWorks(lineWorkIds, force = false) {
+    return this.bulkDeleteEntities(
+      "line_work",
+      "line_works",
+      lineWorkIds,
+      force
+    );
+  }
+
+  async bulkRestoreLineWorks(lineWorkIds) {
+    return this.bulkRestoreEntities("line_work", "line_works", lineWorkIds);
+    }
 
   // ===== Work Plans Services =====
   async getWorkPlans() {
-    return api.get("/work-plans");
+    return this.getEntities("work_plans");
+  }
+
+  async getTrashedWorkPlans() {
+    return this.getTrashedEntities("work_plans");
+  }
+
+  async createWorkPlan(workPlanData) {
+    return this.createEntity("work_plans", workPlanData);
+  }
+
+  async updateWorkPlan(workPlanId, workPlanData) {
+    return this.updateEntity("work_plans", workPlanId, workPlanData, false);
+  }
+
+  async deleteWorkPlan(workPlanId, force = false) {
+    return this.deleteEntity("work_plans", workPlanId, force);
+  }
+
+  async restoreWorkPlan(workPlanId) {
+    return this.restoreEntity("work_plans", workPlanId);
+  }
+
+  async bulkDeleteWorkPlans(workPlanIds, force = false) {
+    return this.bulkDeleteEntities(
+      "work_plan",
+      "work_plans",
+      workPlanIds,
+      force
+    );
+  }
+
+  async bulkRestoreWorkPlans(workPlanIds) {
+    return this.bulkRestoreEntities("work_plan", "work_plans", workPlanIds);
   }
 
   // ===== Map Services =====

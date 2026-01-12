@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <div class="user-page-container bg-light">
         <!-- Floating Validation Error Alert -->
         <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
@@ -63,7 +63,7 @@
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
                     <p class="mt-2">{{ $t('common.loading') }}</p>
                 </div>
@@ -89,13 +89,16 @@
                                 :row="row"
                                 :editLabel="$t('driver.edit')"
                                 :detailsLabel="$t('driver.details')"
+                                :deleteLabel="$t('driver.delete')"
+                                :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
+                                @delete="handleDeleteDriver"
                             />
                             <!-- Trashed Drivers Actions -->
                             <PrimaryButton
                                 v-else
-                                text="Restore"
+                                :text="$t('driver.trashed.restore')"
                                 bgColor="var(--color-success)"
                                 class="d-inline-flex align-items-center"
                                 @click="handleRestoreDriver(row)"
@@ -162,9 +165,12 @@ import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useDriverStore } from "../stores/driverStore.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const driverStore = useDriverStore();
+const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -186,14 +192,34 @@ const pendingBulkAction = ref(null);
 // Get drivers from store
 const drivers = computed(() => driverStore.drivers);
 const trashedDrivers = computed(() => driverStore.trashedDrivers);
+const branches = ref([]);
+
+const branchOptions = computed(() =>
+    branches.value.map((branch) => ({
+        value: String(branch.id),
+        label: branch.name,
+    }))
+);
+
+const fetchBranches = async () => {
+    try {
+        const response = await apiServices.getBranches();
+        branches.value = response.data.data || [];
+    } catch (error) {
+        console.error("Æ’?O Failed to load branches:", error);
+    }
+};
 
 // Fetch data on component mount
 onMounted(async () => {
     try {
-        await driverStore.fetchDrivers();
-        console.log("✅ Drivers loaded successfully");
+        await Promise.all([
+            driverStore.fetchDrivers(),
+            fetchBranches(),
+        ]);
+        console.log("ƒo. Drivers loaded successfully");
     } catch (error) {
-        console.error("❌ Failed to load drivers:", error);
+        console.error("ƒ?O Failed to load drivers:", error);
     }
 });
 
@@ -287,30 +313,27 @@ const driverFields = computed(() => [
         defaultValue: isEditMode.value ? selectedDriver.value.vehicle_number : ''
     },
     {
-        name: 'branch_name',
+        name: 'branch_id',
         label: t('driver.form.branch'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: 'Branch 1' },
-            { value: '2', label: 'Branch 2' },
-            { value: '3', label: 'Branch 3' },
-        ],
+        options: branchOptions.value,
+        placeholder: t('driver.form.branchPlaceholder'),
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? String(selectedDriver.value.branch_id) : ''
+        defaultValue: isEditMode.value ? String(selectedDriver.value.branch_id || '') : ''
     },
     {
-        name: 'company_name',
+        name: 'company_id',
         label: t('driver.form.company'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: 'Company 1' },
-            { value: '2', label: 'Company 2' },
-            { value: '3', label: 'Company 3' },
-        ],
+        options: companyOption.value.length
+            ? companyOption.value
+            : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? String(selectedDriver.value.company_id) : ''
+        defaultValue: companyId.value,
+        locked: true,
+        hidden: true
     },
     {
         name: 'status',
@@ -464,7 +487,7 @@ const switchTab = async (tab) => {
         try {
             await driverStore.fetchTrashedDrivers();
         } catch (error) {
-            console.error("❌ Failed to fetch trashed drivers:", error);
+            console.error("âŒ Failed to fetch trashed drivers:", error);
         }
     }
 };
@@ -528,19 +551,19 @@ const executeBulkAction = async () => {
     try {
         if (pendingBulkAction.value === 'delete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, false);
-            console.log("✅ Drivers soft deleted successfully");
+            console.log("âœ… Drivers soft deleted successfully");
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, true);
-            console.log("✅ Drivers permanently deleted successfully");
+            console.log("âœ… Drivers permanently deleted successfully");
         } else if (pendingBulkAction.value === 'restore') {
             await driverStore.bulkRestoreDrivers(selectedRows.value);
-            console.log("✅ Drivers restored successfully");
+            console.log("âœ… Drivers restored successfully");
         }
 
         selectedRows.value = [];
         pendingBulkAction.value = null;
     } catch (error) {
-        console.error("❌ Bulk action failed:", error);
+        console.error("âŒ Bulk action failed:", error);
     } finally {
         bulkActionLoading.value = false;
     }
@@ -556,18 +579,22 @@ const handleSubmitDriver = async (driverData) => {
     validationError.value = null;
     
     try {
+        const payload = {
+            ...driverData,
+            company_id: companyId.value || driverData.company_id,
+        };
         if (isEditMode.value) {
             // Update existing driver
-            await driverStore.updateDriver(selectedDriver.value.id, driverData);
-            console.log('✅ Driver updated successfully!');
+            await driverStore.updateDriver(selectedDriver.value.id, payload);
+            console.log('âœ… Driver updated successfully!');
         } else {
             // Add new driver
-            await driverStore.addDriver(driverData);
-            console.log('✅ Driver added successfully!');
+            await driverStore.addDriver(payload);
+            console.log('âœ… Driver added successfully!');
         }
         closeFormModal();
     } catch (error) {
-        console.error('❌ Failed to save driver:', error);
+        console.error('âŒ Failed to save driver:', error);
         
         // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
@@ -608,12 +635,23 @@ const clearValidationError = () => {
 const handleRestoreDriver = async (driver) => {
     try {
         await driverStore.restoreDriver(driver.id);
-        console.log("✅ Driver restored successfully!");
+        console.log("âœ… Driver restored successfully!");
     } catch (error) {
-        console.error("❌ Failed to restore driver:", error);
+        console.error("âŒ Failed to restore driver:", error);
         alert(error.message || 'Failed to restore driver');
     }
 };
+
+const handleDeleteDriver = async (driver) => {
+    try {
+        await driverStore.deleteDriver(driver.id);
+        console.log("?o. Driver deleted successfully!");
+    } catch (error) {
+        console.error("??O Failed to delete driver:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
 </script>
 
 <style scoped>
@@ -621,3 +659,4 @@ const handleRestoreDriver = async (driver) => {
     max-width: 100%;
 }
 </style>
+

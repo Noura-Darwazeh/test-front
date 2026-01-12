@@ -28,12 +28,24 @@
 
                         <!-- Use TrashedDataTable Component -->
                         <div v-else>
-                            <TrashedDataTable :columns="columns" :data="trashedItems"
-                                :actionsLabel="$t('user.actions')">
+                            <BulkActionsBar
+                                v-if="bulkActions.length"
+                                :selectedCount="selectedRows.length"
+                                :entityName="entityName"
+                                :actions="bulkActions"
+                                :loading="bulkLoading"
+                                @action="handleBulkAction"
+                            />
+                            <TrashedDataTable
+                                :columns="columns"
+                                :data="trashedItems"
+                                :actionsLabel="actionsLabelText"
+                                v-model="selectedRows"
+                            >
                                 <template #actions="{ row }">
-                                    <PrimaryButton text="Restore" :iconBefore="restoreIcon" bgColor="var(--color-success)"
+                                    <PrimaryButton :text="restoreLabelText" :iconBefore="restoreIcon" bgColor="var(--color-success)"
                                         class="d-inline-flex align-items-center mx-2" @click="handleRestore(row)" />
-                                    <PrimaryButton v-if="showDeleteButton" text="Delete" :iconBefore="restoreIcon"
+                                    <PrimaryButton v-if="showDeleteButton" :text="deleteLabelText" :iconBefore="restoreIcon"
                                         bgColor="var(--color-danger)" class="d-inline-flex align-items-center"
                                         @click="handleDelete(row)" />
                                 </template>
@@ -43,23 +55,45 @@
 
                     <!-- Footer -->
                     <div class="modal-footer bg-light">
-                        <PrimaryButton text="Close" @click="closeModal" bg-color="var(--color-secondary)" />
+                        <PrimaryButton :text="t('common.close')" @click="closeModal" bg-color="var(--color-secondary)" />
                     </div>
                 </div>
             </div>
         </div>
     </Transition>
+
+    <ConfirmationModal
+        :isOpen="isDeleteConfirmOpen"
+        :title="t('common.confirm')"
+        :message="singleDeleteConfirmMessage"
+        :confirmText="t('common.permanentDelete')"
+        :cancelText="t('common.cancel')"
+        @confirm="confirmDelete"
+        @close="closeDeleteConfirm"
+    />
+
+    <ConfirmationModal
+        :isOpen="isBulkConfirmOpen"
+        :title="bulkConfirmTitle"
+        :message="bulkConfirmMessage"
+        :confirmText="t('common.confirm')"
+        :cancelText="t('common.cancel')"
+        @confirm="confirmBulkAction"
+        @close="closeBulkConfirm"
+    />
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import TrashedDataTable from './TrashedDataTable.vue';
 import trashIcon from '../../assets/table/recycle.svg';
 import restoreIcon from '../../assets/table/recycle.svg';
 import PrimaryButton from './PrimaryButton.vue';
+import BulkActionsBar from './BulkActionsBar.vue';
+import ConfirmationModal from './ConfirmationModal.vue';
 
-const { locale } = useI18n();
+const { t, locale } = useI18n();
 const isRTL = computed(() => locale.value === 'ar');
 
 const props = defineProps({
@@ -87,9 +121,85 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    actionsLabel: {
+        type: String,
+        default: '',
+    },
+    restoreLabel: {
+        type: String,
+        default: '',
+    },
+    deleteLabel: {
+        type: String,
+        default: '',
+    },
+    confirmDelete: {
+        type: Boolean,
+        default: true,
+    },
+    bulkActions: {
+        type: Array,
+        default: () => [],
+    },
+    bulkLoading: {
+        type: Boolean,
+        default: false,
+    },
+    entityName: {
+        type: String,
+        default: '',
+    },
 });
 
-const emit = defineEmits(['close', 'restore', 'delete']);
+const emit = defineEmits(['close', 'restore', 'delete', 'bulk-action']);
+
+const selectedRows = ref([]);
+const isDeleteConfirmOpen = ref(false);
+const pendingDeleteItem = ref(null);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+
+const actionsLabelText = computed(() => props.actionsLabel || t('common.actions'));
+const restoreLabelText = computed(() => props.restoreLabel || t('common.restore'));
+const deleteLabelText = computed(() => props.deleteLabel || t('common.permanentDelete'));
+
+const getEntityLabel = (count) => {
+    if (!props.entityName) return t('common.items');
+    const key = count === 1
+        ? `${props.entityName}.entitySingular`
+        : `${props.entityName}.entityPlural`;
+    return t(key);
+};
+
+const singleDeleteConfirmMessage = computed(() => {
+    const entity = getEntityLabel(1);
+    return t('common.bulkPermanentDeleteConfirm', { count: 1, entity });
+});
+
+const bulkConfirmTitle = computed(() => {
+    if (pendingBulkAction.value === 'restore') {
+        return t('common.bulkRestoreConfirmTitle');
+    }
+    if (pendingBulkAction.value) {
+        return t('common.bulkDeleteConfirmTitle');
+    }
+    return t('common.confirm');
+});
+
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const count = selectedRows.value.length;
+    const entity = getEntityLabel(count);
+
+    if (pendingBulkAction.value === 'restore') {
+        return t('common.bulkRestoreConfirm', { count, entity });
+    }
+    if (pendingBulkAction.value === 'permanentDelete' || pendingBulkAction.value === 'forceDelete') {
+        return t('common.bulkPermanentDeleteConfirm', { count, entity });
+    }
+    return t('common.bulkDeleteConfirm', { count, entity });
+});
 
 const closeModal = () => {
     emit('close');
@@ -100,7 +210,44 @@ const handleRestore = (item) => {
 };
 
 const handleDelete = (item) => {
+    if (props.confirmDelete) {
+        pendingDeleteItem.value = item;
+        isDeleteConfirmOpen.value = true;
+        return;
+    }
     emit('delete', item);
+};
+
+const confirmDelete = () => {
+    if (!pendingDeleteItem.value) return;
+    emit('delete', pendingDeleteItem.value);
+    pendingDeleteItem.value = null;
+    selectedRows.value = [];
+};
+
+const closeDeleteConfirm = () => {
+    isDeleteConfirmOpen.value = false;
+    pendingDeleteItem.value = null;
+};
+
+const handleBulkAction = ({ actionId }) => {
+    pendingBulkAction.value = actionId;
+    isBulkConfirmOpen.value = true;
+};
+
+const confirmBulkAction = () => {
+    if (!pendingBulkAction.value) return;
+    emit('bulk-action', {
+        actionId: pendingBulkAction.value,
+        selectedIds: selectedRows.value
+    });
+    pendingBulkAction.value = null;
+    selectedRows.value = [];
+};
+
+const closeBulkConfirm = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
 };
 
 // Prevent body scroll when modal is open with scrollbar compensation
@@ -111,11 +258,20 @@ watch(() => props.isOpen, (newVal) => {
         if (scrollbarWidth > 0) {
             document.body.style.paddingRight = `${scrollbarWidth}px`;
         }
+        selectedRows.value = [];
     } else {
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
+        selectedRows.value = [];
     }
 });
+
+watch(
+    () => props.trashedItems,
+    () => {
+        selectedRows.value = [];
+    }
+);
 </script>
 
 <style scoped>

@@ -1,8 +1,10 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 export function useDiscountFormFields() {
   const { t } = useI18n();
+  const { companyId, companyOption } = useAuthDefaults();
 
   const discountFields = computed(() => [
     {
@@ -89,12 +91,13 @@ export function useDiscountFormFields() {
       label: t("discount.form.company"),
       type: "select",
       required: true,
-      options: [
-        { value: "1", label: "Company 1" },
-        { value: "2", label: "Company 2" },
-        { value: "3", label: "Company 3" },
-      ],
+      options: companyOption.value.length
+        ? companyOption.value
+        : [{ value: "", label: t("common.noCompanyAssigned") }],
       colClass: "col-md-6",
+      defaultValue: companyId.value,
+      locked: true,
+      hidden: true,
       validate: (value) => {
         if (!value) return t("discount.validation.companyRequired");
         return null;

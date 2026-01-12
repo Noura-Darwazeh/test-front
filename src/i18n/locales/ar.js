@@ -15,7 +15,7 @@ export default {
     emailLabel: "البريد الإلكتروني أو اسم المستخدم",
     emailPlaceholder: "أدخل البريد الإلكتروني أو اسم المستخدم",
     passwordLabel: "كلمة المرور",
-    passwordPlaceholder: "••••••••",
+    passwordPlaceholder: "********",
     forgotPassword: "نسيت كلمة المرور؟",
     signIn: "تسجيل الدخول",
     signingIn: "جاري تسجيل الدخول...",
@@ -256,9 +256,9 @@ export default {
       imageRequired: "صورة الملف الشخصي مطلوبة",
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
-      usernameAlreadyTaken: "اسم المستخدم مستخدم بالفعل. الرجاء اختيار اسم مستخدم آخر.",
-      phoneAlreadyInCompany: "هذا المستخدم مسجل بالفعل كسائق في هذه الشركة."
-
+      usernameAlreadyTaken:
+        "اسم المستخدم مستخدم بالفعل. الرجاء اختيار اسم مستخدم آخر.",
+      phoneAlreadyInCompany: "هذا المستخدم مسجل بالفعل كسائق في هذه الشركة.",
     },
 
     // العناصر المحذوفة
@@ -368,6 +368,62 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "طلب",
+    entityPlural: "طلبات",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "خطة عمل",
+    entityPlural: "خطط عمل",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "سعر الشركة",
+    entityPlural: "أسعار الشركات",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "خصم",
+    entityPlural: "خصومات",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "خط عمل",
+    entityPlural: "خطوط عمل",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "خط سائق",
+    entityPlural: "خطوط السائقين",
+
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "منطقة",
+    entityPlural: "مناطق",
 
     // أعمدة الجدول
     id: "المعرف",
@@ -780,6 +836,12 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // Entity names for bulk actions
+    entitySingular: "منطقة",
+    entityPlural: "مناطق",
 
     // أعمدة الجدول
     id: "المعرف",
@@ -855,10 +917,17 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
-    actions: "الإجراءات",
+    actionsLabel: "الإجراءات",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // Entity names for bulk actions
+    entitySingular: "طلب",
+    entityPlural: "طلبات",
 
     // بطاقات الإحصائيات
     stats: {
+      timePeriod: "الفترة الزمنية",
       total: "إجمالي الطلبات",
       totalProfit: "إجمالي الأرباح",
       pending: "في الانتظار",
@@ -897,6 +966,8 @@ export default {
     actions: {
       view: "عرض التفاصيل",
       edit: "تعديل الطلب",
+      delete: "حذف",
+      deletePermanently: "حذف نهائي",
       assignDriver: "تعيين سائق",
       updateStatus: "تحديث الحالة",
       track: "تتبع الطلب",
@@ -1091,6 +1162,12 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // Entity names for bulk actions
+    entitySingular: "خصم",
+    entityPlural: "خصومات",
 
     // أعمدة الجدول
     table: {
@@ -1431,6 +1508,14 @@ export default {
       delete: "حذف",
     },
 
+    // الإجراءات الجماعية
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيان للإجراءات الجماعية
+    entitySingular: "عملة",
+    entityPlural: "عملات",
+
     // العناصر المحذوفة
     trashed: {
       title: "العملات المحذوفة",
@@ -1543,6 +1628,10 @@ export default {
     newPasswordPlaceholder: "أدخل كلمة المرور الجديدة",
     confirmPasswordPlaceholder: "أكد كلمة المرور الجديدة",
     language: "اللغة",
+    languages: {
+      english: "??????????",
+      arabic: "???????",
+    },
     defaultLandingPage: "الصفحة الافتراضية",
     noEmail: "لم يتم تقديم بريد إلكتروني",
     updateSuccess: "تم تحديث الملف الشخصي بنجاح!",
@@ -1563,6 +1652,17 @@ export default {
   },
   // الترجمات المشتركة
   common: {
+    actions: "?????????",
+    noDataAvailable: "?? ???? ??????",
+    uploadImage: "??? ????",
+    remove: "?????",
+    order: "???",
+    items: "?????",
+    selectOrder: "???? ?????",
+    selectItems: "???? ???????",
+    restore: "???????",
+    permanentDelete: "??? ?????",
+    noCompanyAssigned: "?? ???? ???? ??????",
     save: "حفظ",
     cancel: "إلغاء",
     close: "إغلاق",
@@ -1582,13 +1682,25 @@ export default {
     selected: "محدد",
     active: "نشط",
     saveChanges: "حفظ التغييرات",
-    confirmCancel: "هل أنت متأكد من الإلغاء؟ سيتم فقدان جميع التغييرات غير المحفوظة.",
+    confirmCancel:
+      "هل أنت متأكد من الإلغاء؟ سيتم فقدان جميع التغييرات غير المحفوظة.",
+    validation: {
+      requiredField: "{field} ?????",
+      invalidEmail: "???? ?????? ?????????? ??? ?????",
+      minLength: "???? ?????? {min} ????",
+      imageRequired: "?????? ??????",
+      invalidImageFile: "???? ?????? ??? ???? ????",
+      imageMaxSize: "??? ??? ?????? ??? ?????? {size}MB",
+      orderRowRequired: "????? ???????? ??????",
+    },
 
     bulkDeleteConfirmTitle: "تأكيد الحذف الجماعي",
     bulkDeleteConfirmMessage: "هل أنت متأكد من حذف {count} {entity}؟",
     bulkRestoreConfirmTitle: "تأكيد الاستعادة الجماعية",
     bulkRestoreConfirmMessage: "هل أنت متأكد من استعادة {count} {entity}؟",
+    bulkDeleteConfirm: "?? ??? ????? ?? ??? {count} {entity}?",
+    bulkPermanentDeleteConfirm:
+      "?? ??? ????? ?? ????? ??????? ?? {count} {entity}?",
+    bulkRestoreConfirm: "?? ??? ????? ?? ??????? {count} {entity}?",
   },
-
-
 };

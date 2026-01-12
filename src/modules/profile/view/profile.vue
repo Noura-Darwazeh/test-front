@@ -239,7 +239,7 @@
                     class="form-select"
                     @change="handleLanguageChange"
                   >
-                    <option value="english">English</option>
+                    <option value="english">{{ $t('profile.languages.english') }}</option>
                     <option value="arabic">العربية</option>
                   </select>
                 </div>
@@ -330,6 +330,22 @@ const isPasswordModalOpen = ref(false);
 const isSaving = ref(false);
 const hasChanges = ref(false);
 const fileInput = ref(null);
+
+const resolveIdValue = (value) => {
+  if (Array.isArray(value)) {
+    return value[0] === null || value[0] === undefined ? "" : String(value[0]);
+  }
+  if (value && typeof value === "object") {
+    return value.id === null || value.id === undefined ? "" : String(value.id);
+  }
+  return value === null || value === undefined ? "" : String(value);
+};
+
+const resolveUiLocale = (language) => {
+  const normalized = (language || "").toLowerCase();
+  if (normalized === "arabic" || normalized === "ar") return "ar";
+  return "en";
+};
 
 // Form data
 const formData = reactive({
@@ -433,11 +449,11 @@ const initializeFormData = () => {
   formData.username = user?.username || '';
   formData.email = user?.email || '';
   formData.phone_number = user?.phone_number || '';
-  formData.company_id = String(user?.company_id || '');
-  formData.region_id = String(user?.region_id || '');
-  formData.currency_id = String(user?.currency_id || '');
+  formData.company_id = resolveIdValue(user?.company_id ?? user?.company ?? authStore.userCompanyId);
+  formData.region_id = resolveIdValue(user?.region_id ?? user?.region);
+  formData.currency_id = resolveIdValue(user?.currency_id ?? user?.currency ?? authStore.userCurrencyId);
   formData.language = user?.language || 'english';
-  formData.default_page = user?.default_page || '/user';
+  formData.default_page = user?.default_page || user?.landing_page || '/user';
   formData.imagePreview = null;
   formData.imageFile = null;
 
@@ -482,12 +498,12 @@ const handleImageUpload = (event) => {
   if (!file) return;
 
   if (!file.type.startsWith('image/')) {
-    alert('Please select a valid image file');
+    alert(t('common.validation.invalidImageFile'));
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    alert('Image size should not exceed 5MB');
+    alert(t('common.validation.imageMaxSize', { size: 5 }));
     return;
   }
 
@@ -515,12 +531,13 @@ const handleLanguageChange = async () => {
   markAsChanged();
   
   // Update UI language immediately for better UX
-  const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
+  const uiLang = resolveUiLocale(formData.language);
   setLocale(uiLang);
 };
 
 // Handle save changes
 const handleSaveChanges = async () => {
+  const languageChanged = formData.language !== originalData.value.language;
   try {
     isSaving.value = true;
 
@@ -574,6 +591,13 @@ const handleSaveChanges = async () => {
       
       console.log('✅ Profile updated successfully!', userData);
       alert(t('profile.updateSuccess'));
+
+      if (languageChanged) {
+        const uiLang = resolveUiLocale(formData.language);
+        setLocale(uiLang);
+        window.location.reload();
+        return;
+      }
       
       // Reset form state
       initializeFormData();

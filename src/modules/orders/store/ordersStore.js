@@ -261,21 +261,27 @@ export const useOrdersStore = defineStore("orders", () => {
     }
   };
 
-  const deleteOrder = async (orderId) => {
+  const deleteOrder = async (orderId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteOrder(orderId);
+      await apiServices.deleteOrder(orderId, force);
 
-      const index = orders.value.findIndex((o) => o.id === orderId);
-      if (index > -1) {
-        const order = orders.value.splice(index, 1)[0];
-        trashedOrders.value.push(order);
+      if (force) {
+        trashedOrders.value = trashedOrders.value.filter(
+          (order) => order.id !== orderId
+        );
+      } else {
+        const index = orders.value.findIndex((o) => o.id === orderId);
+        if (index > -1) {
+          const order = orders.value.splice(index, 1)[0];
+          trashedOrders.value.push(order);
+        }
       }
-      console.log("✅ Order deleted successfully");
+      console.log("Order deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete order";
-      console.error("❌ Error deleting order:", err);
+      console.error("Error deleting order:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -431,3 +437,6 @@ export const useOrdersStore = defineStore("orders", () => {
     bulkRestoreOrders,
   };
 });
+
+
+

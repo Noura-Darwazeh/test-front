@@ -1,40 +1,43 @@
 <template>
   <div class="orders-page-container bg-light">
     <!-- Time Period Selector -->
-    <div class="mb-3">
-      <div class="btn-group" role="group" aria-label="Time period filter">
-        <button
-          type="button"
-          class="btn"
-          :class="selectedTimePeriod === 'all' ? 'btn-primary' : 'btn-outline-primary'"
-          @click="selectedTimePeriod = 'all'"
-        >
-          {{ $t('orders.stats.allTime') }}
-        </button>
-        <button
-          type="button"
-          class="btn"
-          :class="selectedTimePeriod === 'today' ? 'btn-primary' : 'btn-outline-primary'"
-          @click="selectedTimePeriod = 'today'"
-        >
-          {{ $t('orders.stats.today') }}
-        </button>
-        <button
-          type="button"
-          class="btn"
-          :class="selectedTimePeriod === 'month' ? 'btn-primary' : 'btn-outline-primary'"
-          @click="selectedTimePeriod = 'month'"
-        >
-          {{ $t('orders.stats.thisMonth') }}
-        </button>
-        <button
-          type="button"
-          class="btn"
-          :class="selectedTimePeriod === 'year' ? 'btn-primary' : 'btn-outline-primary'"
-          @click="selectedTimePeriod = 'year'"
-        >
-          {{ $t('orders.stats.thisYear') }}
-        </button>
+    <div class="mb-4">
+      <div class="d-flex align-items-center justify-content-between">
+        <h5 class="mb-0 text-muted">{{ $t('orders.stats.timePeriod') }}</h5>
+        <div class="btn-group time-period-selector shadow-sm" role="group">
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="selectedTimePeriod === 'all' ? 'btn-primary' : 'btn-light'"
+            @click="selectedTimePeriod = 'all'"
+          >
+            <i class="fas fa-infinity me-2"></i>{{ $t('orders.stats.allTime') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="selectedTimePeriod === 'today' ? 'btn-primary' : 'btn-light'"
+            @click="selectedTimePeriod = 'today'"
+          >
+            <i class="fas fa-calendar-day me-2"></i>{{ $t('orders.stats.today') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="selectedTimePeriod === 'month' ? 'btn-primary' : 'btn-light'"
+            @click="selectedTimePeriod = 'month'"
+          >
+            <i class="fas fa-calendar-alt me-2"></i>{{ $t('orders.stats.thisMonth') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="selectedTimePeriod === 'year' ? 'btn-primary' : 'btn-light'"
+            @click="selectedTimePeriod = 'year'"
+          >
+            <i class="fas fa-calendar me-2"></i>{{ $t('orders.stats.thisYear') }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -70,35 +73,96 @@
       :showAddButton="true"
       :addButtonText="$t('orders.addNew')"
       @add-click="openModal"
-      @trashed-click="openTrashedModal"
     />
 
     <div class="card border-0">
+      <!-- Tabs -->
+      <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{ active: activeTab === 'active' }"
+              @click="switchTab('active')"
+            >
+              {{ $t('common.active') }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link trashed-tab"
+              :class="{ active: activeTab === 'trashed' }"
+              @click="switchTab('trashed')"
+            >
+              {{ $t('orders.trashed.title') }}
+            </button>
+          </li>
+        </ul>
+      </div>
       <div class="card-body p-0">
-        <DataTable
-          :columns="filteredColumns"
-          :data="paginatedOrders"
-          :actionsLabel="$t('orders.actions')"
-        >
-          <template #actions="{ row }">
-            <ActionsDropdown
-              :row="row"
-              :editLabel="$t('orders.actions.edit')"
-              :detailsLabel="$t('orders.actions.view')"
-              :deleteLabel="$t('orders.actions.delete')"
-              @edit="editOrder"
-              @details="viewOrderDetails"
-              @delete="handleDeleteOrder"
+        <BulkActionsBar
+          :selectedCount="selectedRows.length"
+          entityName="orders"
+          :actions="bulkActions"
+          :loading="bulkActionLoading"
+          @action="handleBulkAction"
+        />
+        <!-- Loading State -->
+        <div v-if="currentLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">{{ $t('common.loading') }}</span>
+          </div>
+          <p class="mt-2">{{ $t('common.loading') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="ordersStore.error" class="alert alert-danger m-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ ordersStore.error }}
+        </div>
+
+        <!-- Data Table -->
+        <div v-else>
+          <DataTable
+            :columns="filteredColumns"
+            :data="paginatedData"
+            :actionsLabel="$t('orders.actionsLabel')"
+            v-model="selectedRows"
+          >
+            <template #actions="{ row }">
+              <ActionsDropdown
+                v-if="activeTab === 'active'"
+                :row="row"
+                :editLabel="$t('orders.actions.edit')"
+                :detailsLabel="$t('orders.actions.view')"
+                :deleteLabel="$t('orders.actions.delete')"
+                :confirmDelete="true"
+                @edit="editOrder"
+                @details="viewOrderDetails"
+                @delete="handleDeleteOrder"
+              />
+              <ActionsDropdown
+                v-else
+                :row="row"
+                :restoreLabel="$t('orders.trashed.restore')"
+                :deleteLabel="$t('orders.trashed.delete')"
+                :showEdit="false"
+                :showDetails="false"
+                :showRestore="true"
+                :confirmDelete="true"
+                @restore="handleRestoreOrder"
+                @delete="handlePermanentDeleteOrder"
+              />
+            </template>
+          </DataTable>
+          <div class="px-3 pt-1 pb-2 bg-light">
+            <Pagination
+              :totalItems="currentFilteredData.length"
+              :itemsPerPage="itemsPerPage"
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)"
             />
-          </template>
-        </DataTable>
-        <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination
-            :totalItems="filteredOrders.length"
-            :itemsPerPage="itemsPerPage"
-            :currentPage="currentPage"
-            @update:currentPage="(page) => (currentPage = page)"
-          />
+          </div>
         </div>
       </div>
     </div>
@@ -126,20 +190,6 @@
       :showImageUpload="false"
       @close="closeFormModal"
       @submit="handleEditOrder"
-    />
-
-    <!-- Trashed Orders Modal -->
-    <TrashedItemsModal
-      :isOpen="isTrashedModalOpen"
-      :title="$t('orders.trashed.title')"
-      :emptyMessage="$t('orders.trashed.empty')"
-      :columns="trashedColumns"
-      :trashedItems="ordersStore.trashedOrders"
-      :showDeleteButton="true"
-      :deleteLabel="$t('orders.actions.deletePermanently')"
-      @close="closeTrashedModal"
-      @restore="handleRestoreOrder"
-      @delete="handlePermanentDeleteOrder"
     />
 
     <!-- Details Modal -->
@@ -170,6 +220,16 @@
         </div>
       </template>
     </DetailsModal>
+
+    <ConfirmationModal
+      :isOpen="isBulkConfirmOpen"
+      :title="$t('common.bulkDeleteConfirmTitle')"
+      :message="bulkConfirmMessage"
+      :confirmText="$t('common.confirm')"
+      :cancelText="$t('common.cancel')"
+      @confirm="executeBulkAction"
+      @close="cancelBulkAction"
+    />
   </div>
 </template>
 
@@ -178,26 +238,33 @@ import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import StatCard from "../../../components/shared/StatCard.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import OrdersHeader from "../components/ordersHeader.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import OrderWizard from "../components/OrderWizard.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useOrderFormFields } from "../components/orderFormFields.js";
 import { useOrdersStore } from "../store/ordersStore.js";
 import apiServices from "@/services/apiServices.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const { orderFields } = useOrderFormFields();
 const ordersStore = useOrdersStore();
+const { companyOption } = useAuthDefaults();
 
 // Simple price formatter
 const formatPrice = (value, currencySymbol = "$") => {
-  if (!value || isNaN(value)) return `${currencySymbol}0.00`;
-  return `${currencySymbol}${Number(value).toFixed(2)}`;
+  // Handle null, undefined, empty string, NaN, or non-numeric values
+  const numericValue = parseFloat(value);
+  if (isNaN(numericValue) || value === null || value === undefined || value === "") {
+    return `${currencySymbol}0.00`;
+  }
+  return `${currencySymbol}${numericValue.toFixed(2)}`;
 };
 
 const searchText = ref("");
@@ -206,10 +273,14 @@ const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isWizardOpen = ref(false);
 const isFormModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedOrder = ref({});
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const activeTab = ref('active');
 
 // Dropdown data for order creation
 const customers = ref([]);
@@ -219,6 +290,57 @@ const linePrices = ref([]);
 const discounts = ref([]);
 const branches = ref([]);
 const companyPrices = ref([]);
+
+const customerOptions = computed(() =>
+  customers.value.map((customer) => ({
+    value: String(customer.id),
+    label: customer.name,
+  }))
+);
+
+const currencyOptions = computed(() =>
+  currencies.value.map((currency) => ({
+    value: String(currency.id),
+    label: `${currency.code} (${currency.symbol})`,
+  }))
+);
+
+const linePriceOptions = computed(() =>
+  linePrices.value.map((linePrice) => {
+    const lineName =
+      linePrice.line_id?.name ||
+      linePrice.line?.name ||
+      linePrice.line_name ||
+      "";
+    const labelPrefix = lineName ? `${lineName} - ` : "";
+    return {
+      value: String(linePrice.id),
+      label: `${labelPrefix}${formatPrice(linePrice.price, linePrice.currency_id?.symbol || "$")}`,
+    };
+  })
+);
+
+const discountOptions = computed(() => [
+  { value: "", label: t("orders.form.noDiscount") },
+  ...discounts.value.map((discount) => ({
+    value: String(discount.id),
+    label: discount.name || discount.type || `Discount #${discount.id}`,
+  })),
+]);
+
+const companyPriceOptions = computed(() =>
+  companyPrices.value.map((price) => ({
+    value: String(price.id),
+    label: price.name || `${price.itemType || ""} ${formatPrice(price.price)}`.trim(),
+  }))
+);
+
+const branchOptions = computed(() =>
+  branches.value.map((branch) => ({
+    value: String(branch.id),
+    label: branch.name,
+  }))
+);
 
 // Fetch orders, statistics, and dropdown data on component mount
 onMounted(async () => {
@@ -301,7 +423,7 @@ const orderStats = computed(() => {
     },
     {
       key: "totalProfit",
-      count: formatPrice(stats.total_profit || 0),
+      count: stats.total_profit ?? 0,
       icon: "fas fa-dollar-sign",
       iconClass: "stat-icon-success",
       filterValue: null,
@@ -377,25 +499,113 @@ const trashedColumns = computed(() => [
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-  return orderColumns.value.filter((col) =>
-    visibleColumns.value.includes(col.key)
-  );
+  if (activeTab.value === "active") {
+    return orderColumns.value.filter((col) =>
+      visibleColumns.value.includes(col.key)
+    );
+  }
+  return trashedColumns.value;
 });
 
-// Simple filtering - using store data
-const filteredOrders = computed(() => {
-  let result = ordersStore.orders;
-  result = filterByGroups(result, selectedGroups.value, "status");
+const currentData = computed(() => {
+  return activeTab.value === "active"
+    ? ordersStore.orders
+    : ordersStore.trashedOrders;
+});
+
+const currentLoading = computed(() => {
+  return activeTab.value === "active"
+    ? ordersStore.loading
+    : ordersStore.trashedLoading;
+});
+
+// Filter orders by time period
+const filterByTimePeriod = (orders, period) => {
+  if (period === "all") return orders;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thisYearStart = new Date(now.getFullYear(), 0, 1);
+
+  return orders.filter((order) => {
+    const orderDate = new Date(order.created_at);
+
+    switch (period) {
+      case "today":
+        return orderDate >= today;
+      case "month":
+        return orderDate >= thisMonthStart;
+      case "year":
+        return orderDate >= thisYearStart;
+      default:
+        return true;
+    }
+  });
+};
+
+const currentFilteredData = computed(() => {
+  let result = currentData.value;
+
+  // Apply time period filter
+  result = filterByTimePeriod(result, selectedTimePeriod.value);
+
+  if (activeTab.value === "active") {
+    result = filterByGroups(result, selectedGroups.value, "status");
+  }
   result = filterData(result, searchText.value);
   return result;
 });
 
-const paginatedOrders = computed(() => {
+const paginatedData = computed(() => {
   return paginateData(
-    filteredOrders.value,
+    currentFilteredData.value,
     currentPage.value,
     itemsPerPage.value
   );
+});
+
+const bulkActions = computed(() => {
+  if (activeTab.value === "active") {
+    return [
+      {
+        id: "delete",
+        label: t("orders.bulkDelete"),
+        bgColor: "var(--color-danger)",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "restore",
+      label: t("orders.bulkRestore"),
+      bgColor: "var(--color-success)",
+    },
+    {
+      id: "permanentDelete",
+      label: t("common.permanentDelete"),
+      bgColor: "var(--color-danger)",
+    },
+  ];
+});
+
+const bulkConfirmMessage = computed(() => {
+  if (!pendingBulkAction.value) return "";
+
+  const count = selectedRows.value.length;
+  const entity = count === 1 ? t("orders.entitySingular") : t("orders.entityPlural");
+
+  if (pendingBulkAction.value === "delete") {
+    return t("common.bulkDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "permanentDelete") {
+    return t("common.bulkPermanentDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "restore") {
+    return t("common.bulkRestoreConfirm", { count, entity });
+  }
+  return "";
 });
 
 // Action methods
@@ -415,13 +625,18 @@ const closeModal = () => {
   isWizardOpen.value = false;
 };
 
-const openTrashedModal = async () => {
-  await ordersStore.fetchTrashedOrders();
-  isTrashedModalOpen.value = true;
-};
+const switchTab = async (tab) => {
+  activeTab.value = tab;
+  currentPage.value = 1;
+  selectedRows.value = [];
 
-const closeTrashedModal = () => {
-  isTrashedModalOpen.value = false;
+  if (tab === "trashed") {
+    try {
+      await ordersStore.fetchTrashedOrders();
+    } catch (err) {
+      console.error("Failed to load trashed orders:", err);
+    }
+  }
 };
 
 const handleAddOrder = async (orderData) => {
@@ -459,6 +674,38 @@ const handlePermanentDeleteOrder = async (order) => {
   } catch (err) {
     console.error("Failed to permanently delete order:", err);
   }
+};
+const handleBulkAction = ({ actionId }) => {
+  pendingBulkAction.value = actionId;
+  isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+  if (!pendingBulkAction.value) return;
+  bulkActionLoading.value = true;
+
+  try {
+    if (pendingBulkAction.value === "delete") {
+      await ordersStore.bulkDeleteOrders(selectedRows.value, false);
+    } else if (pendingBulkAction.value === "permanentDelete") {
+      await ordersStore.bulkDeleteOrders(selectedRows.value, true);
+    } else if (pendingBulkAction.value === "restore") {
+      await ordersStore.bulkRestoreOrders(selectedRows.value);
+    }
+    await ordersStore.fetchStatistics();
+    selectedRows.value = [];
+  } catch (err) {
+    console.error("Failed to bulk delete orders:", err);
+  } finally {
+    bulkActionLoading.value = false;
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
+  }
+};
+
+const cancelBulkAction = () => {
+  isBulkConfirmOpen.value = false;
+  pendingBulkAction.value = null;
 };
 
 const viewOrderDetails = (order) => {
@@ -503,6 +750,44 @@ const orderFieldsWithDefaults = computed(() => {
         ? selectedOrder.value[field.name]
         : field.defaultValue || "",
     };
+
+    if (
+      field.type === "select" &&
+      unwrappedField.defaultValue !== "" &&
+      unwrappedField.defaultValue !== null &&
+      unwrappedField.defaultValue !== undefined
+    ) {
+      unwrappedField.defaultValue = String(unwrappedField.defaultValue);
+    }
+
+    if (field.name === "customer_id") {
+      unwrappedField.options = customerOptions.value;
+    }
+    if (field.name === "to_id") {
+      unwrappedField.options = customerOptions.value;
+    }
+    if (field.name === "currency_id") {
+      unwrappedField.options = currencyOptions.value;
+    }
+    if (field.name === "lineprice_id") {
+      unwrappedField.options = linePriceOptions.value;
+    }
+    if (field.name === "discount_id") {
+      unwrappedField.options = discountOptions.value;
+    }
+    if (field.name === "company_item_price_id") {
+      unwrappedField.options = companyPriceOptions.value;
+    }
+    if (field.name === "company_id") {
+      unwrappedField.options = companyOption.value.length
+        ? companyOption.value
+        : [{ value: "", label: t("common.noCompanyAssigned") }];
+      unwrappedField.locked = true;
+      unwrappedField.hidden = true;
+    }
+    if (field.name === "branch_customer_company_id" || field.name === "branch_delivery_company_id") {
+      unwrappedField.options = branchOptions.value;
+    }
 
     // If options is a computed ref, unwrap it
     if (field.options && typeof field.options === 'object' && 'value' in field.options) {
@@ -556,7 +841,7 @@ const detailsFields = computed(() => [
   { key: "created_at", label: t("orders.table.createdAt"), colClass: "col-md-6" },
 ]);
 
-watch([searchText, selectedGroups], () => {
+watch([searchText, selectedGroups, selectedTimePeriod], () => {
   currentPage.value = 1;
 });
 </script>
@@ -566,8 +851,50 @@ watch([searchText, selectedGroups], () => {
   max-width: 100%;
 }
 
-.btn-group .btn {
+/* Ensure all stat cards have equal height */
+.row .col-lg-3,
+.row .col-md-6 {
+  display: flex;
+  flex-direction: column;
+}
+
+.row .col-lg-3 > *,
+.row .col-md-6 > * {
+  flex: 1;
+  height: 100%;
+}
+
+.time-period-selector {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.time-period-selector .btn {
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.time-period-selector .btn-light {
+  background-color: #ffffff;
+  color: #6c757d;
+}
+
+.time-period-selector .btn-light:hover {
+  background-color: #f8f9fa;
+  color: #0d6efd;
+  transform: translateY(-1px);
+}
+
+.time-period-selector .btn-primary {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.time-period-selector .btn i {
+  opacity: 0.8;
 }
 </style>
+

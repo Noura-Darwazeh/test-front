@@ -1,8 +1,10 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 export function useOrderFormFields() {
   const { t } = useI18n();
+  const { companyId, companyOption, currencyId } = useAuthDefaults();
 
   const orderFields = computed(() => [
     {
@@ -49,6 +51,7 @@ export function useOrderFormFields() {
       required: true,
       colClass: "col-md-6",
       options: [],  // Populated dynamically from currencies API
+      defaultValue: currencyId.value,
     },
     {
       name: "lineprice_id",
@@ -152,11 +155,12 @@ export function useOrderFormFields() {
       type: "select",
       required: false, // Will be required for super admin
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "Tech Solutions Ltd" },
-        { value: 2, label: "Fast Delivery Co" },
-        { value: 3, label: "Global Logistics Inc" },
-      ],
+      options: companyOption.value.length
+        ? companyOption.value
+        : [{ value: "", label: t("common.noCompanyAssigned") }],
+      defaultValue: companyId.value,
+      locked: true,
+      hidden: true,
     },
     {
       name: "branch_customer_company_id",

@@ -24,9 +24,54 @@ export const useAuthStore = defineStore("auth", () => {
   // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
   
-  const userRole = computed(() => user.value?.role || null);
+  const userRole = computed(() => {
+    const role = user.value?.role;
+    // Handle if backend returns role as array
+    if (Array.isArray(role)) {
+      return role[0] || null;
+    }
+    return role || null;
+  });
   
   const userName = computed(() => user.value?.name || "");
+
+  const parseIdNamePair = (value, fallbackId = null, fallbackName = "") => {
+    if (Array.isArray(value)) {
+      return {
+        id: value[0] ?? fallbackId,
+        name: value[1] ?? fallbackName,
+      };
+    }
+
+    if (value && typeof value === "object") {
+      return {
+        id: value.id ?? fallbackId,
+        name: value.name ?? fallbackName,
+      };
+    }
+
+    return { id: value ?? fallbackId, name: fallbackName };
+  };
+
+  const userCompany = computed(() =>
+    parseIdNamePair(user.value?.company, user.value?.company_id, user.value?.company_name || "")
+  );
+
+  const userCompanyId = computed(() => userCompany.value.id ?? null);
+
+  const userCompanyName = computed(() => userCompany.value.name || "");
+
+  const userCurrency = computed(() =>
+    parseIdNamePair(
+      user.value?.currency,
+      user.value?.currency_id,
+      user.value?.currency_name || ""
+    )
+  );
+
+  const userCurrencyId = computed(() => userCurrency.value.id ?? null);
+
+  const userCurrencyName = computed(() => userCurrency.value.name || "");
 
   // ===== Actions =====
   
@@ -260,6 +305,12 @@ export const useAuthStore = defineStore("auth", () => {
     isAuthenticated,
     userRole,
     userName,
+    userCompany,
+    userCompanyId,
+    userCompanyName,
+    userCurrency,
+    userCurrencyId,
+    userCurrencyName,
     
     // Actions
     login,

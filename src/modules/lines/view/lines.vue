@@ -63,7 +63,7 @@
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
                     <p class="mt-2">{{ $t('common.loading') }}</p>
                 </div>
@@ -89,13 +89,16 @@
                                 :row="row"
                                 :editLabel="$t('lines.edit')"
                                 :detailsLabel="$t('lines.details')"
+                                :deleteLabel="$t('lines.delete')"
+                                :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
+                                @delete="handleDeleteLine"
                             />
                             <!-- Trashed Lines Actions -->
                             <PrimaryButton
                                 v-else
-                                text="Restore"
+                                :text="$t('lines.trashed.restore')"
                                 bgColor="var(--color-success)"
                                 class="d-inline-flex align-items-center"
                                 @click="handleRestoreLine(row)"
@@ -160,9 +163,11 @@ import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useLinesStore } from "../stores/linesStore.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const linesStore = useLinesStore();
+const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -227,12 +232,13 @@ const linesFields = computed(() => [
         label: t('lines.form.company'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: t('lines.form.companies.company1') },
-            { value: '2', label: t('lines.form.companies.company2') },
-        ],
+        options: companyOption.value.length
+            ? companyOption.value
+            : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? String(selectedLine.value.company_id) : ''
+        defaultValue: companyId.value,
+        locked: true,
+        hidden: true
     },
 ]);
 
@@ -432,13 +438,17 @@ const handleSubmitLines = async (lineData) => {
     validationError.value = null;
     
     try {
+        const payload = {
+            ...lineData,
+            company: companyId.value || lineData.company,
+        };
         if (isEditMode.value) {
             // Update existing line
-            await linesStore.updateLine(selectedLine.value.id, lineData);
+            await linesStore.updateLine(selectedLine.value.id, payload);
             console.log('✅ Line updated successfully!');
         } else {
             // Add new line
-            await linesStore.addLine(lineData);
+            await linesStore.addLine(payload);
             console.log('✅ Line added successfully!');
         }
         closeFormModal();
@@ -474,6 +484,17 @@ const handleRestoreLine = async (line) => {
         alert(error.message || 'Failed to restore line');
     }
 };
+
+const handleDeleteLine = async (line) => {
+    try {
+        await linesStore.deleteLine(line.id);
+        console.log("?o. Line deleted successfully!");
+    } catch (error) {
+        console.error("??O Failed to delete line:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
 </script>
 
 <style scoped>

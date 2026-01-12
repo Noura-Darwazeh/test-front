@@ -7,6 +7,7 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
   const regions = ref([]);
   const trashedRegions = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Actions
@@ -68,17 +69,39 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
     }
   };
 
-  const deleteRegion = async (regionId) => {
+  const fetchTrashedRegions = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedRegions();
+      trashedRegions.value = response.data.data;
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed regions";
+      console.error("Error fetching trashed regions:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
+    }
+  };
+
+  const deleteRegion = async (regionId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteRegion(regionId);
+      await apiServices.deleteRegion(regionId, force);
 
-      // Move to trashed after successful API call
-      const index = regions.value.findIndex((r) => r.id === regionId);
-      if (index > -1) {
-        const region = regions.value.splice(index, 1)[0];
-        trashedRegions.value.push(region);
+      if (force) {
+        trashedRegions.value = trashedRegions.value.filter(
+          (region) => region.id !== regionId
+        );
+      } else {
+        // Move to trashed after successful API call
+        const index = regions.value.findIndex((r) => r.id === regionId);
+        if (index > -1) {
+          const region = regions.value.splice(index, 1)[0];
+          trashedRegions.value.push(region);
+        }
       }
     } catch (err) {
       error.value = err.message || "Failed to delete region";
@@ -110,17 +133,71 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
     }
   };
 
+  const bulkDeleteRegions = async (regionIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteRegions(regionIds, force);
+
+      if (force) {
+        trashedRegions.value = trashedRegions.value.filter(
+          (region) => !regionIds.includes(region.id)
+        );
+      } else {
+        const deleted = regions.value.filter((region) =>
+          regionIds.includes(region.id)
+        );
+        regions.value = regions.value.filter(
+          (region) => !regionIds.includes(region.id)
+        );
+        trashedRegions.value.push(...deleted);
+      }
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete regions";
+      console.error("Error bulk deleting regions:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreRegions = async (regionIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreRegions(regionIds);
+
+      const restored = trashedRegions.value.filter((region) =>
+        regionIds.includes(region.id)
+      );
+      trashedRegions.value = trashedRegions.value.filter(
+        (region) => !regionIds.includes(region.id)
+      );
+      regions.value.push(...restored);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore regions";
+      console.error("Error bulk restoring regions:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     // State
     regions,
     trashedRegions,
     loading,
+    trashedLoading,
     error,
     // Actions
     fetchRegions,
+    fetchTrashedRegions,
     addRegion,
     updateRegion,
     deleteRegion,
     restoreRegion,
+    bulkDeleteRegions,
+    bulkRestoreRegions,
   };
 });

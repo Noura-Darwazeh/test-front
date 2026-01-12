@@ -1,41 +1,73 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import api from "@/services/api.js";
+import { ref } from "vue";
+import apiServices from "@/services/apiServices.js";
 
 export const useDriverLineStore = defineStore("driverLine", () => {
-  // State
   const driverLines = ref([]);
   const trashedDriverLines = ref([]);
   const loading = ref(false);
+  const trashedLoading = ref(false);
   const error = ref(null);
 
-  // Actions
+  const extractIdName = (value) => {
+    if (Array.isArray(value)) {
+      return { id: value[0], name: value[1] || "" };
+    }
+    if (value && typeof value === "object") {
+      return { id: value.id ?? null, name: value.name || "" };
+    }
+    return { id: value ?? null, name: "" };
+  };
+
+  const normalizeDriverLine = (line) => {
+    const driver = extractIdName(line.driver_id ?? line.driver);
+    const lineWork = extractIdName(line.line_work_id ?? line.line_work);
+    const createdBy = extractIdName(line.created_by);
+
+    return {
+      id: line.id,
+      driver_id: driver.id,
+      driver_name: driver.name,
+      line_work_id: lineWork.id,
+      line_work_name: lineWork.name,
+      created_by: createdBy.name || createdBy.id,
+      created_at: line.created_at,
+      updated_at: line.updated_at,
+      deleted_at: line.deleted_at,
+    };
+  };
+
   const fetchDriverLines = async () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await api.get("/driverlines");
-
-      // Transform API response to match frontend format
-      driverLines.value = response.data.data.map((line) => ({
-        id: line.id,
-        driver_id: Array.isArray(line.driver_id) ? line.driver_id[0] : line.driver_id,
-        driver_name: Array.isArray(line.driver_id) ? line.driver_id[1] : "",
-        line_work_id: Array.isArray(line.line_work_id) ? line.line_work_id[0] : line.line_work_id,
-        line_work_name: Array.isArray(line.line_work_id) ? line.line_work_id[1] : "",
-        created_by: Array.isArray(line.created_by) ? line.created_by[1] : "",
-        created_at: line.created_at,
-        updated_at: line.updated_at,
-      }));
-
-      console.log(`✅ Successfully loaded ${driverLines.value.length} driver lines`);
+      const response = await apiServices.getDriverLines();
+      const data = response.data.data || [];
+      driverLines.value = data.map(normalizeDriverLine);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch driver lines";
-      console.error("❌ Error fetching driver lines:", err);
+      console.error("Error fetching driver lines:", err);
       throw err;
     } finally {
       loading.value = false;
+    }
+  };
+
+  const fetchTrashedDriverLines = async () => {
+    trashedLoading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getTrashedDriverLines();
+      const data = response.data.data || [];
+      trashedDriverLines.value = data.map(normalizeDriverLine);
+      return response.data;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch trashed driver lines";
+      console.error("Error fetching trashed driver lines:", err);
+      throw err;
+    } finally {
+      trashedLoading.value = false;
     }
   };
 
@@ -43,66 +75,38 @@ export const useDriverLineStore = defineStore("driverLine", () => {
     loading.value = true;
     error.value = null;
     try {
-      // Validate required fields
       if (!driverLineData.driver_id || !driverLineData.line_work_id) {
         const validationError = new Error("Driver and Line Work are required");
         validationError.response = {
           data: {
             success: false,
-            error: "Driver and Line Work fields are required."
-          }
+            error: "Driver and Line Work fields are required.",
+          },
         };
         throw validationError;
       }
 
-      // Transform frontend data to API format
       const apiData = {
-        driver_id: parseInt(driverLineData.driver_id),
-        line_work_id: parseInt(driverLineData.line_work_id),
+        driver_id: parseInt(driverLineData.driver_id, 10),
+        line_work_id: parseInt(driverLineData.line_work_id, 10),
       };
 
-      console.log("📤 Sending driver line data to API:", apiData);
-
-      const response = await api.post("/driverlines", apiData);
-
-      console.log("✅ API Response:", response.data);
-
-      // Transform response to match frontend format
-      const newDriverLine = {
-        id: response.data.data.id,
-        driver_id: Array.isArray(response.data.data.driver_id) 
-          ? response.data.data.driver_id[0] 
-          : response.data.data.driver_id,
-        driver_name: Array.isArray(response.data.data.driver_id) 
-          ? response.data.data.driver_id[1] 
-          : "",
-        line_work_id: Array.isArray(response.data.data.line_work_id) 
-          ? response.data.data.line_work_id[0] 
-          : response.data.data.line_work_id,
-        line_work_name: Array.isArray(response.data.data.line_work_id) 
-          ? response.data.data.line_work_id[1] 
-          : "",
-        created_by: Array.isArray(response.data.data.created_by) 
-          ? response.data.data.created_by[1] 
-          : "",
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
-      };
-
+      const response = await apiServices.createDriverLine(apiData);
+      const newDriverLine = normalizeDriverLine(
+        response.data.data || response.data
+      );
       driverLines.value.push(newDriverLine);
-      console.log("✅ Driver line added successfully to store");
       return newDriverLine;
     } catch (err) {
-      // Handle validation errors
       if (err.response?.data?.success === false) {
-        error.value = err.response.data.error || err.response.data.message || "Validation failed";
-        console.error("❌ Validation error:", error.value);
+        error.value =
+          err.response.data.error ||
+          err.response.data.message ||
+          "Validation failed";
       } else {
         error.value = err.message || "Failed to add driver line";
-        console.error("❌ Error adding driver line:", error.value);
       }
-
-      console.error("Error details:", err.response?.data || err);
+      console.error("Error adding driver line:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -113,80 +117,63 @@ export const useDriverLineStore = defineStore("driverLine", () => {
     loading.value = true;
     error.value = null;
     try {
-      // Transform frontend data to API format - ONLY send provided fields
       const apiData = {};
-
       if (driverLineData.driver_id) {
-        apiData.driver_id = parseInt(driverLineData.driver_id);
+        apiData.driver_id = parseInt(driverLineData.driver_id, 10);
       }
       if (driverLineData.line_work_id) {
-        apiData.line_work_id = parseInt(driverLineData.line_work_id);
+        apiData.line_work_id = parseInt(driverLineData.line_work_id, 10);
       }
 
-      console.log("📤 Updating driver line:", apiData);
+      const response = await apiServices.updateDriverLine(
+        driverLineId,
+        apiData
+      );
+      const updated = normalizeDriverLine(response.data.data || response.data);
 
-      const response = await api.post(`/driverlines/${driverLineId}`, apiData, {
-        headers: {
-          'X-HTTP-Method-Override': 'PATCH'
-        }
-      });
-
-      console.log("✅ API Response:", response.data);
-
-      // Update local state with response data
       const index = driverLines.value.findIndex((dl) => dl.id === driverLineId);
       if (index > -1) {
-        driverLines.value[index] = {
-          id: response.data.data.id,
-          driver_id: Array.isArray(response.data.data.driver_id) 
-            ? response.data.data.driver_id[0] 
-            : response.data.data.driver_id,
-          driver_name: Array.isArray(response.data.data.driver_id) 
-            ? response.data.data.driver_id[1] 
-            : driverLines.value[index].driver_name,
-          line_work_id: Array.isArray(response.data.data.line_work_id) 
-            ? response.data.data.line_work_id[0] 
-            : response.data.data.line_work_id,
-          line_work_name: Array.isArray(response.data.data.line_work_id) 
-            ? response.data.data.line_work_id[1] 
-            : driverLines.value[index].line_work_name,
-          created_by: Array.isArray(response.data.data.created_by) 
-            ? response.data.data.created_by[1] 
-            : driverLines.value[index].created_by,
-          created_at: response.data.data.created_at,
-          updated_at: response.data.data.updated_at,
-        };
-        console.log("✅ Driver line updated successfully");
+        driverLines.value[index] = updated;
       }
       return driverLines.value[index];
     } catch (err) {
       if (err.response?.data?.success === false) {
-        error.value = err.response.data.error || err.response.data.message || "Validation failed";
+        error.value =
+          err.response.data.error ||
+          err.response.data.message ||
+          "Validation failed";
       } else {
         error.value = err.message || "Failed to update driver line";
       }
-      console.error("❌ Error updating driver line:", err);
+      console.error("Error updating driver line:", err);
       throw err;
     } finally {
       loading.value = false;
     }
   };
 
-  const deleteDriverLine = async (driverLineId) => {
+  const deleteDriverLine = async (driverLineId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await api.delete(`/driverlines/${driverLineId}`);
+      await apiServices.deleteDriverLine(driverLineId, force);
 
-      const index = driverLines.value.findIndex((dl) => dl.id === driverLineId);
-      if (index > -1) {
-        const driverLine = driverLines.value.splice(index, 1)[0];
-        trashedDriverLines.value.push(driverLine);
+      if (force) {
+        trashedDriverLines.value = trashedDriverLines.value.filter(
+          (dl) => dl.id !== driverLineId
+        );
+      } else {
+        const index = driverLines.value.findIndex(
+          (dl) => dl.id === driverLineId
+        );
+        if (index > -1) {
+          const driverLine = driverLines.value.splice(index, 1)[0];
+          trashedDriverLines.value.push(driverLine);
+        }
       }
-      console.log("✅ Driver line deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete driver line";
-      console.error("❌ Error deleting driver line:", err);
+      console.error("Error deleting driver line:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -197,17 +184,68 @@ export const useDriverLineStore = defineStore("driverLine", () => {
     loading.value = true;
     error.value = null;
     try {
-      await api.post(`/restore/driverlines/${driverLineId}`);
+      await apiServices.restoreDriverLine(driverLineId);
 
-      const index = trashedDriverLines.value.findIndex((dl) => dl.id === driverLineId);
+      const index = trashedDriverLines.value.findIndex(
+        (dl) => dl.id === driverLineId
+      );
       if (index > -1) {
         const driverLine = trashedDriverLines.value.splice(index, 1)[0];
         driverLines.value.push(driverLine);
       }
-      console.log("✅ Driver line restored successfully");
     } catch (err) {
       error.value = err.message || "Failed to restore driver line";
-      console.error("❌ Error restoring driver line:", err);
+      console.error("Error restoring driver line:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkDeleteDriverLines = async (driverLineIds, force = false) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkDeleteDriverLines(driverLineIds, force);
+
+      if (force) {
+        trashedDriverLines.value = trashedDriverLines.value.filter(
+          (dl) => !driverLineIds.includes(dl.id)
+        );
+      } else {
+        const deleted = driverLines.value.filter((dl) =>
+          driverLineIds.includes(dl.id)
+        );
+        driverLines.value = driverLines.value.filter(
+          (dl) => !driverLineIds.includes(dl.id)
+        );
+        trashedDriverLines.value.push(...deleted);
+      }
+    } catch (err) {
+      error.value = err.message || "Failed to bulk delete driver lines";
+      console.error("Error bulk deleting driver lines:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const bulkRestoreDriverLines = async (driverLineIds) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      await apiServices.bulkRestoreDriverLines(driverLineIds);
+
+      const restored = trashedDriverLines.value.filter((dl) =>
+        driverLineIds.includes(dl.id)
+      );
+      trashedDriverLines.value = trashedDriverLines.value.filter(
+        (dl) => !driverLineIds.includes(dl.id)
+      );
+      driverLines.value.push(...restored);
+    } catch (err) {
+      error.value = err.message || "Failed to bulk restore driver lines";
+      console.error("Error bulk restoring driver lines:", err);
       throw err;
     } finally {
       loading.value = false;
@@ -219,12 +257,16 @@ export const useDriverLineStore = defineStore("driverLine", () => {
     driverLines,
     trashedDriverLines,
     loading,
+    trashedLoading,
     error,
     // Actions
     fetchDriverLines,
+    fetchTrashedDriverLines,
     addDriverLine,
     updateDriverLine,
     deleteDriverLine,
     restoreDriverLine,
+    bulkDeleteDriverLines,
+    bulkRestoreDriverLines,
   };
 });

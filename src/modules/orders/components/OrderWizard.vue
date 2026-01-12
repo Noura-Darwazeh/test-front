@@ -278,24 +278,6 @@
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label">{{
-                    $t("orders.form.companyId")
-                  }}</label>
-                  <select v-model="formData.company_id" class="form-select">
-                    <option value="">
-                      {{ $t("orders.form.selectCompany") }}
-                    </option>
-                    <option
-                      v-for="company in companies"
-                      :key="company.id"
-                      :value="company.id"
-                    >
-                      {{ company.name }}
-                    </option>
-                  </select>
-                </div>
-
-                <div class="col-md-6">
                   <label class="form-label"
                     >{{ $t("orders.form.branchCustomerCompanyId") }}
                     <span class="text-danger">*</span></label
@@ -563,8 +545,10 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
+const { companyId, currencyId } = useAuthDefaults();
 
 // Simple price formatter
 const formatPrice = (value, symbol = "$") => {
@@ -612,7 +596,6 @@ const props = defineProps({
 });
 
 const availableCurrencies = computed(() => props.currencies);
-
 const emit = defineEmits(["close", "submit"]);
 
 const currentStep = ref(0);
@@ -623,7 +606,7 @@ const steps = computed(() => [
   { label: t("orders.wizard.step3") },
 ]);
 
-const formData = ref({
+const buildDefaultFormData = () => ({
   customer_id: "",
   to_id: "",
   type: "delivery",
@@ -631,14 +614,16 @@ const formData = ref({
   package: "one",
   parent_order_id: "",
   price: "",
-  currency_id: "1",
+  currency_id: currencyId.value || "",
   lineprice_id: "",
   discount_id: "",
   company_item_price_id: "",
-  company_id: "1",
+  company_id: companyId.value || "",
   branch_customer_company_id: "",
   branch_delivery_company_id: "",
 });
+
+const formData = ref(buildDefaultFormData());
 
 const orderItems = ref([]);
 const selectedOrderItems = ref([]);
@@ -713,22 +698,7 @@ const previousStep = () => {
 
 const closeWizard = () => {
   currentStep.value = 0;
-  formData.value = {
-    customer_id: "",
-    to_id: "",
-    type: "delivery",
-    case: "Full",
-    package: "one",
-    parent_order_id: "",
-    price: "",
-    currency_id: "1",
-    lineprice_id: "",
-    discount_id: "",
-    company_item_price_id: "",
-    company_id: "1",
-    branch_customer_company_id: "",
-    branch_delivery_company_id: "",
-  };
+  formData.value = buildDefaultFormData();
   orderItems.value = [];
   selectedOrderItems.value = [];
   emit("close");
@@ -782,11 +752,19 @@ const submitOrder = () => {
   }));
 
   // Build order data matching API format
+  const resolvedCompanyId = companyId.value
+    ? parseInt(companyId.value)
+    : formData.value.company_id
+      ? parseInt(formData.value.company_id)
+      : null;
+
   const orderData = {
     from_company_id: parseInt(formData.value.branch_customer_company_id),
     to_id: parseInt(formData.value.to_id),
     price: parseFloat(formData.value.price),
-    currency_id: parseInt(formData.value.currency_id),
+    currency_id: currencyId.value
+      ? parseInt(currencyId.value)
+      : parseInt(formData.value.currency_id),
     lineprice_id: parseInt(formData.value.lineprice_id),
     discount_id: formData.value.discount_id ? parseInt(formData.value.discount_id) : null,
     company_item_price_id: parseInt(formData.value.company_item_price_id),
@@ -794,7 +772,7 @@ const submitOrder = () => {
     type: formData.value.type,
     package: formData.value.package,
     parent_order_id: formData.value.parent_order_id ? parseInt(formData.value.parent_order_id) : null,
-    company_id: parseInt(formData.value.company_id),
+    company_id: resolvedCompanyId,
     is_delivery_price_from_customer: 0, // Default value
     order_items: transformedOrderItems,
   };

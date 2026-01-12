@@ -98,6 +98,7 @@ import { useAuthStore } from '../../../stores/auth.js';
 import FormLabel from '../../../components/shared/FormLabel.vue';
 import TextField from '../../../components/shared/TextField.vue';
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue';
+import { setLocale } from '@/i18n/index';
 import packageIcon from '../../../assets/login/package.svg';
 
 const router = useRouter();
@@ -132,6 +133,12 @@ const errors = reactive({
   password: '' 
 });
 
+const resolveUiLocale = (language) => {
+  const normalized = (language || '').toLowerCase();
+  if (normalized === 'arabic' || normalized === 'ar') return 'ar';
+  return 'en';
+};
+
 async function onSubmit() {
   // Clear previous errors
   errors.login = '';
@@ -161,9 +168,19 @@ async function onSubmit() {
       password: form.password
     });
 
-    // Redirect to dashboard on success
+    const uiLang = resolveUiLocale(authStore.user?.language);
+    const currentLang = localStorage.getItem('lang') || 'en';
+    setLocale(uiLang);
+
+    if (uiLang !== currentLang) {
+      window.location.reload();
+      return;
+    }
+
+    // Redirect to user's landing page on success
     console.log('✅ Login successful, redirecting...');
-    router.push('/user');
+    const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || '/user';
+    router.push(defaultPage);
   } catch (error) {
     // Error is already set in the store
     console.error('❌ Login failed:', error.message);

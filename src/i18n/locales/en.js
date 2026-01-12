@@ -17,7 +17,7 @@ export default {
     emailLabel: "Email or Username",
     emailPlaceholder: "Enter your email or username",
     passwordLabel: "Password",
-    passwordPlaceholder: "••••••••",
+    passwordPlaceholder: "********",
     forgotPassword: "Forgot Password?",
     signIn: "Sign In",
     signingIn: "Signing In...",
@@ -68,6 +68,10 @@ export default {
     userRole: "User Role",
     landingPage: "Landing Page",
     language: "Language",
+    languages: {
+      english: "English",
+      arabic: "Arabic",
+    },
     sharedLine: "Shared Line",
     status: "Status",
     company: "Company",
@@ -366,6 +370,62 @@ export default {
     edit: "Edit",
     delete: "Delete",
     actions: "Actions",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "order",
+    entityPlural: "orders",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "work plan",
+    entityPlural: "work plans",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "company price",
+    entityPlural: "company prices",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "discount",
+    entityPlural: "discounts",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "line work",
+    entityPlural: "line works",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "driver line",
+    entityPlural: "driver lines",
+
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "region",
+    entityPlural: "regions",
 
     // Table Columns
     id: "ID",
@@ -778,11 +838,17 @@ export default {
     searchPlaceholder: "Search Regions...",
     search: "Search",
     columns: "Columns",
-    addNew: "Add Region",
-    export: "Export",
-    edit: "Edit",
-    delete: "Delete",
-    actions: "Actions",
+      addNew: "Add Region",
+      export: "Export",
+      edit: "Edit",
+      delete: "Delete",
+      actions: "Actions",
+      bulkDelete: "Delete Selected",
+      bulkRestore: "Restore Selected",
+
+      // Entity names for bulk actions
+      entitySingular: "region",
+      entityPlural: "regions",
 
     // Table Columns
     id: "ID",
@@ -853,14 +919,21 @@ export default {
     searchPlaceholder: "Search orders...",
     search: "Search",
     columns: "Columns",
-    addNew: "Add Order",
-    export: "Export",
-    edit: "Edit",
-    delete: "Delete",
-    actions: "Actions",
+      addNew: "Add Order",
+      export: "Export",
+      edit: "Edit",
+      delete: "Delete",
+      actionsLabel: "Actions",
+      bulkDelete: "Delete Selected",
+      bulkRestore: "Restore Selected",
+
+      // Entity names for bulk actions
+      entitySingular: "order",
+      entityPlural: "orders",
 
     // Statistics Cards
     stats: {
+      timePeriod: "Time Period",
       total: "Total Orders",
       totalProfit: "Total Profit",
       pending: "Pending",
@@ -896,12 +969,14 @@ export default {
     },
 
     // Actions
-    actions: {
-      view: "View Details",
-      edit: "Edit Order",
-      assignDriver: "Assign Driver",
-      updateStatus: "Update Status",
-      track: "Track Order",
+      actions: {
+        view: "View Details",
+        edit: "Edit Order",
+        delete: "Delete",
+        deletePermanently: "Delete Permanently",
+        assignDriver: "Assign Driver",
+        updateStatus: "Update Status",
+        track: "Track Order",
       print: "Print",
       cancel: "Cancel Order",
     },
@@ -1083,11 +1158,17 @@ export default {
     searchPlaceholder: "Search discounts...",
     search: "Search",
     columns: "Columns",
-    addNew: "Add Discount",
-    export: "Export",
-    edit: "Edit",
-    delete: "Delete",
-    actions: "Actions",
+      addNew: "Add Discount",
+      export: "Export",
+      edit: "Edit",
+      delete: "Delete",
+      actions: "Actions",
+      bulkDelete: "Delete Selected",
+      bulkRestore: "Restore Selected",
+
+      // Entity names for bulk actions
+      entitySingular: "discount",
+      entityPlural: "discounts",
 
     // Table Columns
     table: {
@@ -1432,6 +1513,14 @@ export default {
       delete: "Delete",
     },
 
+    // Bulk Actions
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "currency",
+    entityPlural: "currencies",
+
     // Trashed Items
     trashed: {
       title: "Deleted Currencies",
@@ -1443,6 +1532,17 @@ export default {
 
   // Common Translations
   common: {
+    actions: "Actions",
+    noDataAvailable: "No data available",
+    uploadImage: "Upload Image",
+    remove: "Remove",
+    order: "Order",
+    items: "Items",
+    selectOrder: "Select order",
+    selectItems: "Select items",
+    restore: "Restore",
+    permanentDelete: "Delete Permanently",
+    noCompanyAssigned: "No company assigned",
     save: "Save",
     cancel: "Cancel",
     close: "Close",
@@ -1463,6 +1563,16 @@ export default {
     active: "Active",
     saveChanges: "Save Changes",
     confirmCancel: "Are you sure you want to cancel? All unsaved changes will be lost.",
+    deleteConfirmMessage: "Are you sure you want to delete this item?",
+    validation: {
+      requiredField: "{field} is required",
+      invalidEmail: "Invalid email format",
+      minLength: "Must be at least {min} characters",
+      imageRequired: "Profile picture is required",
+      invalidImageFile: "Please select a valid image file",
+      imageMaxSize: "Image size should not exceed {size}MB",
+      orderRowRequired: "Order and items are required",
+    },
 
     // Bulk action confirmation messages
     bulkDeleteConfirmTitle: "Confirm Bulk Delete",
@@ -1470,6 +1580,12 @@ export default {
       "Are you sure you want to delete {count} {entity}?",
     bulkRestoreConfirmTitle: "Confirm Bulk Restore",
     bulkRestoreConfirmMessage:
+      "Are you sure you want to restore {count} {entity}?",
+    bulkDeleteConfirm:
+      "Are you sure you want to delete {count} {entity}?",
+    bulkPermanentDeleteConfirm:
+      "Are you sure you want to permanently delete {count} {entity}?",
+    bulkRestoreConfirm:
       "Are you sure you want to restore {count} {entity}?",
   },
 
@@ -1578,6 +1694,10 @@ export default {
     newPasswordPlaceholder: "Enter new password",
     confirmPasswordPlaceholder: "Confirm new password",
     language: "Language",
+    languages: {
+      english: "English",
+      arabic: "Arabic",
+    },
     defaultLandingPage: "Default Landing Page",
     noEmail: "No email provided",
     updateSuccess: "Profile updated successfully!",

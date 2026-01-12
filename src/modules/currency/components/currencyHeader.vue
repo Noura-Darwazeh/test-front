@@ -7,6 +7,7 @@
     v-model:visibleColumns="visibleColumns"
     :showAddButton="showAddButton"
     :addButtonText="addButtonText"
+    :showTrashedButton="showTrashedButton"
     @add-click="$emit('add-click')"
     @trashed-click="$emit('trashed-click')"
   />
@@ -23,6 +24,7 @@ defineProps({
   visibleColumns: Array,
   showAddButton: Boolean,
   addButtonText: String,
+  showTrashedButton: Boolean,
 });
 
 // Model

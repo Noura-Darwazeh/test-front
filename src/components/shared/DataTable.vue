@@ -60,7 +60,7 @@
               v-if="hasActionsSlot"
               class="text-center text-muted fw-normal small text-uppercase"
             >
-              {{ actionsLabel }}
+              {{ actionsLabelText }}
             </th>
           </tr>
         </thead>
@@ -137,7 +137,7 @@
 
       <!-- No Data Message for Mobile -->
       <div v-if="sortedData.length === 0" class="text-center text-muted py-5">
-        <p class="mb-0">No data available</p>
+        <p class="mb-0">{{ t('common.noDataAvailable') }}</p>
       </div>
     </div>
   </div>
@@ -149,7 +149,7 @@ import { sortData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import StatusBadge from "./StatusBadge.vue";
 
-const { locale } = useI18n();
+const { t, locale } = useI18n();
 const isRTL = computed(() => locale.value === "ar");
 const slots = useSlots();
 
@@ -168,7 +168,7 @@ const props = defineProps({
   },
   actionsLabel: {
     type: String,
-    default: "Actions",
+    default: "",
   },
   modelValue: {
     type: Array,
@@ -179,10 +179,18 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const hasActionsSlot = computed(() => !!slots.actions);
+const actionsLabelText = computed(() => props.actionsLabel || t("common.actions"));
 
 const sortedData = computed(() => {
   return sortData(props.data, sortKey.value, sortDirection.value);
 });
+
+const arraysEqual = (left, right) => {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right)) return false;
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+};
 
 const handleSort = (columnKey) => {
   if (sortKey.value === columnKey) {
@@ -202,9 +210,22 @@ const toggleSelectAll = () => {
 };
 
 watch(selectedRows, (newVal) => {
-  selectAll.value = newVal.length === sortedData.value.length && newVal.length > 0;
-  emit('update:modelValue', newVal);
+  selectAll.value =
+    newVal.length === sortedData.value.length && newVal.length > 0;
+  if (!arraysEqual(newVal, props.modelValue)) {
+    emit("update:modelValue", newVal);
+  }
 });
+
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    if (Array.isArray(newVal) && !arraysEqual(newVal, selectedRows.value)) {
+      selectedRows.value = [...newVal];
+    }
+  },
+  { immediate: true }
+);
 
 // Watch for data changes and clear selection if needed
 watch(() => props.data, () => {
@@ -221,6 +242,11 @@ watch(() => props.data, () => {
 .table-responsive table,
 .table-responsive td {
   margin: 0 !important;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .card:last-child {

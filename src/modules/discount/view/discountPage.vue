@@ -14,29 +14,90 @@
       :showAddButton="true"
       :addButtonText="$t('discount.addNew')"
       @add-click="openModal"
-      @trashed-click="openTrashedModal"
     />
 
     <div class="card border-0">
+      <!-- Tabs -->
+      <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{ active: activeTab === 'active' }"
+              @click="switchTab('active')"
+            >
+              {{ $t('common.active') }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link trashed-tab"
+              :class="{ active: activeTab === 'trashed' }"
+              @click="switchTab('trashed')"
+            >
+              {{ $t('discount.trashed.title') }}
+            </button>
+          </li>
+        </ul>
+      </div>
       <div class="card-body p-0">
-        <DataTable :columns="filteredColumns" :data="paginatedDiscounts">
-          <template #actions="{ row }">
-            <Actions
-              :row="row"
-              :editLabel="$t('discount.edit')"
-              :detailsLabel="$t('discount.actions.details')"
-              @edit="handleEdit"
-              @details="handleDetails"
+        <BulkActionsBar
+          :selectedCount="selectedRows.length"
+          entityName="discount"
+          :actions="bulkActions"
+          :loading="bulkActionLoading"
+          @action="handleBulkAction"
+        />
+        <!-- Loading State -->
+        <div v-if="currentLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">{{ $t('common.loading') }}</span>
+          </div>
+          <p class="mt-2">{{ $t('common.loading') }}</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="discountStore.error" class="alert alert-danger m-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ discountStore.error }}
+        </div>
+
+        <div v-else>
+          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows">
+            <template #actions="{ row }">
+              <Actions
+                v-if="activeTab === 'active'"
+                :row="row"
+                :editLabel="$t('discount.edit')"
+                :detailsLabel="$t('discount.actions.details')"
+                :deleteLabel="$t('discount.actions.delete')"
+                :confirmDelete="true"
+                @edit="handleEdit"
+                @details="handleDetails"
+                @delete="handleDeleteDiscount"
+              />
+              <Actions
+                v-else
+                :row="row"
+                :restoreLabel="$t('discount.trashed.restore')"
+                :deleteLabel="$t('discount.trashed.delete')"
+                :showEdit="false"
+                :showDetails="false"
+                :showRestore="true"
+                :confirmDelete="true"
+                @restore="handleRestoreDiscount"
+                @delete="handlePermanentDeleteDiscount"
+              />
+            </template>
+          </DataTable>
+          <div class="px-3 pt-1 pb-2 bg-light">
+            <Pagination
+              :totalItems="currentFilteredData.length"
+              :itemsPerPage="itemsPerPage"
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)"
             />
-          </template>
-        </DataTable>
-        <div class="px-3 pt-1 pb-2 bg-light">
-          <Pagination
-            :totalItems="filteredDiscounts.length"
-            :itemsPerPage="itemsPerPage"
-            :currentPage="currentPage"
-            @update:currentPage="(page) => (currentPage = page)"
-          />
+          </div>
         </div>
       </div>
     </div>
@@ -51,18 +112,6 @@
       @submit="handleAddDiscount"
     />
 
-    <!-- Trashed Discounts Modal -->
-    <TrashedItemsModal
-      :isOpen="isTrashedModalOpen"
-      :title="$t('discount.trashed.title')"
-      :emptyMessage="$t('discount.trashed.empty')"
-      :columns="trashedColumns"
-      :trashedItems="trashedDiscounts"
-      :showDeleteButton="false"
-      @close="closeTrashedModal"
-      @restore="handleRestoreDiscount"
-    />
-
     <!-- Details Modal -->
     <DetailsModal
       :isOpen="isDetailsModalOpen"
@@ -71,25 +120,40 @@
       :fields="detailsFields"
       @close="closeDetailsModal"
     />
+
+    <ConfirmationModal
+      :isOpen="isBulkConfirmOpen"
+      :title="$t('common.bulkDeleteConfirmTitle')"
+      :message="bulkConfirmMessage"
+      :confirmText="$t('common.confirm')"
+      :cancelText="$t('common.cancel')"
+      @confirm="executeBulkAction"
+      @close="cancelBulkAction"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import DiscountHeader from "../components/discountHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDiscountFormFields } from "../components/discountFormFields.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { useDiscountStore } from "../store/discountStore.js";
 
 const { t } = useI18n();
 const { discountFields } = useDiscountFormFields();
+const { companyId } = useAuthDefaults();
+const discountStore = useDiscountStore();
 
 // Simple price formatters
 const formatPrice = (value) => {
@@ -107,80 +171,26 @@ const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDiscount = ref({});
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const activeTab = ref('active');
 
-// Simple local data - following the backend API schema
-const discounts = ref([
-  {
-    id: 1,
-    type: "Customer",
-    discount_percentage: 15.5,
-    start_date: "2024-01-15 00:00:00",
-    end_date: "2024-12-31 23:59:59",
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    value: "customer_123",
-    status: "active",
-    usage_count: 45,
-    created_at: "2024-01-15 10:30:00",
-  },
-  {
-    id: 2,
-    type: "Region",
-    discount_percentage: 10.0,
-    start_date: "2024-02-01 00:00:00",
-    end_date: "2024-06-30 23:59:59",
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    value: "region_456",
-    status: "active",
-    usage_count: 23,
-    created_at: "2024-02-01 09:15:00",
-  },
-  {
-    id: 3,
-    type: "Price",
-    discount_percentage: 5.0,
-    start_date: "2024-01-01 00:00:00",
-    end_date: "2024-12-31 23:59:59",
-    company_id: 1,
-    company_name: "Tech Solutions Ltd",
-    value: "100.00",
-    status: "expired",
-    usage_count: 12,
-    created_at: "2024-01-01 08:00:00",
-  },
-  {
-    id: 4,
-    type: "Line",
-    discount_percentage: 8.0,
-    start_date: "2024-03-01 00:00:00",
-    end_date: null,
-    company_id: 2,
-    company_name: "Fast Delivery Co",
-    value: "line_789",
-    status: "stopped",
-    usage_count: 7,
-    created_at: "2024-03-01 14:20:00",
-  },
-]);
+// Store data
+const discounts = computed(() => discountStore.discounts);
+const trashedDiscounts = computed(() => discountStore.trashedDiscounts);
 
-const trashedDiscounts = ref([
-  {
-    id: 101,
-    type: "Line",
-    discount_percentage: 12.0,
-    start_date: "2024-01-01 00:00:00",
-    end_date: "2024-03-31 23:59:59",
-    company_id: 1,
-    value: "line_789",
-    status: "deleted",
-    created_at: "2024-01-01 12:00:00",
-  },
-]);
+onMounted(async () => {
+  try {
+    await discountStore.fetchDiscounts();
+  } catch (error) {
+    console.error("Failed to load discounts:", error);
+  }
+});
 
 // Table columns
 const discountColumns = computed(() => [
@@ -242,24 +252,83 @@ const trashedColumns = computed(() => [
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-  return discountColumns.value.filter((col) =>
-    visibleColumns.value.includes(col.key)
-  );
+  if (activeTab.value === "active") {
+    return discountColumns.value.filter((col) =>
+      visibleColumns.value.includes(col.key)
+    );
+  }
+  return trashedColumns.value;
 });
 
-const filteredDiscounts = computed(() => {
-  let result = discounts.value;
-  result = filterByGroups(result, selectedGroups.value, "type");
+const currentData = computed(() => {
+  return activeTab.value === "active" ? discounts.value : trashedDiscounts.value;
+});
+
+const currentLoading = computed(() => {
+  return activeTab.value === "active"
+    ? discountStore.loading
+    : discountStore.trashedLoading;
+});
+
+const currentFilteredData = computed(() => {
+  let result = currentData.value;
+  if (activeTab.value === "active") {
+    result = filterByGroups(result, selectedGroups.value, "type");
+  }
   result = filterData(result, searchText.value);
   return result;
 });
 
-const paginatedDiscounts = computed(() => {
+const paginatedData = computed(() => {
   return paginateData(
-    filteredDiscounts.value,
+    currentFilteredData.value,
     currentPage.value,
     itemsPerPage.value
   );
+});
+
+const bulkActions = computed(() => {
+  if (activeTab.value === "active") {
+    return [
+      {
+        id: "delete",
+        label: t("discount.bulkDelete"),
+        bgColor: "var(--color-danger)",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "restore",
+      label: t("discount.bulkRestore"),
+      bgColor: "var(--color-success)",
+    },
+    {
+      id: "permanentDelete",
+      label: t("common.permanentDelete"),
+      bgColor: "var(--color-danger)",
+    },
+  ];
+});
+
+const bulkConfirmMessage = computed(() => {
+  if (!pendingBulkAction.value) return "";
+
+  const count = selectedRows.value.length;
+  const entity =
+    count === 1 ? t("discount.entitySingular") : t("discount.entityPlural");
+
+  if (pendingBulkAction.value === "delete") {
+    return t("common.bulkDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "permanentDelete") {
+    return t("common.bulkPermanentDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "restore") {
+    return t("common.bulkRestoreConfirm", { count, entity });
+  }
+  return "";
 });
 
 // Action methods
@@ -275,66 +344,112 @@ const closeModal = () => {
   selectedDiscount.value = {};
 };
 
-const openTrashedModal = () => {
-  isTrashedModalOpen.value = true;
+const switchTab = async (tab) => {
+  activeTab.value = tab;
+  currentPage.value = 1;
+  selectedRows.value = [];
+
+  if (tab === "trashed") {
+    try {
+      await discountStore.fetchTrashedDiscounts();
+    } catch (error) {
+      console.error("Failed to load trashed discounts:", error);
+    }
+  }
 };
 
-const closeTrashedModal = () => {
-  isTrashedModalOpen.value = false;
-};
-
-const handleAddDiscount = (discountData) => {
-  console.log("Discount data:", discountData);
-
+const handleAddDiscount = async (discountData) => {
   const formatDateTime = (dateTimeLocal) => {
     if (!dateTimeLocal) return null;
     return dateTimeLocal.replace("T", " ") + ":00";
   };
 
-  if (isEditMode.value) {
-    // Update existing discount
-    const index = discounts.value.findIndex(d => d.id === selectedDiscount.value.id);
-    if (index > -1) {
-      discounts.value[index] = {
-        ...discounts.value[index],
-        type: discountData.type,
-        discount_percentage: parseFloat(discountData.discount_percentage),
-        start_date: formatDateTime(discountData.start_date),
-        end_date: formatDateTime(discountData.end_date),
-        company_id: parseInt(discountData.company_id),
-        value: discountData.value,
-      };
-      console.log("Discount updated successfully!");
-    }
-  } else {
-    // Add new discount
-    const newDiscount = {
-      id: discounts.value.length + 1,
-      type: discountData.type,
-      discount_percentage: parseFloat(discountData.discount_percentage),
-      start_date: formatDateTime(discountData.start_date),
-      end_date: formatDateTime(discountData.end_date),
-      company_id: parseInt(discountData.company_id),
-      company_name: "Tech Solutions Ltd",
-      value: discountData.value,
-      status: "active",
-      usage_count: 0,
-      created_at: new Date().toISOString().replace("T", " ").substring(0, 19),
-    };
+  const resolvedCompanyId = companyId.value
+    ? parseInt(companyId.value, 10)
+    : discountData.company_id
+      ? parseInt(discountData.company_id, 10)
+      : null;
 
-    discounts.value.push(newDiscount);
-    console.log("Discount added successfully!");
+  const payload = {
+    type: discountData.type,
+    discount_percentage: parseFloat(discountData.discount_percentage),
+    start_date: formatDateTime(discountData.start_date),
+    end_date: formatDateTime(discountData.end_date),
+    company_id: resolvedCompanyId,
+    value: discountData.value,
+  };
+
+  try {
+    if (isEditMode.value) {
+      await discountStore.updateDiscount(selectedDiscount.value.id, payload);
+      console.log("Discount updated successfully!");
+    } else {
+      await discountStore.addDiscount(payload);
+      console.log("Discount added successfully!");
+    }
+    closeModal();
+  } catch (error) {
+    console.error("Failed to submit discount:", error);
   }
 };
 
-const handleRestoreDiscount = (discount) => {
-  console.log("Restoring discount:", discount);
-  discounts.value.push(discount);
-  const index = trashedDiscounts.value.findIndex((d) => d.id === discount.id);
-  if (index > -1) {
-    trashedDiscounts.value.splice(index, 1);
+const handleRestoreDiscount = async (discount) => {
+  try {
+    await discountStore.restoreDiscount(discount.id);
+    console.log("Discount restored successfully!");
+  } catch (error) {
+    console.error("Failed to restore discount:", error);
   }
-  console.log("Discount has been restored successfully!");
+};
+
+const handleDeleteDiscount = async (discount) => {
+  try {
+    await discountStore.deleteDiscount(discount.id);
+    console.log("Discount deleted successfully!");
+  } catch (error) {
+    console.error("Failed to delete discount:", error);
+  }
+};
+
+const handlePermanentDeleteDiscount = async (discount) => {
+  try {
+    await discountStore.deleteDiscount(discount.id, true);
+    console.log("Discount permanently deleted successfully!");
+  } catch (error) {
+    console.error("Failed to permanently delete discount:", error);
+  }
+};
+
+const handleBulkAction = ({ actionId }) => {
+  pendingBulkAction.value = actionId;
+  isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+  if (!pendingBulkAction.value) return;
+  bulkActionLoading.value = true;
+
+  try {
+    if (pendingBulkAction.value === "delete") {
+      await discountStore.bulkDeleteDiscounts(selectedRows.value, false);
+    } else if (pendingBulkAction.value === "permanentDelete") {
+      await discountStore.bulkDeleteDiscounts(selectedRows.value, true);
+    } else if (pendingBulkAction.value === "restore") {
+      await discountStore.bulkRestoreDiscounts(selectedRows.value);
+    }
+    selectedRows.value = [];
+  } catch (error) {
+    console.error("Failed to bulk delete discounts:", error);
+  } finally {
+    bulkActionLoading.value = false;
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
+  }
+};
+
+const cancelBulkAction = () => {
+  isBulkConfirmOpen.value = false;
+  pendingBulkAction.value = null;
 };
 
 const handleEdit = (discount) => {
@@ -404,3 +519,5 @@ watch([searchText, selectedGroups], () => {
   max-width: 100%;
 }
 </style>
+
+

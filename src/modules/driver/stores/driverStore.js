@@ -42,10 +42,16 @@ export const useDriverStore = defineStore("driver", () => {
         status: driver.status || "available",
         type: driver.type || "delivery driver",
         branch_id: driver.branch_id,
-        branch_name: `Branch ${driver.branch_id}`,
+        branch_name:
+          driver.branch?.name ||
+          driver.branch_name ||
+          (driver.branch_id ? `Branch ${driver.branch_id}` : ""),
         vehicle_number: driver.vehicle_number || "",
         company_id: driver.company_id,
-        company_name: `Company ${driver.company_id}`,
+        company_name:
+          driver.company?.name ||
+          driver.company_name ||
+          (driver.company_id ? `Company ${driver.company_id}` : ""),
         location: driver.location,
         latitude: driver.latitude,
         longitude: driver.longitude,
@@ -71,7 +77,7 @@ export const useDriverStore = defineStore("driver", () => {
     error.value = null;
     try {
       // Validate company_id is required
-      if (!driverData.company_name) {
+      if (!driverData.company_id) {
         const validationError = new Error("Company is required");
         validationError.response = {
           data: {
@@ -90,10 +96,10 @@ export const useDriverStore = defineStore("driver", () => {
         password: driverData.password,
         phone_number: driverData.phone_number,
         role: "Driver",
-        company_id: parseInt(driverData.company_name),
+        company_id: parseInt(driverData.company_id),
         language: "english",
         shared_line: 0,
-        branch_id: parseInt(driverData.branch_name),
+        branch_id: parseInt(driverData.branch_id),
         status: driverData.status || "available",
         type: driverData.type,
         vehicle_number: driverData.vehicle_number,
@@ -122,10 +128,20 @@ export const useDriverStore = defineStore("driver", () => {
         status: response.data.data.status,
         type: response.data.data.type,
         branch_id: response.data.data.branch_id,
-        branch_name: `Branch ${response.data.data.branch_id}`,
+        branch_name:
+          response.data.data.branch?.name ||
+          response.data.data.branch_name ||
+          (response.data.data.branch_id
+            ? `Branch ${response.data.data.branch_id}`
+            : ""),
         vehicle_number: response.data.data.vehicle_number,
         company_id: response.data.data.company_id,
-        company_name: `Company ${response.data.data.company_id}`,
+        company_name:
+          response.data.data.company?.name ||
+          response.data.data.company_name ||
+          (response.data.data.company_id
+            ? `Company ${response.data.data.company_id}`
+            : ""),
         location: response.data.data.location,
         latitude: response.data.data.latitude,
         longitude: response.data.data.longitude,
@@ -170,11 +186,11 @@ export const useDriverStore = defineStore("driver", () => {
     if (driverData.type) apiData.type = driverData.type;
     if (driverData.vehicle_number) apiData.vehicle_number = driverData.vehicle_number;
     
-    if (driverData.company_name) {
-      apiData.company_id = parseInt(driverData.company_name);
+    if (driverData.company_id) {
+      apiData.company_id = parseInt(driverData.company_id);
     }
-    if (driverData.branch_name) {
-      apiData.branch_id = parseInt(driverData.branch_name);
+    if (driverData.branch_id) {
+      apiData.branch_id = parseInt(driverData.branch_id);
     }
 
     // Only include password if it's provided
@@ -209,10 +225,20 @@ export const useDriverStore = defineStore("driver", () => {
         status: response.data.data.status,
         type: response.data.data.type,
         branch_id: response.data.data.branch_id,
-        branch_name: `Branch ${response.data.data.branch_id}`,
+        branch_name:
+          response.data.data.branch?.name ||
+          response.data.data.branch_name ||
+          (response.data.data.branch_id
+            ? `Branch ${response.data.data.branch_id}`
+            : ""),
         vehicle_number: response.data.data.vehicle_number,
         company_id: response.data.data.company_id,
-        company_name: `Company ${response.data.data.company_id}`,
+        company_name:
+          response.data.data.company?.name ||
+          response.data.data.company_name ||
+          (response.data.data.company_id
+            ? `Company ${response.data.data.company_id}`
+            : ""),
         location: response.data.data.location,
         latitude: response.data.data.latitude,
         longitude: response.data.data.longitude,
@@ -274,10 +300,16 @@ export const useDriverStore = defineStore("driver", () => {
         status: driver.status || "available",
         type: driver.type || "delivery driver",
         branch_id: driver.branch_id,
-        branch_name: `Branch ${driver.branch_id}`,
+        branch_name:
+          driver.branch?.name ||
+          driver.branch_name ||
+          (driver.branch_id ? `Branch ${driver.branch_id}` : ""),
         vehicle_number: driver.vehicle_number || "",
         company_id: driver.company_id,
-        company_name: `Company ${driver.company_id}`,
+        company_name:
+          driver.company?.name ||
+          driver.company_name ||
+          (driver.company_id ? `Company ${driver.company_id}` : ""),
         location: driver.location,
         latitude: driver.latitude,
         longitude: driver.longitude,

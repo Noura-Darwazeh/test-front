@@ -63,7 +63,7 @@
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
                     <p class="mt-2">{{ $t('common.loading') }}</p>
                 </div>
@@ -89,13 +89,16 @@
                                 :row="row"
                                 :editLabel="$t('linePrice.edit')"
                                 :detailsLabel="$t('linePrice.details')"
+                                :deleteLabel="$t('linePrice.delete')"
+                                :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
+                                @delete="handleDeleteLinePrice"
                             />
                             <!-- Trashed Line Prices Actions -->
                             <PrimaryButton
                                 v-else
-                                text="Restore"
+                                :text="$t('linePrice.trashed.restore')"
                                 bgColor="var(--color-success)"
                                 class="d-inline-flex align-items-center"
                                 @click="handleRestoreLinePrice(row)"
@@ -160,9 +163,12 @@ import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useLinePriceStore } from "../stores/linespriceStore.js";
+import apiServices from "@/services/apiServices.js";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const linePriceStore = useLinePriceStore();
+const { companyId, companyOption, currencyId } = useAuthDefaults();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -175,6 +181,8 @@ const selectedLinePrice = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
+const lineOptions = ref([]);
+const currencyOptions = ref([]);
 
 // Bulk action state
 const bulkActionLoading = ref(false);
@@ -188,12 +196,36 @@ const trashedLinePrices = computed(() => linePriceStore.trashedLinePrices);
 // Fetch data on component mount
 onMounted(async () => {
     try {
-        await linePriceStore.fetchLinePrices();
+        await Promise.all([
+            linePriceStore.fetchLinePrices(),
+            fetchDropdownData()
+        ]);
         console.log("✅ Line prices loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load line prices:", error);
     }
 });
+
+const fetchDropdownData = async () => {
+    try {
+        const [linesResponse, currenciesResponse] = await Promise.all([
+            apiServices.getLines(),
+            apiServices.getCurrencies()
+        ]);
+
+        lineOptions.value = (linesResponse.data.data || []).map((line) => ({
+            value: String(line.id),
+            label: line.name
+        }));
+
+        currencyOptions.value = (currenciesResponse.data.data || []).map((currency) => ({
+            value: String(currency.id),
+            label: `${currency.code} (${currency.symbol})`
+        }));
+    } catch (error) {
+        console.error("??O Failed to load line price dropdown data:", error);
+    }
+};
 
 // Line Price Form Fields 
 const linePriceFields = computed(() => [
@@ -202,11 +234,7 @@ const linePriceFields = computed(() => [
         label: t('linePrice.form.line'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: 'Line 1' },
-            { value: '2', label: 'Line 2' },
-            { value: '3', label: 'Line 3' },
-        ],
+        options: lineOptions.value,
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? String(selectedLinePrice.value.line_id) : ''
     },
@@ -230,26 +258,24 @@ const linePriceFields = computed(() => [
         label: t('linePrice.form.currency'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: 'USD' },
-            { value: '2', label: 'EUR' },
-            { value: '3', label: 'ILS' },
-        ],
+        options: currencyOptions.value,
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? String(selectedLinePrice.value.currency_id) : ''
+        defaultValue: isEditMode.value
+            ? String(selectedLinePrice.value.currency_id)
+            : currencyId.value
     },
     {
         name: 'company_id',
         label: t('linePrice.form.company'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: 'Company 1' },
-            { value: '2', label: 'Company 2' },
-            { value: '3', label: 'Company 3' },
-        ],
+        options: companyOption.value.length
+            ? companyOption.value
+            : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? String(selectedLinePrice.value.company_id) : ''
+        defaultValue: companyId.value,
+        locked: true,
+        hidden: true
     },
     {
         name: 'type',
@@ -480,13 +506,17 @@ const handleSubmitLinePrice = async (priceData) => {
     validationError.value = null;
     
     try {
+        const payload = {
+            ...priceData,
+            company_id: companyId.value || priceData.company_id,
+        };
         if (isEditMode.value) {
             // Update existing line price
-            await linePriceStore.updateLinePrice(selectedLinePrice.value.id, priceData);
+            await linePriceStore.updateLinePrice(selectedLinePrice.value.id, payload);
             console.log('✅ Line price updated successfully!');
         } else {
             // Add new line price
-            await linePriceStore.addLinePrice(priceData);
+            await linePriceStore.addLinePrice(payload);
             console.log('✅ Line price added successfully!');
         }
         closeFormModal();
@@ -522,6 +552,17 @@ const handleRestoreLinePrice = async (linePrice) => {
         alert(error.message || 'Failed to restore line price');
     }
 };
+
+const handleDeleteLinePrice = async (linePrice) => {
+    try {
+        await linePriceStore.deleteLinePrice(linePrice.id);
+        console.log("?o. Line price deleted successfully!");
+    } catch (error) {
+        console.error("??O Failed to delete line price:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
 </script>
 
 <style scoped>

@@ -1,8 +1,10 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 export function useCompanyPriceFormFields() {
   const { t } = useI18n();
+  const { companyId, companyOption } = useAuthDefaults();
 
   const companyPriceFields = computed(() => [
     {
@@ -52,11 +54,12 @@ export function useCompanyPriceFormFields() {
       type: "select",
       placeholder: t("companyPrice.form.companyPlaceholder"),
       required: true,
-      options: [
-        { value: 1, label: "Tech Solutions Ltd" },
-        { value: 2, label: "Fast Delivery Co" },
-        { value: 3, label: "Global Logistics Inc" },
-      ],
+      options: companyOption.value.length
+        ? companyOption.value
+        : [{ value: "", label: t("common.noCompanyAssigned") }],
+      defaultValue: companyId.value,
+      locked: true,
+      hidden: true,
       validation: {
         required: true,
         message: t("companyPrice.validation.companyRequired"),
