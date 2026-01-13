@@ -3,8 +3,12 @@
         <WorkPlansHeader v-model="searchText" :searchPlaceholder="$t('workPlan.searchPlaceholder')" :data="workPlans"
             groupKey="company_name" v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('workPlan.filterByCompany')" translationKey="" :columns="workPlanColumns"
-            v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('workPlan.addNew')"
-            :showTrashedButton="true" @add-click="openAddModal" @trashed-click="openTrashedModal" />
+            v-model:visibleColumns="visibleColumns" 
+            :showAddButton="canAddWorkPlan"
+            :addButtonText="$t('workPlan.addNew')"
+            :showTrashedButton="true" 
+            @add-click="openAddModal" 
+            @trashed-click="openTrashedModal" />
 
         <!-- Tabs Navigation -->
         <div class="card border-0 mb-3">
@@ -39,6 +43,7 @@
                 <div class="card border-0">
                     <div class="card-body p-0">
                         <BulkActionsBar
+                            v-if="canAddWorkPlan"
                             :selectedCount="selectedRows.length"
                             entityName="workPlan"
                             :actions="bulkActions"
@@ -46,13 +51,26 @@
                             @action="handleBulkAction"
                         />
                         <DataTable :columns="filteredColumns" :data="paginatedworkPlans"
-                            :actionsLabel="$t('workPlan.actions')" v-model="selectedRows">
+                            :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
+                            :showCheckbox="canAddWorkPlan">
                             <template #actions="{ row }">
-                            <ActionsDropdown :row="row" :editLabel="$t('workPlan.edit')"
-                                    :detailsLabel="$t('workPlan.details')" :deleteLabel="$t('workPlan.delete')"
-                                    :confirmDelete="true"
-                                    @edit="openEditModal" @details="openDetailsModal"
-                                    @delete="handleDeleteWorkPlan" />
+                            <ActionsDropdown 
+                                v-if="canAddWorkPlan"
+                                :row="row" 
+                                :editLabel="$t('workPlan.edit')"
+                                :detailsLabel="$t('workPlan.details')" 
+                                :deleteLabel="$t('workPlan.delete')"
+                                :confirmDelete="true"
+                                @edit="openEditModal" 
+                                @details="openDetailsModal"
+                                @delete="handleDeleteWorkPlan" />
+                            <PrimaryButton
+                                v-else
+                                :text="$t('workPlan.details')"
+                                bgColor="var(--primary-color)"
+                                class="d-inline-flex align-items-center"
+                                @click="openDetailsModal(row)"
+                            />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -73,10 +91,19 @@
             :fields="detailsFields" @close="closeDetailsModal" />
 
         <!-- Trashed workPlans Modal -->
-        <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('workPlan.trashed.title')"
-            :emptyMessage="$t('workPlan.trashed.empty')" :columns="trashedColumns" :trashedItems="trashedworkPlans"
-            entityName="workPlan" :bulkActions="trashedBulkActions" :bulkLoading="bulkActionLoading"
-            @close="closeTrashedModal" @restore="handleRestoreworkPlan" @delete="handlePermanentDeleteWorkPlan"
+        <TrashedItemsModal 
+            v-if="canAddWorkPlan"
+            :isOpen="isTrashedModalOpen" 
+            :title="$t('workPlan.trashed.title')"
+            :emptyMessage="$t('workPlan.trashed.empty')" 
+            :columns="trashedColumns" 
+            :trashedItems="trashedworkPlans"
+            entityName="workPlan" 
+            :bulkActions="trashedBulkActions" 
+            :bulkLoading="bulkActionLoading"
+            @close="closeTrashedModal" 
+            @restore="handleRestoreworkPlan" 
+            @delete="handlePermanentDeleteWorkPlan"
             @bulk-action="handleTrashedBulkAction" />
 
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
@@ -99,11 +126,12 @@ import WorkPlansHeader from "../components/workPlansHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import WorkPlanCalendar from "../components/calender.vue"
+import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../store/workPlansStore.js";
 
 const { t } = useI18n();
-const { companyName, companyId, companyOption } = useAuthDefaults();
+const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
 const workPlansStore = useWorkPlansStore();
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -120,7 +148,32 @@ const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 
-const workPlans = computed(() => workPlansStore.workPlans);
+// ✅ Permissions
+const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
+const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
+const canAddWorkPlan = computed(() => isAdmin.value); // فقط Admin يمكنه الإضافة
+
+// Get work plans based on user role
+const workPlans = computed(() => {
+    const allPlans = workPlansStore.workPlans;
+    
+    // SuperAdmin: يرى جميع خطط العمل
+    if (isSuperAdmin.value) {
+        return allPlans;
+    }
+    
+    // Admin: يرى فقط خطط العمل الخاصة بشركته
+    if (isAdmin.value && companyId.value) {
+        return allPlans.filter(plan => {
+            const planCompanyId = String(plan.company_id);
+            return planCompanyId === String(companyId.value);
+        });
+    }
+    
+    // Other roles: لا يرى شيء
+    return [];
+});
+
 const trashedworkPlans = computed(() => workPlansStore.trashedWorkPlans);
 
 onMounted(async () => {
@@ -304,6 +357,10 @@ watch([searchText, selectedGroups], () => {
 
 // Add Modal
 const openAddModal = () => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to add work plans");
+        return;
+    }
     isEditMode.value = false;
     selectedworkPlan.value = {};
     isFormModalOpen.value = true;
@@ -311,6 +368,10 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (workPlan) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to edit work plans");
+        return;
+    }
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
     isFormModalOpen.value = true;
@@ -334,6 +395,10 @@ const closeDetailsModal = () => {
 };
 
 const openTrashedModal = async () => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to view trashed work plans");
+        return;
+    }
     try {
         await workPlansStore.fetchTrashedWorkPlans();
     } catch (error) {
@@ -348,6 +413,11 @@ const closeTrashedModal = () => {
 };
 
 const handleSubmitworkPlan = async (workPlanData) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to submit work plans");
+        return;
+    }
+
     const orders = workPlanData.orders?.map(row => ({
         order: row.order,
         items: row.items
@@ -375,6 +445,10 @@ const handleSubmitworkPlan = async (workPlanData) => {
 };
 
 const handleRestoreworkPlan = async (workPlan) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to restore work plans");
+        return;
+    }
     try {
         await workPlansStore.restoreWorkPlan(workPlan.id);
         console.log("Work plan restored successfully!");
@@ -384,6 +458,10 @@ const handleRestoreworkPlan = async (workPlan) => {
 };
 
 const handleDeleteWorkPlan = async (workPlan) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to delete work plans");
+        return;
+    }
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id);
         console.log("Work plan deleted successfully!");
@@ -393,6 +471,10 @@ const handleDeleteWorkPlan = async (workPlan) => {
 };
 
 const handlePermanentDeleteWorkPlan = async (workPlan) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission to permanently delete work plans");
+        return;
+    }
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id, true);
         console.log("Work plan permanently deleted successfully!");
@@ -402,12 +484,16 @@ const handlePermanentDeleteWorkPlan = async (workPlan) => {
 };
 
 const handleBulkAction = ({ actionId }) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission for bulk actions");
+        return;
+    }
     pendingBulkAction.value = actionId;
     isBulkConfirmOpen.value = true;
 };
 
 const executeBulkAction = async () => {
-    if (!pendingBulkAction.value) return;
+    if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
     bulkActionLoading.value = true;
 
     try {
@@ -428,6 +514,10 @@ const cancelBulkAction = () => {
 };
 
 const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
+    if (!canAddWorkPlan.value) {
+        console.warn("⚠️ User doesn't have permission for trashed bulk actions");
+        return;
+    }
     if (!selectedIds.length) return;
     bulkActionLoading.value = true;
 
@@ -482,4 +572,3 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
     margin-left: 0.25rem;
 }
 </style>
-
