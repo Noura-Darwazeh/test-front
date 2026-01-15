@@ -146,9 +146,20 @@ async getUserProfile(userId) {
     return this.createEntity("users", userData);
   }
 
-  async updateUser(userId, userData) {
-    return this.updateEntity("users", userId, userData, true);
+ async updateUser(userId, userData) {
+  // ✅ لو في FormData، خليها تتعامل مع multipart/form-data
+  if (userData instanceof FormData) {
+    // Don't set Content-Type - let browser set it with boundary
+    return api.post(`/users/${userId}`, userData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH'
+      }
+    });
   }
+  
+  // For regular JSON data
+  return this.updateEntity("users", userId, userData, true);
+}
 
   async deleteUser(userId, force = false) {
     return this.deleteEntity("users", userId, force);

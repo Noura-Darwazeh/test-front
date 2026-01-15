@@ -341,7 +341,7 @@ const isPasswordModalOpen = ref(false);
 const isSaving = ref(false);
 const hasChanges = ref(false);
 const fileInput = ref(null);
-const imageFile = ref(null); // ✅ لحفظ الـ File object
+const imageFile = ref(null);
 
 const resolveIdValue = (value) => {
   if (Array.isArray(value)) {
@@ -370,7 +370,7 @@ const formData = reactive({
   currency_id: '',
   language: 'english',
   default_page: '/user',
-  imagePreview: null, // ✅ للـ preview فقط
+  imagePreview: null,
 });
 
 // Original data for comparison
@@ -495,7 +495,7 @@ const initializeFormData = () => {
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
   formData.imagePreview = null;
-  imageFile.value = null; // ✅ امسحي الصورة القديمة
+  imageFile.value = null;
 
   // Store original data
   originalData.value = {
@@ -511,13 +511,19 @@ const initializeFormData = () => {
   };
 };
 
-// ✅ Get full image URL with cache-busting
+// ✅ Get full image URL with cache-busting - محدّث
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
+  
   if (imagePath.startsWith('http')) {
-    // Add cache-busting query parameter for full URLs
-    return `${imagePath}?t=${Date.now()}`;
+    // تأكدي إنو الـ timestamp موجود
+    const hasTimestamp = imagePath.includes('?t=');
+    if (!hasTimestamp) {
+      return `${imagePath}?t=${Date.now()}`;
+    }
+    return imagePath;
   }
+  
   // Add cache-busting query parameter
   return `${API_BASE_URL}${imagePath}?t=${Date.now()}`;
 };
@@ -527,7 +533,7 @@ const markAsChanged = () => {
   hasChanges.value = true;
 };
 
-// ✅ Handle image upload - محدّث
+// ✅ Handle image upload
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -544,10 +550,8 @@ const handleImageUpload = (event) => {
     return;
   }
 
-  // ✅ احفظي الـ File object
   imageFile.value = file;
 
-  // اعملي preview للصورة
   const reader = new FileReader();
   reader.onload = (e) => {
     formData.imagePreview = e.target.result;
@@ -578,24 +582,19 @@ const handleSaveChanges = async () => {
   try {
     isSaving.value = true;
 
-    // ✅ استخدمي FormData بدل object عادي
     const formDataToSend = new FormData();
     
-    // أضيفي الحقول العادية
     formDataToSend.append('name', formData.name);
     formDataToSend.append('phone_number', formData.phone_number);
     
-    // Email اختياري
     if (formData.email && formData.email.trim() !== '') {
       formDataToSend.append('email', formData.email);
     }
     
-    // Username بس لو تغير
     if (formData.username !== originalData.value.username) {
       formDataToSend.append('username', formData.username);
     }
     
-    // Company, Region, Currency
     if (formData.company_id && formData.company_id !== '') {
       formDataToSend.append('company_id', formData.company_id);
     }
@@ -608,7 +607,6 @@ const handleSaveChanges = async () => {
     
     formDataToSend.append('language', formData.language);
 
-    // 🖼️ الصورة - أضيفيها كـ File لو موجودة
     if (imageFile.value) {
       formDataToSend.append('image', imageFile.value);
       console.log('📸 Image file added to FormData:', imageFile.value.name);
@@ -616,15 +614,18 @@ const handleSaveChanges = async () => {
 
     console.log("📤 Sending FormData to API");
 
-    // ابعثي الـ FormData
     const response = await apiServices.updateUser(userProfile.value.id, formDataToSend);
 
     if (response.data?.data) {
       const userData = response.data.data;
       
-      // Build full image URL if needed
-      if (userData.image && !userData.image.startsWith('http')) {
-        userData.image = `${API_BASE_URL}${userData.image}`;
+      // ✅ أضيفي timestamp لكسر الـ cache
+      if (userData.image) {
+        if (!userData.image.startsWith('http')) {
+          userData.image = `${API_BASE_URL}${userData.image}`;
+        }
+        // أضيفي timestamp فريد لكل تحديث
+        userData.image = `${userData.image}?t=${Date.now()}`;
       }
       
       // Update auth store
@@ -633,7 +634,6 @@ const handleSaveChanges = async () => {
       console.log('✅ Profile updated successfully!', userData);
       alert(t('profile.updateSuccess') || 'Profile updated successfully!');
 
-      // Reload if language changed
       if (languageChanged) {
         const uiLang = resolveUiLocale(formData.language);
         setLocale(uiLang);
@@ -641,11 +641,26 @@ const handleSaveChanges = async () => {
         return;
       }
       
-      // Reload profile data from API
-      await fetchUserProfile();
-      imageFile.value = null; // ✅ امسحي الـ File بعد النجاح
-      formData.imagePreview = null; // ✅ امسحي الـ Preview أيضاً
+      // ✅ Update local state
+      userProfile.value = userData;
+      
+      // Clear the file input
+      imageFile.value = null;
+      formData.imagePreview = null;
+      
+      // ✅ Force re-render للصورة
+      if (fileInput.value) {
+        fileInput.value.value = '';
+      }
+      
+      // Reinitialize form with new data
+      initializeFormData();
       hasChanges.value = false;
+      
+      // ✅ Force page reload بعد ثانية للتأكد من ظهور الصورة الجديدة
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     }
   } catch (error) {
     console.error('❌ Failed to update profile:', error);

@@ -237,19 +237,25 @@ export const useAuthStore = defineStore("auth", () => {
     removeItem("user_language");
   }
 
-
   function clearError() {
     error.value = null;
   }
 
   /**
-   * Update user data
+   * Update user data - محدّث
    * @param {Object} userData - Updated user data
    */
   function updateUser(userData) {
-    // ✅ Convert image path to full URL if needed
-    if (userData.image && !userData.image.startsWith('http')) {
-      userData.image = getFullImageUrl(userData.image);
+    // ✅ Convert image path to full URL with cache busting
+    if (userData.image) {
+      if (!userData.image.startsWith('http')) {
+        userData.image = getFullImageUrl(userData.image);
+      }
+      // ✅ أضيفي timestamp فريد
+      const hasTimestamp = userData.image.includes('?t=');
+      if (!hasTimestamp) {
+        userData.image = `${userData.image}?t=${Date.now()}`;
+      }
     }
 
     user.value = { ...user.value, ...userData };
