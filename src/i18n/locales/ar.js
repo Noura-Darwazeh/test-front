@@ -1667,6 +1667,10 @@ export default {
     restore: "???????",
     permanentDelete: "??? ?????",
     noCompanyAssigned: "?? ???? ???? ??????",
+    selectMultiple: "اختر عدة عناصر",
+    selected: "محدد",
+    selectOrderFirst: "الرجاء اختيار طلب أولاً",
+
     save: "حفظ",
     cancel: "إلغاء",
     close: "إغلاق",

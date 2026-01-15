@@ -84,26 +84,36 @@
                   </option>
                 </select>
 
-                <!-- Multi-Select Dropdown -->
-                <select
-                  v-else-if="field.type === 'multiselect'"
-                  :id="field.name"
-                  class="form-select"
-                  v-model="formData[field.name]"
-                  :required="field.required"
-                  :disabled="field.disabled || field.locked"
-                  multiple
-                  :size="field.size || 5"
-                  style="min-height: 120px;"
-                >
-                  <option
-                    v-for="option in field.options"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
+                <!-- Multi-Select with Checkboxes -->
+                <div v-else-if="field.type === 'multiselect'" class="multiselect-container">
+                  <div class="multiselect-header">
+                    <small class="text-muted d-flex align-items-center gap-1">
+                      <i class="bi bi-check2-square"></i>
+                      <span>{{ $t('common.selectMultiple') }}</span>
+                      <span class="badge bg-primary rounded-pill">
+                        {{ (formData[field.name] || []).length }}
+                      </span>
+                    </small>
+                  </div>
+                  <div class="multiselect-options">
+                    <label
+                      v-for="option in field.options"
+                      :key="option.value"
+                      class="multiselect-option"
+                      :class="{ 'selected': (formData[field.name] || []).includes(option.value) }"
+                    >
+                      <input
+                        type="checkbox"
+                        :value="option.value"
+                        v-model="formData[field.name]"
+                        class="form-check-input me-2"
+                      />
+                      <span class="option-label flex-grow-1">{{ option.label }}</span>
+                      <i v-if="(formData[field.name] || []).includes(option.value)" 
+                         class="bi bi-check-circle-fill text-success"></i>
+                    </label>
+                  </div>
+                </div>
 
                 <!-- Button field -->
                 <PrimaryButton v-else-if="field.type === 'button'" type="button" :text="field.text || field.label"
@@ -125,7 +135,7 @@
                       <label class="form-label">
                         {{ field.orderLabel || t('common.order') }}
                       </label>
-                      <select class="form-select" v-model="formData[field.name][index].order" @change="formData[field.name][index].items = ''">
+                      <select class="form-select" v-model="formData[field.name][index].order" @change="formData[field.name][index].items = []">
                         <option value="" disabled>{{ t('common.selectOrder') }}</option>
                         <option v-for="option in getOrderOptionsForField(field)" :key="option.value" :value="option.value">
                           {{ option.label }}
@@ -134,28 +144,39 @@
                     </div>
 
                     <div class="col-md-5">
-                      <label class="form-label">
+                      <label class="form-label d-flex align-items-center gap-2">
                         {{ field.itemsLabel || t('common.items') }}
+                        <span v-if="formData[field.name][index].items?.length > 0" class="badge bg-primary rounded-pill">
+                          {{ formData[field.name][index].items.length }}
+                        </span>
                       </label>
-                      <select 
-                        class="form-select" 
-                        v-model="formData[field.name][index].items" 
-                        :disabled="!formData[field.name][index].order"
-                        multiple
-                        :size="field.itemsSize || 5"
-                        style="min-height: 120px;"
-                      >
-                        <option v-for="option in getItemsOptions(field, formData[field.name][index].order)" :key="option.value" :value="option.value">
-                          {{ option.label }}
-                        </option>
-                      </select>
+                      
+                      <!-- Checkboxes for items -->
+                      <div class="multiselect-options-inline" v-if="formData[field.name][index].order">
+                        <label
+                          v-for="option in getItemsOptions(field, formData[field.name][index].order)"
+                          :key="option.value"
+                          class="multiselect-option-inline"
+                          :class="{ 'selected': (formData[field.name][index].items || []).includes(option.value) }"
+                        >
+                          <input
+                            type="checkbox"
+                            :value="option.value"
+                            v-model="formData[field.name][index].items"
+                            class="form-check-input me-2"
+                          />
+                          <span>{{ option.label }}</span>
+                        </label>
+                      </div>
+                      <div v-else class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        {{ t('common.selectOrderFirst') }}
+                      </div>
                     </div>
 
                     <div class="col-md-2">
-
                       <PrimaryButton type="button" @click="removeOrderRow(field.name, index)"
                         bgColor="var(--color-danger)" :iconBefore="crossIcon" />
-
                     </div>
                   </div>
                 </div>
@@ -324,7 +345,6 @@ const initializeForm = () => {
             },
           ];
       } else if (field.type === "branchRows") {
-        // NEW: Handle branchRows
         formData[field.name] =
           field.defaultValue ||
           [
@@ -361,7 +381,6 @@ const resetForm = () => {
             },
           ];
       } else if (field.type === "branchRows") {
-        // NEW: Handle branchRows
         formData[field.name] =
           field.defaultValue ||
           [
@@ -494,7 +513,6 @@ const validateForm = () => {
       return;
     }
 
-    // NEW: Validate branchRows
     if (field.type === "branchRows" && Array.isArray(value)) {
       if (field.required) {
         const hasEmptyBranch = value.some(row => !row.name || row.name.trim() === "");
@@ -640,7 +658,6 @@ watch(
   right: 0;
   bottom: 0;
   z-index: 1040;
-  /* Performance optimizations */
   will-change: opacity;
   backface-visibility: hidden;
 }
@@ -684,23 +701,19 @@ watch(
   z-index: 1050;
   overflow-x: hidden;
   overflow-y: auto;
-  /* CSS isolation to prevent affecting main page */
   contain: layout style paint;
   will-change: opacity;
   backface-visibility: hidden;
-  /* Create new stacking context */
   isolation: isolate;
 }
 
 .modal-dialog {
-  /* Optimize rendering performance */
   will-change: transform;
   backface-visibility: hidden;
   transform: translateZ(0);
 }
 
 .modal-content {
-  /* Prevent layout shifts */
   contain: layout style;
 }
 
@@ -710,5 +723,128 @@ watch(
   -moz-appearance: none;
   background-image: none;
   padding-right: 0.75rem;
+}
+
+/* ✅ Multiselect Styles */
+.multiselect-container {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8f9fa;
+}
+
+.multiselect-header {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.multiselect-header .badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.multiselect-options {
+  max-height: 250px;
+  overflow-y: auto;
+  background: white;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.multiselect-option {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.multiselect-option:hover {
+  background: #f8f9fa;
+  border-color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.multiselect-option.selected {
+  background: #e7f3ff;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(0,123,255,0.1);
+}
+
+.multiselect-option .form-check-input {
+  margin: 0;
+  cursor: pointer;
+}
+
+.multiselect-option .option-label {
+  flex: 1;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.multiselect-option i.bi-check-circle-fill {
+  font-size: 1.1rem;
+  margin-left: 8px;
+}
+
+/* ✅ Inline Multiselect for Order Items */
+.multiselect-options-inline {
+  max-height: 200px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.multiselect-option-inline {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  font-size: 0.85rem;
+}
+
+.multiselect-option-inline:hover {
+  background: #f8f9fa;
+  border-color: var(--primary-color);
+}
+
+.multiselect-option-inline.selected {
+  background: #e7f3ff;
+  border-color: var(--primary-color);
+  font-weight: 500;
+}
+
+.multiselect-option-inline .form-check-input {
+  cursor: pointer;
+}
+
+/* Scrollbar styling */
+.multiselect-options::-webkit-scrollbar,
+.multiselect-options-inline::-webkit-scrollbar {
+  width: 6px;
+}
+
+.multiselect-options::-webkit-scrollbar-thumb,
+.multiselect-options-inline::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+}
+
+.multiselect-options::-webkit-scrollbar-track,
+.multiselect-options-inline::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
 }
 </style>
