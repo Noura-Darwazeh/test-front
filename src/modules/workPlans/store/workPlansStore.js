@@ -19,7 +19,7 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     return { id: value ?? null, name: "" };
   };
 
-  const normalizeWorkPlan = (plan) => {
+  const normalizeWorkPlan = (plan, allDrivers = []) => {
     const companyInfo = extractIdName(plan.company_id ?? plan.company);
     const companyId = companyInfo.id;
     const companyName =
@@ -27,25 +27,56 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       companyInfo.name ||
       (companyId ? `Company ${companyId}` : "");
 
-    const driverInfo = extractIdName(plan.driver_id ?? plan.driver);
-    const driverName = plan.driver_name || driverInfo.name || "";
+    let date = plan.date || plan.plan_date || "";
+    let driverId = null;
+    let driverName = "";
+    let orders = [];
+    
+    if (plan.workplanorder && Array.isArray(plan.workplanorder)) {
+      orders = plan.workplanorder.map(order => ({
+        id: order.id,
+        order_item_id: order.order_item_id,
+        order: order.order_code || `Order #${order.order_item_id}`,
+        items: order.order_item_id
+      }));
+      
+      // البحث عن أول driver في أي workplanorder
+      for (const workplanOrder of plan.workplanorder) {
+        if (workplanOrder.steps && workplanOrder.steps.length > 0) {
+          const firstStep = workplanOrder.steps[0];
+          date = date || firstStep.date;
+          driverId = firstStep.driver_id;
+          driverName = firstStep.driver_name || "";
+          break;
+        }
+      }
+    }
+
+    // 🔥 إذا ما في driver_name ولكن في driver_id، اجلبيه من قائمة السائقين
+    if (!driverName && driverId && allDrivers.length > 0) {
+      const driver = allDrivers.find(d => d.id === driverId);
+      if (driver) {
+        driverName = driver.name || driver.driver_name || '';
+      }
+    }
 
     return {
       id: plan.id,
       name: plan.name || "",
       company_id: companyId,
       company_name: companyName,
-      date: plan.date || plan.plan_date || "",
-      driver_id: driverInfo.id,
+      date: date,
+      driver_id: driverId,
       driver_name: driverName,
-      orders: plan.orders || plan.order_items || [],
+      orders: orders.length > 0 ? orders : (plan.orders || plan.order_items || []),
       created_at: plan.created_at,
       updated_at: plan.updated_at,
       deleted_at: plan.deleted_at,
+      workplanorder: plan.workplanorder || [],
     };
   };
 
-  const fetchWorkPlans = async () => {
+  const fetchWorkPlans = async (drivers = []) => {
     loading.value = true;
     error.value = null;
     try {
@@ -53,7 +84,7 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
-      workPlans.value = data.map(normalizeWorkPlan);
+      workPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch work plans";
@@ -64,7 +95,7 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
-  const fetchTrashedWorkPlans = async () => {
+  const fetchTrashedWorkPlans = async (drivers = []) => {
     trashedLoading.value = true;
     error.value = null;
     try {
@@ -72,7 +103,7 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
-      trashedWorkPlans.value = data.map(normalizeWorkPlan);
+      trashedWorkPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed work plans";
@@ -83,29 +114,55 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
-  const addWorkPlan = async (workPlanData) => {
+  const addWorkPlan = async (workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
+    
+    const driverName = workPlanData.driver_name;
+    
+    console.log("🚀 Sending to API - workPlanData:", workPlanData);
+    
     try {
       const response = await apiServices.createWorkPlan(workPlanData);
-      const newPlan = normalizeWorkPlan(response.data.data || response.data);
+      const newPlan = normalizeWorkPlan(response.data.data || response.data, drivers);
+      
+      // 🔥 إذا ما رجع driver_name من API، استخدمي اللي خزنتيه
+      if (!newPlan.driver_name && driverName) {
+        newPlan.driver_name = driverName;
+      }
+      
       workPlans.value.push(newPlan);
       return newPlan;
     } catch (err) {
       error.value = err.message || "Failed to add work plan";
       console.error("Error adding work plan:", err);
+      
+      if (err.response) {
+        console.error("📋 Server Response Status:", err.response.status);
+        console.error("📋 Server Response Data:", err.response.data);
+      }
+      
       throw err;
     } finally {
       loading.value = false;
     }
   };
 
-  const updateWorkPlan = async (planId, workPlanData) => {
+  const updateWorkPlan = async (planId, workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
+    
+    const driverName = workPlanData.driver_name;
+    
     try {
       const response = await apiServices.updateWorkPlan(planId, workPlanData);
-      const updated = normalizeWorkPlan(response.data.data || response.data);
+      const updated = normalizeWorkPlan(response.data.data || response.data, drivers);
+      
+      // 🔥 إذا ما رجع driver_name من API، استخدمي اللي خزنتيه
+      if (!updated.driver_name && driverName) {
+        updated.driver_name = driverName;
+      }
+      
       const index = workPlans.value.findIndex((p) => p.id === planId);
       if (index > -1) {
         workPlans.value[index] = updated;

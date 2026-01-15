@@ -79,7 +79,7 @@
                   <option value="" disabled>
                     {{ field.placeholder || field.label }}
                   </option>
-                  <option v-for="option in field.options" :key="option.value" :value="option.value">
+                  <option v-for="option in getSelectOptions(field)" :key="option.value" :value="option.value">
                     {{ option.label }}
                   </option>
                 </select>
@@ -125,9 +125,9 @@
                       <label class="form-label">
                         {{ field.orderLabel || t('common.order') }}
                       </label>
-                      <select class="form-select" v-model="formData[field.name][index].order">
+                      <select class="form-select" v-model="formData[field.name][index].order" @change="formData[field.name][index].items = ''">
                         <option value="" disabled>{{ t('common.selectOrder') }}</option>
-                        <option v-for="option in field.orderOptions" :key="option.value" :value="option.value">
+                        <option v-for="option in getOrderOptionsForField(field)" :key="option.value" :value="option.value">
                           {{ option.label }}
                         </option>
                       </select>
@@ -137,9 +137,15 @@
                       <label class="form-label">
                         {{ field.itemsLabel || t('common.items') }}
                       </label>
-                      <select class="form-select" v-model="formData[field.name][index].items">
-                        <option value="" disabled>{{ t('common.selectItems') }}</option>
-                        <option v-for="option in field.itemsOptions" :key="option.value" :value="option.value">
+                      <select 
+                        class="form-select" 
+                        v-model="formData[field.name][index].items" 
+                        :disabled="!formData[field.name][index].order"
+                        multiple
+                        :size="field.itemsSize || 5"
+                        style="min-height: 120px;"
+                      >
+                        <option v-for="option in getItemsOptions(field, formData[field.name][index].order)" :key="option.value" :value="option.value">
                           {{ option.label }}
                         </option>
                       </select>
@@ -206,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, nextTick, computed } from "vue";
+import { ref, reactive, watch, onMounted, nextTick, computed, unref } from "vue";
 import { useI18n } from "vue-i18n";
 import PrimaryButton from "./PrimaryButton.vue";
 import uploadIcon from "../../assets/modal/upload.svg";
@@ -241,6 +247,67 @@ const uploadLabel = computed(() =>
 );
 const removeLabel = computed(() => t("common.remove"));
 
+// Get select options (supports computed properties)
+const getSelectOptions = (field) => {
+  if (!field.options) return [];
+  
+  // Check if it's a Vue ref/computed (has value property)
+  if (typeof field.options === 'object' && 'value' in field.options) {
+    const options = unref(field.options);
+    return Array.isArray(options) ? options : [];
+  }
+  
+  // If it's already an array, return it
+  if (Array.isArray(field.options)) {
+    return field.options;
+  }
+  
+  return [];
+};
+
+// Get order options for a field
+const getOrderOptionsForField = (field) => {
+  // If field has a function to get order options, use it
+  if (field.getOrderOptions && typeof field.getOrderOptions === 'function') {
+    return field.getOrderOptions() || [];
+  }
+  
+  // If field has orderOptions
+  if (field.orderOptions) {
+    // Check if it's a Vue ref/computed (has value property)
+    if (typeof field.orderOptions === 'object' && 'value' in field.orderOptions) {
+      const options = unref(field.orderOptions);
+      console.log("📋 Order options from computed:", options);
+      return Array.isArray(options) ? options : [];
+    }
+    
+    // If it's already an array, return it
+    if (Array.isArray(field.orderOptions)) {
+      console.log("📋 Order options from array:", field.orderOptions);
+      return field.orderOptions;
+    }
+  }
+  
+  // Otherwise, return empty array
+  console.log("⚠️ No order options found for field:", field.name);
+  return [];
+};
+
+// Get items options based on selected order
+const getItemsOptions = (field, selectedOrder) => {
+  if (!selectedOrder) {
+    return [];
+  }
+  
+  // If field has a function to get items options, use it
+  if (field.getItemsOptions && typeof field.getItemsOptions === 'function') {
+    return field.getItemsOptions(selectedOrder) || [];
+  }
+  
+  // Otherwise, use static itemsOptions
+  return field.itemsOptions || [];
+};
+
 // Initialize form
 const initializeForm = () => {
   if (!props.fields || props.fields.length === 0) return;
@@ -253,7 +320,7 @@ const initializeForm = () => {
           [
             {
               order: "",
-              items: "",
+              items: [],
             },
           ];
       } else if (field.type === "branchRows") {
@@ -290,7 +357,7 @@ const resetForm = () => {
           [
             {
               order: "",
-              items: "",
+              items: [],
             },
           ];
       } else if (field.type === "branchRows") {
@@ -329,7 +396,7 @@ const addOrderRow = (fieldName) => {
   }
   formData[fieldName].push({
     order: "",
-    items: "",
+    items: [],
   });
 };
 
@@ -418,7 +485,7 @@ const validateForm = () => {
     if (field.type === "orderRows" && Array.isArray(value)) {
       if (field.required) {
         value.forEach((row) => {
-          if (!row.order || !row.items) {
+          if (!row.order || !row.items || (Array.isArray(row.items) && row.items.length === 0)) {
             errors[field.name] = t("common.validation.orderRowRequired");
             isValid = false;
           }

@@ -129,10 +129,13 @@ import WorkPlanCalendar from "../components/calender.vue"
 import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../store/workPlansStore.js";
+import { useDriverStore } from "../../driver/stores/driverStore.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
 const workPlansStore = useWorkPlansStore();
+const driverStore = useDriverStore();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -147,6 +150,8 @@ const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
+const ordersWithItems = ref([]);
+const loadingOrders = ref(false);
 
 // ✅ Permissions
 const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
@@ -156,6 +161,8 @@ const canAddWorkPlan = computed(() => isAdmin.value); // فقط Admin يمكنه
 // Get work plans based on user role
 const workPlans = computed(() => {
     const allPlans = workPlansStore.workPlans;
+    console.log('Work plans from store:', allPlans.length);
+    console.log('User role:', authStore.userRole, 'companyId:', companyId.value);
     
     // SuperAdmin: يرى جميع خطط العمل
     if (isSuperAdmin.value) {
@@ -163,11 +170,18 @@ const workPlans = computed(() => {
     }
     
     // Admin: يرى فقط خطط العمل الخاصة بشركته
-    if (isAdmin.value && companyId.value) {
-        return allPlans.filter(plan => {
-            const planCompanyId = String(plan.company_id);
-            return planCompanyId === String(companyId.value);
-        });
+    if (isAdmin.value) {
+        if (companyId.value) {
+            const filtered = allPlans.filter(plan => {
+                const planCompanyId = String(plan.company_id);
+                return planCompanyId === String(companyId.value);
+            });
+            return filtered;
+        } else {
+            console.log('Admin user has no companyId, showing all plans');
+            // Show all plans if no company assigned
+            return allPlans;
+        }
     }
     
     // Other roles: لا يرى شيء
@@ -176,16 +190,46 @@ const workPlans = computed(() => {
 
 const trashedworkPlans = computed(() => workPlansStore.trashedWorkPlans);
 
+// Computed property for order options
+const orderOptions = computed(() => {
+    return ordersWithItems.value.map(order => ({
+        value: order.order_code,
+        label: order.order_code
+    }));
+});
+
+// Computed property for driver options
+const driverOptions = computed(() => {
+    const companyDrivers = driverStore.drivers.filter(driver => 
+        String(driver.company_id) === String(companyId.value)
+    );
+    return companyDrivers.map(driver => ({
+        value: driver.id,
+        label: driver.name || `Driver ${driver.id}`
+    }));
+});
+
 onMounted(async () => {
     try {
-        await workPlansStore.fetchWorkPlans();
+        // 🔥 اجلبي السائقين أولاً
+        await driverStore.fetchDrivers();
+        
+        // 🔥 بعدين اجلبي work plans وامرريلها السائقين
+        await workPlansStore.fetchWorkPlans(driverStore.drivers);
+        
+        await fetchOrdersWithItems();
     } catch (error) {
-        console.error("Failed to load work plans:", error);
+        console.error("Failed to load initial data:", error);
     }
 });
 
-// workPlan Form Fields 
-const workPlanFields = computed(() => [
+// workPlan Form Fields (reactive to ordersWithItems and drivers changes)
+const workPlanFields = computed(() => {
+    // Access ordersWithItems and drivers to make this computed reactive to their changes
+    const currentOrders = ordersWithItems.value;
+    const currentDrivers = driverStore.drivers;
+    
+    return [
     {
         name: 'name',
         label: t('workPlan.form.name'),
@@ -205,17 +249,13 @@ const workPlanFields = computed(() => [
         }
     },
     {
-        name: 'driver_name',
+        name: 'driver_id',
         label: t('workPlan.form.driverName'),
         type: 'select',
         required: true,
-        options: [
-            { value: 'Sami Ahmad', label: 'Sami Ahmad' },
-            { value: 'Ali Hassan', label: 'Ali Hassan' },
-            { value: 'Mohammad Khalil', label: 'Mohammad Khalil' },
-        ],
+        options: driverOptions,
         colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.driver_name || ''
+        defaultValue: selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
     },
     {
         name: 'date',
@@ -246,31 +286,18 @@ const workPlanFields = computed(() => [
         colClass: 'col-12',
         orderLabel: t('workPlan.form.orderName'),
         itemsLabel: t('workPlan.form.orderItems'),
-        orderOptions: [
-            { value: 'Order #101', label: 'Order #101' },
-            { value: 'Order #102', label: 'Order #102' },
-            { value: 'Order #103', label: 'Order #103' },
-            { value: 'Order #104', label: 'Order #104' },
-            { value: 'Order #105', label: 'Order #105' },
-            { value: 'Order #106', label: 'Order #106' },
-        ],
-        itemsOptions: [
-            { value: 'Electronics - 5 items', label: 'Electronics - 5 items' },
-            { value: 'Furniture - 3 items', label: 'Furniture - 3 items' },
-            { value: 'Clothing - 10 items', label: 'Clothing - 10 items' },
-            { value: 'Books - 20 items', label: 'Books - 20 items' },
-            { value: 'Food Items - 15 items', label: 'Food Items - 15 items' },
-            { value: 'Toys - 8 items', label: 'Toys - 8 items' },
-        ],
+        orderOptions: orderOptions,
+        getItemsOptions: getItemsOptionsForOrder,
 
+        itemsSize: 5,
         defaultValue: selectedworkPlan.value.orders && selectedworkPlan.value.orders.length > 0
             ? selectedworkPlan.value.orders.map(o => ({
                 order: o.order,
-                items: o.items
+                items: Array.isArray(o.items) ? o.items : (o.items ? [o.items] : [])
             }))
-            : [{ order: '', items: '' }]
-    },
-]);
+            : [{ order: '', items: [] }]
+    }];
+});
 
 // Details Fields
 const detailsFields = computed(() => [
@@ -355,25 +382,69 @@ watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
 
+// Fetch orders with items from API
+const fetchOrdersWithItems = async () => {
+    loadingOrders.value = true;
+    try {
+        const response = await apiServices.getOrdersWithItems();
+        console.log("📦 API Response:", response);
+        console.log("📦 Response Data:", response.data);
+        
+        // Handle both direct array response and wrapped response
+        let data = [];
+        if (Array.isArray(response.data)) {
+            data = response.data;
+        } else if (Array.isArray(response.data?.data)) {
+            data = response.data.data;
+        }
+        
+        ordersWithItems.value = data;
+        console.log("✅ Orders with items loaded:", ordersWithItems.value);
+        console.log("✅ Order options:", orderOptions.value);
+    } catch (error) {
+        console.error("❌ Failed to fetch orders with items:", error);
+        ordersWithItems.value = [];
+    } finally {
+        loadingOrders.value = false;
+    }
+};
+
+// Get items options for a selected order
+const getItemsOptionsForOrder = (orderCode) => {
+    if (!orderCode) return [];
+    
+    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
+    if (!order || !order.order_items || order.order_items.length === 0) {
+        return [];
+    }
+    
+    return order.order_items.map(item => ({
+        value: item.order_item_id,
+        label: item.orderitemname
+    }));
+};
+
 // Add Modal
-const openAddModal = () => {
+const openAddModal = async () => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to add work plans");
         return;
     }
     isEditMode.value = false;
     selectedworkPlan.value = {};
+    await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
 
 // Edit Modal
-const openEditModal = (workPlan) => {
+const openEditModal = async (workPlan) => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to edit work plans");
         return;
     }
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
+    await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
 
@@ -400,7 +471,7 @@ const openTrashedModal = async () => {
         return;
     }
     try {
-        await workPlansStore.fetchTrashedWorkPlans();
+        await workPlansStore.fetchTrashedWorkPlans(driverStore.drivers);
     } catch (error) {
         console.error("Failed to load trashed work plans:", error);
     } finally {
@@ -418,29 +489,67 @@ const handleSubmitworkPlan = async (workPlanData) => {
         return;
     }
 
-    const orders = workPlanData.orders?.map(row => ({
-        order: row.order,
-        items: row.items
-    })) || [];
+    // Collect all selected item IDs from all orders
+    const orderItems = [];
+    if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
+        workPlanData.orders.forEach(row => {
+            if (row.items && Array.isArray(row.items)) {
+                // Add all item IDs from this order
+                row.items.forEach(itemId => {
+                    if (itemId && !orderItems.includes(itemId)) {
+                        orderItems.push(itemId);
+                    }
+                });
+            } else if (row.items) {
+                // Handle single item (not array)
+                if (!orderItems.includes(row.items)) {
+                    orderItems.push(row.items);
+                }
+            }
+        });
+    }
+
+    // 🔥 اجلبي اسم السائق من driverOptions
+    const selectedDriver = driverOptions.value.find(
+        d => d.value === parseInt(workPlanData.driver_id)
+    );
 
     const payload = {
-        ...workPlanData,
-        company_id: companyId.value || workPlanData.company_id,
-        company_name: companyName.value || workPlanData.company_name,
-        orders
+        name: workPlanData.name,
+        driver_id: parseInt(workPlanData.driver_id),
+        driver_name: selectedDriver?.label || '', // 🔥 أضفنا اسم السائق
+        company_id: parseInt(companyId.value || workPlanData.company_id),
+        date: workPlanData.date,
+        Orderitems: orderItems.map(id => parseInt(id)) // Array of item IDs
     };
+
+    console.log("📤 Sending work plan payload:", payload);
 
     try {
         if (isEditMode.value) {
-            await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload);
-            console.log("Work plan updated successfully!");
+            await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
+            console.log("✅ Work plan updated successfully!");
         } else {
-            await workPlansStore.addWorkPlan(payload);
-            console.log("Work plan added successfully!");
+            // 🔥 امرري السائقين
+            await workPlansStore.addWorkPlan(payload, driverStore.drivers);
+            console.log("✅ Work plan added successfully!");
         }
         closeFormModal();
     } catch (error) {
-        console.error("Failed to save work plan:", error);
+        console.error("❌ Failed to save work plan:", error);
+        
+        // Print detailed server validation errors
+        if (error.response && error.response.data) {
+            console.error("🔴 Server validation errors:", error.response.data);
+            
+            // Show user-friendly error message
+            if (error.response.data.errors) {
+                const errorMessages = Object.values(error.response.data.errors).flat();
+                alert("خطأ في البيانات:\n" + errorMessages.join("\n"));
+            } else if (error.response.data.message) {
+                alert("خطأ: " + error.response.data.message);
+            }
+        }
     }
 };
 

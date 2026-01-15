@@ -140,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -161,16 +161,48 @@ const { t, locale } = useI18n();
 const calendar = ref(null);
 const selectedPlan = ref(null);
 
-const calendarEvents = computed(() => {
-    return props.workPlans.map(plan => ({
-        id: plan.id,
-        title: plan.name,
-        start: plan.date,
-        backgroundColor: "var(--primary-color)",
-        extendedProps: {
-            ...plan
+onMounted(() => {
+    // Set initial events after calendar is mounted
+    nextTick(() => {
+        if (calendar.value) {
+            const calendarApi = calendar.value.getApi();
+            calendarApi.removeAllEvents();
+            calendarApi.addEventSource({
+                events: calendarEvents.value
+            });
         }
-    }));
+    });
+});
+
+const calendarEvents = computed(() => {
+    const events = props.workPlans
+        .filter(plan => plan.date && plan.date.trim() !== '') // Only include plans with dates
+        .map(plan => {
+            // Ensure date is in YYYY-MM-DD format
+            let date = plan.date;
+            if (date.includes('T')) {
+                date = date.split('T')[0]; // Extract date part if it's datetime
+            }
+            
+            // إضافة عدد الطلبات إلى العنوان
+            const orderCount = plan.orders && plan.orders.length > 0 ? plan.orders.length : 0;
+            const title = orderCount > 0 
+                ? `${plan.name} (${orderCount} ${orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')})`
+                : plan.name;
+            
+            return {
+                id: plan.id,
+                title: title,
+                start: date,
+                backgroundColor: "var(--primary-color)",
+                borderColor: "var(--primary-color)",
+                textColor: '#fff',
+                extendedProps: {
+                    ...plan
+                }
+            };
+        });
+    return events;
 });
 
 // Calendar options
@@ -187,13 +219,14 @@ const calendarOptions = ref({
     buttonText: {
         today: t('workPlan.today') || 'Today',
     },
-    height: 400,
-    events: calendarEvents.value,
+    height: 600,
     eventClick: handleEventClick,
-    dayMaxEvents: 1,
+    dayMaxEvents: false, // إظهار جميع الخطط بدون حد
     moreLinkText: (num) => `+${num}`,
     firstDay: 0,
     eventDisplay: 'block',
+    displayEventTime: false, // إخفاء الوقت من العرض
+    displayEventEnd: false,
 });
 
 // Handle event click
@@ -234,8 +267,14 @@ watch(() => locale.value, (newLocale) => {
 });
 
 // Watch for workPlans changes
-watch(() => props.workPlans, () => {
-    calendarOptions.value.events = calendarEvents.value;
+watch(calendarEvents, (newEvents) => {
+    if (calendar.value) {
+        const calendarApi = calendar.value.getApi();
+        calendarApi.removeAllEvents();
+        calendarApi.addEventSource({
+            events: newEvents
+        });
+    }
 }, { deep: true });
 </script>
 
@@ -322,16 +361,40 @@ watch(() => props.workPlans, () => {
 
 .fc-event {
     cursor: pointer;
-    font-size: 0.7rem;
-    padding: 2px 4px;
+    font-size: 0.75rem;
+    padding: 4px 6px;
     border: none !important;
     border-radius: 4px;
+    margin: 2px 0;
+    font-weight: 500;
+    white-space: normal !important; /* السماح بالنص أن يلتف */
+    overflow: visible !important;
+    line-height: 1.3;
 }
 
 .fc-event:hover {
-    opacity: 0.8;
+    opacity: 0.85;
     transform: scale(1.02);
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* تحسين عرض الأحداث المتعددة */
+.fc-daygrid-event-harness {
+    margin-bottom: 2px !important;
+}
+
+.fc-daygrid-day-events {
+    margin-top: 2px !important;
+}
+
+/* تحسين حجم الخلايا */
+.fc .fc-daygrid-day {
+    min-height: 100px !important;
+}
+
+.fc .fc-daygrid-day-frame {
+    min-height: 100px !important;
 }
 
 /* RTL Support */

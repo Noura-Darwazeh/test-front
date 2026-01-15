@@ -1,5 +1,7 @@
 // src/services/apiServices.js
 import api from "./api.js";
+import axios from "axios";
+import { getItem } from "@/utils/shared/storageUtils";
 
 // ===== API Services Singleton =====
 class ApiServices {
@@ -66,7 +68,6 @@ class ApiServices {
       return api.post(`/${entityPlural}/${id}`, data, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
-          ...(hasFile ? { 'Content-Type': 'multipart/form-data' } : {})
         },
       });
     }
@@ -121,7 +122,12 @@ class ApiServices {
       }
     });
   }
-
+async getUserProfile(userId) {
+  return api.get(`/users/${userId}`);
+}
+  async changePassword(passwordData) {
+    return api.patch("/change_password", passwordData);
+  }
   // ===== User Services =====
   async getUsers() {
     return this.getEntities("users");
@@ -637,6 +643,24 @@ class ApiServices {
     return api.get("/statistics/orders");
   }
 
+ // ===== Work Plans Services ===== (line 697)
+async createWorkPlan(workPlanData) {
+  // Remove empty/null values
+  const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+
+  return api.post("/work_plans", cleanData);
+}
+
+// ===== Orders Services ===== (line 638)
+async getOrdersWithItems() {
+  return api.get("/orders_with_items");
+}
+
   // ===== Line Work Services =====
   async getLineWorks() {
     return this.getEntities("line_works");
@@ -684,9 +708,7 @@ class ApiServices {
     return this.getTrashedEntities("work_plans");
   }
 
-  async createWorkPlan(workPlanData) {
-    return this.createEntity("work_plans", workPlanData);
-  }
+ 
 
   async updateWorkPlan(workPlanId, workPlanData) {
     return this.updateEntity("work_plans", workPlanId, workPlanData, false);
