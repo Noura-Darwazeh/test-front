@@ -343,22 +343,6 @@ const hasChanges = ref(false);
 const fileInput = ref(null);
 const imageFile = ref(null);
 
-const resolveIdValue = (value) => {
-  if (Array.isArray(value)) {
-    return value[0] === null || value[0] === undefined ? "" : String(value[0]);
-  }
-  if (value && typeof value === "object") {
-    return value.id === null || value.id === undefined ? "" : String(value.id);
-  }
-  return value === null || value === undefined ? "" : String(value);
-};
-
-const resolveUiLocale = (language) => {
-  const normalized = (language || "").toLowerCase();
-  if (normalized === "arabic" || normalized === "ar") return "ar";
-  return "en";
-};
-
 // Form data
 const formData = reactive({
   name: '',
@@ -424,59 +408,95 @@ const passwordFields = computed(() => [
   },
 ]);
 
-// ✅ Fetch User Profile from API
-const fetchUserProfile = async () => {
-  try {
-    isLoading.value = true;
-    const userId = authStore.user?.id;
-    
-    if (!userId) {
-      console.error('No user ID found');
-      return;
-    }
-
-    const response = await apiServices.getUserProfile(userId);
-    userProfile.value = response.data.data;
-    
-    console.log('✅ User profile loaded:', userProfile.value);
-    
-    // Initialize form with fetched data
-    initializeFormData();
-    
-  } catch (error) {
-    console.error('❌ Failed to fetch user profile:', error);
-    alert(t('profile.loadError') || 'Failed to load profile');
-  } finally {
-    isLoading.value = false;
-  }
-};
-
 // Fetch dropdown data
 const fetchDropdownData = async () => {
   try {
     const [regionsResponse, currenciesResponse, companiesResponse] = await Promise.all([
-      apiServices.getRegions(),
-      apiServices.getCurrencies(),
-      apiServices.getCompanies()
+      apiServices.getRegions().catch(() => ({ data: { data: [] } })),
+      apiServices.getCurrencies().catch(() => ({ data: { data: [] } })),
+      apiServices.getCompanies().catch(() => ({ data: { data: [] } }))
     ]);
 
-    regions.value = regionsResponse.data.data.map(region => ({
-      value: String(region.id),
-      label: region.name
-    }));
+    if (regionsResponse?.data?.data) {
+      regions.value = regionsResponse.data.data.map(region => ({
+        value: String(region.id),
+        label: region.name
+      }));
+    }
 
-    currencies.value = currenciesResponse.data.data.map(currency => ({
-      value: String(currency.id),
-      label: `${currency.code} (${currency.symbol})`
-    }));
+    if (currenciesResponse?.data?.data) {
+      currencies.value = currenciesResponse.data.data.map(currency => ({
+        value: String(currency.id),
+        label: `${currency.code} (${currency.symbol})`
+      }));
+    }
 
-    companies.value = companiesResponse.data.data.map(company => ({
-      value: String(company.id),
-      label: company.name
-    }));
+    if (companiesResponse?.data?.data) {
+      companies.value = companiesResponse.data.data.map(company => ({
+        value: String(company.id),
+        label: company.name
+      }));
+    }
+    
+    console.log('✅ Dropdowns loaded from API - Companies:', companies.value.length, 'Regions:', regions.value.length, 'Currencies:', currencies.value.length);
   } catch (error) {
-    console.error('❌ Failed to load dropdown data:', error);
+    console.error('❌ Failed to load dropdown data (will use profile data):', error);
   }
+};
+
+// NEW: Populate dropdowns from user profile data (for Admin users)
+const populateDropdownsFromProfile = () => {
+  if (!userProfile.value) return;
+  
+  const user = userProfile.value;
+  
+  // ✅ Add user's company to companies dropdown
+  if (user.company?.id) {
+    const companyId = String(user.company.id);
+    const companyName = user.company.name;
+    
+    if (!companies.value.find(c => c.value === companyId)) {
+      companies.value.push({
+        value: companyId,
+        label: companyName
+      });
+      console.log('✅ Added company to dropdown:', companyName);
+    }
+  }
+  
+  // ✅ Add user's region to regions dropdown
+  if (user.region?.id) {
+    const regionId = String(user.region.id);
+    const regionName = user.region.name;
+    
+    if (!regions.value.find(r => r.value === regionId)) {
+      regions.value.push({
+        value: regionId,
+        label: regionName
+      });
+      console.log('✅ Added region to dropdown:', regionName);
+    }
+  }
+  
+  // ✅ Add user's currency to currencies dropdown
+  if (user.currency?.id) {
+    const currencyId = String(user.currency.id);
+    const currencyName = user.currency.name;
+    
+    if (!currencies.value.find(c => c.value === currencyId)) {
+      currencies.value.push({
+        value: currencyId,
+        label: currencyName
+      });
+      console.log('✅ Added currency to dropdown:', currencyName);
+    }
+  }
+  
+  console.log('✅ Dropdowns populated from profile:', {
+    companies: companies.value,
+    regions: regions.value,
+    currencies: currencies.value
+  });
 };
 
 // Initialize form data from userProfile
@@ -485,13 +505,34 @@ const initializeFormData = () => {
   
   const user = userProfile.value;
   
+  console.log('👤 User Profile:', user);
+  console.log('🏢 Company Raw:', user.company);
+  console.log('🌍 Region Raw:', user.region);
+  console.log('💰 Currency Raw:', user.currency);
+  
   formData.name = user.name || '';
   formData.username = user.username || '';
   formData.email = user.email || '';
   formData.phone_number = user.phone_number || '';
-  formData.company_id = resolveIdValue(user.company);
-  formData.region_id = resolveIdValue(user.region);
-  formData.currency_id = resolveIdValue(user.currency);
+  
+  // ✅ Company: object {id: 1, name: "shiply2"} -> extract id
+  formData.company_id = user.company?.id 
+    ? String(user.company.id) 
+    : '';
+  console.log('✅ Company ID set to:', formData.company_id);
+    
+  // ✅ Region: object {id: 1, name: "Jordan"} -> extract id
+  formData.region_id = user.region?.id 
+    ? String(user.region.id) 
+    : '';
+  console.log('✅ Region ID set to:', formData.region_id);
+    
+  // ✅ Currency: object {id: 1, name: "JOD"} -> extract id
+  formData.currency_id = user.currency?.id
+    ? String(user.currency.id)
+    : '';
+  console.log('✅ Currency ID set to:', formData.currency_id);
+  
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
   formData.imagePreview = null;
@@ -509,14 +550,45 @@ const initializeFormData = () => {
     language: formData.language,
     default_page: formData.default_page,
   };
+  
+  console.log('📝 Form Data Final:', formData);
 };
 
-// ✅ Get full image URL with cache-busting - محدّث
+// ✅ Fetch User Profile from API
+const fetchUserProfile = async () => {
+  try {
+    isLoading.value = true;
+    const userId = authStore.user?.id;
+    
+    if (!userId) {
+      console.error('No user ID found');
+      return;
+    }
+
+    const response = await apiServices.getUserProfile(userId);
+    userProfile.value = response.data.data;
+    
+    console.log('✅ User profile loaded:', userProfile.value);
+    
+    // ✅ Populate dropdowns from profile (for Admin users who can't access full lists)
+    populateDropdownsFromProfile();
+    
+    // Initialize form with fetched data
+    initializeFormData();
+    
+  } catch (error) {
+    console.error('❌ Failed to fetch user profile:', error);
+    alert(t('profile.loadError') || 'Failed to load profile');
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// ✅ Get full image URL with cache-busting
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
   
   if (imagePath.startsWith('http')) {
-    // تأكدي إنو الـ timestamp موجود
     const hasTimestamp = imagePath.includes('?t=');
     if (!hasTimestamp) {
       return `${imagePath}?t=${Date.now()}`;
@@ -524,7 +596,6 @@ const getImageUrl = (imagePath) => {
     return imagePath;
   }
   
-  // Add cache-busting query parameter
   return `${API_BASE_URL}${imagePath}?t=${Date.now()}`;
 };
 
@@ -572,11 +643,11 @@ const handleLanguageChange = async () => {
   markAsChanged();
   
   // Update UI language immediately for better UX
-  const uiLang = resolveUiLocale(formData.language);
+  const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
   setLocale(uiLang);
 };
 
-// ✅ Handle save changes - محدّث بالكامل
+// ✅ Handle save changes
 const handleSaveChanges = async () => {
   const languageChanged = formData.language !== originalData.value.language;
   try {
@@ -619,12 +690,11 @@ const handleSaveChanges = async () => {
     if (response.data?.data) {
       const userData = response.data.data;
       
-      // ✅ أضيفي timestamp لكسر الـ cache
+      // ✅ Add timestamp to break cache
       if (userData.image) {
         if (!userData.image.startsWith('http')) {
           userData.image = `${API_BASE_URL}${userData.image}`;
         }
-        // أضيفي timestamp فريد لكل تحديث
         userData.image = `${userData.image}?t=${Date.now()}`;
       }
       
@@ -635,7 +705,7 @@ const handleSaveChanges = async () => {
       alert(t('profile.updateSuccess') || 'Profile updated successfully!');
 
       if (languageChanged) {
-        const uiLang = resolveUiLocale(formData.language);
+        const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
         setLocale(uiLang);
         setTimeout(() => window.location.reload(), 500);
         return;
@@ -648,7 +718,6 @@ const handleSaveChanges = async () => {
       imageFile.value = null;
       formData.imagePreview = null;
       
-      // ✅ Force re-render للصورة
       if (fileInput.value) {
         fileInput.value.value = '';
       }
@@ -657,7 +726,7 @@ const handleSaveChanges = async () => {
       initializeFormData();
       hasChanges.value = false;
       
-      // ✅ Force page reload بعد ثانية للتأكد من ظهور الصورة الجديدة
+      // ✅ Force page reload to show new image
       setTimeout(() => {
         window.location.reload();
       }, 500);
@@ -739,9 +808,12 @@ const getRoleBadgeClass = (role) => {
   return roleClasses[role] || 'bg-secondary';
 };
 
-// Initialize on mount
+// ✅ Initialize on mount - CORRECT ORDER
 onMounted(async () => {
+  // Step 1: Load dropdowns FIRST (will fail for Admin, but that's ok)
   await fetchDropdownData();
+  
+  // Step 2: Load user profile AFTER (will populate dropdowns from profile data)
   await fetchUserProfile();
 });
 </script>

@@ -26,11 +26,9 @@ class ApiServices {
   }
 
   async createEntity(entityPlural, data) {
-    // Check if data contains a file (image)
     const hasFile = data instanceof FormData || (data.image && data.image instanceof File);
     
     if (hasFile && !(data instanceof FormData)) {
-      // Convert to FormData if it has a file but isn't already FormData
       const formData = new FormData();
       Object.keys(data).forEach(key => {
         if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
@@ -44,17 +42,14 @@ class ApiServices {
     if (!hasFile) {
       headers['Content-Type'] = 'application/json';
     }
-    // Don't set Content-Type for FormData - let axios handle it automatically
 
     return api.post(`/${entityPlural}`, data, { headers });
   }
 
   async updateEntity(entityPlural, id, data, usePatch = false) {
-    // Check if data contains a file (image)
     const hasFile = data instanceof FormData || (data.image && data.image instanceof File);
     
     if (hasFile && !(data instanceof FormData)) {
-      // Convert to FormData if it has a file but isn't already FormData
       const formData = new FormData();
       Object.keys(data).forEach(key => {
         if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
@@ -69,7 +64,6 @@ class ApiServices {
       headers['Content-Type'] = 'application/json';
       headers['X-HTTP-Method-Override'] = 'PATCH';
     }
-    // Don't set Content-Type for FormData - let axios handle it automatically
 
     if (usePatch) {
       return api.patch(`/${entityPlural}/${id}`, data, { headers });
@@ -105,20 +99,10 @@ class ApiServices {
     return api.post("/login", credentials);
   }
 
-  /**
-   * Send forgot password email
-   * @param {string} email - User's email address
-   * @returns {Promise} API response
-   */
   async forgotPassword(email) {
     return api.post("/forgot_password", { email });
   }
 
-  /**
-   * Reset password with token
-   * @param {Object} data - Reset password data {token, email, password, password_confirmation}
-   * @returns {Promise} API response
-   */
   async resetPassword(data) {
     return api.post("/reset_password", data, {
       params: {
@@ -127,12 +111,15 @@ class ApiServices {
       }
     });
   }
-async getUserProfile(userId) {
-  return api.get(`/users/${userId}`);
-}
+
+  async getUserProfile(userId) {
+    return api.get(`/users/${userId}`);
+  }
+
   async changePassword(passwordData) {
     return api.patch("/change_password", passwordData);
   }
+
   // ===== User Services =====
   async getUsers() {
     return this.getEntities("users");
@@ -146,20 +133,17 @@ async getUserProfile(userId) {
     return this.createEntity("users", userData);
   }
 
- async updateUser(userId, userData) {
-  // ✅ لو في FormData، خليها تتعامل مع multipart/form-data
-  if (userData instanceof FormData) {
-    // Don't set Content-Type - let browser set it with boundary
-    return api.post(`/users/${userId}`, userData, {
-      headers: {
-        'X-HTTP-Method-Override': 'PATCH'
-      }
-    });
+  async updateUser(userId, userData) {
+    if (userData instanceof FormData) {
+      return api.post(`/users/${userId}`, userData, {
+        headers: {
+          'X-HTTP-Method-Override': 'PATCH'
+        }
+      });
+    }
+    
+    return this.updateEntity("users", userId, userData, true);
   }
-  
-  // For regular JSON data
-  return this.updateEntity("users", userId, userData, true);
-}
 
   async deleteUser(userId, force = false) {
     return this.deleteEntity("users", userId, force);
@@ -324,13 +308,11 @@ async getUserProfile(userId) {
   }
 
   async createCompany(companyData) {
-    // If there are branches, send them as form data to match API format
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
       formData.append('name', companyData.name);
       formData.append('type', companyData.type);
       
-      // Add branches as indexed array: branches[0][name], branches[1][name], etc.
       companyData.branches.forEach((branch, index) => {
         if (branch.name && branch.name.trim() !== '') {
           formData.append(`branches[${index}][name]`, branch.name);
@@ -342,18 +324,15 @@ async getUserProfile(userId) {
       });
     }
     
-    // If no branches, send as regular JSON
     return this.createEntity("companies", companyData);
   }
 
   async updateCompany(companyId, companyData) {
-    // If there are branches, send them as form data
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
       formData.append('name', companyData.name);
       formData.append('type', companyData.type);
       
-      // Add branches as indexed array
       companyData.branches.forEach((branch, index) => {
         if (branch.name && branch.name.trim() !== '') {
           formData.append(`branches[${index}][name]`, branch.name);
@@ -368,7 +347,6 @@ async getUserProfile(userId) {
       });
     }
     
-    // If no branches, use default method
     return this.updateEntity("companies", companyId, companyData, false);
   }
 
@@ -659,23 +637,9 @@ async getUserProfile(userId) {
     return api.get("/statistics/orders");
   }
 
- // ===== Work Plans Services ===== (line 697)
-async createWorkPlan(workPlanData) {
-  // Remove empty/null values
-  const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
-    if (value !== null && value !== undefined && value !== '') {
-      acc[key] = value;
-    }
-    return acc;
-  }, {});
-
-  return api.post("/work_plans", cleanData);
-}
-
-// ===== Orders Services ===== (line 638)
-async getOrdersWithItems() {
-  return api.get("/orders_with_items");
-}
+  async getOrdersWithItems() {
+    return api.get("/orders_with_items");
+  }
 
   // ===== Line Work Services =====
   async getLineWorks() {
@@ -724,10 +688,38 @@ async getOrdersWithItems() {
     return this.getTrashedEntities("work_plans");
   }
 
- 
+  async createWorkPlan(workPlanData) {
+    const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
 
+    return api.post("/work_plans", cleanData);
+  }
+
+  // ✅ تعديل updateWorkPlan لاستخدام PATCH بشكل صحيح
   async updateWorkPlan(workPlanId, workPlanData) {
-    return this.updateEntity("work_plans", workPlanId, workPlanData, false);
+    console.log("🔄 API updateWorkPlan called for ID:", workPlanId);
+    console.log("📤 API payload:", workPlanData);
+    
+    // Remove empty/null values
+    const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+
+    console.log("🧹 Cleaned data:", cleanData);
+
+    // ✅ استخدام PATCH بدلاً من POST
+    return api.patch(`/work_plans/${workPlanId}`, cleanData, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 
   async deleteWorkPlan(workPlanId, force = false) {

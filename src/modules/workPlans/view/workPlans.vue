@@ -156,20 +156,16 @@ const loadingOrders = ref(false);
 // ✅ Permissions
 const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
 const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
-const canAddWorkPlan = computed(() => isAdmin.value); // فقط Admin يمكنه الإضافة
+const canAddWorkPlan = computed(() => isAdmin.value);
 
 // Get work plans based on user role
 const workPlans = computed(() => {
     const allPlans = workPlansStore.workPlans;
-    console.log('Work plans from store:', allPlans.length);
-    console.log('User role:', authStore.userRole, 'companyId:', companyId.value);
     
-    // SuperAdmin: يرى جميع خطط العمل
     if (isSuperAdmin.value) {
         return allPlans;
     }
     
-    // Admin: يرى فقط خطط العمل الخاصة بشركته
     if (isAdmin.value) {
         if (companyId.value) {
             const filtered = allPlans.filter(plan => {
@@ -178,13 +174,10 @@ const workPlans = computed(() => {
             });
             return filtered;
         } else {
-            console.log('Admin user has no companyId, showing all plans');
-            // Show all plans if no company assigned
             return allPlans;
         }
     }
     
-    // Other roles: لا يرى شيء
     return [];
 });
 
@@ -211,23 +204,49 @@ const driverOptions = computed(() => {
 
 onMounted(async () => {
     try {
-        // 🔥 اجلبي السائقين أولاً
         await driverStore.fetchDrivers();
-        
-        // 🔥 بعدين اجلبي work plans وامرريلها السائقين
         await workPlansStore.fetchWorkPlans(driverStore.drivers);
-        
         await fetchOrdersWithItems();
     } catch (error) {
         console.error("Failed to load initial data:", error);
     }
 });
 
-// workPlan Form Fields (reactive to ordersWithItems and drivers changes)
+// ✅ تعديل workPlan Form Fields لدعم التعديل
 const workPlanFields = computed(() => {
-    // Access ordersWithItems and drivers to make this computed reactive to their changes
     const currentOrders = ordersWithItems.value;
     const currentDrivers = driverStore.drivers;
+    
+    // ✅ استخرج order_item_id من workplanorder عند التعديل
+    let defaultOrders = [{ order: '', items: [] }];
+    
+    if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
+        console.log("📝 Editing work plan, workplanorder:", selectedworkPlan.value.workplanorder);
+        
+        defaultOrders = selectedworkPlan.value.workplanorder.map(wo => {
+            const orderItemId = wo.order_item?.id || wo.order_item_id;
+            const orderItemName = wo.order_item?.name || `Order Item #${orderItemId}`;
+            
+            // ✅ ابحثي عن order_code من ordersWithItems
+            let orderCode = '';
+            const matchingOrder = ordersWithItems.value.find(o => 
+                o.order_items && o.order_items.some(item => item.order_item_id === orderItemId)
+            );
+            
+            if (matchingOrder) {
+                orderCode = matchingOrder.order_code;
+            }
+            
+            console.log(`📦 Order Item ID: ${orderItemId}, Order Code: ${orderCode}`);
+            
+            return {
+                order: orderCode,
+                items: orderItemId ? [orderItemId] : []
+            };
+        });
+        
+        console.log("✅ Default orders for edit:", defaultOrders);
+    }
     
     return [
     {
@@ -288,14 +307,8 @@ const workPlanFields = computed(() => {
         itemsLabel: t('workPlan.form.orderItems'),
         orderOptions: orderOptions,
         getItemsOptions: getItemsOptionsForOrder,
-
         itemsSize: 5,
-        defaultValue: selectedworkPlan.value.orders && selectedworkPlan.value.orders.length > 0
-            ? selectedworkPlan.value.orders.map(o => ({
-                order: o.order,
-                items: Array.isArray(o.items) ? o.items : (o.items ? [o.items] : [])
-            }))
-            : [{ order: '', items: [] }]
+        defaultValue: defaultOrders
     }];
 });
 
@@ -307,7 +320,6 @@ const detailsFields = computed(() => [
     { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
     { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
     { key: 'orders', label: t('workPlan.orders'), colClass: 'col-md-12' },
-
 ]);
 
 const workPlanColumns = ref([
@@ -387,10 +399,7 @@ const fetchOrdersWithItems = async () => {
     loadingOrders.value = true;
     try {
         const response = await apiServices.getOrdersWithItems();
-        console.log("📦 API Response:", response);
-        console.log("📦 Response Data:", response.data);
         
-        // Handle both direct array response and wrapped response
         let data = [];
         if (Array.isArray(response.data)) {
             data = response.data;
@@ -400,7 +409,6 @@ const fetchOrdersWithItems = async () => {
         
         ordersWithItems.value = data;
         console.log("✅ Orders with items loaded:", ordersWithItems.value);
-        console.log("✅ Order options:", orderOptions.value);
     } catch (error) {
         console.error("❌ Failed to fetch orders with items:", error);
         ordersWithItems.value = [];
@@ -444,6 +452,7 @@ const openEditModal = async (workPlan) => {
     }
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
+    console.log("📝 Opening edit modal for work plan:", selectedworkPlan.value);
     await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
@@ -483,25 +492,27 @@ const closeTrashedModal = () => {
     isTrashedModalOpen.value = false;
 };
 
+// ✅ تعديل handleSubmitworkPlan لدعم التعديل بشكل صحيح
 const handleSubmitworkPlan = async (workPlanData) => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to submit work plans");
         return;
     }
 
+    console.log("📤 Form data received:", workPlanData);
+    console.log("🔧 Edit mode:", isEditMode.value);
+
     // Collect all selected item IDs from all orders
     const orderItems = [];
     if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
         workPlanData.orders.forEach(row => {
             if (row.items && Array.isArray(row.items)) {
-                // Add all item IDs from this order
                 row.items.forEach(itemId => {
                     if (itemId && !orderItems.includes(itemId)) {
                         orderItems.push(itemId);
                     }
                 });
             } else if (row.items) {
-                // Handle single item (not array)
                 if (!orderItems.includes(row.items)) {
                     orderItems.push(row.items);
                 }
@@ -509,28 +520,28 @@ const handleSubmitworkPlan = async (workPlanData) => {
         });
     }
 
-    // 🔥 اجلبي اسم السائق من driverOptions
-    const selectedDriver = driverOptions.value.find(
-        d => d.value === parseInt(workPlanData.driver_id)
-    );
+    console.log("📦 Collected order items:", orderItems);
 
     const payload = {
         name: workPlanData.name,
         driver_id: parseInt(workPlanData.driver_id),
-        driver_name: selectedDriver?.label || '', // 🔥 أضفنا اسم السائق
-        company_id: parseInt(companyId.value || workPlanData.company_id),
-        date: workPlanData.date,
-        Orderitems: orderItems.map(id => parseInt(id)) // Array of item IDs
+        date: workPlanData.date || null,
+        Orderitems: orderItems.map(id => parseInt(id))
     };
 
+    // ✅ فقط أضيفي company_id للإنشاء، مش للتعديل
+    if (!isEditMode.value) {
+        payload.company_id = parseInt(companyId.value || workPlanData.company_id);
+    }
+
     console.log("📤 Sending work plan payload:", payload);
+    console.log("🆔 Work plan ID:", selectedworkPlan.value.id);
 
     try {
         if (isEditMode.value) {
             await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
             console.log("✅ Work plan updated successfully!");
         } else {
-            // 🔥 امرري السائقين
             await workPlansStore.addWorkPlan(payload, driverStore.drivers);
             console.log("✅ Work plan added successfully!");
         }
@@ -538,11 +549,9 @@ const handleSubmitworkPlan = async (workPlanData) => {
     } catch (error) {
         console.error("❌ Failed to save work plan:", error);
         
-        // Print detailed server validation errors
         if (error.response && error.response.data) {
             console.error("🔴 Server validation errors:", error.response.data);
             
-            // Show user-friendly error message
             if (error.response.data.errors) {
                 const errorMessages = Object.values(error.response.data.errors).flat();
                 alert("خطأ في البيانات:\n" + errorMessages.join("\n"));

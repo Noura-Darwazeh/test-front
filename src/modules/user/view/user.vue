@@ -190,7 +190,7 @@ const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() ===
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);

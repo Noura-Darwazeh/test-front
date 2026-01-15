@@ -32,13 +32,20 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     let driverName = "";
     let orders = [];
     
+    // ✅ معالجة workplanorder بشكل صحيح
     if (plan.workplanorder && Array.isArray(plan.workplanorder)) {
-      orders = plan.workplanorder.map(order => ({
-        id: order.id,
-        order_item_id: order.order_item_id,
-        order: order.order_code || `Order #${order.order_item_id}`,
-        items: order.order_item_id
-      }));
+      orders = plan.workplanorder.map(workplanOrder => {
+        // استخراج order_item من الكائن
+        const orderItemId = workplanOrder.order_item?.id || workplanOrder.order_item_id;
+        const orderItemName = workplanOrder.order_item?.name || `Order Item #${orderItemId}`;
+        
+        return {
+          id: workplanOrder.id,
+          order_item_id: orderItemId,
+          order: orderItemName, // اسم الـ order item الكامل
+          items: orderItemId // ID لاستخدامه في الفورم والعرض
+        };
+      });
       
       // البحث عن أول driver في أي workplanorder
       for (const workplanOrder of plan.workplanorder) {
@@ -59,6 +66,14 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
         driverName = driver.name || driver.driver_name || '';
       }
     }
+
+    console.log("🔄 Normalized work plan:", {
+      id: plan.id,
+      name: plan.name,
+      orders: orders,
+      driver_id: driverId,
+      driver_name: driverName
+    });
 
     return {
       id: plan.id,
@@ -85,6 +100,7 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
         ? response.data.data
         : [];
       workPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
+      console.log("✅ Fetched work plans:", workPlans.value);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch work plans";
@@ -118,20 +134,14 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     loading.value = true;
     error.value = null;
     
-    const driverName = workPlanData.driver_name;
-    
-    console.log("🚀 Sending to API - workPlanData:", workPlanData);
+    console.log("🚀 Adding work plan - payload:", workPlanData);
     
     try {
       const response = await apiServices.createWorkPlan(workPlanData);
       const newPlan = normalizeWorkPlan(response.data.data || response.data, drivers);
       
-      // 🔥 إذا ما رجع driver_name من API، استخدمي اللي خزنتيه
-      if (!newPlan.driver_name && driverName) {
-        newPlan.driver_name = driverName;
-      }
-      
       workPlans.value.push(newPlan);
+      console.log("✅ Work plan added:", newPlan);
       return newPlan;
     } catch (err) {
       error.value = err.message || "Failed to add work plan";
@@ -152,25 +162,31 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     loading.value = true;
     error.value = null;
     
-    const driverName = workPlanData.driver_name;
+    console.log("🔄 Updating work plan:", planId);
+    console.log("📤 Update payload:", workPlanData);
     
     try {
       const response = await apiServices.updateWorkPlan(planId, workPlanData);
-      const updated = normalizeWorkPlan(response.data.data || response.data, drivers);
+      console.log("✅ Update response from API:", response.data);
       
-      // 🔥 إذا ما رجع driver_name من API، استخدمي اللي خزنتيه
-      if (!updated.driver_name && driverName) {
-        updated.driver_name = driverName;
-      }
+      const updated = normalizeWorkPlan(response.data.data || response.data, drivers);
       
       const index = workPlans.value.findIndex((p) => p.id === planId);
       if (index > -1) {
         workPlans.value[index] = updated;
+        console.log("✅ Work plan updated in store:", workPlans.value[index]);
       }
+      
       return workPlans.value[index];
     } catch (err) {
       error.value = err.message || "Failed to update work plan";
-      console.error("Error updating work plan:", err);
+      console.error("❌ Error updating work plan:", err);
+      
+      if (err.response) {
+        console.error("📋 Server Response Status:", err.response.status);
+        console.error("📋 Server Response Data:", err.response.data);
+      }
+      
       throw err;
     } finally {
       loading.value = false;
