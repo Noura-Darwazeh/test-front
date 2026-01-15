@@ -341,6 +341,7 @@ const isPasswordModalOpen = ref(false);
 const isSaving = ref(false);
 const hasChanges = ref(false);
 const fileInput = ref(null);
+const imageFile = ref(null); // ✅ لحفظ الـ File object
 
 const resolveIdValue = (value) => {
   if (Array.isArray(value)) {
@@ -369,8 +370,7 @@ const formData = reactive({
   currency_id: '',
   language: 'english',
   default_page: '/user',
-  imagePreview: null,
-  imageBase64: null,
+  imagePreview: null, // ✅ للـ preview فقط
 });
 
 // Original data for comparison
@@ -495,7 +495,7 @@ const initializeFormData = () => {
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
   formData.imagePreview = null;
-  formData.imageBase64 = null;
+  imageFile.value = null; // ✅ امسحي الصورة القديمة
 
   // Store original data
   originalData.value = {
@@ -511,11 +511,15 @@ const initializeFormData = () => {
   };
 };
 
-// ✅ Get full image URL
+// ✅ Get full image URL with cache-busting
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
-  if (imagePath.startsWith('http')) return imagePath;
-  return `${API_BASE_URL}${imagePath}`;
+  if (imagePath.startsWith('http')) {
+    // Add cache-busting query parameter for full URLs
+    return `${imagePath}?t=${Date.now()}`;
+  }
+  // Add cache-busting query parameter
+  return `${API_BASE_URL}${imagePath}?t=${Date.now()}`;
 };
 
 // Mark as changed
@@ -523,7 +527,7 @@ const markAsChanged = () => {
   hasChanges.value = true;
 };
 
-// Handle image upload
+// ✅ Handle image upload - محدّث
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -540,14 +544,13 @@ const handleImageUpload = (event) => {
     return;
   }
 
-  // ✅ Store the actual File object
-  // formData.imageFile = file;
+  // ✅ احفظي الـ File object
+  imageFile.value = file;
 
-  // Create preview
+  // اعملي preview للصورة
   const reader = new FileReader();
   reader.onload = (e) => {
     formData.imagePreview = e.target.result;
-    formData.imageBase64 = e.target.result.split(',')[1]; // Store base64 without prefix
     markAsChanged();
   };
   reader.readAsDataURL(file);
@@ -569,40 +572,52 @@ const handleLanguageChange = async () => {
   setLocale(uiLang);
 };
 
-// Handle save changes
+// ✅ Handle save changes - محدّث بالكامل
 const handleSaveChanges = async () => {
   const languageChanged = formData.language !== originalData.value.language;
   try {
     isSaving.value = true;
 
-    // Prepare data to send
-    const updatedData = {
-      name: formData.name,
-      email: formData.email || '',
-      phone_number: formData.phone_number,
-      company_id: formData.company_id || null,
-      region_id: formData.region_id || null,
-      currency_id: formData.currency_id || null,
-      language: formData.language,
-    };
-
-    // Only include username if it changed
+    // ✅ استخدمي FormData بدل object عادي
+    const formDataToSend = new FormData();
+    
+    // أضيفي الحقول العادية
+    formDataToSend.append('name', formData.name);
+    formDataToSend.append('phone_number', formData.phone_number);
+    
+    // Email اختياري
+    if (formData.email && formData.email.trim() !== '') {
+      formDataToSend.append('email', formData.email);
+    }
+    
+    // Username بس لو تغير
     if (formData.username !== originalData.value.username) {
-      updatedData.username = formData.username;
+      formDataToSend.append('username', formData.username);
+    }
+    
+    // Company, Region, Currency
+    if (formData.company_id && formData.company_id !== '') {
+      formDataToSend.append('company_id', formData.company_id);
+    }
+    if (formData.region_id && formData.region_id !== '') {
+      formDataToSend.append('region_id', formData.region_id);
+    }
+    if (formData.currency_id && formData.currency_id !== '') {
+      formDataToSend.append('currency_id', formData.currency_id);
+    }
+    
+    formDataToSend.append('language', formData.language);
+
+    // 🖼️ الصورة - أضيفيها كـ File لو موجودة
+    if (imageFile.value) {
+      formDataToSend.append('image', imageFile.value);
+      console.log('📸 Image file added to FormData:', imageFile.value.name);
     }
 
-    // Add image if it exists
-    if (formData.imageBase64) {
-      updatedData.image = formData.imageBase64;
-    }
+    console.log("📤 Sending FormData to API");
 
-    console.log("📤 Sending update data:", {
-      ...updatedData,
-      image: updatedData.image ? 'File object' : 'No image'
-    });
-
-    // Send POST request to /api/users/{id}
-    const response = await apiServices.updateUser(userProfile.value.id, updatedData);
+    // ابعثي الـ FormData
+    const response = await apiServices.updateUser(userProfile.value.id, formDataToSend);
 
     if (response.data?.data) {
       const userData = response.data.data;
@@ -628,6 +643,8 @@ const handleSaveChanges = async () => {
       
       // Reload profile data from API
       await fetchUserProfile();
+      imageFile.value = null; // ✅ امسحي الـ File بعد النجاح
+      formData.imagePreview = null; // ✅ امسحي الـ Preview أيضاً
       hasChanges.value = false;
     }
   } catch (error) {

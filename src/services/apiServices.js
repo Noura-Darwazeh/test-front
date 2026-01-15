@@ -40,9 +40,13 @@ class ApiServices {
       data = formData;
     }
 
-    return api.post(`/${entityPlural}`, data, {
-      headers: hasFile ? { 'Content-Type': 'multipart/form-data' } : {}
-    });
+    const headers = {};
+    if (!hasFile) {
+      headers['Content-Type'] = 'application/json';
+    }
+    // Don't set Content-Type for FormData - let axios handle it automatically
+
+    return api.post(`/${entityPlural}`, data, { headers });
   }
 
   async updateEntity(entityPlural, id, data, usePatch = false) {
@@ -60,16 +64,17 @@ class ApiServices {
       data = formData;
     }
 
+    const headers = {};
+    if (!hasFile) {
+      headers['Content-Type'] = 'application/json';
+      headers['X-HTTP-Method-Override'] = 'PATCH';
+    }
+    // Don't set Content-Type for FormData - let axios handle it automatically
+
     if (usePatch) {
-      return api.patch(`/${entityPlural}/${id}`, data, {
-        headers: hasFile ? { 'Content-Type': 'multipart/form-data' } : {}
-      });
+      return api.patch(`/${entityPlural}/${id}`, data, { headers });
     } else {
-      return api.post(`/${entityPlural}/${id}`, data, {
-        headers: {
-          "X-HTTP-Method-Override": "PATCH",
-        },
-      });
+      return api.post(`/${entityPlural}/${id}`, data, { headers });
     }
   }
 
@@ -142,7 +147,7 @@ async getUserProfile(userId) {
   }
 
   async updateUser(userId, userData) {
-    return this.updateEntity("users", userId, userData, false);
+    return this.updateEntity("users", userId, userData, true);
   }
 
   async deleteUser(userId, force = false) {
