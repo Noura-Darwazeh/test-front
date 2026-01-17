@@ -10,6 +10,40 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  const extractIdName = (value, fallbackId = null, fallbackName = "") => {
+    if (Array.isArray(value)) {
+      return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
+    }
+    if (value && typeof value === "object") {
+      return {
+        id: value.id ?? fallbackId,
+        name: value.name ?? value.label ?? fallbackName,
+      };
+    }
+    if (value === null || value === undefined) {
+      return { id: fallbackId, name: fallbackName };
+    }
+    return { id: value, name: fallbackName };
+  };
+
+  const normalizeUser = (user) => {
+    const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
+    const companyInfo = extractIdName(user.company ?? user.company_id);
+    const regionInfo = extractIdName(user.region ?? user.region_id);
+    const currencyInfo = extractIdName(user.currency ?? user.currency_id);
+
+    return {
+      ...user,
+      role: roleValue ?? "",
+      company_id: companyInfo.id ?? null,
+      company_name: user.company_name || companyInfo.name || "",
+      region_id: regionInfo.id ?? null,
+      region_name: user.region_name || regionInfo.name || "",
+      currency_id: currencyInfo.id ?? null,
+      currency_name: user.currency_name || currencyInfo.name || "",
+    };
+  };
+
   // Getters
   const activeUsers = computed(() =>
     users.value.filter((user) => user.status === "active")
@@ -27,7 +61,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
       const response = await apiServices.getUsers();
 
       // Use backend data directly, no mapping needed
-      users.value = response.data.data;
+      users.value = response.data.data.map(normalizeUser);
 
       return response.data;
     } catch (err) {
@@ -46,7 +80,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
       const response = await apiServices.getTrashedUsers();
 
       // Use backend data directly, no mapping needed
-      trashedUsers.value = response.data.data;
+      trashedUsers.value = response.data.data.map(normalizeUser);
 
       return response.data;
     } catch (err) {
@@ -65,8 +99,9 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
       const response = await apiServices.createUser(userData);
 
       // Add new user directly from backend response
-      users.value.push(response.data.data);
-      return response.data.data;
+      const newUser = normalizeUser(response.data.data);
+      users.value.push(newUser);
+      return newUser;
     } catch (err) {
       error.value = err.message || "Failed to add user";
       console.error("Error adding user:", err);
@@ -85,7 +120,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
       // Update local state directly with backend response
       const index = users.value.findIndex((u) => u.id === userId);
       if (index > -1) {
-        users.value[index] = response.data.data;
+        users.value[index] = normalizeUser(response.data.data);
       }
       return users.value[index];
     } catch (err) {
@@ -132,7 +167,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
 
       // Add the restored user to active users list
       if (response.data?.data) {
-        users.value.push(response.data.data);
+        users.value.push(normalizeUser(response.data.data));
       }
     } catch (err) {
       error.value = err.message || "Failed to restore user";
@@ -171,7 +206,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
 
       // Add restored users to active users list
       if (response.data?.data) {
-        users.value.push(...response.data.data);
+        users.value.push(...response.data.data.map(normalizeUser));
       }
     } catch (err) {
       error.value = err.message || "Failed to bulk restore users";

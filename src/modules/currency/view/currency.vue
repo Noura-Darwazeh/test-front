@@ -10,6 +10,7 @@
       :showAddButton="true"
       :addButtonText="$t('currency.addNew')"
       @add-click="openModal"
+      @refresh-click="handleRefresh"
     />
 
     <div class="card border-0">
@@ -169,14 +170,12 @@ onMounted(async () => {
 // Table columns
 const currencyColumns = computed(() => [
   { key: "id", label: t("currency.table.id"), sortable: true },
-  { key: "key", label: t("currency.table.key"), sortable: true },
   { key: "name", label: t("currency.table.name"), sortable: true },
   { key: "symbol", label: t("currency.table.symbol"), sortable: true },
 ]);
 
 const trashedColumns = computed(() => [
   { key: "id", label: t("currency.table.id") },
-  { key: "key", label: t("currency.table.key") },
   { key: "name", label: t("currency.table.name") },
   { key: "symbol", label: t("currency.table.symbol") },
 ]);
@@ -196,14 +195,20 @@ const filteredColumns = computed(() => {
 const currenciesWithLocalizedName = computed(() => {
   return currencies.value.map((currency) => ({
     ...currency,
-    name: locale.value === "ar" ? currency.namearabic : currency.nameenglish,
+    name:
+      locale.value === "ar"
+        ? currency.namearabic || currency.name
+        : currency.nameenglish || currency.name,
   }));
 });
 
 const trashedCurrenciesWithLocalizedName = computed(() => {
   return trashedCurrencies.value.map((currency) => ({
     ...currency,
-    name: locale.value === "ar" ? currency.namearabic : currency.nameenglish,
+    name:
+      locale.value === "ar"
+        ? currency.namearabic || currency.name
+        : currency.nameenglish || currency.name,
   }));
 });
 
@@ -297,6 +302,25 @@ const switchTab = async (tab) => {
     } catch (error) {
       console.error("Failed to load trashed currencies:", error);
     }
+  } else {
+    try {
+      await currenciesStore.fetchCurrencies();
+    } catch (error) {
+      console.error("Failed to load currencies:", error);
+    }
+  }
+};
+
+const handleRefresh = async () => {
+  selectedRows.value = [];
+  try {
+    if (activeTab.value === "trashed") {
+      await currenciesStore.fetchTrashedCurrencies();
+    } else {
+      await currenciesStore.fetchCurrencies();
+    }
+  } catch (error) {
+    console.error("Failed to refresh currencies:", error);
   }
 };
 

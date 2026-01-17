@@ -9,6 +9,7 @@ export default {
     logout: "Log Out",
     signedInAs: "Signed in as",
     confirmLogout: "Are you sure you want to logout?",
+    switchToUser: "Log in"
   },
 
   login: {
@@ -313,6 +314,7 @@ export default {
 
     // Filters
     filterByCompany: "Filter by Company",
+    filterByType: "Filter by Type",
 
     // Form Fields
     form: {
@@ -463,11 +465,13 @@ export default {
     },
 
     // Validation Messages
-    validation: {
-      nameRequired: "Name is required",
-      nameMax: "Name must not exceed 255 characters",
-      typeRequired: "Type is required",
-    },
+      validation: {
+        nameRequired: "Name is required",
+        nameMax: "Name must not exceed 255 characters",
+        typeRequired: "Type is required",
+        latitudeInvalid: "Invalid latitude (must be between -90 and 90)",
+        longitudeInvalid: "Invalid longitude (must be between -180 and 180)",
+      },
 
     // Trashed Items
     trashed: {
@@ -535,19 +539,25 @@ export default {
 
     // Filters
     filterByLocation: "Filter by Location",
+    filterByCompany: "Filter by Company",
     locations: {
       nablus: "Nablus",
       ramallah: "Ramallah",
     },
     // Form Fields
-    form: {
-      name: "Branch Name",
-      namePlaceholder: "Enter full name",
-      location: "Branch location",
-      locationPlaceholder: "Select branch location",
-      company: "Company",
-      companyPlaceholder: "Select company",
-      companies: {
+      form: {
+        name: "Branch Name",
+        namePlaceholder: "Enter full name",
+        location: "Branch location",
+        locationPlaceholder: "Select branch location",
+        latitude: "Latitude",
+        longitude: "Longitude",
+        latitudePlaceholder: "32.2270",
+        longitudePlaceholder: "35.2544",
+        locationPicker: "Location on Map",
+        company: "Company",
+        companyPlaceholder: "Select company",
+        companies: {
         company1: "Company 1",
         company2: "Company 2",
       },
@@ -593,6 +603,8 @@ export default {
     name: "Name",
     region: "Region",
     company: "Company",
+    createdAt: "Created At",
+    updatedAt: "Updated At",
 
     // Status Values
     activeLines: "Active Lines",
@@ -668,10 +680,13 @@ export default {
     // Table Columns
     id: "ID",
     name: "Line Name",
+    line: "Line",
     price: "Price",
     currency: "Currency",
     type: "Type",
     company: "Company",
+    createdAt: "Created At",
+    updatedAt: "Updated At",
 
     // Status Values
     activeLinePrices: "Active Line Prices",
@@ -690,6 +705,8 @@ export default {
 
     // Form Fields
     form: {
+      line: "Line",
+      linePlaceholder: "Select line",
       name: "Line Name",
       namePlaceholder: "Enter line name",
 
@@ -726,9 +743,11 @@ export default {
       nameRequired: "Line name is required",
       nameMax: "Name must not exceed 255 characters",
       priceRequired: "Price is required and must be greater than 0",
+      pricePositive: "Price must be greater than 0",
       currencyRequired: "Currency is required",
       companyRequired: "Company is required",
       typeRequired: "Type is required",
+      invalidType: "Invalid type selected. Valid options: return, delivery",
     },
 
     // Trashed Items
@@ -759,11 +778,19 @@ export default {
     edit: "Edit",
     delete: "Delete",
     actions: "Actions",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+
+    // Entity names for bulk actions
+    entitySingular: "line work",
+    entityPlural: "line works",
 
     // Table Columns
     id: "ID",
     name: "Line Work Name",
     company: "Company",
+    createdAt: "Created At",
+    updatedAt: "Updated At",
 
     // Messages
     noData: "No data available",
@@ -873,6 +900,10 @@ export default {
 
       name: "Region Name",
       namePlaceholder: "Enter Region name",
+      nameEnglish: "English Name",
+      nameEnglishPlaceholder: "Enter region name in English",
+      nameArabic: "Arabic Name",
+      nameArabicPlaceholder: "Enter region name in Arabic",
 
       timezone: "Region Timezone",
       timezonePlaceholder: "Enter Region Timezone",
@@ -882,6 +913,8 @@ export default {
     validation: {
       nameRequired: "Region name is required",
       nameMax: "Name must not exceed 255 characters",
+      nameEnglishRequired: "English name is required",
+      nameArabicRequired: "Arabic name is required",
 
       keyRequired: "Region key is required",
 
@@ -906,10 +939,16 @@ export default {
     next: "Next",
   },
   map: {
-    title: "Map",
-    pageTitle: "Tracking Drivers Map",
-    pageSubtitle: "Tracking Map",
-  },
+      title: "Map",
+      pageTitle: "Tracking Drivers Map",
+      pageSubtitle: "Tracking Map",
+      popup: {
+        company: "Company",
+        branch: "Branch",
+        coordinates: "Coordinates",
+        viewDetails: "View Company Details",
+      },
+    },
 
   orders: {
     // Page Headers
@@ -999,9 +1038,15 @@ export default {
       customerId: "Customer",
       selectCustomer: "Select Customer",
       selectLocation: "Select Location",
+      selectCurrency: "Select Currency",
+      selectLinePrice: "Select Line Price",
+      selectCompanyPrice: "Select Company Price",
+      selectBranch: "Select Branch",
       selectParentOrder: "Select Parent Order",
       price: "Price",
       pricePlaceholder: "Enter price amount",
+      deliveryPrice: "Delivery Price",
+      returnPrice: "Return Price",
       currencyId: "Currency",
       linepriceId: "Line Price",
       discountId: "Discount",
@@ -1010,6 +1055,7 @@ export default {
       type: "Order Type",
       typeDelivery: "Delivery",
       typeReturn: "Return",
+      typeExchange: "Exchange",
       package: "Package Type",
       packageOne: "Single Package",
       packageMulti: "Multiple Packages",
@@ -1017,6 +1063,8 @@ export default {
       caseFull: "Full",
       casePart: "Partial",
       caseFast: "Fast",
+      deliveryPriceFromCustomer: "Delivery Price From Customer",
+      priceFromCustomer: "Price From Customer",
       parentOrderId: "Parent Order",
       noParentOrder: "No Parent Order",
       companyId: "Company",
@@ -1027,14 +1075,45 @@ export default {
     // Wizard
     wizard: {
       title: "Create New Order",
+      // Mode selection (3 tabs)
+      modeDelivery: "Delivery",
+      modeReturn: "Return",
+      modeExchange: "Exchange",
+      modeDeliveryDesc: "Create a new delivery order to send items to a customer",
+      modeReturnDesc: "Create a return order to collect items from a customer",
+      modeExchangeDesc: "Exchange an existing order - customer returns items and receives new ones",
+      // Steps
       step1: "Basic Info",
       step2: "Pricing & Details",
       step3: "Order Items",
+      stepSelectOrder: "Select Order",
+      stepSelectParent: "Select Parent",
+      selectParentForReturn: "Select Parent Order for Return",
+      // Content titles
       basicInfo: "Basic Order Information",
       pricingDetails: "Pricing & Details",
       orderItems: "Order Items",
+      selectOriginalOrder: "Select Original Order to Exchange",
+      originalOrder: "Original Order",
+      selectedOrderDetails: "Selected Order Details",
+      // Exchange specific
+      caseDelivery: "Delivery Case Type",
+      caseReturn: "Return Case Type",
+      newDeliveryPrice: "New Delivery Price",
+      originalOrderPrice: "Original Order Price (Return)",
+      exchangeItem: "Exchange Item",
+      exchangeItemsInfo: "Add items that will be delivered to the customer and items that will be returned",
+      noDeliveryItems: "No delivery items added",
+      noReturnItems: "No return items added",
+      // Items
       itemsList: "Order Items List",
       addItem: "Add Item",
+      nestedItems: "Nested Items",
+      deliveryItems: "Delivery Items",
+      returnItems: "Return Items",
+      addDeliveryItem: "Add Delivery Item",
+      addReturnItem: "Add Return Item",
+      addNestedItem: "Add Nested Item",
       noItems: "No items added yet. Click 'Add Item' to start.",
       itemName: "Item Name",
       itemQuantity: "Quantity",
@@ -1059,20 +1138,23 @@ export default {
       multiPackageOnlyWithFull:
         "Multi-package can only be selected when case is 'Full'",
       returnRequiresParentOrder: "Return orders must have a parent order ID",
+      parentOrderPriceMissing: "Parent order price is required for exchange",
       noOrderItems: "At least one order item is required",
       singlePackageOneItem: "Single package orders must have exactly one item",
       multiPackageMinItems: "Multi-package orders must have at least 2 items",
-      incompleteOrderItem:
-        "Order item {index} is incomplete. Please fill all required fields.",
-      multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
+        incompleteOrderItem:
+          "Order item {index} is incomplete. Please fill all required fields.",
+        sameBranchNotAllowed:
+          "Order item {index} must use different customer and delivery branches.",
+        multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
       fromCompanyRequired: "Order item {index} requires a from company for Fast case.",
       toCompanyRequired: "Order item {index} requires a to company for Part case.",
     },
 
     // Trashed Items
     trashed: {
-      title: "Cancelled Orders",
-      empty: "No cancelled orders",
+      title: "Trashed Orders",
+      empty: "No trashed orders",
       restore: "Restore Order",
       delete: "Delete Permanently",
     },
@@ -1089,6 +1171,14 @@ export default {
       orderItems: "Order Items",
       quantity: "Quantity",
       subItems: "Sub-Items",
+    },
+
+    // Exchange Order Details (for expandable row)
+    exchange: {
+      title: "Exchange Order Details",
+      deliveryPart: "Delivery Part",
+      returnPart: "Return Part",
+      parentOrder: "Parent Order",
     },
 
     // Status Updates
@@ -1227,7 +1317,7 @@ export default {
       expired: "Expired",
       inactive: "Inactive",
       stopped: "Stopped",
-      deleted: "Deleted",
+      deleted: "Trashed",
     },
 
     // Details Modal
@@ -1246,8 +1336,8 @@ export default {
 
     // Trashed Items
     trashed: {
-      title: "Deleted Discounts",
-      empty: "No deleted discounts",
+      title: "Trashed Discounts",
+      empty: "No trashed discounts",
       restore: "Restore Discount",
       delete: "Delete Permanently",
     },
@@ -1277,7 +1367,13 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
+
+    // Entity names for bulk actions
+    entitySingular: "driver line",
+    entityPlural: "driver lines",
 
     // Table Columns
     table: {
@@ -1354,8 +1450,8 @@ export default {
 
     // Trashed Items
     trashed: {
-      title: "Deleted Driver Line Assignments",
-      empty: "No deleted assignments",
+      title: "Trashed Driver Line Assignments",
+      empty: "No trashed assignments",
       restore: "Restore Assignment",
       delete: "Delete Permanently",
     },
@@ -1382,7 +1478,13 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
     actions: "Actions",
+
+    // Entity names for bulk actions
+    entitySingular: "company price",
+    entityPlural: "company prices",
 
     // Table Columns
     table: {
@@ -1447,8 +1549,8 @@ export default {
 
     // Trashed Items
     trashed: {
-      title: "Deleted Company Prices",
-      empty: "No deleted company prices",
+      title: "Trashed Company Prices",
+      empty: "No trashed company prices",
       restore: "Restore Price",
       delete: "Delete Permanently",
     },
@@ -1525,8 +1627,8 @@ export default {
 
     // Trashed Items
     trashed: {
-      title: "Deleted Currencies",
-      empty: "No deleted currencies",
+      title: "Trashed Currencies",
+      empty: "No trashed currencies",
       restore: "Restore Currency",
       delete: "Delete Permanently",
     },
@@ -1550,6 +1652,9 @@ export default {
     noCompanyAssigned: "No company assigned",
     save: "Save",
     cancel: "Cancel",
+    locateOnMap: "Locate on Map",
+    selectLocation: "Select Location",
+    mapClickHint: "Click on the map to set the location.",
     close: "Close",
     delete: "Delete",
     saving: "Saving...",
@@ -1566,6 +1671,8 @@ export default {
     restoreFailed: "Failed to restore",
     selected: "selected",
     active: "Active",
+    expand: "Expand",
+    collapse: "Collapse",
     saveChanges: "Save Changes",
     confirmCancel: "Are you sure you want to cancel? All unsaved changes will be lost.",
     deleteConfirmMessage: "Are you sure you want to delete this item?",

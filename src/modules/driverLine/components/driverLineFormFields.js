@@ -1,67 +1,77 @@
-import { computed } from "vue";
+import { computed, unref } from "vue";
 import { useI18n } from "vue-i18n";
 
-export function useDriverLineFormFields() {
+export function useDriverLineFormFields({ drivers, lineWorks } = {}) {
   const { t } = useI18n();
 
-  const driverLineFields = computed(() => [
-    {
-      name: "driver_id",
-      label: t("driverLine.form.driver"),
-      type: "select",
-      placeholder: t("driverLine.form.driverPlaceholder"),
-      required: true,
-      options: [
-        { value: 1, label: "Ahmed Hassan - Available" },
-        { value: 2, label: "Mohammed Ali - Available" },
-        { value: 3, label: "Sarah Ibrahim - Busy" },
-        { value: 4, label: "Fatima Khalil - Available" },
-        { value: 5, label: "Omar Yousef - Available" },
-      ],
-      validation: {
+  const driverLineFields = computed(() => {
+    const driverList = unref(drivers) || [];
+    const lineWorkList = unref(lineWorks) || [];
+
+    const driverOptions = driverList
+      .map((driver) => ({
+        value: String(driver.id ?? driver.value ?? ""),
+        label: driver.name || driver.username || driver.label || "",
+      }))
+      .filter((option) => option.value && option.label);
+
+    const lineWorkOptions = lineWorkList
+      .map((lineWork) => ({
+        value: String(lineWork.id ?? lineWork.value ?? ""),
+        label: lineWork.name || lineWork.label || "",
+      }))
+      .filter((option) => option.value && option.label);
+
+    const validDriverIds = new Set(driverOptions.map((option) => option.value));
+    const validLineWorkIds = new Set(
+      lineWorkOptions.map((option) => option.value)
+    );
+
+    return [
+      {
+        name: "driver_id",
+        label: t("driverLine.form.driver"),
+        type: "select",
+        placeholder: t("driverLine.form.driverPlaceholder"),
         required: true,
-        message: t("driverLine.validation.driverRequired"),
+        options: driverOptions,
+        validation: {
+          required: true,
+          message: t("driverLine.validation.driverRequired"),
+        },
+        validate: (value) => {
+          if (!value) {
+            return t("driverLine.validation.driverRequired");
+          }
+          if (!validDriverIds.has(String(value))) {
+            return t("driverLine.validation.invalidDriver");
+          }
+          return null;
+        },
       },
-      validate: (value) => {
-        if (!value) {
-          return t("driverLine.validation.driverRequired");
-        }
-        const validDriverIds = [1, 2, 3, 4, 5];
-        if (!validDriverIds.includes(parseInt(value))) {
-          return t("driverLine.validation.invalidDriver");
-        }
-        return null;
-      },
-    },
-    {
-      name: "line_work_id",
-      label: t("driverLine.form.lineWork"),
-      type: "select",
-      placeholder: t("driverLine.form.lineWorkPlaceholder"),
-      required: true,
-      options: [
-        { value: 1, label: "Jerusalem - Ramallah Line" },
-        { value: 2, label: "Nablus - Jenin Line" },
-        { value: 3, label: "Hebron - Bethlehem Line" },
-        { value: 4, label: "Gaza - Khan Yunis Line" },
-        { value: 5, label: "Tulkarm - Qalqilya Line" },
-      ],
-      validation: {
+      {
+        name: "line_work_id",
+        label: t("driverLine.form.lineWork"),
+        type: "select",
+        placeholder: t("driverLine.form.lineWorkPlaceholder"),
         required: true,
-        message: t("driverLine.validation.lineWorkRequired"),
+        options: lineWorkOptions,
+        validation: {
+          required: true,
+          message: t("driverLine.validation.lineWorkRequired"),
+        },
+        validate: (value) => {
+          if (!value) {
+            return t("driverLine.validation.lineWorkRequired");
+          }
+          if (!validLineWorkIds.has(String(value))) {
+            return t("driverLine.validation.invalidLineWork");
+          }
+          return null;
+        },
       },
-      validate: (value) => {
-        if (!value) {
-          return t("driverLine.validation.lineWorkRequired");
-        }
-        const validLineWorkIds = [1, 2, 3, 4, 5];
-        if (!validLineWorkIds.includes(parseInt(value))) {
-          return t("driverLine.validation.invalidLineWork");
-        }
-        return null;
-      },
-    },
-  ]);
+    ];
+  });
 
   return {
     driverLineFields,

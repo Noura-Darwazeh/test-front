@@ -1,9 +1,9 @@
 <template>
     <div class="user-page-container bg-light">
         <RegionsHeader v-model="searchText" :searchPlaceholder="$t('regions.searchPlaceholder')" :data="regions"
-            groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('regions.filterByStatus')"
-            translationKey="statuses" :columns="regionsColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('regions.addNew')" @add-click="openAddModal" />
+            :columns="regionsColumns" v-model:visibleColumns="visibleColumns"
+            :showAddButton="true" :addButtonText="$t('regions.addNew')" @add-click="openAddModal"
+            @refresh-click="handleRefresh" />
 
         <div class="card border-0">
             <!-- Tabs -->
@@ -108,17 +108,16 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import RegionsHeader from "../components/regionsHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useRegionsManagementStore } from "../store/regionsManagement.js";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const regionsStore = useRegionsManagementStore();
 
 const searchText = ref("");
-const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
@@ -148,14 +147,48 @@ onMounted(async () => {
 // regions Form Fields
 const regionsFields = computed(() => [
     {
-        name: 'name',
-        label: t('regions.form.name'),
+        name: 'key',
+        label: t('regions.form.key'),
         type: 'text',
         required: true,
-        placeholder: t('regions.form.namePlaceholder'),
+        placeholder: t('regions.form.keyPlaceholder'),
         colClass: 'col-md-12',
-        defaultValue: isEditMode.value ? selectedregions.value.name : '',
+        defaultValue: isEditMode.value ? selectedregions.value.key : '',
         validate: (value) => {
+            if (!value) return t('regions.validation.keyRequired');
+            return null;
+        }
+    },
+    {
+        name: 'nameenglish',
+        label: t('regions.form.nameEnglish'),
+        type: 'text',
+        required: true,
+        placeholder: t('regions.form.nameEnglishPlaceholder'),
+        colClass: 'col-md-12',
+        defaultValue: isEditMode.value
+            ? (selectedregions.value.nameenglish
+                ?? (locale.value === 'en' ? selectedregions.value.name : ''))
+            : '',
+        validate: (value) => {
+            if (!value) return t('regions.validation.nameEnglishRequired');
+            if (value.length > 255) return t('regions.validation.nameMax');
+            return null;
+        }
+    },
+    {
+        name: 'namearabic',
+        label: t('regions.form.nameArabic'),
+        type: 'text',
+        required: true,
+        placeholder: t('regions.form.nameArabicPlaceholder'),
+        colClass: 'col-md-12',
+        defaultValue: isEditMode.value
+            ? (selectedregions.value.namearabic
+                ?? (locale.value === 'ar' ? selectedregions.value.name : ''))
+            : '',
+        validate: (value) => {
+            if (!value) return t('regions.validation.nameArabicRequired');
             if (value.length > 255) return t('regions.validation.nameMax');
             return null;
         }
@@ -178,6 +211,7 @@ const regionsFields = computed(() => [
 // Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('regions.id'), colClass: 'col-md-6' },
+    { key: 'key', label: t('regions.key'), colClass: 'col-md-6' },
     { key: 'name', label: t('regions.name'), colClass: 'col-md-6' },
     { key: 'timezone', label: t('regions.timezone'), colClass: 'col-md-12' },
 ]);
@@ -205,8 +239,28 @@ const filteredColumns = computed(() => {
     return trashedColumns.value;
 });
 
+const regionsWithLocalizedName = computed(() => {
+    return regions.value.map((region) => ({
+        ...region,
+        name: locale.value === 'ar'
+            ? region.namearabic || region.name || region.nameenglish || ''
+            : region.nameenglish || region.name || region.namearabic || ''
+    }));
+});
+
+const trashedRegionsWithLocalizedName = computed(() => {
+    return trashedregions.value.map((region) => ({
+        ...region,
+        name: locale.value === 'ar'
+            ? region.namearabic || region.name || region.nameenglish || ''
+            : region.nameenglish || region.name || region.namearabic || ''
+    }));
+});
+
 const currentData = computed(() => {
-    return activeTab.value === 'active' ? regions.value : trashedregions.value;
+    return activeTab.value === 'active'
+        ? regionsWithLocalizedName.value
+        : trashedRegionsWithLocalizedName.value;
 });
 
 const currentLoading = computed(() => {
@@ -215,9 +269,6 @@ const currentLoading = computed(() => {
 
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    if (activeTab.value === 'active') {
-        result = filterByGroups(result, selectedGroups.value, "status");
-    }
     result = filterData(result, searchText.value);
     return result;
 });
@@ -273,7 +324,7 @@ const bulkConfirmMessage = computed(() => {
     return '';
 });
 
-watch([searchText, selectedGroups], () => {
+watch([searchText], () => {
     currentPage.value = 1;
 });
 
@@ -319,20 +370,43 @@ const switchTab = async (tab) => {
         } catch (error) {
             console.error("Failed to load trashed regions:", error);
         }
+    } else {
+        try {
+            await regionsStore.fetchRegions();
+        } catch (error) {
+            console.error("Failed to load regions:", error);
+        }
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await regionsStore.fetchTrashedRegions();
+        } else {
+            await regionsStore.fetchRegions();
+        }
+    } catch (error) {
+        console.error("Failed to refresh regions:", error);
     }
 };
 
 const handleSubmitregions = async (regionsData) => {
     try {
+        const keyValue = (regionsData.key || "").trim();
+        const payload = {
+            key: keyValue ? keyValue.toUpperCase() : keyValue,
+            nameenglish: regionsData.nameenglish,
+            namearabic: regionsData.namearabic,
+            timezone: regionsData.timezone || null,
+        };
+
         if (isEditMode.value) {
-            await regionsStore.updateRegion(selectedregions.value.id, regionsData);
+            await regionsStore.updateRegion(selectedregions.value.id, payload);
             console.log("Region updated successfully!");
         } else {
-            const newRegion = {
-                name: regionsData.name,
-                timezone: regionsData.timezone || null,
-            };
-            await regionsStore.addRegion(newRegion);
+            await regionsStore.addRegion(payload);
             console.log("Region added successfully!");
         }
         closeFormModal();

@@ -1,4 +1,4 @@
-export default {
+﻿export default {
   navbar: {
     notifications: "الإشعارات",
     profile: "الملف الشخصي",
@@ -7,6 +7,7 @@ export default {
     logout: "تسجيل الخروج",
     signedInAs: "مسجل الدخول كـ",
     confirmLogout: "هل أنت متأكد من تسجيل الخروج؟",
+    switchToUser: "تسجيل الدخول"
   },
 
   login: {
@@ -68,6 +69,10 @@ export default {
     sharedLine: "الخط المشترك",
     status: "الحالة",
     company: "الشركة",
+    languages: {
+      english: "الإنجليزية",
+      arabic: "العربية",
+    },
 
     // قيم الحالة
     active: "نشط",
@@ -149,6 +154,8 @@ export default {
   driver: {
     // عناوين الصفحة
     title: "جدول السائقين",
+    pageTitle: "إدارة السائقين",
+    pageSubtitle: "إدارة سائقي التوصيل وتفاصيلهم",
 
     // الإجراءات
     searchPlaceholder: "البحث عن سائقين...",
@@ -181,8 +188,8 @@ export default {
     activeDrivers: "السائقين النشطين",
 
     // أسماء الكيانات للإجراءات الجماعية
-    entitySingular: "driver",
-    entityPlural: "drivers",
+    entitySingular: "سائق",
+    entityPlural: "سائقين",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -273,8 +280,10 @@ export default {
     details: "تفاصيل ",
   },
   customer: {
-    // Page Headers
+    // عناوين الصفحة
     title: "جدول العملاء",
+    pageTitle: "إدارة العملاء",
+    pageSubtitle: "إدارة العملاء وتفاصيلهم",
 
     // الإجراءات
     searchPlaceholder: "البحث عن عملاء...",
@@ -290,8 +299,12 @@ export default {
 
     // أعمدة الجدول
     id: "المعرف",
+    fullName: "الاسم الكامل",
     name: "الاسم",
+    image: "الصورة",
     phoneNumber: "رقم الهاتف",
+    landingPage: "الصفحة الرئيسية",
+    language: "اللغة",
     location: "الموقع",
     companyName: "الشركة",
 
@@ -301,8 +314,8 @@ export default {
     activeCustomers: "العملاء النشطين",
 
     // أسماء الكيانات للإجراءات الجماعية
-    entitySingular: "customer",
-    entityPlural: "customers",
+    entitySingular: "عميل",
+    entityPlural: "عملاء",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -311,6 +324,7 @@ export default {
 
     // الفلاتر
     filterByCompany: "تصفية حسب الشركة",
+    filterByType: "تصفية حسب النوع",
 
     // حقول النموذج
     form: {
@@ -329,6 +343,10 @@ export default {
     validation: {
       nameRequired: "اسم العميل مطلوب",
       nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
+      nameMin: "يجب أن يكون الاسم 3 أحرف على الأقل",
+      usernameRequired: "اسم المستخدم مطلوب",
+      usernameMax: "يجب ألا يتجاوز اسم المستخدم 255 حرفاً",
+      usernameExists: "اسم المستخدم موجود بالفعل",
       phoneRequired: "رقم الهاتف مطلوب",
       phoneMax: "يجب ألا يتجاوز رقم الهاتف 20 حرفاً",
       companyRequired: "الشركة مطلوبة",
@@ -465,11 +483,12 @@ export default {
       nameRequired: "اسم الشركة مطلوب",
       nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
       typeRequired: "نوع الشركة مطلوب",
+      latitudeInvalid: "خط العرض غير صالح (يجب أن يكون بين -90 و 90)",
+      longitudeInvalid: "خط الطول غير صالح (يجب أن يكون بين -180 و 180)",
       imageRequired: "صورة الشركة مطلوبة",
       imageSize: "يجب ألا يتجاوز حجم الصورة 200 كيلوبايت",
       imageFormat: "يجب أن تكون الصورة بصيغة JPEG أو JPG أو PNG",
-      branchNameRequired: "اسم الفرع مطلوب"
-
+      branchNameRequired: "اسم الفرع مطلوب",
     },
 
     trashed: {
@@ -526,14 +545,15 @@ export default {
     activeBranches: "الفروع النشطة",
 
     // أسماء الكيانات للإجراءات الجماعية
-    entitySingular: "branch",
-    entityPlural: "branchs",
+    entitySingular: "فرع",
+    entityPlural: "فروع",
 
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
     filterByLocation: "تصفية حسب الموقع",
+    filterByCompany: "تصفية حسب الشركة",
     locations: {
       nablus: "نابلس",
       ramallah: "رام الله",
@@ -542,7 +562,12 @@ export default {
       name: "اسم الفرع",
       namePlaceholder: "أدخل اسم الفرع",
       location: "موقع الفرع",
-      typePlaceholder: "اختر نوع الفرع",
+      locationPlaceholder: "حدد موقع الفرع",
+      latitude: "خط العرض",
+      longitude: "خط الطول",
+      latitudePlaceholder: "32.2270",
+      longitudePlaceholder: "35.2544",
+      locationPicker: "الموقع على الخريطة",
 
       company: "الشركة",
       companyPlaceholder: "حدد الشركة",
@@ -590,13 +615,15 @@ export default {
     name: "الاسم",
     region: "المنطقة",
     company: "الشركة",
+    createdAt: "تاريخ الإنشاء",
+    updatedAt: "تاريخ التحديث",
 
     // قيم الحالة
     activeLines: "الخطوط النشطة",
 
     // أسماء الكيانات للإجراءات الجماعية
-    entitySingular: "line",
-    entityPlural: "lines",
+    entitySingular: "خط",
+    entityPlural: "خطوط",
 
     noData: "لا توجد بيانات متاحة",
     rowsPerPage: "عدد الصفوف في الصفحة",
@@ -661,17 +688,20 @@ export default {
     // أعمدة الجدول
     id: "المعرف",
     name: "اسم الخط",
+    line: "الخط",
     price: "السعر",
     currency: "العملة",
     type: "النوع",
     company: "الشركة",
+    createdAt: "تاريخ الإنشاء",
+    updatedAt: "تاريخ التحديث",
 
     // قيم الحالة
     activeLinePrices: "أسعار الخطوط النشطة",
 
     // أسماء الكيانات للإجراءات الجماعية
-    entitySingular: "line_price",
-    entityPlural: "line_prices",
+    entitySingular: "سعر خط",
+    entityPlural: "أسعار الخطوط",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -683,6 +713,8 @@ export default {
 
     // حقول النموذج
     form: {
+      line: "الخط",
+      linePlaceholder: "اختر الخط",
       name: "اسم الخط",
       namePlaceholder: "أدخل اسم الخط",
 
@@ -719,9 +751,11 @@ export default {
       nameRequired: "اسم الخط مطلوب",
       nameMax: "يجب ألا يتجاوز الاسم 255 حرفاً",
       priceRequired: "السعر مطلوب ويجب أن يكون أكبر من 0",
+      pricePositive: "يجب أن يكون السعر أكبر من 0",
       currencyRequired: "العملة مطلوبة",
       companyRequired: "الشركة مطلوبة",
       typeRequired: "النوع مطلوب",
+      invalidType: "النوع المحدد غير صالح. الخيارات الصحيحة: إرجاع، توصيل",
     },
 
     // العناصر المحذوفة
@@ -751,11 +785,19 @@ export default {
     edit: "تعديل",
     delete: "حذف",
     actions: "الإجراءات",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "خط عمل",
+    entityPlural: "خطوط عمل",
 
     // أعمدة الجدول
     id: "المعرف",
     name: "اسم خط العمل",
     company: "الشركة",
+    createdAt: "تاريخ الإنشاء",
+    updatedAt: "تاريخ التحديث",
 
     // الرسائل
     noData: "لا توجد بيانات متاحة",
@@ -868,6 +910,10 @@ export default {
 
       name: "اسم المنطقة",
       namePlaceholder: "ادخل اسم المنطقة",
+      nameEnglish: "الاسم بالإنجليزية",
+      nameEnglishPlaceholder: "أدخل اسم المنطقة بالإنجليزية",
+      nameArabic: "الاسم بالعربية",
+      nameArabicPlaceholder: "أدخل اسم المنطقة بالعربية",
 
       timezone: "المنطقة الزمنية ",
       timezonePlaceholder: "ادخل المنطقة الزمنية",
@@ -877,10 +923,12 @@ export default {
     validation: {
       nameRequired: "اسم المنطقة مطلوب",
       nameMax: "يجب ألا يتجاوز 255 حرفاً",
+      nameEnglishRequired: "الاسم بالإنجليزية مطلوب",
+      nameArabicRequired: "الاسم بالعربية مطلوب",
 
       keyRequired: "مفتاح المنطقة مطلوب",
 
-      timezoneMax: "يجب ألا يتجاوز 255 حرفاً",
+      timezoneMax: "يجب ألا يتجاوز 50 حرفاً",
     },
 
     // العناصر المحذوفة
@@ -905,6 +953,12 @@ export default {
     title: "الخريطة",
     pageTitle: "خريطة تتبع السائقين",
     pageSubtitle: "خريطة التتبع",
+    popup: {
+      company: "الشركة",
+      branch: "الفرع",
+      coordinates: "الإحداثيات",
+      viewDetails: "عرض تفاصيل الشركة",
+    },
   },
 
   orders: {
@@ -998,6 +1052,8 @@ export default {
       selectParentOrder: "اختر الطلب الأصلي",
       price: "السعر",
       pricePlaceholder: "أدخل مبلغ السعر",
+      deliveryPrice: "سعر التوصيل",
+      returnPrice: "سعر الإرجاع",
       currencyId: "العملة",
       linepriceId: "سعر الخط",
       discountId: "الخصم",
@@ -1006,6 +1062,7 @@ export default {
       type: "نوع الطلب",
       typeDelivery: "توصيل",
       typeReturn: "إرجاع",
+      typeExchange: "تبديل",
       package: "نوع الحزمة",
       packageOne: "حزمة واحدة",
       packageMulti: "حزم متعددة",
@@ -1013,6 +1070,8 @@ export default {
       caseFull: "كامل",
       casePart: "جزئي",
       caseFast: "سريع",
+      deliveryPriceFromCustomer: "\u0633\u0639\u0631\u0020\u0627\u0644\u062a\u0648\u0635\u064a\u0644\u0020\u0645\u0646\u0020\u0627\u0644\u0639\u0645\u064a\u0644",
+      priceFromCustomer: "\u0627\u0644\u0633\u0639\u0631\u0020\u0645\u0646\u0020\u0627\u0644\u0639\u0645\u064a\u0644",
       parentOrderId: "الطلب الأصلي",
       noParentOrder: "لا يوجد طلب أصلي",
       companyId: "الشركة",
@@ -1023,14 +1082,45 @@ export default {
     // المعالج
     wizard: {
       title: "إنشاء طلب جديد",
+      // اختيار الوضع (3 تبويبات)
+      modeDelivery: "توصيل",
+      modeReturn: "إرجاع",
+      modeExchange: "تبديل",
+      modeDeliveryDesc: "إنشاء طلب توصيل جديد لإرسال عناصر للعميل",
+      modeReturnDesc: "إنشاء طلب إرجاع لاستلام عناصر من العميل",
+      modeExchangeDesc: "تبديل طلب قائم - العميل يُرجع عناصر ويستلم عناصر جديدة",
+      // الخطوات
       step1: "المعلومات الأساسية",
       step2: "التسعير والتفاصيل",
       step3: "عناصر الطلب",
+      stepSelectOrder: "اختر الطلب",
+      stepSelectParent: "اختر الطلب الأصلي",
+      selectParentForReturn: "اختر الطلب الأصلي للإرجاع",
+      // عناوين المحتوى
       basicInfo: "معلومات الطلب الأساسية",
       pricingDetails: "التسعير والتفاصيل",
       orderItems: "عناصر الطلب",
+      selectOriginalOrder: "اختر الطلب الأصلي للتبديل",
+      originalOrder: "الطلب الأصلي",
+      selectedOrderDetails: "تفاصيل الطلب المحدد",
+      // خاص بالتبديل
+      caseDelivery: "نوع حالة التوصيل",
+      caseReturn: "نوع حالة الإرجاع",
+      newDeliveryPrice: "سعر التوصيل الجديد",
+      originalOrderPrice: "سعر الطلب الأصلي (الإرجاع)",
+      exchangeItem: "عنصر التبديل",
+      exchangeItemsInfo: "أضف العناصر التي سيتم توصيلها للعميل والعناصر التي سيتم إرجاعها",
+      noDeliveryItems: "لا توجد عناصر توصيل مضافة",
+      noReturnItems: "لا توجد عناصر إرجاع مضافة",
+      // العناصر
       itemsList: "قائمة عناصر الطلب",
       addItem: "إضافة عنصر",
+      nestedItems: "العناصر الفرعية",
+      deliveryItems: "عناصر التوصيل",
+      returnItems: "عناصر الإرجاع",
+      addDeliveryItem: "إضافة عنصر توصيل",
+      addReturnItem: "إضافة عنصر إرجاع",
+      addNestedItem: "إضافة عنصر فرعي",
       noItems: "لم يتم إضافة عناصر بعد. انقر على 'إضافة عنصر' للبدء.",
       itemName: "اسم العنصر",
       itemQuantity: "الكمية",
@@ -1058,6 +1148,7 @@ export default {
         "يمكن اختيار الحزم المتعددة فقط عندما تكون الحالة 'كامل'",
       returnRequiresParentOrder:
         "طلبات الإرجاع يجب أن تحتوي على رقم الطلب الأصلي",
+      parentOrderPriceMissing: "سعر الطلب الأصلي مطلوب للتبديل",
       noOrderItems: "مطلوب عنصر واحد على الأقل في الطلب",
       singlePackageOneItem:
         "الطلبات أحادية الحزمة يجب أن تحتوي على عنصر واحد فقط",
@@ -1090,6 +1181,14 @@ export default {
       orderItems: "عناصر الطلب",
       quantity: "الكمية",
       subItems: "العناصر الفرعية",
+    },
+
+    // تفاصيل طلب التبديل (للصف القابل للتوسيع)
+    exchange: {
+      title: "تفاصيل طلب التبديل",
+      deliveryPart: "جزء التوصيل",
+      returnPart: "جزء الإرجاع",
+      parentOrder: "الطلب الأصلي",
     },
 
     // تحديثات الحالة
@@ -1277,7 +1376,13 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "خط سائق",
+    entityPlural: "خطوط السائقين",
 
     // أعمدة الجدول
     table: {
@@ -1380,7 +1485,13 @@ export default {
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    bulkDelete: "حذف المحدد",
+    bulkRestore: "استعادة المحدد",
     actions: "الإجراءات",
+
+    // أسماء الكيانات للإجراءات الجماعية
+    entitySingular: "سعر شركة",
+    entityPlural: "أسعار الشركات",
 
     // أعمدة الجدول
     table: {
@@ -1633,8 +1744,8 @@ export default {
     confirmPasswordPlaceholder: "أكد كلمة المرور الجديدة",
     language: "اللغة",
     languages: {
-      english: "??????????",
-      arabic: "???????",
+      english: "الإنجليزية",
+      arabic: "العربية",
     },
     defaultLandingPage: "الصفحة الافتراضية",
     noEmail: "لم يتم تقديم بريد إلكتروني",
@@ -1656,23 +1767,26 @@ export default {
   },
   // الترجمات المشتركة
   common: {
-    actions: "?????????",
-    noDataAvailable: "?? ???? ??????",
-    uploadImage: "??? ????",
-    remove: "?????",
-    order: "???",
-    items: "?????",
-    selectOrder: "???? ?????",
-    selectItems: "???? ???????",
-    restore: "???????",
-    permanentDelete: "??? ?????",
-    noCompanyAssigned: "?? ???? ???? ??????",
+    actions: "الإجراءات",
+    noDataAvailable: "لا توجد بيانات",
+    uploadImage: "رفع صورة",
+    remove: "حذف",
+    order: "طلب",
+    items: "عناصر",
+    selectOrder: "اختر الطلب",
+    selectItems: "اختر العناصر",
+    restore: "استعادة",
+    permanentDelete: "حذف نهائي",
+    noCompanyAssigned: "لا توجد شركة معينة",
     selectMultiple: "اختر عدة عناصر",
     selected: "محدد",
     selectOrderFirst: "الرجاء اختيار طلب أولاً",
 
     save: "حفظ",
     cancel: "إلغاء",
+    locateOnMap: "تحديد الموقع على الخريطة",
+    selectLocation: "اختر الموقع",
+    mapClickHint: "انقر على الخريطة لتحديد الموقع.",
     close: "إغلاق",
     delete: "حذف",
     saving: "جاري الحفظ...",
@@ -1689,26 +1803,30 @@ export default {
     restoreFailed: "فشل في الاستعادة",
     selected: "محدد",
     active: "نشط",
+    expand: "توسيع",
+    collapse: "طي",
     saveChanges: "حفظ التغييرات",
     confirmCancel:
       "هل أنت متأكد من الإلغاء؟ سيتم فقدان جميع التغييرات غير المحفوظة.",
+    deleteConfirmMessage: "هل أنت متأكد من حذف هذا العنصر؟",
     validation: {
-      requiredField: "{field} ?????",
-      invalidEmail: "???? ?????? ?????????? ??? ?????",
-      minLength: "???? ?????? {min} ????",
-      imageRequired: "?????? ??????",
-      invalidImageFile: "???? ?????? ??? ???? ????",
-      imageMaxSize: "??? ??? ?????? ??? ?????? {size}MB",
-      orderRowRequired: "????? ???????? ??????",
+      requiredField: "{field} مطلوب",
+      invalidEmail: "صيغة البريد الإلكتروني غير صحيحة",
+      minLength: "يجب أن يكون على الأقل {min} حرف",
+      imageRequired: "الصورة مطلوبة",
+      invalidImageFile: "يرجى اختيار ملف صورة صالح",
+      imageMaxSize: "يجب ألا يتجاوز حجم الصورة {size} ميجابايت",
+      orderRowRequired: "الطلب والعناصر مطلوبة",
+      branchNameRequired: "اسم الفرع مطلوب",
     },
 
     bulkDeleteConfirmTitle: "تأكيد الحذف الجماعي",
     bulkDeleteConfirmMessage: "هل أنت متأكد من حذف {count} {entity}؟",
     bulkRestoreConfirmTitle: "تأكيد الاستعادة الجماعية",
     bulkRestoreConfirmMessage: "هل أنت متأكد من استعادة {count} {entity}؟",
-    bulkDeleteConfirm: "?? ??? ????? ?? ??? {count} {entity}?",
+    bulkDeleteConfirm: "هل أنت متأكد من حذف {count} {entity}؟",
     bulkPermanentDeleteConfirm:
-      "?? ??? ????? ?? ????? ??????? ?? {count} {entity}?",
-    bulkRestoreConfirm: "?? ??? ????? ?? ??????? {count} {entity}?",
+      "هل أنت متأكد من الحذف النهائي لـ {count} {entity}؟",
+    bulkRestoreConfirm: "هل أنت متأكد من استعادة {count} {entity}؟",
   },
 };

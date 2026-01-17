@@ -68,12 +68,13 @@
       v-model:groupModelValue="selectedGroups"
       :groupLabel="$t('orders.filterByStatus')"
       :translationKey="'orderStatus'"
-      :columns="orderColumns"
-      v-model:visibleColumns="visibleColumns"
-      :showAddButton="true"
-      :addButtonText="$t('orders.addNew')"
-      @add-click="openModal"
-    />
+        :columns="orderColumns"
+        v-model:visibleColumns="visibleColumns"
+        :showAddButton="true"
+        :addButtonText="$t('orders.addNew')"
+        @add-click="openModal"
+        @refresh-click="handleRefresh"
+      />
 
     <div class="card border-0">
       <!-- Tabs -->
@@ -128,7 +129,98 @@
             :data="paginatedData"
             :actionsLabel="$t('orders.actionsLabel')"
             v-model="selectedRows"
+            :isExpandable="isOrderExpandable"
           >
+            <!-- Expand slot for exchange orders (grouped delivery + return) -->
+            <template #expand="{ row }">
+              <div class="exchange-details">
+                <div class="exchange-header mb-3">
+                  <i class="fas fa-exchange-alt me-2 text-warning"></i>
+                  <span class="fw-bold">{{ $t('orders.exchange.title') }}</span>
+                </div>
+                <div class="row">
+                  <!-- Delivery Part -->
+                  <div class="col-md-6">
+                    <div class="exchange-part delivery-part">
+                      <div class="part-header">
+                        <i class="fas fa-truck me-2"></i>
+                        {{ $t('orders.exchange.deliveryPart') }}
+                        <span class="badge bg-primary ms-2">#{{ row._deliveryOrder?.id }}</span>
+                      </div>
+                      <div class="part-body">
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.table.id') }}:</span>
+                          <span class="part-value">{{ row._deliveryOrder?.order_code || row._deliveryOrder?.id }}</span>
+                        </div>
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.form.case') }}:</span>
+                          <span class="part-value">{{ row._deliveryOrder?.case }}</span>
+                        </div>
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.form.price') }}:</span>
+                          <span class="part-value">{{ formatPrice(row._deliveryOrder?.price, row._deliveryOrder?.currency_symbol) }}</span>
+                        </div>
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.table.status') }}:</span>
+                          <span class="part-value">{{ row._deliveryOrder?.status }}</span>
+                        </div>
+                        <div v-if="row._deliveryOrder?.order_items && row._deliveryOrder.order_items.length > 0" class="part-items mt-2">
+                          <span class="part-label">{{ $t('orders.wizard.deliveryItems') }}:</span>
+                          <ul class="items-list mb-0">
+                            <li v-for="item in row._deliveryOrder.order_items" :key="item.id || item.name">
+                              {{ item.name }} <span class="text-muted">(x{{ item.quantity }})</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Return Part -->
+                  <div class="col-md-6">
+                    <div class="exchange-part return-part">
+                      <div class="part-header">
+                        <i class="fas fa-undo me-2"></i>
+                        {{ $t('orders.exchange.returnPart') }}
+                        <span class="badge bg-warning ms-2">#{{ row._returnOrder?.id }}</span>
+                      </div>
+                      <div class="part-body">
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.table.id') }}:</span>
+                          <span class="part-value">{{ row._returnOrder?.order_code || row._returnOrder?.id }}</span>
+                        </div>
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.form.case') }}:</span>
+                          <span class="part-value">{{ row._returnOrder?.case }}</span>
+                        </div>
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.form.returnPrice') }}:</span>
+                          <span class="part-value">{{ formatPrice(row._returnOrder?.price, row._returnOrder?.currency_symbol) }}</span>
+                        </div>
+                        <div class="part-item">
+                          <span class="part-label">{{ $t('orders.table.status') }}:</span>
+                          <span class="part-value">{{ row._returnOrder?.status }}</span>
+                        </div>
+                        <div v-if="row._returnOrder?.order_items && row._returnOrder.order_items.length > 0" class="part-items mt-2">
+                          <span class="part-label">{{ $t('orders.wizard.returnItems') }}:</span>
+                          <ul class="items-list mb-0">
+                            <li v-for="item in row._returnOrder.order_items" :key="item.id || item.name">
+                              {{ item.name }} <span class="text-muted">(x{{ item.quantity }})</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Parent Order Reference -->
+                <div v-if="row.parent_order_id" class="parent-order-ref mt-3 pt-3 border-top">
+                  <i class="fas fa-link me-2 text-muted"></i>
+                  <span class="text-muted">{{ $t('orders.exchange.parentOrder') }}:</span>
+                  <span class="fw-bold ms-1">#{{ row.parent_order_code || row.parent_order_id }}</span>
+                </div>
+              </div>
+            </template>
+
             <template #actions="{ row }">
               <ActionsDropdown
                 v-if="activeTab === 'active'"
@@ -267,6 +359,90 @@ const formatPrice = (value, currencySymbol = "$") => {
   return `${currencySymbol}${numericValue.toFixed(2)}`;
 };
 
+const resolveCurrencyLabel = (currency) => {
+  if (!currency) return "";
+  if (Array.isArray(currency)) {
+    return currency[1] || (currency[0] ? `Currency ${currency[0]}` : "");
+  }
+  const name =
+    currency.name ||
+    currency.nameenglish ||
+    currency.namearabic ||
+    currency.code ||
+    "";
+  const symbol = currency.symbol || "";
+  if (name && symbol) return `${name} (${symbol})`;
+  return name || symbol || (currency.id ? `Currency ${currency.id}` : "");
+};
+
+const resolveLinePriceName = (linePrice) => {
+  if (Array.isArray(linePrice)) {
+    return linePrice[1] || (linePrice[0] ? `Line ${linePrice[0]}` : "");
+  }
+  return (
+    linePrice.line_id?.name ||
+    linePrice.line?.name ||
+    linePrice.line_name ||
+    linePrice.lineName ||
+    linePrice.name ||
+    ""
+  );
+};
+
+const resolveLinePriceSymbol = (linePrice) => {
+  if (Array.isArray(linePrice)) {
+    return "";
+  }
+  return (
+    linePrice.currency_id?.symbol ||
+    linePrice.currency?.symbol ||
+    linePrice.currency_symbol ||
+    linePrice.currency_code ||
+    "$"
+  );
+};
+
+const resolveDiscountLabel = (discount) => {
+  if (Array.isArray(discount)) {
+    return discount[1] || (discount[0] ? `Discount #${discount[0]}` : "");
+  }
+  const baseLabel =
+    discount.name ||
+    discount.type ||
+    (discount.value !== undefined &&
+    discount.value !== null &&
+    discount.value !== ""
+      ? String(discount.value)
+      : "");
+  const percent = discount.discount_percentage ?? discount.percentage;
+  const percentLabel =
+    percent !== undefined && percent !== null && percent !== ""
+      ? `${percent}%`
+      : "";
+  if (baseLabel && percentLabel) return `${baseLabel} (${percentLabel})`;
+  return baseLabel || percentLabel || `Discount #${discount.id}`;
+};
+
+const resolveCompanyPriceLabel = (price) => {
+  if (Array.isArray(price)) {
+    return price[1] || (price[0] ? `Price #${price[0]}` : "");
+  }
+  const itemType =
+    price.itemType || price.item_type || price.itemTypeDisplay || price.name || "";
+  const priceValue = price.price ?? price.amount ?? price.cost;
+  const currencySymbol =
+    price.currency?.symbol ||
+    price.currency_id?.symbol ||
+    price.currency_symbol ||
+    "$";
+  const priceLabel =
+    priceValue !== undefined && priceValue !== null && priceValue !== ""
+      ? formatPrice(priceValue, currencySymbol)
+      : "";
+  if (itemType && priceLabel) return `${itemType} - ${priceLabel}`;
+  return itemType || priceLabel || `Price #${price.id}`;
+};
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -292,30 +468,39 @@ const branches = ref([]);
 const companyPrices = ref([]);
 
 const customerOptions = computed(() =>
-  customers.value.map((customer) => ({
-    value: String(customer.id),
-    label: customer.name,
-  }))
+  customers.value.map((customer) => {
+    const id = Array.isArray(customer)
+      ? customer[0]
+      : customer.id ?? customer.customer_id ?? "";
+    const label = Array.isArray(customer)
+      ? customer[1] || (id ? `Customer ${id}` : "")
+      : customer.name ||
+        customer.full_name ||
+        customer.customer_name ||
+        (id ? `Customer ${id}` : "");
+    return {
+      value: String(id),
+      label,
+    };
+  })
 );
 
 const currencyOptions = computed(() =>
   currencies.value.map((currency) => ({
-    value: String(currency.id),
-    label: `${currency.code} (${currency.symbol})`,
+    value: String(Array.isArray(currency) ? currency[0] : currency.id),
+    label: resolveCurrencyLabel(currency),
   }))
 );
 
 const linePriceOptions = computed(() =>
   linePrices.value.map((linePrice) => {
-    const lineName =
-      linePrice.line_id?.name ||
-      linePrice.line?.name ||
-      linePrice.line_name ||
-      "";
+    const id = Array.isArray(linePrice) ? linePrice[0] : linePrice.id;
+    const lineName = resolveLinePriceName(linePrice);
+    const currencySymbol = resolveLinePriceSymbol(linePrice);
     const labelPrefix = lineName ? `${lineName} - ` : "";
     return {
-      value: String(linePrice.id),
-      label: `${labelPrefix}${formatPrice(linePrice.price, linePrice.currency_id?.symbol || "$")}`,
+      value: String(id),
+      label: `${labelPrefix}${formatPrice(linePrice.price, currencySymbol)}`,
     };
   })
 );
@@ -323,66 +508,140 @@ const linePriceOptions = computed(() =>
 const discountOptions = computed(() => [
   { value: "", label: t("orders.form.noDiscount") },
   ...discounts.value.map((discount) => ({
-    value: String(discount.id),
-    label: discount.name || discount.type || `Discount #${discount.id}`,
+    value: String(Array.isArray(discount) ? discount[0] : discount.id),
+    label: resolveDiscountLabel(discount),
   })),
 ]);
 
 const companyPriceOptions = computed(() =>
-  companyPrices.value.map((price) => ({
-    value: String(price.id),
-    label: price.name || `${price.itemType || ""} ${formatPrice(price.price)}`.trim(),
-  }))
+  companyPrices.value.map((price) => {
+    const id = Array.isArray(price) ? price[0] : price.id;
+    return {
+      value: String(id),
+      label: resolveCompanyPriceLabel(price),
+    };
+  })
 );
 
+const parentOrderOptions = computed(() => {
+  const options = ordersStore.orders.map((order) => {
+    const customer = order.customer_name || "";
+    const base = order.order_code
+      ? order.order_code
+      : order.id
+        ? `#${order.id}`
+        : "";
+    const label = customer && base ? `${base} - ${customer}` : base || customer;
+    return {
+      value: String(order.id),
+      label,
+    };
+  });
+
+  return [{ value: "", label: t("orders.form.noParentOrder") }, ...options];
+});
+
 const branchOptions = computed(() =>
-  branches.value.map((branch) => ({
-    value: String(branch.id),
-    label: branch.name,
-  }))
+  branches.value.map((branch) => {
+    const id = Array.isArray(branch) ? branch[0] : branch.id;
+    const label = Array.isArray(branch)
+      ? branch[1] || (id ? `Branch ${id}` : "")
+      : branch.name || (id ? `Branch ${id}` : "");
+    return {
+      value: String(id),
+      label,
+    };
+  })
 );
 
 // Fetch orders, statistics, and dropdown data on component mount
 onMounted(async () => {
-  await Promise.all([
-    ordersStore.fetchOrders(),
-    ordersStore.fetchStatistics(),
-    fetchDropdownData(),
-  ]);
+  const tasks = [
+    { label: "orders", action: () => ordersStore.fetchOrders() },
+    { label: "order statistics", action: () => ordersStore.fetchStatistics() },
+    { label: "order dropdown data", action: () => fetchDropdownData() },
+  ];
+
+  const results = await Promise.allSettled(tasks.map((task) => task.action()));
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error(`Failed to load ${tasks[index].label}:`, result.reason);
+    }
+  });
 });
 
 // Fetch all dropdown data required for order creation
 const fetchDropdownData = async () => {
-  try {
-    const [
-      customersRes,
-      companiesRes,
-      currenciesRes,
-      linePricesRes,
-      discountsRes,
-      branchesRes,
-      companyPricesRes,
-    ] = await Promise.all([
-      apiServices.getCustomers(),
-      apiServices.getCompanies(),
-      apiServices.getCurrencies(),
-      apiServices.getLinePrices(),
-      apiServices.getDiscounts(),
-      apiServices.getBranches(),
-      apiServices.getCompanyPrices(),
-    ]);
+  const extractArray = (response) => {
+    const data = response?.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.data?.data)) return data.data.data;
+    return [];
+  };
 
-    customers.value = customersRes.data.data || [];
-    companies.value = companiesRes.data.data || [];
-    currencies.value = currenciesRes.data.data || [];
-    linePrices.value = linePricesRes.data.data || [];
-    discounts.value = discountsRes.data.data || [];
-    branches.value = branchesRes.data.data || [];
-    companyPrices.value = companyPricesRes.data.data || [];
+  const logError = (label, reason) => {
+    console.error("Failed to load " + label + " dropdown data:", reason);
+  };
 
-    console.log("✅ Successfully loaded all dropdown data for order creation");
-  } catch (err) {
-    console.error("❌ Error fetching dropdown data:", err);
+  const results = await Promise.allSettled([
+    apiServices.getCustomers(),
+    apiServices.getCurrencies(),
+    apiServices.getLinePrices(),
+    apiServices.getDiscounts(),
+    apiServices.getBranches(),
+    apiServices.getCompanyPrices(),
+  ]);
+
+  const [
+    customersRes,
+    currenciesRes,
+    linePricesRes,
+    discountsRes,
+    branchesRes,
+    companyPricesRes,
+  ] = results;
+
+  if (customersRes.status === "fulfilled") {
+    customers.value = extractArray(customersRes.value);
+  } else {
+    customers.value = [];
+    logError("customers", customersRes.reason);
+  }
+
+  if (currenciesRes.status === "fulfilled") {
+    currencies.value = extractArray(currenciesRes.value);
+  } else {
+    currencies.value = [];
+    logError("currencies", currenciesRes.reason);
+  }
+
+  if (linePricesRes.status === "fulfilled") {
+    linePrices.value = extractArray(linePricesRes.value);
+  } else {
+    linePrices.value = [];
+    logError("line prices", linePricesRes.reason);
+  }
+
+  if (discountsRes.status === "fulfilled") {
+    discounts.value = extractArray(discountsRes.value);
+  } else {
+    discounts.value = [];
+    logError("discounts", discountsRes.reason);
+  }
+
+  if (branchesRes.status === "fulfilled") {
+    branches.value = extractArray(branchesRes.value);
+  } else {
+    branches.value = [];
+    logError("branches", branchesRes.reason);
+  }
+
+  if (companyPricesRes.status === "fulfilled") {
+    companyPrices.value = extractArray(companyPricesRes.value);
+  } else {
+    companyPrices.value = [];
+    logError("company item prices", companyPricesRes.reason);
   }
 };
 
@@ -464,7 +723,18 @@ const orderColumns = computed(() => [
   { key: "id", label: t("orders.table.id"), sortable: true },
   { key: "customer_name", label: t("orders.table.customer"), sortable: true },
   { key: "company_name", label: t("orders.table.company"), sortable: true },
-  { key: "type", label: t("orders.table.type"), sortable: true },
+  {
+    key: "type",
+    label: t("orders.table.type"),
+    sortable: true,
+    formatter: (value, row) => {
+      // Check for virtual exchange type
+      if (row && row._displayType === "exchange") return t("orders.form.typeExchange");
+      if (value === "delivery") return t("orders.form.typeDelivery");
+      if (value === "return") return t("orders.form.typeReturn");
+      return value;
+    },
+  },
   { key: "package", label: t("orders.table.package"), sortable: true },
   { key: "case", label: t("orders.table.case"), sortable: true },
   {
@@ -513,6 +783,59 @@ const currentData = computed(() => {
     : ordersStore.trashedOrders;
 });
 
+// Process orders to group exchange orders (delivery + return with same parent_order_id)
+const processedOrders = computed(() => {
+  const orders = currentData.value;
+  if (!orders || orders.length === 0) return [];
+
+  // Group orders by parent_order_id
+  const parentGroups = {};
+  const standaloneOrders = [];
+
+  orders.forEach(order => {
+    if (order.parent_order_id) {
+      const parentId = String(order.parent_order_id);
+      if (!parentGroups[parentId]) {
+        parentGroups[parentId] = [];
+      }
+      parentGroups[parentId].push(order);
+    } else {
+      standaloneOrders.push(order);
+    }
+  });
+
+  const result = [...standaloneOrders];
+
+  // Process parent groups to detect exchanges
+  Object.entries(parentGroups).forEach(([parentId, groupOrders]) => {
+    // Check if we have both delivery and return with the same parent
+    const deliveryOrder = groupOrders.find(o => o.type === 'delivery');
+    const returnOrder = groupOrders.find(o => o.type === 'return');
+
+    if (deliveryOrder && returnOrder) {
+      // This is an exchange - create a combined row
+      const exchangeRow = {
+        ...deliveryOrder,
+        _isExchange: true,
+        _displayType: 'exchange', // Virtual type for display
+        _deliveryOrder: deliveryOrder,
+        _returnOrder: returnOrder,
+        // Use delivery order's ID as the main ID
+        id: deliveryOrder.id,
+      };
+      result.push(exchangeRow);
+    } else {
+      // Not an exchange - add orders normally
+      groupOrders.forEach(order => result.push(order));
+    }
+  });
+
+  // Sort by created_at descending (newest first)
+  result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  return result;
+});
+
 const currentLoading = computed(() => {
   return activeTab.value === "active"
     ? ordersStore.loading
@@ -545,7 +868,10 @@ const filterByTimePeriod = (orders, period) => {
 };
 
 const currentFilteredData = computed(() => {
-  let result = currentData.value;
+  // Use processedOrders for active tab to handle exchange grouping
+  let result = activeTab.value === "active"
+    ? processedOrders.value
+    : currentData.value;
 
   // Apply time period filter
   result = filterByTimePeriod(result, selectedTimePeriod.value);
@@ -617,6 +943,11 @@ const filterByStatus = (status) => {
   }
 };
 
+// Check if an order row should be expandable (only grouped exchange orders)
+const isOrderExpandable = (row) => {
+  return row._isExchange === true;
+};
+
 const openModal = () => {
   isWizardOpen.value = true;
 };
@@ -636,12 +967,52 @@ const switchTab = async (tab) => {
     } catch (err) {
       console.error("Failed to load trashed orders:", err);
     }
+  } else {
+    try {
+      await ordersStore.fetchOrders();
+    } catch (err) {
+      console.error("Failed to load orders:", err);
+    }
+  }
+};
+
+const handleRefresh = async () => {
+  selectedRows.value = [];
+  try {
+    if (activeTab.value === "trashed") {
+      await ordersStore.fetchTrashedOrders();
+    } else {
+      await ordersStore.fetchOrders();
+    }
+  } catch (err) {
+    console.error("Failed to refresh orders:", err);
   }
 };
 
 const handleAddOrder = async (orderData) => {
+  if (orderData && orderData.exchange) {
+    try {
+      await ordersStore.addExchangeOrder(
+        orderData.parentOrderId,
+        orderData.payload
+      );
+      await ordersStore.fetchOrders();
+      await ordersStore.fetchStatistics();
+      closeModal();
+    } catch (err) {
+      console.error("Failed to add exchange order:", err);
+    }
+    return;
+  }
+
+  const ordersToCreate = Array.isArray(orderData)
+    ? orderData
+    : [orderData];
+
   try {
-    await ordersStore.addOrder(orderData);
+    for (const payload of ordersToCreate) {
+      await ordersStore.addOrder(payload);
+    }
     await ordersStore.fetchStatistics(); // Refresh statistics
     closeModal();
   } catch (err) {
@@ -748,7 +1119,7 @@ const orderFieldsWithDefaults = computed(() => {
       ...field,
       defaultValue: isEditMode.value
         ? selectedOrder.value[field.name]
-        : field.defaultValue || "",
+        : field.defaultValue ?? "",
     };
 
     if (
@@ -758,6 +1129,14 @@ const orderFieldsWithDefaults = computed(() => {
       unwrappedField.defaultValue !== undefined
     ) {
       unwrappedField.defaultValue = String(unwrappedField.defaultValue);
+    }
+    if (
+      field.name === "is_delivery_price_from_customer" &&
+      (unwrappedField.defaultValue === "" ||
+        unwrappedField.defaultValue === null ||
+        unwrappedField.defaultValue === undefined)
+    ) {
+      unwrappedField.defaultValue = 0;
     }
 
     if (field.name === "customer_id") {
@@ -785,6 +1164,9 @@ const orderFieldsWithDefaults = computed(() => {
       unwrappedField.locked = true;
       unwrappedField.hidden = true;
     }
+    if (field.name === "parent_order_id") {
+      unwrappedField.options = parentOrderOptions.value;
+    }
     if (field.name === "branch_customer_company_id" || field.name === "branch_delivery_company_id") {
       unwrappedField.options = branchOptions.value;
     }
@@ -807,7 +1189,12 @@ const detailsFields = computed(() => [
     key: "type",
     label: t("orders.table.type"),
     colClass: "col-md-6",
-    translator: (value) => value === "delivery" ? t("orders.form.typeDelivery") : t("orders.form.typeReturn")
+    translator: (value) => {
+      if (value === "delivery") return t("orders.form.typeDelivery");
+      if (value === "return") return t("orders.form.typeReturn");
+      if (value === "exchange") return t("orders.form.typeExchange");
+      return value;
+    }
   },
   {
     key: "package",
@@ -896,5 +1283,79 @@ watch([searchText, selectedGroups, selectedTimePeriod], () => {
 .time-period-selector .btn i {
   opacity: 0.8;
 }
+
+/* Exchange details styles */
+.exchange-details {
+  background-color: #fff8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.exchange-header {
+  color: #b35900;
+  font-size: 1rem;
+}
+
+.exchange-part {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.exchange-part .part-header {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.delivery-part .part-header {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+}
+
+.return-part .part-header {
+  background-color: rgba(253, 126, 20, 0.1);
+  color: #fd7e14;
+}
+
+.exchange-part .part-body {
+  padding: 1rem;
+}
+
+.part-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.part-label {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.part-value {
+  font-weight: 500;
+}
+
+.part-items {
+  border-top: 1px solid #dee2e6;
+  padding-top: 0.5rem;
+}
+
+.items-list {
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+}
+
+.items-list li {
+  font-size: 0.875rem;
+  padding: 0.125rem 0;
+}
+
+.parent-order-ref {
+  font-size: 0.875rem;
+}
 </style>
+
 

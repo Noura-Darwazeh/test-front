@@ -14,6 +14,7 @@
       :showAddButton="true"
       :addButtonText="$t('companyPrice.addNew')"
       @add-click="openModal"
+      @refresh-click="handleRefresh"
     />
 
     <div class="card border-0">
@@ -356,6 +357,25 @@ const switchTab = async (tab) => {
     } catch (error) {
       console.error("Failed to load trashed company prices:", error);
     }
+  } else {
+    try {
+      await companyPriceStore.fetchCompanyPrices();
+    } catch (error) {
+      console.error("Failed to load company prices:", error);
+    }
+  }
+};
+
+const handleRefresh = async () => {
+  selectedRows.value = [];
+  try {
+    if (activeTab.value === "trashed") {
+      await companyPriceStore.fetchTrashedCompanyPrices();
+    } else {
+      await companyPriceStore.fetchCompanyPrices();
+    }
+  } catch (error) {
+    console.error("Failed to refresh company prices:", error);
   }
 };
 

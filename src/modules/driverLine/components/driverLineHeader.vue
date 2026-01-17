@@ -14,6 +14,7 @@
     :showTrashedButton="showTrashedButton"
     @add-click="$emit('add-click')"
     @trashed-click="$emit('trashed-click')"
+    @refresh-click="$emit('refresh-click')"
   />
 </template>
 
@@ -41,5 +42,5 @@ const groupModelValue = defineModel("groupModelValue");
 const visibleColumns = defineModel("visibleColumns");
 
 // Emits
-defineEmits(["add-click", "trashed-click"]);
+defineEmits(["add-click", "trashed-click", "refresh-click"]);
 </script>

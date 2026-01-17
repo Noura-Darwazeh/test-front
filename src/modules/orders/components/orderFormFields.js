@@ -13,11 +13,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "Location 1" },
-        { value: 2, label: "Location 2" },
-        { value: 3, label: "Location 3" },
-      ],
+      options: [],
     },
     {
       name: "customer_id",
@@ -25,11 +21,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "John Doe" },
-        { value: 2, label: "Sara Mohammed" },
-        { value: 3, label: "Ahmad Khalil" },
-      ],
+      options: [],
     },
     {
       name: "price",
@@ -59,11 +51,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "Line Price 1" },
-        { value: 2, label: "Line Price 2" },
-        { value: 3, label: "Line Price 3" },
-      ],
+      options: [],
     },
     {
       name: "discount_id",
@@ -71,12 +59,7 @@ export function useOrderFormFields() {
       type: "select",
       required: false,
       colClass: "col-md-6",
-      options: [
-        { value: null, label: t("orders.form.noDiscount") },
-        { value: 1, label: "Customer Discount 15%" },
-        { value: 2, label: "Region Discount 10%" },
-        { value: 3, label: "Price Discount 5%" },
-      ],
+      options: [],
     },
     {
       name: "company_item_price_id",
@@ -84,12 +67,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "Small & Light - $25.50" },
-        { value: 2, label: "Small & Heavy - $45.00" },
-        { value: 3, label: "Big & Light - $35.75" },
-        { value: 4, label: "Big & Heavy - $120.00" },
-      ],
+      options: [],
     },
     {
       name: "type",
@@ -108,6 +86,8 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
+      disabled: (formData) =>
+        formData.type === "return" || formData.type === "exchange",
       options: [
         { value: "one", label: t("orders.form.packageOne") },
         { value: "multi", label: t("orders.form.packageMulti") },
@@ -141,13 +121,17 @@ export function useOrderFormFields() {
       type: "select",
       required: false,
       colClass: "col-md-6",
-      options: [
-        { value: null, label: t("orders.form.noParentOrder") },
-        { value: 1, label: "Order #1" },
-        { value: 2, label: "Order #2" },
-        { value: 3, label: "Order #3" },
-      ],
-      conditionalRequired: (formData) => formData.type === "return",
+      options: [],
+      conditionalRequired: (formData) =>
+        formData.type === "return" || formData.type === "exchange",
+    },
+    {
+      name: "is_delivery_price_from_customer",
+      label: t("orders.form.deliveryPriceFromCustomer"),
+      type: "checkbox",
+      required: false,
+      colClass: "col-md-6",
+      defaultValue: 0,
     },
     {
       name: "company_id",
@@ -168,11 +152,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "Customer Branch 1" },
-        { value: 2, label: "Customer Branch 2" },
-        { value: 3, label: "Customer Branch 3" },
-      ],
+      options: [],
     },
     {
       name: "branch_delivery_company_id",
@@ -180,11 +160,7 @@ export function useOrderFormFields() {
       type: "select",
       required: true,
       colClass: "col-md-6",
-      options: [
-        { value: 1, label: "Delivery Branch 1" },
-        { value: 2, label: "Delivery Branch 2" },
-        { value: 3, label: "Delivery Branch 3" },
-      ],
+      options: [],
     },
   ]);
 

@@ -1,7 +1,47 @@
 // src/services/apiServices.js
 import api from "./api.js";
-import axios from "axios";
-import { getItem } from "@/utils/shared/storageUtils";
+
+const containsFile = (value) => {
+  if (!value) return false;
+  if (typeof File !== "undefined" && value instanceof File) return true;
+  if (typeof Blob !== "undefined" && value instanceof Blob) return true;
+  if (typeof FileList !== "undefined" && value instanceof FileList) {
+    return Array.from(value).some((entry) => containsFile(entry));
+  }
+  if (value instanceof FormData) {
+    for (const entry of value.values()) {
+      if (containsFile(entry)) return true;
+    }
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.some((entry) => containsFile(entry));
+  }
+  if (typeof value === "object") {
+    return Object.values(value).some((entry) => containsFile(entry));
+  }
+  return false;
+};
+
+const toFormData = (data) => {
+  const formData = new FormData();
+  Object.keys(data || {}).forEach((key) => {
+    const value = data[key];
+    if (value === null || value === undefined || value === "") {
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (entry !== null && entry !== undefined && entry !== "") {
+          formData.append(`${key}[]`, entry);
+        }
+      });
+      return;
+    }
+    formData.append(key, value);
+  });
+  return formData;
+};
 
 // ===== API Services Singleton =====
 class ApiServices {
@@ -26,37 +66,27 @@ class ApiServices {
   }
 
   async createEntity(entityPlural, data) {
-    const hasFile = data instanceof FormData || (data.image && data.image instanceof File);
-    
-    if (hasFile && !(data instanceof FormData)) {
-      const formData = new FormData();
-      Object.keys(data).forEach(key => {
-        if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
-          formData.append(key, data[key]);
-        }
-      });
-      data = formData;
+    const hasFile = containsFile(data);
+    const isFormData = data instanceof FormData;
+
+    if (hasFile && !isFormData) {
+      data = toFormData(data);
     }
 
-    const headers = {};
-    if (!hasFile) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    return api.post(`/${entityPlural}`, data, { headers });
+    return api.post(`/${entityPlural}`, data, {
+      headers:
+        hasFile || data instanceof FormData
+          ? { "Content-Type": "multipart/form-data" }
+          : {},
+    });
   }
 
-  async updateEntity(entityPlural, id, data, usePatch = false) {
-    const hasFile = data instanceof FormData || (data.image && data.image instanceof File);
-    
-    if (hasFile && !(data instanceof FormData)) {
-      const formData = new FormData();
-      Object.keys(data).forEach(key => {
-        if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
-          formData.append(key, data[key]);
-        }
-      });
-      data = formData;
+  async updateEntity(entityPlural, id, data) {
+    const hasFile = containsFile(data);
+    const isFormData = data instanceof FormData;
+
+    if (hasFile && !isFormData) {
+      data = toFormData(data);
     }
 
     const headers = {};
@@ -65,11 +95,23 @@ class ApiServices {
       headers['X-HTTP-Method-Override'] = 'PATCH';
     }
 
-    if (usePatch) {
-      return api.patch(`/${entityPlural}/${id}`, data, { headers });
-    } else {
-      return api.post(`/${entityPlural}/${id}`, data, { headers });
+    if (hasFile) {
+      return api.post(`/${entityPlural}/${id}`, data, {
+        headers: {
+          "X-HTTP-Method-Override": "PATCH",
+          ...(data instanceof FormData
+            ? { "Content-Type": "multipart/form-data" }
+            : {}),
+        },
+      });
     }
+
+    return api.patch(`/${entityPlural}/${id}`, data, {
+      headers:
+        data instanceof FormData
+          ? { "Content-Type": "multipart/form-data" }
+          : {},
+    });
   }
 
   async deleteEntity(entityPlural, id, force = false) {
@@ -134,15 +176,7 @@ class ApiServices {
   }
 
   async updateUser(userId, userData) {
-    if (userData instanceof FormData) {
-      return api.post(`/users/${userId}`, userData, {
-        headers: {
-          'X-HTTP-Method-Override': 'PATCH'
-        }
-      });
-    }
-    
-    return this.updateEntity("users", userId, userData, true);
+    return this.updateEntity("users", userId, userData);
   }
 
   async deleteUser(userId, force = false) {
@@ -175,7 +209,7 @@ class ApiServices {
   }
 
   async updateDriver(driverId, driverData) {
-    return this.updateEntity("drivers", driverId, driverData, true);
+    return this.updateEntity("drivers", driverId, driverData);
   }
 
   async deleteDriver(driverId, force = false) {
@@ -208,7 +242,7 @@ class ApiServices {
   }
 
   async updateCurrency(currencyId, currencyData) {
-    return this.updateEntity("currencies", currencyId, currencyData, false);
+    return this.updateEntity("currencies", currencyId, currencyData);
   }
 
   async deleteCurrency(currencyId, force = false) {
@@ -246,7 +280,7 @@ class ApiServices {
   }
 
   async updateBranch(branchId, branchData) {
-    return this.updateEntity("branches", branchId, branchData, false);
+    return this.updateEntity("branches", branchId, branchData);
   }
 
   async deleteBranch(branchId, force = false) {
@@ -279,7 +313,7 @@ class ApiServices {
   }
 
   async updateCustomer(customerId, customerData) {
-    return this.updateEntity("customers", customerId, customerData, true);
+    return this.updateEntity("customers", customerId, customerData);
   }
 
   async deleteCustomer(customerId, force = false) {
@@ -308,46 +342,64 @@ class ApiServices {
   }
 
   async createCompany(companyData) {
+    // If there are branches, send them as form data to match API format
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
-      formData.append('name', companyData.name);
-      formData.append('type', companyData.type);
-      
+      formData.append("name", companyData.name);
+      formData.append("type", companyData.type);
+
+      // Add branches as indexed array: branches[0][name], branches[1][name], etc.
       companyData.branches.forEach((branch, index) => {
-        if (branch.name && branch.name.trim() !== '') {
+        if (branch.name && branch.name.trim() !== "") {
           formData.append(`branches[${index}][name]`, branch.name);
+          if (branch.latitude !== undefined && branch.latitude !== "") {
+            formData.append(`branches[${index}][latitude]`, branch.latitude);
+          }
+          if (branch.longitude !== undefined && branch.longitude !== "") {
+            formData.append(`branches[${index}][longitude]`, branch.longitude);
+          }
         }
       });
-      
-      return api.post('/companies', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+
+      return api.post("/companies", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
     }
-    
+
+    // If no branches, send as regular JSON
     return this.createEntity("companies", companyData);
   }
 
   async updateCompany(companyId, companyData) {
+    // If there are branches, send them as form data
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
-      formData.append('name', companyData.name);
-      formData.append('type', companyData.type);
-      
+      formData.append("name", companyData.name);
+      formData.append("type", companyData.type);
+
+      // Add branches as indexed array
       companyData.branches.forEach((branch, index) => {
-        if (branch.name && branch.name.trim() !== '') {
+        if (branch.name && branch.name.trim() !== "") {
           formData.append(`branches[${index}][name]`, branch.name);
+          if (branch.latitude !== undefined && branch.latitude !== "") {
+            formData.append(`branches[${index}][latitude]`, branch.latitude);
+          }
+          if (branch.longitude !== undefined && branch.longitude !== "") {
+            formData.append(`branches[${index}][longitude]`, branch.longitude);
+          }
         }
       });
-      
+
       return api.post(`/companies/${companyId}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-HTTP-Method-Override': 'PATCH'
-        }
+          "Content-Type": "multipart/form-data",
+          "X-HTTP-Method-Override": "PATCH",
+        },
       });
     }
-    
-    return this.updateEntity("companies", companyId, companyData, false);
+
+    // If no branches, use default method
+    return this.updateEntity("companies", companyId, companyData);
   }
 
   async deleteCompany(companyId, force = false) {
@@ -380,7 +432,7 @@ class ApiServices {
   }
 
   async updateLinePrice(priceId, priceData) {
-    return this.updateEntity("line_prices", priceId, priceData, false);
+    return this.updateEntity("line_prices", priceId, priceData);
   }
 
   async deleteLinePrice(priceId, force = false) {
@@ -418,7 +470,7 @@ class ApiServices {
   }
 
   async updateLine(lineId, lineData) {
-    return this.updateEntity("lines", lineId, lineData, false);
+    return this.updateEntity("lines", lineId, lineData);
   }
 
   async deleteLine(lineId, force = false) {
@@ -451,11 +503,7 @@ class ApiServices {
   }
 
   async updateRegion(regionId, regionData) {
-    return api.post(`/regions/${regionId}`, regionData, {
-      headers: {
-        "X-HTTP-Method-Override": "PATCH",
-      },
-    });
+    return this.updateEntity("regions", regionId, regionData);
   }
 
   async deleteRegion(regionId, force = false) {
@@ -488,7 +536,7 @@ class ApiServices {
   }
 
   async updateCompanyPrice(priceId, priceData) {
-    return this.updateEntity("company_item_prices", priceId, priceData, false);
+    return this.updateEntity("company_item_prices", priceId, priceData);
   }
 
   async deleteCompanyPrice(priceId, force = false) {
@@ -530,7 +578,7 @@ class ApiServices {
   }
 
   async updateDiscount(discountId, discountData) {
-    return this.updateEntity("discounts", discountId, discountData, false);
+    return this.updateEntity("discounts", discountId, discountData);
   }
 
   async deleteDiscount(discountId, force = false) {
@@ -563,12 +611,7 @@ class ApiServices {
   }
 
   async updateDriverLine(driverLineId, driverLineData) {
-    return this.updateEntity(
-      "driver_lines",
-      driverLineId,
-      driverLineData,
-      true
-    );
+    return this.updateEntity("driver_lines", driverLineId, driverLineData);
   }
 
   async deleteDriverLine(driverLineId, force = false) {
@@ -613,8 +656,12 @@ class ApiServices {
     return this.createEntity("orders", orderData);
   }
 
+  async createOrderExchange(orderId, exchangeData) {
+    return api.post(`/orders/exchange/${orderId}`, exchangeData);
+  }
+
   async updateOrder(orderId, orderData) {
-    return this.updateEntity("orders", orderId, orderData, false);
+    return this.updateEntity("orders", orderId, orderData);
   }
 
   async deleteOrder(orderId, force = false) {
@@ -722,6 +769,10 @@ class ApiServices {
     });
   }
 
+  // ===== Switch User Service (SuperAdmin only) =====
+  async switchToUser(userId) {
+    return api.post(`/login_as/${userId}`);
+  }
   async deleteWorkPlan(workPlanId, force = false) {
     return this.deleteEntity("work_plans", workPlanId, force);
   }

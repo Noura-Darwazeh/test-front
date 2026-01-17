@@ -2,9 +2,15 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
-export function useDiscountFormFields() {
+export function useDiscountFormFields({ getValueOptions } = {}) {
   const { t } = useI18n();
   const { companyId, companyOption } = useAuthDefaults();
+  const resolveValueOptions = (formData) => {
+    if (typeof getValueOptions === "function") {
+      return getValueOptions(formData?.type) || [];
+    }
+    return [];
+  };
 
   const discountFields = computed(() => [
     {
@@ -106,9 +112,20 @@ export function useDiscountFormFields() {
     {
       name: "value",
       label: t("discount.form.value"),
-      type: "text",
+      type: (formData) => {
+        if (!formData?.type) return "text";
+        return formData.type === "Price" ? "number" : "select";
+      },
       required: true,
       placeholder: t("discount.form.valuePlaceholder"),
+      options: (formData) => {
+        if (["Customer", "Region", "Line"].includes(formData?.type)) {
+          return resolveValueOptions(formData);
+        }
+        return [];
+      },
+      min: 0,
+      step: 0.01,
       colClass: "col-md-6",
       validate: (value, formData) => {
         if (!value) return t("discount.validation.valueRequired");
@@ -123,8 +140,12 @@ export function useDiscountFormFields() {
 
         // For Customer, Region, Line - should be string identifiers
         if (["Customer", "Region", "Line"].includes(formData.type)) {
-          if (value.length < 3) {
-            return t("discount.validation.valueMinLength");
+          const options = resolveValueOptions(formData);
+          const hasMatch = options.some(
+            (option) => String(option.value) === String(value)
+          );
+          if (!hasMatch) {
+            return t("discount.validation.valueRequired");
           }
         }
 

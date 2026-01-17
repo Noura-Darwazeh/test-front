@@ -20,19 +20,18 @@
     <displayPoints
       v-if="mapInstance"
       :map-instance="mapInstance"
-      :companies="companies"
+      :locations="branches"
     />
     <fullScreenMode :map-instance="mapInstance" />
     <zoomCustom :map-instance="mapInstance" />
   </div>
 </template>
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import zoomCustom from "../components/zoomCustom.vue";
 import fullScreenMode from "../components/fullScreenMode.vue";
 import displayPoints from "../components/displayPoints.vue";
-import { useI18n } from "vue-i18n";
-const { t } = useI18n();
+import { useBranchesManagementStore } from "@/modules/branches/stores/branchesStore.js";
 const palestineCenter = ref([35.2033, 31.7683]);
 const zoom = ref(8);
 const projection = ref("EPSG:4326");
@@ -40,28 +39,17 @@ const projection = ref("EPSG:4326");
 // --- Variables ---
 const mapRef = ref(null);
 const mapInstance = ref(null);
-const companies = ref([
-  {
-    id: 1,
-    name: "Tech Solutions Ltd",
-    coordinates: [35.2033, 31.7683],
-    status: "active",
-    employees: 45,
-    description: "Leading technology solutions provider",
-  },
-  {
-    id: 2,
-    name: "Fast Delivery Co",
-    coordinates: [35.1833, 31.7983],
-    status: "active",
-    employees: 23,
-    description: "Express delivery services",
-  },
-]);
+const branchesStore = useBranchesManagementStore();
+const branches = computed(() => branchesStore.branches);
 // --- Lifecycle hooks ---
-onMounted(() => {
+onMounted(async () => {
   if (mapRef.value) {
     mapInstance.value = mapRef.value.map;
+  }
+  try {
+    await branchesStore.fetchBranches();
+  } catch (error) {
+    console.error("Failed to load branches:", error);
   }
 });
 </script>

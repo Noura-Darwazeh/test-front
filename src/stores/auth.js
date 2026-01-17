@@ -23,7 +23,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
-  
+
   const userRole = computed(() => {
     const role = user.value?.role;
     // Handle if backend returns role as array
@@ -32,7 +32,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
     return role || null;
   });
-  
+
   const userName = computed(() => user.value?.name || "");
 
   const normalizeDisplayName = (name, fallback = "") => {
@@ -91,7 +91,7 @@ export const useAuthStore = defineStore("auth", () => {
   const userCurrencyName = computed(() => userCurrency.value.name || "");
 
   // ===== Actions =====
-  
+
   /**
    * Login user with username or email
    * @param {Object} credentials - Login credentials {login, password}
@@ -158,7 +158,7 @@ export const useAuthStore = defineStore("auth", () => {
       } else {
         error.value = err.message || "Login failed. Please try again.";
       }
-      
+
       console.error("❌ Login error:", err);
       throw err;
     } finally {
@@ -173,7 +173,7 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       if (token.value) {
         const response = await api.post("/logout");
-        
+
         if (response.data.success === true) {
           console.log(response.data.message);
           clearAuthData();
@@ -188,16 +188,16 @@ export const useAuthStore = defineStore("auth", () => {
       }
     } catch (err) {
       console.error("❌ Logout error:", err);
-      
+
       if (err.response?.status === 401 || err.response?.data?.success === false) {
         console.warn("Invalid token detected, clearing local data");
         clearAuthData();
-        return { 
-          success: true, 
-          message: "Session expired, logged out locally" 
+        return {
+          success: true,
+          message: "Session expired, logged out locally"
         };
       }
-      
+
       error.value = err.message || "Logout failed";
       clearAuthData();
       throw err;
@@ -313,6 +313,72 @@ export const useAuthStore = defineStore("auth", () => {
     return roles.includes(userRole.value);
   }
 
+  /**
+   * Switch to another user (SuperAdmin only)
+   * @param {Object} userData - New user data
+   * @param {string} loginAsToken - Login-as token
+   * @param {string} originalToken - Original SuperAdmin token
+   */
+  function switchUser(userData, loginAsToken, originalToken) {
+    // Save original token to return later
+    if (!getItem("original_admin_token")) {
+      setItem("original_admin_token", token.value);
+      setItem("original_admin_user", user.value);
+    }
+
+    // Convert image path to full URL
+    if (userData.image) {
+      userData.image = getFullImageUrl(userData.image);
+    }
+
+    // Update current session with switched user
+    user.value = userData;
+    token.value = loginAsToken;
+
+    // Save to localStorage
+    setItem("auth_token", loginAsToken);
+    setItem("auth_user", userData);
+    setItem("is_switched_user", true);
+
+    console.log(`✅ Switched to user: ${userData.name}`);
+    console.log("📸 User image:", userData.image);
+  }
+
+  /**
+   * Return to original SuperAdmin account
+   */
+  function returnToAdmin() {
+    const originalToken = getItem("original_admin_token");
+    const originalUser = getItem("original_admin_user");
+
+    if (originalToken && originalUser) {
+      // Restore original admin session
+      token.value = originalToken;
+      user.value = originalUser;
+
+      // Update localStorage
+      setItem("auth_token", originalToken);
+      setItem("auth_user", originalUser);
+
+      // Clear switch session data
+      removeItem("original_admin_token");
+      removeItem("original_admin_user");
+      removeItem("is_switched_user");
+
+      console.log(`✅ Returned to admin account: ${originalUser.name}`);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if currently switched to another user
+   */
+  const isSwitchedUser = computed(() => {
+    return !!getItem("is_switched_user");
+  });
+
   // Initialize auth on store creation
   initializeAuth();
 
@@ -323,7 +389,7 @@ export const useAuthStore = defineStore("auth", () => {
     device,
     isLoading,
     error,
-    
+
     // Getters
     isAuthenticated,
     userRole,
@@ -334,7 +400,7 @@ export const useAuthStore = defineStore("auth", () => {
     userCurrency,
     userCurrencyId,
     userCurrencyName,
-    
+
     // Actions
     login,
     logout,
@@ -345,5 +411,6 @@ export const useAuthStore = defineStore("auth", () => {
     updateUserLanguage,
     hasRole,
     hasAnyRole,
+    switchUser,
   };
 });

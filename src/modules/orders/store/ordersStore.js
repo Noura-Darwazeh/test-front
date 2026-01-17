@@ -49,6 +49,7 @@ export const useOrdersStore = defineStore("orders", () => {
     id: order.id,
     from_company_id: order.from_company_id,
     is_extra_price_for_customer: order.is_extra_price_for_customer,
+    is_delivery_price_from_customer: order.is_delivery_price_from_customer ?? null,
     customer_id: order.customer?.id || null,
     customer_name: order.customer?.name || "",
     company_id: order.company?.id || null,
@@ -117,6 +118,7 @@ export const useOrdersStore = defineStore("orders", () => {
     loading.value = true;
     error.value = null;
     try {
+      console.log("[orders] addOrder input", JSON.stringify(orderData, null, 2));
       // Transform frontend data to API format - matching backend requirements
       const apiData = {
         from_company_id: orderData.from_company_id,
@@ -131,42 +133,64 @@ export const useOrdersStore = defineStore("orders", () => {
         package: orderData.package,
         parent_order_id: orderData.parent_order_id || null,
         company_id: orderData.company_id,
-        is_delivery_price_from_customer: orderData.is_delivery_price_from_customer || 0,
         order_items: orderData.order_items || [],
       };
 
-      console.log("📤 Sending order data to API:", apiData);
+      if (orderData.is_delivery_price_from_customer !== undefined) {
+        apiData.is_delivery_price_from_customer =
+          orderData.is_delivery_price_from_customer;
+      }
+
+      if (orderData.is_extra_price_for_customer !== undefined) {
+        apiData.is_extra_price_for_customer = orderData.is_extra_price_for_customer;
+      }
+
+      console.log("[orders] addOrder payload", JSON.stringify(apiData, null, 2));
 
       const response = await apiServices.createOrder(apiData);
 
-      console.log("✅ API Response:", response.data);
+      console.log("�o. API Response:", response.data);
+
+      const responseData =
+        response?.data?.data ||
+        response?.data?.order ||
+        response?.data;
+
+      if (!responseData || typeof responseData !== "object") {
+        throw new Error(response?.data?.message || "Unexpected order response");
+      }
+      if (responseData.id === undefined || responseData.id === null) {
+        throw new Error(response?.data?.message || "Order response missing id");
+      }
 
       // Transform response to match frontend format
       const newOrder = {
-        id: response.data.data.id,
-        from_company_id: response.data.data.from_company_id,
-        is_extra_price_for_customer: response.data.data.is_extra_price_for_customer,
-        customer_id: response.data.data.customer?.id || null,
-        customer_name: response.data.data.customer?.name || "",
-        company_id: response.data.data.company?.id || null,
-        company_name: response.data.data.company?.name || "",
-        price: response.data.data.price,
-        total_price: response.data.data.total_price,
-        currency_id: response.data.data.currency?.id || null,
-        currency_symbol: response.data.data.currency?.symbol || "",
-        case: response.data.data.case,
-        type: response.data.data.type,
-        package: response.data.data.package,
-        lineprice_id: response.data.data.line_price?.id || null,
-        lineprice_name: response.data.data.line_price?.name || "",
-        lineprice_price: response.data.data.line_price?.price || "",
-        discount: response.data.data.discount,
-        created_by: response.data.data.created_by,
-        created_at: response.data.data.created_at,
-        updated_at: response.data.data.updated_at,
-        order_code: response.data.data.order_code,
-        status: response.data.data.status,
-        order_items: response.data.data.order_items || [],
+        id: responseData.id,
+        from_company_id: responseData.from_company_id,
+        is_extra_price_for_customer: responseData.is_extra_price_for_customer,
+        is_delivery_price_from_customer:
+          responseData.is_delivery_price_from_customer ?? null,
+        customer_id: responseData.customer?.id || null,
+        customer_name: responseData.customer?.name || "",
+        company_id: responseData.company?.id || null,
+        company_name: responseData.company?.name || "",
+        price: responseData.price,
+        total_price: responseData.total_price,
+        currency_id: responseData.currency?.id || null,
+        currency_symbol: responseData.currency?.symbol || "",
+        case: responseData.case,
+        type: responseData.type,
+        package: responseData.package,
+        lineprice_id: responseData.line_price?.id || null,
+        lineprice_name: responseData.line_price?.name || "",
+        lineprice_price: responseData.line_price?.price || "",
+        discount: responseData.discount,
+        created_by: responseData.created_by,
+        created_at: responseData.created_at,
+        updated_at: responseData.updated_at,
+        order_code: responseData.order_code,
+        status: responseData.status,
+        order_items: responseData.order_items || [],
       };
 
       orders.value.push(newOrder);
@@ -189,6 +213,37 @@ export const useOrdersStore = defineStore("orders", () => {
     }
   };
 
+  const addExchangeOrder = async (parentOrderId, exchangeData) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      if (!parentOrderId) {
+        throw new Error("Parent order ID is required");
+      }
+      const response = await apiServices.createOrderExchange(
+        parentOrderId,
+        exchangeData
+      );
+      console.log("Exchange order created");
+      return response.data;
+    } catch (err) {
+      if (err.response?.data?.success === false) {
+        error.value =
+          err.response.data.error ||
+          err.response.data.message ||
+          "Validation failed";
+        console.error("Validation error:", error.value);
+      } else {
+        error.value = err.message || "Failed to create exchange order";
+        console.error("Error creating exchange order:", error.value);
+      }
+      console.error("Error details:", err.response?.data || err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const updateOrder = async (orderId, orderData) => {
     loading.value = true;
     error.value = null;
@@ -202,11 +257,18 @@ export const useOrdersStore = defineStore("orders", () => {
       if (orderData.currency_id !== undefined) apiData.currency_id = orderData.currency_id;
       if (orderData.lineprice_id !== undefined) apiData.lineprice_id = orderData.lineprice_id;
       if (orderData.discount_id !== undefined) apiData.discount_id = orderData.discount_id;
+      if (orderData.company_item_price_id !== undefined) {
+        apiData.company_item_price_id = orderData.company_item_price_id;
+      }
       if (orderData.type !== undefined) apiData.type = orderData.type;
       if (orderData.package !== undefined) apiData.package = orderData.package;
       if (orderData.case !== undefined) apiData.case = orderData.case;
       if (orderData.is_extra_price_for_customer !== undefined) {
         apiData.is_extra_price_for_customer = orderData.is_extra_price_for_customer;
+      }
+      if (orderData.is_delivery_price_from_customer !== undefined) {
+        apiData.is_delivery_price_from_customer =
+          orderData.is_delivery_price_from_customer;
       }
       if (orderData.order_items !== undefined) apiData.order_items = orderData.order_items;
 
@@ -223,6 +285,9 @@ export const useOrdersStore = defineStore("orders", () => {
           id: response.data.data.id,
           from_company_id: response.data.data.from_company_id,
           is_extra_price_for_customer: response.data.data.is_extra_price_for_customer,
+          is_delivery_price_from_customer:
+            response.data.data.is_delivery_price_from_customer ??
+            orders.value[index].is_delivery_price_from_customer,
           customer_id: response.data.data.customer?.id || orders.value[index].customer_id,
           customer_name: response.data.data.customer?.name || orders.value[index].customer_name,
           company_id: response.data.data.company?.id || orders.value[index].company_id,
@@ -430,6 +495,7 @@ export const useOrdersStore = defineStore("orders", () => {
     fetchTrashedOrders,
     fetchStatistics,
     addOrder,
+    addExchangeOrder,
     updateOrder,
     deleteOrder,
     restoreOrder,

@@ -52,7 +52,7 @@
             <!-- Dynamic Fields -->
             <div class="row g-3">
               <div
-                v-for="field in fields"
+                v-for="field in renderFields"
                 :key="field.name"
                 :class="field.hidden ? 'd-none' : field.colClass || 'col-md-6'"
               >
@@ -113,6 +113,19 @@
                          class="bi bi-check-circle-fill text-success"></i>
                     </label>
                   </div>
+                </div>
+
+                <!-- Checkbox -->
+                <div v-else-if="field.type === 'checkbox'" class="form-check mt-2">
+                  <input
+                    :id="field.name"
+                    v-model="formData[field.name]"
+                    class="form-check-input"
+                    type="checkbox"
+                    :true-value="field.trueValue ?? 1"
+                    :false-value="field.falseValue ?? 0"
+                    :disabled="field.disabled"
+                  />
                 </div>
 
                 <!-- Button field -->
@@ -191,23 +204,52 @@
                   </div>
 
                   <div v-for="(row, index) in formData[field.name]" :key="index" class="row g-2 align-items-end mb-2">
-                    <div class="col-md-10">
+                    <input type="hidden" v-model="formData[field.name][index].latitude" />
+                    <input type="hidden" v-model="formData[field.name][index].longitude" />
+
+                    <div class="col-md-7">
                       <label class="form-label">
                         {{ field.branchLabel || t('company.form.branchName') }}
                       </label>
-                      <input 
-                        type="text" 
-                        class="form-control" 
+                      <input
+                        type="text"
+                        class="form-control"
                         v-model="formData[field.name][index].name"
                         :placeholder="field.branchLabel || t('company.form.branchName')"
                       />
+                      <small
+                        v-if="formData[field.name][index].latitude && formData[field.name][index].longitude"
+                        class="text-muted d-block mt-1"
+                      >
+                        {{ formData[field.name][index].latitude }}, {{ formData[field.name][index].longitude }}
+                      </small>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col-md-4 d-grid">
+                      <PrimaryButton
+                        type="button"
+                        :text="field.locationLabel || t('common.locateOnMap')"
+                        @click="openBranchLocationPicker(field.name, index)"
+                      />
+                    </div>
+
+                    <div class="col-md-1 d-flex align-items-end">
                       <PrimaryButton type="button" @click="removeBranchRow(field.name, index)"
                         bgColor="var(--color-danger)" :iconBefore="crossIcon" />
                     </div>
                   </div>
+                </div>
+
+                <!-- Location picker button -->
+                <div v-else-if="field.type === 'locationPicker'" class="d-flex flex-column gap-2">
+                  <PrimaryButton
+                    type="button"
+                    :text="field.text || t('common.locateOnMap')"
+                    @click="openFieldLocationPicker(field)"
+                  />
+                  <small v-if="getFieldCoordinates(field)" class="text-muted">
+                    {{ getFieldCoordinates(field) }}
+                  </small>
                 </div>
 
                 <!-- Error Message -->
@@ -216,6 +258,32 @@
                 </small>
                 </template>
               </div>
+            </div>
+
+            <div v-if="mapPickerOpen" class="map-picker-panel mt-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold">{{ t('common.selectLocation') }}</span>
+                <button type="button" class="btn-close" @click="closeMapPicker"></button>
+              </div>
+              <div class="map-picker-container">
+                <ol-map
+                  ref="mapRef"
+                  :controls="[]"
+                  :loadTilesWhileAnimating="true"
+                  :loadTilesWhileInteracting="true"
+                  style="width: 100%; height: 260px"
+                >
+                  <ol-view
+                    :center="mapCenter"
+                    :zoom="mapZoom"
+                    :projection="mapProjection"
+                  />
+                  <ol-tile-layer>
+                    <ol-source-osm />
+                  </ol-tile-layer>
+                </ol-map>
+              </div>
+              <small class="text-muted d-block mt-2">{{ t('common.mapClickHint') }}</small>
             </div>
 
             <!-- Footer -->
@@ -233,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, nextTick, computed, unref } from "vue";
+import { ref, reactive, watch, onMounted, nextTick, computed, unref, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import PrimaryButton from "./PrimaryButton.vue";
 import uploadIcon from "../../assets/modal/upload.svg";
@@ -241,6 +309,12 @@ import removeIcon from "../../assets/table/recycle.svg";
 import userIcon from "../../assets/modal/user.svg";
 import addIcon from "../../assets/table/add.svg";
 import crossIcon from "../../assets/modal/cross.svg";
+import { Vector as VectorLayer } from "ol/layer";
+import { Vector as VectorSource } from "ol/source";
+import { Feature } from "ol";
+import { Point } from "ol/geom";
+import { Icon, Style } from "ol/style";
+import companyIconSvg from "@/assets/map/company.svg";
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -329,6 +403,90 @@ const getItemsOptions = (field, selectedOrder) => {
   return field.itemsOptions || [];
 };
 
+const mapPickerOpen = ref(false);
+const mapPickerTarget = ref(null);
+const mapRef = ref(null);
+const mapInstance = ref(null);
+const mapCenter = ref([35.2033, 31.7683]);
+const mapZoom = ref(8);
+const mapProjection = ref("EPSG:4326");
+let mapMarkerLayer = null;
+let mapMarkerSource = null;
+let mapMarkerFeature = null;
+let mapListenersAttached = false;
+
+const normalizeSelectValue = (value) => {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return first === null || first === undefined || first === "" ? "" : String(first);
+  }
+  if (value && typeof value === "object") {
+    const optionValue = value.value ?? value.id;
+    return optionValue === null || optionValue === undefined || optionValue === ""
+      ? ""
+      : String(optionValue);
+  }
+  if (value === null || value === undefined || value === "") return "";
+  return String(value);
+};
+
+const resolveFieldProp = (field, prop) => {
+  if (!field) return undefined;
+  const value = field[prop];
+  return typeof value === "function" ? value(formData) : value;
+};
+
+const resolveDefaultValue = (field) => {
+  const fieldType = resolveFieldProp(field, "type") ?? field.type;
+  if (fieldType === "multiselect") {
+    return Array.isArray(field.defaultValue) ? field.defaultValue : [];
+  }
+  if (fieldType === "select") {
+    return normalizeSelectValue(field.defaultValue);
+  }
+  return field.defaultValue ?? "";
+};
+
+const resolveFieldConfig = (field) => {
+  if (!field) return field;
+  const resolved = { ...field };
+
+  const resolvedType = resolveFieldProp(field, "type");
+  if (resolvedType !== undefined) resolved.type = resolvedType;
+
+  const resolvedOptions = resolveFieldProp(field, "options");
+  if (resolvedOptions !== undefined) resolved.options = resolvedOptions;
+
+  const resolvedHidden = resolveFieldProp(field, "hidden");
+  if (resolvedHidden !== undefined) resolved.hidden = resolvedHidden;
+
+  const resolvedRequired = resolveFieldProp(field, "required");
+  if (resolvedRequired !== undefined) resolved.required = resolvedRequired;
+
+  const resolvedDisabled = resolveFieldProp(field, "disabled");
+  if (resolvedDisabled !== undefined) resolved.disabled = resolvedDisabled;
+
+  const resolvedLocked = resolveFieldProp(field, "locked");
+  if (resolvedLocked !== undefined) resolved.locked = resolvedLocked;
+
+  const resolvedLabel = resolveFieldProp(field, "label");
+  if (resolvedLabel !== undefined) resolved.label = resolvedLabel;
+
+  const resolvedPlaceholder = resolveFieldProp(field, "placeholder");
+  if (resolvedPlaceholder !== undefined) resolved.placeholder = resolvedPlaceholder;
+
+  const resolvedColClass = resolveFieldProp(field, "colClass");
+  if (resolvedColClass !== undefined) resolved.colClass = resolvedColClass;
+
+  return resolved;
+};
+
+const renderFields = computed(() =>
+  Array.isArray(props.fields)
+    ? props.fields.map((field) => resolveFieldConfig(field))
+    : []
+);
+
 // Initialize form
 const initializeForm = () => {
   if (!props.fields || props.fields.length === 0) return;
@@ -345,20 +503,23 @@ const initializeForm = () => {
             },
           ];
       } else if (field.type === "branchRows") {
-        formData[field.name] =
-          field.defaultValue ||
-          [
-            {
-              name: "",
-            },
-          ];
+        const defaultRows =
+          Array.isArray(field.defaultValue) && field.defaultValue.length
+            ? field.defaultValue
+            : [
+                {
+                  name: "",
+                  latitude: "",
+                  longitude: "",
+                },
+              ];
+        formData[field.name] = defaultRows.map((row) => ({
+          name: row?.name || "",
+          latitude: row?.latitude ?? "",
+          longitude: row?.longitude ?? "",
+        }));
       } else {
-        // Initialize multiselect fields as arrays
-      if (field.type === 'multiselect') {
-        formData[field.name] = field.defaultValue || [];
-      } else {
-        formData[field.name] = field.defaultValue || "";
-      }
+        formData[field.name] = resolveDefaultValue(field);
       }
       errors[field.name] = "";
     }
@@ -381,20 +542,23 @@ const resetForm = () => {
             },
           ];
       } else if (field.type === "branchRows") {
-        formData[field.name] =
-          field.defaultValue ||
-          [
-            {
-              name: "",
-            },
-          ];
+        const defaultRows =
+          Array.isArray(field.defaultValue) && field.defaultValue.length
+            ? field.defaultValue
+            : [
+                {
+                  name: "",
+                  latitude: "",
+                  longitude: "",
+                },
+              ];
+        formData[field.name] = defaultRows.map((row) => ({
+          name: row?.name || "",
+          latitude: row?.latitude ?? "",
+          longitude: row?.longitude ?? "",
+        }));
       } else {
-        // Reset multiselect fields as arrays
-      if (field.type === 'multiselect') {
-        formData[field.name] = field.defaultValue || [];
-      } else {
-        formData[field.name] = field.defaultValue || "";
-      }
+        formData[field.name] = resolveDefaultValue(field);
       }
       errors[field.name] = "";
     }
@@ -406,6 +570,7 @@ const resetForm = () => {
   if (fileInput.value) {
     fileInput.value.value = "";
   }
+  closeMapPicker();
 };
 
 // Add / Remove order rows
@@ -430,13 +595,170 @@ const addBranchRow = (fieldName) => {
     formData[fieldName] = [];
   }
   formData[fieldName].push({
-    name: ""
+    name: "",
+    latitude: "",
+    longitude: "",
   });
 };
 
 const removeBranchRow = (fieldName, index) => {
   if (!Array.isArray(formData[fieldName])) return;
   formData[fieldName].splice(index, 1);
+};
+
+const getFieldCoordinates = (field) => {
+  const latKey = field.latKey || "latitude";
+  const lngKey = field.lngKey || "longitude";
+  const latitude = formData[latKey];
+  const longitude = formData[lngKey];
+
+  if (!latitude || !longitude) return "";
+  return `${latitude}, ${longitude}`;
+};
+
+const openBranchLocationPicker = (fieldName, index) => {
+  mapPickerTarget.value = {
+    type: "branchRows",
+    fieldName,
+    index,
+    latKey: "latitude",
+    lngKey: "longitude",
+  };
+  openMapPicker();
+};
+
+const openFieldLocationPicker = (field) => {
+  mapPickerTarget.value = {
+    type: "field",
+    latKey: field.latKey || "latitude",
+    lngKey: field.lngKey || "longitude",
+  };
+  openMapPicker();
+};
+
+const closeMapPicker = () => {
+  mapPickerOpen.value = false;
+  mapPickerTarget.value = null;
+  detachMapListeners();
+};
+
+const getTargetCoordinates = () => {
+  const target = mapPickerTarget.value;
+  if (!target) return null;
+
+  if (target.type === "branchRows") {
+    const rows = formData[target.fieldName];
+    const row = Array.isArray(rows) ? rows[target.index] : null;
+    if (!row) return null;
+    const latitude = Number.parseFloat(row.latitude);
+    const longitude = Number.parseFloat(row.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null;
+    }
+    return [longitude, latitude];
+  }
+
+  const latitude = Number.parseFloat(formData[target.latKey]);
+  const longitude = Number.parseFloat(formData[target.lngKey]);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+  return [longitude, latitude];
+};
+
+const updateMapMarker = (coordinates) => {
+  if (!mapInstance.value) return;
+
+  if (!mapMarkerSource) {
+    mapMarkerSource = new VectorSource();
+    mapMarkerLayer = new VectorLayer({ source: mapMarkerSource });
+    mapInstance.value.addLayer(mapMarkerLayer);
+  }
+
+  if (!mapMarkerFeature) {
+    mapMarkerFeature = new Feature({
+      geometry: new Point(coordinates),
+    });
+    mapMarkerFeature.setStyle(
+      new Style({
+        image: new Icon({
+          src: companyIconSvg,
+          scale: 0.04,
+          anchor: [0.5, 1],
+        }),
+      })
+    );
+    mapMarkerSource.addFeature(mapMarkerFeature);
+  } else {
+    mapMarkerFeature.setGeometry(new Point(coordinates));
+  }
+};
+
+const handleMapClick = (event) => {
+  if (!mapPickerTarget.value) return;
+
+  const [longitude, latitude] = event.coordinate || [];
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+  const formattedLatitude = latitude.toFixed(6);
+  const formattedLongitude = longitude.toFixed(6);
+
+  if (mapPickerTarget.value.type === "branchRows") {
+    const rows = formData[mapPickerTarget.value.fieldName];
+    if (Array.isArray(rows) && rows[mapPickerTarget.value.index]) {
+      rows[mapPickerTarget.value.index].latitude = formattedLatitude;
+      rows[mapPickerTarget.value.index].longitude = formattedLongitude;
+    }
+  } else {
+    formData[mapPickerTarget.value.latKey] = formattedLatitude;
+    formData[mapPickerTarget.value.lngKey] = formattedLongitude;
+  }
+
+  updateMapMarker([longitude, latitude]);
+};
+
+const attachMapListeners = () => {
+  if (mapInstance.value && !mapListenersAttached) {
+    mapInstance.value.on("click", handleMapClick);
+    mapListenersAttached = true;
+  }
+};
+
+const detachMapListeners = () => {
+  if (mapInstance.value && mapListenersAttached) {
+    mapInstance.value.un("click", handleMapClick);
+    mapListenersAttached = false;
+  }
+};
+
+const openMapPicker = () => {
+  mapPickerOpen.value = true;
+  const coordinates = getTargetCoordinates();
+
+  if (coordinates) {
+    mapCenter.value = coordinates;
+    mapZoom.value = 12;
+  } else {
+    mapCenter.value = [35.2033, 31.7683];
+    mapZoom.value = 8;
+    if (mapMarkerSource) {
+      mapMarkerSource.clear();
+      mapMarkerFeature = null;
+    }
+  }
+
+  nextTick(() => {
+    if (mapRef.value && mapRef.value.map) {
+      mapInstance.value = mapRef.value.map;
+      mapInstance.value.getView().setCenter(mapCenter.value);
+      mapInstance.value.getView().setZoom(mapZoom.value);
+      mapInstance.value.updateSize();
+      if (coordinates) {
+        updateMapMarker(coordinates);
+      }
+    }
+    attachMapListeners();
+  });
 };
 
 // Handle image upload
@@ -486,7 +808,7 @@ const validateForm = () => {
   let isValid = true;
   if (!props.fields || props.fields.length === 0) return false;
 
-  props.fields.forEach((field) => {
+  renderFields.value.forEach((field) => {
     if (field && field.name) {
       errors[field.name] = "";
     }
@@ -497,9 +819,13 @@ const validateForm = () => {
     isValid = false;
   }
 
-  props.fields.forEach((field) => {
+  renderFields.value.forEach((field) => {
     if (!field || !field.name) return;
     const value = formData[field.name];
+
+    if (field.hidden) {
+      return;
+    }
 
     if (field.type === "orderRows" && Array.isArray(value)) {
       if (field.required) {
@@ -552,7 +878,7 @@ const validateForm = () => {
     }
 
     if (field.validate && typeof field.validate === "function") {
-      const validationError = field.validate(value);
+      const validationError = field.validate(value, formData);
       if (validationError) {
         errors[field.name] = validationError;
         isValid = false;
@@ -617,6 +943,7 @@ watch(
         }
       });
     } else {
+      closeMapPicker();
       // Remove styles in one operation
       requestAnimationFrame(() => {
         document.body.style.overflow = "";
@@ -636,6 +963,13 @@ watch(
   },
   { deep: true }
 );
+
+onUnmounted(() => {
+  detachMapListeners();
+  if (mapInstance.value && mapMarkerLayer) {
+    mapInstance.value.removeLayer(mapMarkerLayer);
+  }
+});
 </script>
 
 <style scoped>
@@ -846,5 +1180,18 @@ watch(
 .multiselect-options-inline::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 10px;
+}
+
+.map-picker-panel {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.map-picker-container {
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
 }
 </style>

@@ -14,6 +14,7 @@
       :showAddButton="true"
       :addButtonText="$t('discount.addNew')"
       @add-click="openModal"
+      @refresh-click="handleRefresh"
     />
 
     <div class="card border-0">
@@ -149,11 +150,56 @@ import { useI18n } from "vue-i18n";
 import { useDiscountFormFields } from "../components/discountFormFields.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useDiscountStore } from "../store/discountStore.js";
+import { useCustomerStore } from "@/modules/customer/stores/customerStore.js";
+import { useRegionsManagementStore } from "@/modules/regions/store/regionsManagement.js";
+import { useLinesStore } from "@/modules/lines/stores/linesStore.js";
 
 const { t } = useI18n();
-const { discountFields } = useDiscountFormFields();
 const { companyId } = useAuthDefaults();
 const discountStore = useDiscountStore();
+const customerStore = useCustomerStore();
+const regionsStore = useRegionsManagementStore();
+const linesStore = useLinesStore();
+
+const customers = computed(() => customerStore.customers);
+const regions = computed(() => regionsStore.regions);
+const lines = computed(() => linesStore.lines);
+
+const customerOptions = computed(() =>
+  customers.value
+    .map((customer) => ({
+      value: String(customer.id ?? ""),
+      label: customer.name || "",
+    }))
+    .filter((option) => option.value && option.label)
+);
+
+const regionOptions = computed(() =>
+  regions.value
+    .map((region) => ({
+      value: String(region.id ?? ""),
+      label: region.name || region.nameenglish || region.namearabic || "",
+    }))
+    .filter((option) => option.value && option.label)
+);
+
+const lineOptions = computed(() =>
+  lines.value
+    .map((line) => ({
+      value: String(line.id ?? ""),
+      label: line.name || "",
+    }))
+    .filter((option) => option.value && option.label)
+);
+
+const getValueOptions = (type) => {
+  if (type === "Customer") return customerOptions.value;
+  if (type === "Region") return regionOptions.value;
+  if (type === "Line") return lineOptions.value;
+  return [];
+};
+
+const { discountFields } = useDiscountFormFields({ getValueOptions });
 
 // Simple price formatters
 const formatPrice = (value) => {
@@ -186,7 +232,12 @@ const trashedDiscounts = computed(() => discountStore.trashedDiscounts);
 
 onMounted(async () => {
   try {
-    await discountStore.fetchDiscounts();
+    await Promise.all([
+      discountStore.fetchDiscounts(),
+      customers.value.length ? Promise.resolve() : customerStore.fetchCustomers(),
+      regions.value.length ? Promise.resolve() : regionsStore.fetchRegions(),
+      lines.value.length ? Promise.resolve() : linesStore.fetchLines(),
+    ]);
   } catch (error) {
     console.error("Failed to load discounts:", error);
   }
@@ -218,13 +269,6 @@ const discountColumns = computed(() => [
   { key: "end_date", label: t("discount.table.endDate"), sortable: true },
   { key: "company_name", label: t("discount.table.company"), sortable: true },
   { key: "usage_count", label: t("discount.table.usageCount"), sortable: true },
-  {
-    key: "status",
-    label: t("discount.table.status"),
-    sortable: true,
-    component: "StatusBadge",
-    componentProps: { type: "discount" },
-  },
 ]);
 
 const trashedColumns = computed(() => [
@@ -355,6 +399,25 @@ const switchTab = async (tab) => {
     } catch (error) {
       console.error("Failed to load trashed discounts:", error);
     }
+  } else {
+    try {
+      await discountStore.fetchDiscounts();
+    } catch (error) {
+      console.error("Failed to load discounts:", error);
+    }
+  }
+};
+
+const handleRefresh = async () => {
+  selectedRows.value = [];
+  try {
+    if (activeTab.value === "trashed") {
+      await discountStore.fetchTrashedDiscounts();
+    } else {
+      await discountStore.fetchDiscounts();
+    }
+  } catch (error) {
+    console.error("Failed to refresh discounts:", error);
   }
 };
 
@@ -362,6 +425,18 @@ const handleAddDiscount = async (discountData) => {
   const formatDateTime = (dateTimeLocal) => {
     if (!dateTimeLocal) return null;
     return dateTimeLocal.replace("T", " ") + ":00";
+  };
+
+  const normalizeValue = (value, type) => {
+    if (type === "Price") {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : value;
+    }
+    if (["Customer", "Region", "Line"].includes(type)) {
+      const parsed = parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : value;
+    }
+    return value;
   };
 
   const resolvedCompanyId = companyId.value
@@ -376,7 +451,7 @@ const handleAddDiscount = async (discountData) => {
     start_date: formatDateTime(discountData.start_date),
     end_date: formatDateTime(discountData.end_date),
     company_id: resolvedCompanyId,
-    value: discountData.value,
+    value: normalizeValue(discountData.value, discountData.type),
   };
 
   try {
@@ -472,7 +547,9 @@ const closeDetailsModal = () => {
 const discountFieldsWithDefaults = computed(() => {
   return discountFields.value.map(field => ({
     ...field,
-    defaultValue: isEditMode.value ? selectedDiscount.value[field.name] : field.defaultValue || ''
+    defaultValue: isEditMode.value
+      ? selectedDiscount.value[field.name]
+      : (field.defaultValue ?? '')
   }));
 });
 
@@ -501,12 +578,6 @@ const detailsFields = computed(() => [
   { key: "end_date", label: t("discount.table.endDate"), colClass: "col-md-6" },
   { key: "company_name", label: t("discount.table.company"), colClass: "col-md-6" },
   { key: "usage_count", label: t("discount.table.usageCount"), colClass: "col-md-6" },
-  {
-    key: "status",
-    label: t("discount.table.status"),
-    colClass: "col-md-6",
-    translationKey: "discountStatus"
-  },
 ]);
 
 watch([searchText, selectedGroups], () => {

@@ -107,7 +107,8 @@ export const useLineWorkStore = defineStore("lineWork", () => {
         throw validationError;
       }
 
-      if (!lineWorkData.company) {
+      const companyValue = lineWorkData.company ?? lineWorkData.company_id;
+      if (!companyValue) {
         const validationError = new Error("Company is required");
         validationError.response = {
           data: {
@@ -120,7 +121,7 @@ export const useLineWorkStore = defineStore("lineWork", () => {
 
       const apiData = {
         name: lineWorkData.name,
-        company_id: lineWorkData.company,
+        company_id: companyValue,
       };
 
       const response = await apiServices.createLineWork(apiData);
@@ -149,7 +150,8 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     try {
       const apiData = {};
       if (lineWorkData.name) apiData.name = lineWorkData.name;
-      if (lineWorkData.company) apiData.company_id = lineWorkData.company;
+      const companyValue = lineWorkData.company ?? lineWorkData.company_id;
+      if (companyValue) apiData.company_id = companyValue;
 
       const response = await apiServices.updateLineWork(lineWorkId, apiData);
       const updated = normalizeLineWork(response.data.data || response.data);

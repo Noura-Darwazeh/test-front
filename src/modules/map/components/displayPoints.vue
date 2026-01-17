@@ -1,6 +1,6 @@
 <template>
   <!-- Company Info Popup -->
-  <div class="company-popup" v-if="selectedCompany" :style="popupStyle">
+  <div class="company-popup" v-if="selectedLocation" :style="popupStyle">
     <div class="popup-content">
       <!-- Close button -->
       <button class="popup-close" @click="closePopup">
@@ -9,17 +9,17 @@
 
       <!-- Company Info -->
       <div class="company-info">
-        <h4>{{ selectedCompany.name }}</h4>
-        <p><strong>Branch:</strong> {{ selectedCompany.branch }}</p>
-        <p><strong>Location:</strong> {{ selectedCompany.location }}</p>
-        <p><strong>Role:</strong> {{ selectedCompany.role }}</p>
+        <h4>{{ selectedLocation.title }}</h4>
+        <p><strong>{{ t('map.popup.company') }}:</strong> {{ selectedLocation.companyName }}</p>
+        <p><strong>{{ t('map.popup.branch') }}:</strong> {{ selectedLocation.branchName }}</p>
+        <p><strong>{{ t('map.popup.coordinates') }}:</strong> {{ selectedLocation.coordinatesText }}</p>
       </div>
 
       <!-- Action Button -->
       <div class="popup-actions">
         <button class="btn btn-primary btn-sm" @click="goToCompanyDetails">
           <i class="fas fa-building me-1"></i>
-          View Company Details
+          {{ t('map.popup.viewDetails') }}
         </button>
       </div>
     </div>
@@ -27,13 +27,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { Vector as VectorLayer } from "ol/layer";
 import { Vector as VectorSource } from "ol/source";
 import { Feature } from "ol";
 import { Point } from "ol/geom";
 import { Style, Icon } from "ol/style";
 import companyIconSvg from "@/assets/map/company.svg";
+import { useI18n } from "vue-i18n";
 
 // ---- Props ----
 const props = defineProps({
@@ -41,56 +42,53 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  companies: {
+  locations: {
     type: Array,
     default: () => [],
   },
 });
 
 // ---- Data ----
-const selectedCompany = ref(null);
+const selectedLocation = ref(null);
 const popupPosition = ref({ x: 0, y: 0 });
+const { t } = useI18n();
 
-// ---- Mock Data ----
-const companiesData = computed(() => {
-  if (props.companies && props.companies.length > 0) {
-    return props.companies;
-  }
+const locationsData = computed(() => {
+  const rawLocations = Array.isArray(props.locations) ? props.locations : [];
 
-  return [
-    {
-      id: 1,
-      name: "Tech Solutions Ltd",
-      branch: "Main Branch",
-      location: "Jerusalem",
-      role: "admin",
-      coordinates: [35.2137, 31.7683], // Jerusalem coordinates
-    },
-    {
-      id: 2,
-      name: "Delivery Express",
-      branch: "North Branch",
-      location: "Ramallah",
-      role: "delivery",
-      coordinates: [35.2058, 31.9038], // Ramallah coordinates
-    },
-    {
-      id: 3,
-      name: "Logistics Hub",
-      branch: "South Branch",
-      location: "Hebron",
-      role: "admin",
-      coordinates: [35.0938, 31.5326], // Hebron coordinates
-    },
-    {
-      id: 4,
-      name: "Fast Courier",
-      branch: "Central Branch",
-      location: "Bethlehem",
-      role: "delivery",
-      coordinates: [35.2033, 31.705], // Bethlehem coordinates
-    },
-  ];
+  return rawLocations
+    .map((location) => {
+      const latitude = Number.parseFloat(
+        location.latitude ?? location.location?.latitude
+      );
+      const longitude = Number.parseFloat(
+        location.longitude ?? location.location?.longitude
+      );
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return null;
+      }
+
+      const companyName =
+        location.company_name ||
+        location.company?.name ||
+        location.companyName ||
+        "";
+      const branchName = location.name || location.branch_name || "";
+      const title = companyName || branchName || `#${location.id}`;
+
+      return {
+        id: location.id,
+        companyName,
+        branchName,
+        title,
+        latitude,
+        longitude,
+        coordinates: [longitude, latitude],
+        coordinatesText: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      };
+    })
+    .filter(Boolean);
 });
 
 // --- Computed popup styling ---
@@ -127,7 +125,7 @@ const handleMapClick = (event) => {
   );
 
   if (feature && feature.get("companyData")) {
-    selectedCompany.value = feature.get("companyData");
+    selectedLocation.value = feature.get("companyData");
 
     // Position popup near the click
     popupPosition.value = {
@@ -136,19 +134,19 @@ const handleMapClick = (event) => {
     };
   } else {
     // Close popup if clicking elsewhere
-    selectedCompany.value = null;
+    selectedLocation.value = null;
   }
 };
 
 const closePopup = () => {
-  selectedCompany.value = null;
+  selectedLocation.value = null;
 };
 
 const goToCompanyDetails = () => {
-  console.log("Navigate to company details:", selectedCompany.value);
-  console.log("Prepared route:", `/company/${selectedCompany.value.id}`);
+  console.log("Navigate to company details:", selectedLocation.value);
+  console.log("Prepared route:", `/company/${selectedLocation.value.id}`);
   // TODO: Will navigate to company details when route is ready
-  // router.push(`/company/${selectedCompany.value.id}`);
+  // router.push(`/company/${selectedLocation.value.id}`);
   closePopup();
 };
 
@@ -159,27 +157,30 @@ const handleZoomChange = () => {
     });
   }
 };
-// --- Create company markers ----
-const createCompanyMarkers = () => {
-  vectorSource = new VectorSource();
-  vectorLayer = new VectorLayer({
-    source: vectorSource,
-  });
+const ensureVectorLayer = () => {
+  if (!vectorSource) {
+    vectorSource = new VectorSource();
+    vectorLayer = new VectorLayer({
+      source: vectorSource,
+    });
+    props.mapInstance.addLayer(vectorLayer);
+  }
+};
 
-  // --- Create features for each company ---
-  companiesData.value.forEach((company) => {
+const renderMarkers = () => {
+  if (!props.mapInstance) return;
+  ensureVectorLayer();
+  vectorSource.clear();
+
+  locationsData.value.forEach((location) => {
     const feature = new Feature({
-      geometry: new Point(company.coordinates),
-      companyData: company,
+      geometry: new Point(location.coordinates),
+      companyData: location,
     });
 
-    // --- Create style with dynamic scale based icons ---
     updateFeatureStyle(feature);
     vectorSource.addFeature(feature);
   });
-
-  // --- Add Layer to map ---
-  props.mapInstance.addLayer(vectorLayer);
 };
 
 // --- Update icon style based on zoom level ---
@@ -206,8 +207,7 @@ const updateFeatureStyle = (feature) => {
 // --- LifeCycle hooks ---
 onMounted(() => {
   if (props.mapInstance) {
-    // --- Create company markers ---
-    createCompanyMarkers();
+    renderMarkers();
 
     // --- Add event listeners for click and hover ---
     props.mapInstance.on("pointermove", handlePointerMove);
@@ -215,6 +215,14 @@ onMounted(() => {
     props.mapInstance.getView().on("change:resolution", handleZoomChange);
   }
 });
+
+watch(
+  locationsData,
+  () => {
+    renderMarkers();
+  },
+  { deep: true }
+);
 
 onUnmounted(() => {
   // --- Clean up ---

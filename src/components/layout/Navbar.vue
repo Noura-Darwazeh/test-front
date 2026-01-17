@@ -7,6 +7,17 @@
         </h4>
 
         <div class="d-flex align-items-center gap-3">
+          <!-- Return to Admin Button (shown only when switched) -->
+          <button
+            v-if="authStore.isSwitchedUser"
+            @click="returnToAdmin"
+            class="btn btn-sm btn-warning d-flex align-items-center gap-2"
+            type="button"
+          >
+            <i class="fas fa-undo"></i>
+            <span class="d-none d-md-inline">{{ $t('navbar.returnToAdmin') }}</span>
+          </button>
+
           <!-- Notifications Button -->
           <button class="btn btn-link p-0 position-relative" type="button">
             <img src="/src/assets/Navbar/Bell.svg" alt="Notifications" width="25" height="25" />
@@ -55,6 +66,10 @@
                   <div class="small text-muted">{{ $t("navbar.signedInAs") }}</div>
                   <div class="fw-semibold">{{ authStore.user?.email || authStore.user?.username }}</div>
                   <div class="badge bg-primary mt-1">{{ authStore.userRole }}</div>
+                  <div v-if="authStore.isSwitchedUser" class="badge bg-warning mt-1">
+                    <i class="fas fa-user-friends me-1"></i>
+                    {{ $t('navbar.switchedUser') }}
+                  </div>
                 </li>
 
                 <!-- Profile Link -->
@@ -77,8 +92,8 @@
                   <hr class="dropdown-divider" />
                 </li>
 
-                <!-- Switch User (Only for SuperAdmin) -->
-                <li v-if="authStore.hasRole('SuperAdmin')">
+                <!-- Switch User (Only for SuperAdmin and not already switched) -->
+                <li v-if="authStore.hasRole('SuperAdmin') && !authStore.isSwitchedUser">
                   <a class="dropdown-item" href="#" @click.prevent="handleSwitchUser(close)">
                     <i class="fas fa-user-friends me-2"></i>
                     {{ $t("navbar.SwitchUser") }}
@@ -100,6 +115,12 @@
       </div>
     </div>
   </nav>
+
+  <!-- Switch User Modal -->
+  <SwitchUserModal
+    :isOpen="isSwitchUserModalOpen"
+    @close="closeSwitchUserModal"
+  />
 </template>
 
 <script setup>
@@ -109,6 +130,7 @@ import { useI18n } from "vue-i18n";
 import { setLocale } from "@/i18n/index";
 import { useAuthStore } from "@/stores/auth.js";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
+import SwitchUserModal from "@/components/shared/SwitchUserModal.vue";
 
 const props = defineProps({
   pageTitle: {
@@ -134,6 +156,8 @@ const notificationCount = ref(3);
 const userAvatar = computed(() => {
   return authStore.user?.image || "https://via.placeholder.com/36";
 });
+
+const isSwitchUserModalOpen = ref(false);
 
 const switchLanguage = async (lang) => {
   const langLower = lang.toLowerCase();
@@ -167,8 +191,29 @@ const handleSettings = (close) => {
 
 const handleSwitchUser = (close) => {
   close();
-  console.log("Switch user");
-  // Implement switch user functionality
+  isSwitchUserModalOpen.value = true;
+};
+
+const closeSwitchUserModal = () => {
+  isSwitchUserModalOpen.value = false;
+};
+
+const returnToAdmin = async () => {
+  try {
+    const success = authStore.returnToAdmin();
+    if (success) {
+      console.log("✅ Returned to admin account");
+      
+      // Redirect to admin's default page
+      const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || '/user';
+      await router.push(defaultPage);
+      
+      // Refresh the page to reset state
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error("❌ Error returning to admin:", error);
+  }
 };
 
 const handleLogout = async (close) => {

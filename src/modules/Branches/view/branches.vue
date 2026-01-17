@@ -13,6 +13,7 @@
             :showAddButton="true"
             :addButtonText="$t('branch.addNew')"
             @add-click="openAddModal"
+            @refresh-click="handleRefresh"
         />
 
         <div class="card border-0">
@@ -210,13 +211,13 @@ const branchFields = computed(() => [
         label: t('branch.form.latitude'),
         type: 'text',
         required: true,
-        placeholder: '32.2270',
+        placeholder: t('branch.form.latitudePlaceholder'),
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedbranch.value.latitude : '',
         validate: (value) => {
             const lat = parseFloat(value);
             if (isNaN(lat) || lat < -90 || lat > 90) {
-                return 'Invalid latitude (must be between -90 and 90)';
+                return t('branch.validation.latitudeInvalid');
             }
             return null;
         }
@@ -226,16 +227,25 @@ const branchFields = computed(() => [
         label: t('branch.form.longitude'),
         type: 'text',
         required: true,
-        placeholder: '35.2544',
+        placeholder: t('branch.form.longitudePlaceholder'),
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedbranch.value.longitude : '',
         validate: (value) => {
             const lng = parseFloat(value);
             if (isNaN(lng) || lng < -180 || lng > 180) {
-                return 'Invalid longitude (must be between -180 and 180)';
+                return t('branch.validation.longitudeInvalid');
             }
             return null;
         }
+    },
+    {
+        name: 'locationPicker',
+        label: t('branch.form.locationPicker'),
+        type: 'locationPicker',
+        text: t('common.locateOnMap'),
+        latKey: 'latitude',
+        lngKey: 'longitude',
+        colClass: 'col-12'
     },
 ]);
 
@@ -341,6 +351,25 @@ const switchTab = async (tab) => {
         } catch (error) {
             console.error("❌ Failed to fetch trashed branches:", error);
         }
+    } else {
+        try {
+            await branchesStore.fetchBranches();
+        } catch (error) {
+            console.error("❌ Failed to fetch branches:", error);
+        }
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await branchesStore.fetchTrashedBranches();
+        } else {
+            await branchesStore.fetchBranches();
+        }
+    } catch (error) {
+        console.error("❌ Failed to refresh branches:", error);
     }
 };
 

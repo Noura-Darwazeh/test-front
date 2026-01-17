@@ -14,16 +14,13 @@
             v-model="searchText"
             :searchPlaceholder="$t('linePrice.searchPlaceholder')"
             :data="linePrices"
-            groupKey="type"
-            v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('linePrice.filterByType')"
-            translationKey="priceTypes"
             :columns="linePriceColumns"
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true"
             :addButtonText="$t('linePrice.addNew')"
-            @add-click="openAddModal"
-        />
+        @add-click="openAddModal"
+        @refresh-click="handleRefresh"
+    />
 
         <div class="card border-0">
             <!-- Tabs -->
@@ -158,7 +155,7 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -171,7 +168,6 @@ const linePriceStore = useLinePriceStore();
 const { companyId, companyOption, currencyId } = useAuthDefaults();
 
 const searchText = ref("");
-const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
@@ -218,10 +214,19 @@ const fetchDropdownData = async () => {
             label: line.name
         }));
 
-        currencyOptions.value = (currenciesResponse.data.data || []).map((currency) => ({
-            value: String(currency.id),
-            label: `${currency.code} (${currency.symbol})`
-        }));
+        currencyOptions.value = (currenciesResponse.data.data || []).map((currency) => {
+            const name =
+                currency.name ||
+                currency.nameenglish ||
+                currency.namearabic ||
+                "";
+            const symbol = currency.symbol || "";
+            const label = name && symbol ? `${name} (${symbol})` : (name || symbol);
+            return {
+                value: String(currency.id),
+                label
+            };
+        });
     } catch (error) {
         console.error("??O Failed to load line price dropdown data:", error);
     }
@@ -273,7 +278,9 @@ const linePriceFields = computed(() => [
             ? companyOption.value
             : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: companyId.value,
+        defaultValue: isEditMode.value
+            ? String(selectedLinePrice.value.company_id ?? "")
+            : companyId.value,
         locked: true,
         hidden: true
     },
@@ -355,9 +362,6 @@ const currentLoading = computed(() => {
 // Filter current data
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    if (activeTab.value === 'active') {
-        result = filterByGroups(result, selectedGroups.value, "type");
-    }
     result = filterData(result, searchText.value);
     return result;
 });
@@ -370,7 +374,7 @@ const paginatedData = computed(() => {
     );
 });
 
-watch([searchText, selectedGroups], () => {
+watch([searchText], () => {
     currentPage.value = 1;
 });
 
@@ -416,6 +420,25 @@ const switchTab = async (tab) => {
         } catch (error) {
             console.error("❌ Failed to fetch trashed line prices:", error);
         }
+    } else {
+        try {
+            await linePriceStore.fetchLinePrices();
+        } catch (error) {
+            console.error("❌ Failed to fetch line prices:", error);
+        }
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await linePriceStore.fetchTrashedLinePrices();
+        } else {
+            await linePriceStore.fetchLinePrices();
+        }
+    } catch (error) {
+        console.error("❌ Failed to refresh line prices:", error);
     }
 };
 

@@ -41,6 +41,7 @@
       :showAddButton="true"
       :addButtonText="$t('driverLine.addNew')"
       @add-click="openModal"
+      @refresh-click="handleRefresh"
     />
 
     <div class="card border-0">
@@ -176,11 +177,21 @@ import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
 import { useDriverLineStore } from "../stores/driverLineStore.js";
+import { useDriverStore } from "@/modules/driver/stores/driverStore.js";
+import { useLineWorkStore } from "@/modules/lineWork/stores/lineworkStore.js";
 
 const { t } = useI18n();
 const router = useRouter();
-const { driverLineFields } = useDriverLineFormFields();
 const driverLineStore = useDriverLineStore();
+const driverStore = useDriverStore();
+const lineWorkStore = useLineWorkStore();
+
+const drivers = computed(() => driverStore.drivers);
+const lineWorks = computed(() => lineWorkStore.lineWorks);
+const { driverLineFields } = useDriverLineFormFields({
+  drivers,
+  lineWorks,
+});
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -204,7 +215,11 @@ const trashedDriverLines = computed(() => driverLineStore.trashedDriverLines);
 // Fetch data on component mount
 onMounted(async () => {
   try {
-    await driverLineStore.fetchDriverLines();
+    await Promise.all([
+      driverLineStore.fetchDriverLines(),
+      driverStore.fetchDrivers(),
+      lineWorkStore.fetchLineWorks(),
+    ]);
     console.log("✅ Driver lines loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load driver lines:", error);
@@ -337,6 +352,25 @@ const switchTab = async (tab) => {
     } catch (error) {
       console.error("Failed to load trashed driver lines:", error);
     }
+  } else {
+    try {
+      await driverLineStore.fetchDriverLines();
+    } catch (error) {
+      console.error("Failed to load driver lines:", error);
+    }
+  }
+};
+
+const handleRefresh = async () => {
+  selectedRows.value = [];
+  try {
+    if (activeTab.value === "trashed") {
+      await driverLineStore.fetchTrashedDriverLines();
+    } else {
+      await driverLineStore.fetchDriverLines();
+    }
+  } catch (error) {
+    console.error("Failed to refresh driver lines:", error);
   }
 };
 
@@ -453,10 +487,19 @@ const closeDetailsModal = () => {
 
 // Update form fields to support edit mode
 const driverLineFieldsWithDefaults = computed(() => {
-  return driverLineFields.value.map(field => ({
-    ...field,
-    defaultValue: isEditMode.value ? selectedDriverLine.value[field.name] : field.defaultValue || ''
-  }));
+  return driverLineFields.value.map((field) => {
+    const rawValue = selectedDriverLine.value[field.name];
+    const defaultValue = isEditMode.value
+      ? field.type === "select" && rawValue !== undefined && rawValue !== null
+        ? String(rawValue)
+        : rawValue
+      : field.defaultValue || "";
+
+    return {
+      ...field,
+      defaultValue,
+    };
+  });
 });
 
 // Details fields configuration

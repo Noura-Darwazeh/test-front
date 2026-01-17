@@ -57,6 +57,7 @@ const emit = defineEmits([
   "update:visibleColumns",
   "add-click",
   "trashed-click",
+  "refresh-click",
 ]);
 
 const handleAddClick = () => {
@@ -65,7 +66,7 @@ const handleAddClick = () => {
 };
 
 const handleRefreshClick = () => {
-  console.log('Refresh button clicked in TableHeader');
+  emit('refresh-click');
 };
 
 const handleTrashedClick = () => {

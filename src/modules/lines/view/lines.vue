@@ -23,6 +23,7 @@
             :showAddButton="true"
             :addButtonText="$t('lines.addNew')"
             @add-click="openAddModal"
+            @refresh-click="handleRefresh"
         />
 
         <div class="card border-0">
@@ -163,10 +164,12 @@ import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useLinesStore } from "../stores/linesStore.js";
+import { useRegionsManagementStore } from "@/modules/regions/store/regionsManagement.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const linesStore = useLinesStore();
+const regionsStore = useRegionsManagementStore();
 const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
@@ -189,11 +192,24 @@ const pendingBulkAction = ref(null);
 // Get lines from store
 const lines = computed(() => linesStore.lines);
 const trashedLines = computed(() => linesStore.trashedLines);
+const regions = computed(() => regionsStore.regions);
+
+const regionOptions = computed(() =>
+    regions.value
+        .map((region) => ({
+            value: String(region.id ?? ""),
+            label: region.name || region.label || "",
+        }))
+        .filter((option) => option.value && option.label)
+);
 
 // Fetch data on component mount
 onMounted(async () => {
     try {
-        await linesStore.fetchLines();
+        await Promise.all([
+            linesStore.fetchLines(),
+            regionsStore.fetchRegions(),
+        ]);
         console.log("✅ Lines loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load lines:", error);
@@ -220,10 +236,8 @@ const linesFields = computed(() => [
         label: t('lines.form.region'),
         type: 'select',
         required: true,
-        options: [
-            { value: '1', label: t('lines.form.regions.region1') },
-            { value: '2', label: t('lines.form.regions.region2') },
-        ],
+        options: regionOptions.value,
+        placeholder: t('lines.form.regionPlaceholder'),
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? String(selectedLine.value.region_id) : ''
     },
@@ -236,7 +250,9 @@ const linesFields = computed(() => [
             ? companyOption.value
             : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-6',
-        defaultValue: companyId.value,
+        defaultValue: isEditMode.value
+            ? String(selectedLine.value.company_id ?? "")
+            : companyId.value,
         locked: true,
         hidden: true
     },
@@ -348,6 +364,25 @@ const switchTab = async (tab) => {
         } catch (error) {
             console.error("❌ Failed to fetch trashed lines:", error);
         }
+    } else {
+        try {
+            await linesStore.fetchLines();
+        } catch (error) {
+            console.error("❌ Failed to fetch lines:", error);
+        }
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await linesStore.fetchTrashedLines();
+        } else {
+            await linesStore.fetchLines();
+        }
+    } catch (error) {
+        console.error("❌ Failed to refresh lines:", error);
     }
 };
 

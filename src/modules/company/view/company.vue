@@ -22,7 +22,7 @@
             <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
                 groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
                 translationKey="companyTypes" :columns="companyColumns" v-model:visibleColumns="visibleColumns"
-                :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal"
+                :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal" @refresh-click="handleRefresh"
                 :showTrashedButton="false" />
 
             <!-- Bulk Actions Bar for Active Tab -->
@@ -52,7 +52,7 @@
             <CompanyHeader v-model="trashedSearchText" :searchPlaceholder="$t('company.searchPlaceholder')"
                 :data="trashedCompanies" groupKey="type" v-model:groupModelValue="trashedSelectedGroups"
                 :groupLabel="$t('company.filterByType')" translationKey="companyTypes" :columns="companyColumns"
-                v-model:visibleColumns="visibleColumns" :showAddButton="false" :showTrashedButton="false" />
+                v-model:visibleColumns="visibleColumns" :showAddButton="false" :showTrashedButton="false" @refresh-click="handleRefresh" />
 
             <!-- Bulk Actions Bar for Trashed Tab -->
             <BulkActionsBar :selectedCount="selectedRows.length" entityName="company" :actions="bulkActions"
@@ -224,6 +224,7 @@ import { useI18n } from "vue-i18n";
 import CompanyHeader from "../components/companyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useCompanyManagementStore } from "../store/companyManagement.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const companyStore = useCompanyManagementStore();
@@ -313,9 +314,14 @@ const companyFields = computed(() => [
         required: false,
         colClass: 'col-12',
         branchLabel: t('company.form.branchName'),
+        locationLabel: t('common.locateOnMap'),
         defaultValue: isEditMode.value && selectedcompany.value.branches && selectedcompany.value.branches.length > 0
-            ? selectedcompany.value.branches.map(b => ({ name: b.name }))
-            : [{ name: '' }]
+            ? selectedcompany.value.branches.map(b => ({
+                name: b.name,
+                latitude: b.latitude ?? b.location?.latitude ?? '',
+                longitude: b.longitude ?? b.location?.longitude ?? ''
+            }))
+            : [{ name: '', latitude: '', longitude: '' }]
     },
 ]);
 
@@ -459,13 +465,19 @@ onMounted(async () => {
     }
 });
 
-// Watch active tab and fetch trashed companies when needed
+// Watch active tab and refresh current list
 watch(activeTab, async (newTab) => {
-    if (newTab === 'trashed' && trashedCompanies.value.length === 0) {
+    if (newTab === 'trashed') {
         try {
             await companyStore.fetchTrashedCompanies();
         } catch (error) {
             console.error("Failed to fetch trashed companies:", error);
+        }
+    } else {
+        try {
+            await companyStore.fetchCompanies();
+        } catch (error) {
+            console.error("Failed to fetch companies:", error);
         }
     }
 });
@@ -503,25 +515,29 @@ const closeDetailsModal = () => {
 
 const handleSubmitcompany = async (companyData) => {
     try {
-        // Prepare branches data as array for API
-        const branches = companyData.branches?.map(row => ({
-            name: row.name
-        })) || [];
+        // Transform branches array for API
+        const branches = (companyData.branches || [])
+            .map((row) => {
+                const name = (row.name || "").trim();
+                if (!name) return null;
+                const latitude = row.latitude === "" ? null : row.latitude;
+                const longitude = row.longitude === "" ? null : row.longitude;
+                return { name, latitude, longitude };
+            })
+            .filter(Boolean);
 
         const payload = {
             name: companyData.name,
             type: companyData.type,
-            branches: branches
+            branches: branches, // Include branches in the payload
         };
-
-        console.log('📤 Sending company data:', payload);
 
         if (isEditMode.value) {
             await companyStore.updateCompany(selectedcompany.value.id, payload);
             console.log('✅ Company updated successfully!');
         } else {
             await companyStore.addCompany(payload);
-            console.log('✅ Company added successfully!');
+            console.log('✅ Company added successfully with branches!');
         }
         closeFormModal();
     } catch (error) {
@@ -622,6 +638,19 @@ const executeBulkAction = async () => {
 const cancelBulkAction = () => {
     isBulkConfirmOpen.value = false;
     pendingBulkAction.value = null;
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await companyStore.fetchTrashedCompanies();
+        } else {
+            await companyStore.fetchCompanies();
+        }
+    } catch (error) {
+        console.error("Failed to refresh companies:", error);
+    }
 };
 </script>
 

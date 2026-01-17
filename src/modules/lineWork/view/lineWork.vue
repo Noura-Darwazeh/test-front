@@ -21,16 +21,38 @@
             :columns="lineWorkColumns" 
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true" 
-            :addButtonText="$t('lineWork.addNew')" 
-            :showTrashedButton="true"
+            :addButtonText="$t('lineWork.addNew')"
             @add-click="openAddModal"
-            @trashed-click="openTrashedModal" 
+            @refresh-click="handleRefresh" 
         />
 
         <div class="card border-0">
+            <!-- Tabs -->
+            <div class="card-header bg-white border-bottom">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <button
+                            class="nav-link"
+                            :class="{ active: activeTab === 'active' }"
+                            @click="switchTab('active')"
+                        >
+                            {{ $t('common.active') }}
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button
+                            class="nav-link trashed-tab"
+                            :class="{ active: activeTab === 'trashed' }"
+                            @click="switchTab('trashed')"
+                        >
+                            {{ $t('lineWork.trashed.title') }}
+                        </button>
+                    </li>
+                </ul>
+            </div>
             <div class="card-body p-0">
                 <!-- Loading State -->
-                <div v-if="lineWorkStore.loading" class="text-center py-5">
+                <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
@@ -52,24 +74,37 @@
                         :loading="bulkActionLoading"
                         @action="handleBulkAction"
                     />
-                    <DataTable :columns="filteredColumns" :data="paginatedLineWork" :actionsLabel="$t('lineWork.actions')"
+                    <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('lineWork.actions')"
                         v-model="selectedRows">
                         <template #actions="{ row }">
-                            <ActionsDropdown 
-                                :row="row" 
-                                :editLabel="$t('lineWork.edit')" 
-                                :detailsLabel="$t('lineWork.details')" 
-                                :deleteLabel="$t('lineWork.delete')" 
+                            <ActionsDropdown
+                                v-if="activeTab === 'active'"
+                                :row="row"
+                                :editLabel="$t('lineWork.edit')"
+                                :detailsLabel="$t('lineWork.details')"
+                                :deleteLabel="$t('lineWork.delete')"
                                 :confirmDelete="true"
-                                @edit="openEditModal" 
-                                @details="openDetailsModal" 
-                                @delete="handleDeleteLineWork" 
+                                @edit="openEditModal"
+                                @details="openDetailsModal"
+                                @delete="handleDeleteLineWork"
+                            />
+                            <ActionsDropdown
+                                v-else
+                                :row="row"
+                                :restoreLabel="$t('lineWork.trashed.restore')"
+                                :deleteLabel="$t('lineWork.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                :confirmDelete="true"
+                                @restore="handleRestorelineWork"
+                                @delete="handlePermanentDeleteLineWork"
                             />
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
                         <Pagination 
-                            :totalItems="filteredLineWork.length" 
+                            :totalItems="currentFilteredData.length" 
                             :itemsPerPage="itemsPerPage"
                             :currentPage="currentPage" 
                             @update:currentPage="(page) => currentPage = page" 
@@ -98,23 +133,6 @@
             @close="closeDetailsModal" 
         />
 
-        <!-- Trashed lineWork Modal -->
-        <TrashedItemsModal 
-            :isOpen="isTrashedModalOpen" 
-            :title="$t('lineWork.trashed.title')"
-            :emptyMessage="$t('lineWork.trashed.empty')" 
-            :columns="trashedColumns" 
-            :trashedItems="trashedLineWork"
-            :showDeleteButton="true"
-            entityName="lineWork"
-            :bulkActions="trashedBulkActions"
-            :bulkLoading="bulkActionLoading"
-            @close="closeTrashedModal" 
-            @restore="handleRestorelineWork" 
-            @delete="handlePermanentDeleteLineWork"
-            @bulk-action="handleTrashedBulkAction"
-        />
-
         <ConfirmationModal
             :isOpen="isBulkConfirmOpen"
             :title="$t('common.bulkDeleteConfirmTitle')"
@@ -139,7 +157,6 @@ import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import lineWorkHeader from "../components/lineWorkHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import { useLineWorkStore } from "../stores/lineworkStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
@@ -153,10 +170,10 @@ const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedlineWork = ref({});
 const validationError = ref(null);
+const activeTab = ref('active');
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -200,7 +217,9 @@ const lineWorkFields = computed(() => [
             ? companyOption.value
             : [{ value: "", label: t("common.noCompanyAssigned") }],
         colClass: 'col-md-12',
-        defaultValue: companyId.value,
+        defaultValue: isEditMode.value
+            ? String(selectedlineWork.value.company_id ?? "")
+            : companyId.value,
         locked: true,
         hidden: true
     },
@@ -221,12 +240,6 @@ const lineWorkColumns = ref([
     { key: "company", label: t("lineWork.company"), sortable: false },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "id", label: t("lineWork.id") },
-    { key: "name", label: t("lineWork.name") },
-    { key: "company", label: t("lineWork.company") },
-]);
-
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
@@ -235,41 +248,54 @@ const filteredColumns = computed(() => {
     );
 });
 
-const filteredLineWork = computed(() => {
-    let result = lineWorks.value;
-    result = filterByGroups(result, selectedGroups.value, "company");
+const currentData = computed(() => {
+    return activeTab.value === 'active' ? lineWorks.value : trashedLineWork.value;
+});
+
+const currentLoading = computed(() => {
+    return activeTab.value === 'active' ? lineWorkStore.loading : lineWorkStore.trashedLoading;
+});
+
+const currentFilteredData = computed(() => {
+    let result = currentData.value;
+    if (activeTab.value === 'active') {
+        result = filterByGroups(result, selectedGroups.value, "company");
+    }
     result = filterData(result, searchText.value);
     return result;
 });
 
-const paginatedLineWork = computed(() => {
+const paginatedData = computed(() => {
     return paginateData(
-        filteredLineWork.value,
+        currentFilteredData.value,
         currentPage.value,
         itemsPerPage.value
     );
 });
 
-const bulkActions = computed(() => [
-    {
-        id: 'delete',
-        label: t('lineWork.bulkDelete'),
-        bgColor: 'var(--color-danger)'
+const bulkActions = computed(() => {
+    if (activeTab.value === 'active') {
+        return [
+            {
+                id: 'delete',
+                label: t('lineWork.bulkDelete'),
+                bgColor: 'var(--color-danger)'
+            }
+        ];
     }
-]);
-
-const trashedBulkActions = computed(() => [
-    {
-        id: 'restore',
-        label: t('lineWork.bulkRestore'),
-        bgColor: 'var(--color-success)'
-    },
-    {
-        id: 'permanentDelete',
-        label: t('common.permanentDelete'),
-        bgColor: 'var(--color-danger)'
-    }
-]);
+    return [
+        {
+            id: 'restore',
+            label: t('lineWork.bulkRestore'),
+            bgColor: 'var(--color-success)'
+        },
+        {
+            id: 'permanentDelete',
+            label: t('common.permanentDelete'),
+            bgColor: 'var(--color-danger)'
+        }
+    ];
+});
 
 const bulkConfirmMessage = computed(() => {
     if (!pendingBulkAction.value) return '';
@@ -277,7 +303,16 @@ const bulkConfirmMessage = computed(() => {
     const count = selectedRows.value.length;
     const entity = count === 1 ? t('lineWork.entitySingular') : t('lineWork.entityPlural');
 
-    return t('common.bulkDeleteConfirm', { count, entity });
+    if (pendingBulkAction.value === 'delete') {
+        return t('common.bulkDeleteConfirm', { count, entity });
+    }
+    if (pendingBulkAction.value === 'permanentDelete') {
+        return t('common.bulkPermanentDeleteConfirm', { count, entity });
+    }
+    if (pendingBulkAction.value === 'restore') {
+        return t('common.bulkRestoreConfirm', { count, entity });
+    }
+    return '';
 });
 
 watch([searchText, selectedGroups], () => {
@@ -315,18 +350,37 @@ const closeDetailsModal = () => {
     selectedlineWork.value = {};
 };
 
-const openTrashedModal = async () => {
-    try {
-        await lineWorkStore.fetchTrashedLineWorks();
-    } catch (error) {
-        console.error("Failed to load trashed line works:", error);
-    } finally {
-        isTrashedModalOpen.value = true;
+const switchTab = async (tab) => {
+    activeTab.value = tab;
+    currentPage.value = 1;
+    selectedRows.value = [];
+
+    if (tab === 'trashed') {
+        try {
+            await lineWorkStore.fetchTrashedLineWorks();
+        } catch (error) {
+            console.error("Failed to load trashed line works:", error);
+        }
+    } else {
+        try {
+            await lineWorkStore.fetchLineWorks();
+        } catch (error) {
+            console.error("Failed to load line works:", error);
+        }
     }
 };
 
-const closeTrashedModal = () => {
-    isTrashedModalOpen.value = false;
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await lineWorkStore.fetchTrashedLineWorks();
+        } else {
+            await lineWorkStore.fetchLineWorks();
+        }
+    } catch (error) {
+        console.error("Failed to refresh line works:", error);
+    }
 };
 
 const handleSubmitlineWork = async (lineWorkData) => {
@@ -334,9 +388,14 @@ const handleSubmitlineWork = async (lineWorkData) => {
     validationError.value = null;
     
     try {
+        const resolvedCompany =
+            companyId.value ||
+            lineWorkData.company ||
+            selectedlineWork.value.company_id ||
+            "";
         const payload = {
             ...lineWorkData,
-            company: companyId.value || lineWorkData.company,
+            company: resolvedCompany,
         };
         if (isEditMode.value) {
             // Update existing lineWork
@@ -401,10 +460,16 @@ const executeBulkAction = async () => {
     bulkActionLoading.value = true;
 
     try {
-        await lineWorkStore.bulkDeleteLineWorks(selectedRows.value, false);
+        if (pendingBulkAction.value === 'delete') {
+            await lineWorkStore.bulkDeleteLineWorks(selectedRows.value, false);
+        } else if (pendingBulkAction.value === 'permanentDelete') {
+            await lineWorkStore.bulkDeleteLineWorks(selectedRows.value, true);
+        } else if (pendingBulkAction.value === 'restore') {
+            await lineWorkStore.bulkRestoreLineWorks(selectedRows.value);
+        }
         selectedRows.value = [];
     } catch (error) {
-        console.error("Failed to bulk delete line works:", error);
+        console.error("Failed to perform bulk action on line works:", error);
     } finally {
         bulkActionLoading.value = false;
         isBulkConfirmOpen.value = false;
@@ -415,23 +480,6 @@ const executeBulkAction = async () => {
 const cancelBulkAction = () => {
     isBulkConfirmOpen.value = false;
     pendingBulkAction.value = null;
-};
-
-const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
-    if (!selectedIds.length) return;
-    bulkActionLoading.value = true;
-
-    try {
-        if (actionId === "restore") {
-            await lineWorkStore.bulkRestoreLineWorks(selectedIds);
-        } else if (actionId === "permanentDelete") {
-            await lineWorkStore.bulkDeleteLineWorks(selectedIds, true);
-        }
-    } catch (error) {
-        console.error("Failed to perform bulk action on line works:", error);
-    } finally {
-        bulkActionLoading.value = false;
-    }
 };
 
 const handleDeleteLineWork = async (lineWork) => {

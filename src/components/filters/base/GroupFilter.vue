@@ -18,7 +18,7 @@
     </button>
 
     <!-- Dropdown menu -->
-    <div class="dropdown-menu dropdown-menu-end p-3 shadow border rounded-3 mt-2" :class="{ show: isOpen }">
+    <div class="dropdown-menu p-3 shadow border rounded-3 mt-2" :class="{ show: isOpen }">
       <!-- Available groups (not selected) -->
       <div v-for="group in availableGroups" :key="group" class="dropdown-item py-2 d-flex align-items-center">
         <input type="checkbox" :id="`group-${group}`" :value="group" @change="addGroup(group)"
@@ -159,7 +159,13 @@ watch(
   opacity: 1;
 }
 
+.group-filter {
+  position: relative;
+  display: inline-flex;
+}
+
 .dropdown-menu {
   min-width: 220px;
+  top: 19%;
 }
 </style>

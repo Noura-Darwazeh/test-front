@@ -18,12 +18,13 @@
             v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('driver.filterByStatus')"
             translationKey="statuses"
-            :columns="driverColumns"
-            v-model:visibleColumns="visibleColumns"
-            :showAddButton="true"
-            :addButtonText="$t('driver.addNew')"
-            @add-click="openAddModal"
-        />
+        :columns="driverColumns"
+        v-model:visibleColumns="visibleColumns"
+        :showAddButton="true"
+        :addButtonText="$t('driver.addNew')"
+        @add-click="openAddModal"
+        @refresh-click="handleRefresh"
+    />
 
         <div class="card border-0">
             <!-- Tabs -->
@@ -489,6 +490,25 @@ const switchTab = async (tab) => {
         } catch (error) {
             console.error("âŒ Failed to fetch trashed drivers:", error);
         }
+    } else {
+        try {
+            await driverStore.fetchDrivers();
+        } catch (error) {
+            console.error("âŒ Failed to fetch drivers:", error);
+        }
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await driverStore.fetchTrashedDrivers();
+        } else {
+            await driverStore.fetchDrivers();
+        }
+    } catch (error) {
+        console.error("âŒ Failed to refresh drivers:", error);
     }
 };
 

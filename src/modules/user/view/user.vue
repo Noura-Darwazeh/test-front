@@ -13,6 +13,7 @@
     :showAddButton="isSuperAdmin"
     :addButtonText="$t('user.addNew')"
     @add-click="openModal"
+    @refresh-click="handleRefresh"
   />
 
     <div class="card border-0">
@@ -374,7 +375,11 @@ const userFields = computed(() => [
       label: role.label
     })),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.role : '',
+    defaultValue: isEditMode.value
+      ? (Array.isArray(selectedUser.value.role)
+        ? selectedUser.value.role[0]
+        : selectedUser.value.role)
+      : '',
   },
   {
     name: "company_id",
@@ -467,6 +472,25 @@ const switchTab = async (tab) => {
     } catch (error) {
       console.error("❌ Failed to load trashed users:", error);
     }
+  } else {
+    try {
+      await usersStore.fetchUsers();
+    } catch (error) {
+      console.error("❌ Failed to load users:", error);
+    }
+  }
+};
+
+const handleRefresh = async () => {
+  selectedRows.value = [];
+  try {
+    if (activeTab.value === 'trashed') {
+      await usersStore.fetchTrashedUsers();
+    } else {
+      await usersStore.fetchUsers();
+    }
+  } catch (error) {
+    console.error("❌ Failed to refresh users:", error);
   }
 };
 
@@ -606,6 +630,14 @@ const handleSubmitUser = async (userData) => {
       alert("Image size should not exceed 200KB");
       return;
     }
+    const selectedRole = Array.isArray(selectedUser.value.role)
+      ? selectedUser.value.role[0]
+      : selectedUser.value.role;
+    const rolePayload = Array.isArray(userData.role)
+      ? userData.role
+      : userData.role
+        ? [userData.role]
+        : [];
 
     if (isEditMode.value) {
       // Update existing user
@@ -624,8 +656,8 @@ const handleSubmitUser = async (userData) => {
       if (userData.phone_number !== selectedUser.value.phone_number) {
         updatedData.phone_number = userData.phone_number;
       }
-      if (userData.role !== selectedUser.value.role) {
-        updatedData.role = userData.role;
+      if (userData.role !== selectedRole) {
+        updatedData.role = rolePayload;
       }
       if (userData.company_id !== selectedUser.value.company_id) {
         updatedData.company_id = userData.company_id || null;
@@ -655,7 +687,7 @@ const handleSubmitUser = async (userData) => {
         username: userData.username,
         password: userData.password,
         phone_number: userData.phone_number,
-        role: userData.role,
+        role: rolePayload,
         company_id: userData.company_id || null, // ✅ Always send, null if empty
         region_id: userData.region_id || null,   // ✅ Always send, null if empty
         currency_id: userData.currency_id || null, // ✅ Always send, null if empty

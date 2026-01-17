@@ -23,6 +23,7 @@
             :showAddButton="true"
             :addButtonText="$t('customer.addNew')"
             @add-click="openAddModal"
+            @refresh-click="handleRefresh"
         />
 
         <div class="card border-0">
@@ -371,6 +372,25 @@ const switchTab = async (tab) => {
         } catch (error) {
             console.error("❌ Failed to fetch trashed customers:", error);
         }
+    } else {
+        try {
+            await customerStore.fetchCustomers();
+        } catch (error) {
+            console.error("❌ Failed to fetch customers:", error);
+        }
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === 'trashed') {
+            await customerStore.fetchTrashedCustomers();
+        } else {
+            await customerStore.fetchCustomers();
+        }
+    } catch (error) {
+        console.error("❌ Failed to refresh customers:", error);
     }
 };
 

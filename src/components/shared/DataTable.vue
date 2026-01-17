@@ -8,6 +8,9 @@
       >
         <thead class="table-light">
           <tr>
+            <!-- Expand Column Header -->
+            <th v-if="hasExpandSlot" class="expand-col"></th>
+
             <!-- Checkbox Column -->
             <th v-if="showCheckbox" class="text-center">
               <input
@@ -65,26 +68,49 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in sortedData" :key="row.id">
-            <!-- Checkbox for each row -->
-            <td v-if="showCheckbox" class="text-center">
-              <input type="checkbox" :value="row.id" v-model="selectedRows" />
-            </td>
+          <template v-for="row in sortedData" :key="row.id">
+            <tr :class="{ 'expanded-row': isExpanded(row.id), 'expandable-row': isRowExpandable(row) }">
+              <!-- Expand Toggle -->
+              <td v-if="hasExpandSlot" class="expand-col text-center">
+                <button
+                  v-if="isRowExpandable(row)"
+                  type="button"
+                  class="btn btn-sm btn-link expand-toggle p-0"
+                  @click="toggleExpand(row.id)"
+                >
+                  <i :class="isExpanded(row.id) ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"></i>
+                </button>
+              </td>
 
-            <td v-for="col in columns" :key="col.key" class="text-dark">
-              <StatusBadge
-                v-if="col.component === 'StatusBadge'"
-                :status="row[col.key]"
-                v-bind="col.componentProps || {}"
-              />
-              <span v-else>{{ row[col.key] }}</span>
-            </td>
+              <!-- Checkbox for each row -->
+              <td v-if="showCheckbox" class="text-center">
+                <input type="checkbox" :value="row.id" v-model="selectedRows" />
+              </td>
 
-            <!-- Actions Slot -->
-            <td v-if="hasActionsSlot" class="text-center">
-              <slot name="actions" :row="row"></slot>
-            </td>
-          </tr>
+              <td v-for="col in columns" :key="col.key" class="text-dark">
+                <StatusBadge
+                  v-if="col.component === 'StatusBadge'"
+                  :status="row[col.key]"
+                  v-bind="col.componentProps || {}"
+                />
+                <span v-else>{{ col.formatter ? col.formatter(row[col.key], row) : row[col.key] }}</span>
+              </td>
+
+              <!-- Actions Slot -->
+              <td v-if="hasActionsSlot" class="text-center">
+                <slot name="actions" :row="row"></slot>
+              </td>
+            </tr>
+
+            <!-- Expanded Content Row -->
+            <tr v-if="hasExpandSlot && isExpanded(row.id)" class="expand-content-row">
+              <td :colspan="totalColumns" class="p-0">
+                <div class="expand-content">
+                  <slot name="expand" :row="row"></slot>
+                </div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -95,11 +121,23 @@
         v-for="row in sortedData"
         :key="row.id"
         class="card mb-3 border shadow-sm"
+        :class="{ 'expandable-card': isRowExpandable(row) }"
       >
         <div class="card-body p-3">
-          <!-- Mobile Checkbox -->
-          <div v-if="showCheckbox" class="mb-2">
-            <input type="checkbox" :value="row.id" v-model="selectedRows" />
+          <!-- Mobile Expand Toggle and Checkbox -->
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div v-if="showCheckbox">
+              <input type="checkbox" :value="row.id" v-model="selectedRows" />
+            </div>
+            <button
+              v-if="hasExpandSlot && isRowExpandable(row)"
+              type="button"
+              class="btn btn-sm btn-outline-secondary expand-toggle-mobile"
+              @click="toggleExpand(row.id)"
+            >
+              <i :class="isExpanded(row.id) ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" class="me-1"></i>
+              {{ isExpanded(row.id) ? t('common.collapse') : t('common.expand') }}
+            </button>
           </div>
 
           <div
@@ -108,7 +146,7 @@
             class="row mb-2 pb-2 border-bottom"
             :class="{
               'border-0 mb-0 pb-0':
-                col === columns[columns.length - 1] && !hasActionsSlot,
+                col === columns[columns.length - 1] && !hasActionsSlot && !hasExpandSlot,
             }"
           >
             <div class="col-5 pe-2" :class="{ 'text-end': isRTL }">
@@ -123,9 +161,14 @@
                 v-bind="col.componentProps || {}"
               />
               <span v-else class="text-dark fw-medium d-block">
-                {{ row[col.key] }}
+                {{ col.formatter ? col.formatter(row[col.key], row) : row[col.key] }}
               </span>
             </div>
+          </div>
+
+          <!-- Mobile Expanded Content -->
+          <div v-if="hasExpandSlot && isExpanded(row.id)" class="expand-content-mobile mt-3 pt-3 border-top">
+            <slot name="expand" :row="row"></slot>
           </div>
 
           <!-- Mobile Actions Slot -->
@@ -158,6 +201,7 @@ const sortDirection = ref("asc");
 
 const selectedRows = ref([]);
 const selectAll = ref(false);
+const expandedRows = ref(new Set());
 
 const props = defineProps({
   columns: Array,
@@ -174,12 +218,48 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Function to determine if a row is expandable
+  // Takes a row object and returns boolean
+  isExpandable: {
+    type: Function,
+    default: () => true,
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
 
 const hasActionsSlot = computed(() => !!slots.actions);
+const hasExpandSlot = computed(() => !!slots.expand);
 const actionsLabelText = computed(() => props.actionsLabel || t("common.actions"));
+
+// Calculate total columns for colspan
+const totalColumns = computed(() => {
+  let count = props.columns.length;
+  if (hasExpandSlot.value) count++;
+  if (props.showCheckbox) count++;
+  if (hasActionsSlot.value) count++;
+  return count;
+});
+
+// Check if a row is expandable
+const isRowExpandable = (row) => {
+  if (!hasExpandSlot.value) return false;
+  return props.isExpandable(row);
+};
+
+// Check if a row is expanded
+const isExpanded = (rowId) => expandedRows.value.has(rowId);
+
+// Toggle expand state of a row
+const toggleExpand = (rowId) => {
+  if (expandedRows.value.has(rowId)) {
+    expandedRows.value.delete(rowId);
+  } else {
+    expandedRows.value.add(rowId);
+  }
+  // Force reactivity update
+  expandedRows.value = new Set(expandedRows.value);
+};
 
 const sortedData = computed(() => {
   return sortData(props.data, sortKey.value, sortDirection.value);
@@ -251,5 +331,63 @@ watch(() => props.data, () => {
 
 .card:last-child {
   margin-bottom: 0 !important;
+}
+
+/* Expandable row styles */
+.expand-col {
+  width: 40px;
+  min-width: 40px;
+}
+
+.expand-toggle {
+  color: #6c757d;
+  transition: color 0.2s;
+}
+
+.expand-toggle:hover {
+  color: #0d6efd;
+}
+
+.expandable-row {
+  cursor: pointer;
+}
+
+.expandable-row:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.expanded-row {
+  background-color: rgba(13, 110, 253, 0.08);
+}
+
+.expand-content-row {
+  background-color: #f8f9fa;
+}
+
+.expand-content-row:hover {
+  background-color: #f8f9fa;
+}
+
+.expand-content {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Mobile expandable styles */
+.expandable-card {
+  border-left: 3px solid #fd7e14 !important;
+}
+
+.expand-toggle-mobile {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.expand-content-mobile {
+  background-color: #fff8f0;
+  margin: 0 -1rem;
+  padding: 1rem;
+  border-radius: 0 0 0.375rem 0.375rem;
 }
 </style>
