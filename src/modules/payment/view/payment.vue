@@ -1,29 +1,15 @@
 <template>
   <div class="payment-page-container bg-light">
-    <TableHeader 
-      v-model="searchText" 
-      :searchPlaceholder="$t('payment.searchPlaceholder')" 
-      :data="payments"
-      groupKey="status" 
-      v-model:groupModelValue="selectedGroups" 
-      :groupLabel="$t('payment.filterByStatus')"
-      translationKey="paymentStatus" 
-      :columns="paymentColumns" 
-      v-model:visibleColumns="visibleColumns"
-      :showAddButton="false"
-      @refresh-click="handleRefresh" 
-    />
+    <TableHeader v-model="searchText" :searchPlaceholder="$t('payment.searchPlaceholder')" :data="payments"
+      groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('payment.filterByStatus')"
+      translationKey="paymentStatus" :columns="paymentColumns" v-model:visibleColumns="visibleColumns"
+      :showAddButton="false" @refresh-click="handleRefresh" />
 
     <div class="card border-0">
       <div class="card-body p-0">
         <!-- Bulk Actions Bar -->
-        <BulkActionsBar 
-          :selectedCount="selectedRows.length" 
-          entityName="payment" 
-          :actions="bulkActions"
-          :loading="bulkActionLoading" 
-          @action="handleBulkAction" 
-        />
+        <BulkActionsBar :selectedCount="selectedRows.length" entityName="payment" :actions="bulkActions"
+          :loading="bulkActionLoading" @action="handleBulkAction" />
 
         <!-- Loading State -->
         <div v-if="paymentsStore.loading" class="text-center py-5">
@@ -41,65 +27,32 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable 
-            :columns="filteredColumns" 
-            :data="paginatedData" 
-            :actionsLabel="$t('payment.actions')"
-            v-model="selectedRows" 
-            :disableRowWhen="isPaymentCompleted"
-          >
+          <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('payment.actions')"
+            v-model="selectedRows" :disableRowWhen="isPaymentCompleted">
             <template #actions="{ row }">
-              <ActionsDropdown 
-                :row="row" 
-                :editLabel="$t('payment.edit')"
-                :detailsLabel="$t('payment.details')"
-                :showDelete="false"
-                @edit="openEditModal"
-                @details="openDetailsModal" 
-              />
+              <ActionsDropdown :row="row" :editLabel="$t('payment.edit')" :detailsLabel="$t('payment.details')"
+                :showDelete="false" @edit="openEditModal" @details="openDetailsModal" />
             </template>
           </DataTable>
 
           <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination 
-              :totalItems="currentFilteredData.length" 
-              :itemsPerPage="itemsPerPage" 
-              :currentPage="currentPage"
-              @update:currentPage="(page) => (currentPage = page)" 
-            />
+            <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Edit Modal - للتعديل فقط على Amount, Status, Notes -->
-    <FormModal 
-      :isOpen="isModalOpen" 
-      :title="$t('payment.edit')"
-      :fields="paymentFields" 
-      :showImageUpload="false" 
-      @close="closeModal" 
-      @submit="handleSubmitPayment" 
-    />
+    <FormModal :isOpen="isModalOpen" :title="$t('payment.edit')" :fields="paymentFields" :showImageUpload="false"
+      @close="closeModal" @submit="handleSubmitPayment" />
 
     <!-- Details Modal -->
-    <DetailsModal 
-      :isOpen="isDetailsModalOpen" 
-      :title="$t('payment.details')" 
-      :data="selectedPayment"
-      :fields="detailsFields" 
-      @close="closeDetailsModal" 
-    />
+    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('payment.details')" :data="selectedPayment"
+      :fields="detailsFields" @close="closeDetailsModal" />
 
     <!-- Payment Method Modal -->
-    <PaymentMethodModal 
-      :isOpen="isPaymentMethodModalOpen" 
-      :selectedCount="selectedRows.length" 
-      :drivers="drivers"
-      :loading="paymentMethodLoading" 
-      @close="closePaymentMethodModal" 
-      @submit="handlePaymentMethodSubmit" 
-    />
+    <PaymentMethodModal :isOpen="isPaymentMethodModalOpen" :selectedCount="selectedRows.length" :drivers="drivers"
+      :loading="paymentMethodLoading" @close="closePaymentMethodModal" @submit="handlePaymentMethodSubmit" />
   </div>
 </template>
 
@@ -192,7 +145,6 @@ const paymentColumns = computed(() => [
 
 const visibleColumns = ref(paymentColumns.value.map(col => col.key));
 
-// ✅ فقط 3 حقول للتعديل: Amount, Status, Notes
 const paymentFields = computed(() => [
   {
     name: "amount",
@@ -279,7 +231,7 @@ const handleRefresh = async () => {
   try {
     await paymentsStore.fetchPayments();
   } catch (error) {
-    console.error("❌ Failed to refresh payments:", error);
+    console.error(" Failed to refresh payments:", error);
   }
 };
 
@@ -303,8 +255,6 @@ const closeDetailsModal = () => {
   selectedPayment.value = {};
 };
 
-// ✅ التعديل فقط على Amount, Status, Notes
-// ✅ التعديل الصحيح - استخدام "note" بدل "notes"
 const handleSubmitPayment = async (paymentData) => {
   try {
     const data = {
@@ -312,12 +262,10 @@ const handleSubmitPayment = async (paymentData) => {
       status: paymentData.status,
     };
 
-    // ✅ استخدام "note" (مفرد) مش "notes"
     if (paymentData.notes && paymentData.notes.trim() !== '') {
-      data.note = paymentData.notes;
+      data.notes = paymentData.notes;
     }
 
-    // ✅ إضافة amount إذا موجود
     if (paymentData.amount) {
       data.amount = parseFloat(paymentData.amount);
     }
@@ -325,12 +273,11 @@ const handleSubmitPayment = async (paymentData) => {
     console.log("📤 Sending update request:", data);
 
     const response = await apiServices.markPaymentsAsPaid(data);
-    
+
     console.log("✅ Response:", response.data);
-    
-    // ✅ Refresh البيانات
+
     await paymentsStore.fetchPayments();
-    
+
     console.log("✅ Payment updated successfully!");
     closeModal();
   } catch (error) {

@@ -10,89 +10,81 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
     const trashedLoading = ref(false);
     const error = ref(null);
 
-   const normalizePayment = (payment) => {
-    console.log("🔍 Raw payment:", JSON.stringify(payment, null, 2));
-    
-    const clientCompany = payment["Clinet company"];
-    const deliveryCompany = payment["Delivery company"];
-    const driverReceived = payment["Driver received"];
-    const driverPaid = payment["Driver paid"];
-    const order = payment.Order || payment.order;
-    
-    const normalized = {
-        id: payment.id,
-        amount: payment.amount,
-        status: payment.status,
-        // ✅ دعم كل من "note" و "notes"
-        notes: payment.note || payment.notes || "N/A",
-        currency: payment["currency "] ? payment["currency "].trim() : (payment.currency || "N/A"),
+    const normalizePayment = (payment) => {
+        console.log("🔍 Raw payment:", JSON.stringify(payment, null, 2));
 
-        order_id: order ? order.id : null,
-        order_code: order ? order.order_code : "N/A",
+        const clientCompany = payment["Clinet company"];
+        const deliveryCompany = payment["Delivery company"];
+        const driverReceived = payment["Driver received"];
+        const driverPaid = payment["Driver paid"];
+        const order = payment.Order || payment.order;
 
-        client_company_id: clientCompany ? clientCompany.id : null,
-        client_company_name: clientCompany ? clientCompany.name : "N/A",
+        const normalized = {
+            id: payment.id,
+            amount: payment.amount,
+            status: payment.status,
+            notes: payment.note || payment.notes || "N/A",
+            currency: payment["currency "] ? payment["currency "].trim() : (payment.currency || "N/A"),
 
-        delivery_company_id: deliveryCompany ? deliveryCompany.id : null,
-        delivery_company_name: deliveryCompany ? deliveryCompany.name : "N/A",
+            order_id: order ? order.id : null,
+            order_code: order ? order.order_code : "N/A",
 
-        driver_received_id: driverReceived ? driverReceived.id : null,
-        driver_received_name: driverReceived ? driverReceived.name : "N/A",
+            client_company_id: clientCompany ? clientCompany.id : null,
+            client_company_name: clientCompany ? clientCompany.name : "N/A",
 
-        driver_paid_id: driverPaid ? driverPaid.id : null,
-        driver_paid_name: driverPaid ? driverPaid.name : "N/A",
-        
-        created_at: payment.created_at,
-        updated_at: payment.updated_at,
-    };
-    
-    console.log("✅ Final normalized:", JSON.stringify(normalized, null, 2));
-    return normalized;
-};
+            delivery_company_id: deliveryCompany ? deliveryCompany.id : null,
+            delivery_company_name: deliveryCompany ? deliveryCompany.name : "N/A",
 
-// ✅ تبسيط دالة updatePayment
-const updatePayment = async (paymentId, paymentData) => {
-    loading.value = true;
-    error.value = null;
-    try {
-        console.log("🔄 Updating payment:", paymentId, paymentData);
-        
-        // ✅ تجهيز البيانات للـ API
-        const data = {
-            payment_ids: [paymentId],
-            status: paymentData.status,
+            driver_received_id: driverReceived ? driverReceived.id : null,
+            driver_received_name: driverReceived ? driverReceived.name : "N/A",
+
+            driver_paid_id: driverPaid ? driverPaid.id : null,
+            driver_paid_name: driverPaid ? driverPaid.name : "N/A",
+
+            created_at: payment.created_at,
+            updated_at: payment.updated_at,
         };
 
-        // ✅ استخدام "note" مش "notes"
-        if (paymentData.notes && paymentData.notes.trim() !== '') {
-            data.note = paymentData.notes;
-        }
+        console.log("✅ Final normalized:", JSON.stringify(normalized, null, 2));
+        return normalized;
+    };
 
-        // ✅ إضافة amount
-        if (paymentData.amount) {
-            data.amount = parseFloat(paymentData.amount);
+    const updatePayment = async (paymentId, paymentData) => {
+        loading.value = true;
+        error.value = null;
+        try {
+            console.log("🔄 Updating payment:", paymentId, paymentData);
+
+            const data = {
+                payment_ids: [paymentId],
+                status: paymentData.status,
+            };
+
+            if (paymentData.notes && paymentData.notes.trim() !== '') {
+                data.note = paymentData.notes;
+            }
+
+            if (paymentData.amount) {
+                data.amount = parseFloat(paymentData.amount);
+            }
+
+            console.log("📤 Sending to API:", data);
+
+            const response = await apiServices.markPaymentsAsPaid(data);
+
+            console.log("📥 Update response:", response.data);
+
+            await fetchPayments();
+
+            return response.data;
+        } catch (err) {
+            error.value = err.message || "Failed to update payment";
+            console.error("❌ Error updating payment:", err);
+            throw err;
+        } finally {
+            loading.value = false;
         }
-        
-        console.log("📤 Sending to API:", data);
-        
-        const response = await apiServices.markPaymentsAsPaid(data);
-        
-        console.log("📥 Update response:", response.data);
-        
-        // ✅ Refresh البيانات بعد التعديل
-        await fetchPayments();
-        
-        return response.data;
-    } catch (err) {
-        error.value = err.message || "Failed to update payment";
-        console.error("❌ Error updating payment:", err);
-        throw err;
-    } finally {
-        loading.value = false;
-    }
-};
-    
-   
+    };
 
     // Getters
     const completedPayments = computed(() =>
@@ -136,11 +128,6 @@ const updatePayment = async (paymentId, paymentData) => {
             trashedLoading.value = false;
         }
     };
-
-  
-            
-          
- 
 
     const deletePayment = async (paymentId) => {
         loading.value = true;
