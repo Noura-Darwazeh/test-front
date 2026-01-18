@@ -23,6 +23,7 @@ import resetPassword from "../modules/resetPassword/view/resetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
 import workPlans from "../modules/workPlans/view/workPlans.vue";
 import Profile from "../modules/profile/view/profile.vue";
+import payment from "../modules/payment/view/payment.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -264,6 +265,17 @@ const router = createRouter({
         return "/user";
       },
     },
+{
+  path: "/payment",
+  name: "Payment",
+  component: payment,
+  meta: {
+    titleKey: "payment.title",
+    requireAuth: true,
+    showInSidebar: true,
+    icon: "/src/assets/sidebar/priceIcon.svg", 
+  },
+}
   ],
 });
 

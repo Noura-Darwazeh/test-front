@@ -1,6 +1,7 @@
 // src/services/apiServices.js
 import api from "./api.js";
 
+// ===== Helper Functions =====
 const containsFile = (value) => {
   if (!value) return false;
   if (typeof File !== "undefined" && value instanceof File) return true;
@@ -89,29 +90,16 @@ class ApiServices {
       data = toFormData(data);
     }
 
-    const headers = {};
-    if (!hasFile) {
-      headers['Content-Type'] = 'application/json';
-      headers['X-HTTP-Method-Override'] = 'PATCH';
-    }
-
-    if (hasFile) {
+    if (hasFile || isFormData) {
       return api.post(`/${entityPlural}/${id}`, data, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
-          ...(data instanceof FormData
-            ? { "Content-Type": "multipart/form-data" }
-            : {}),
+          "Content-Type": "multipart/form-data"
         },
       });
     }
 
-    return api.patch(`/${entityPlural}/${id}`, data, {
-      headers:
-        data instanceof FormData
-          ? { "Content-Type": "multipart/form-data" }
-          : {},
-    });
+    return api.patch(`/${entityPlural}/${id}`, data);
   }
 
   async deleteEntity(entityPlural, id, force = false) {
@@ -342,15 +330,13 @@ class ApiServices {
   }
 
   async createCompany(companyData) {
-    // If there are branches, send them as form data to match API format
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
-      formData.append("name", companyData.name);
-      formData.append("type", companyData.type);
-
-      // Add branches as indexed array: branches[0][name], branches[1][name], etc.
+      formData.append('name', companyData.name);
+      formData.append('type', companyData.type);
+      
       companyData.branches.forEach((branch, index) => {
-        if (branch.name && branch.name.trim() !== "") {
+        if (branch.name && branch.name.trim() !== '') {
           formData.append(`branches[${index}][name]`, branch.name);
           if (branch.latitude !== undefined && branch.latitude !== "") {
             formData.append(`branches[${index}][latitude]`, branch.latitude);
@@ -360,26 +346,23 @@ class ApiServices {
           }
         }
       });
-
-      return api.post("/companies", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      
+      return api.post('/companies', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
     }
-
-    // If no branches, send as regular JSON
+    
     return this.createEntity("companies", companyData);
   }
 
   async updateCompany(companyId, companyData) {
-    // If there are branches, send them as form data
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
-      formData.append("name", companyData.name);
-      formData.append("type", companyData.type);
-
-      // Add branches as indexed array
+      formData.append('name', companyData.name);
+      formData.append('type', companyData.type);
+      
       companyData.branches.forEach((branch, index) => {
-        if (branch.name && branch.name.trim() !== "") {
+        if (branch.name && branch.name.trim() !== '') {
           formData.append(`branches[${index}][name]`, branch.name);
           if (branch.latitude !== undefined && branch.latitude !== "") {
             formData.append(`branches[${index}][latitude]`, branch.latitude);
@@ -389,16 +372,15 @@ class ApiServices {
           }
         }
       });
-
+      
       return api.post(`/companies/${companyId}`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
-          "X-HTTP-Method-Override": "PATCH",
-        },
+          'Content-Type': 'multipart/form-data',
+          'X-HTTP-Method-Override': 'PATCH'
+        }
       });
     }
-
-    // If no branches, use default method
+    
     return this.updateEntity("companies", companyId, companyData);
   }
 
@@ -698,7 +680,7 @@ class ApiServices {
   }
 
   async updateLineWork(lineWorkId, lineWorkData) {
-    return this.updateEntity("line_works", lineWorkId, lineWorkData, true);
+    return this.updateEntity("line_works", lineWorkId, lineWorkData);
   }
 
   async deleteLineWork(lineWorkId, force = false) {
@@ -746,12 +728,10 @@ class ApiServices {
     return api.post("/work_plans", cleanData);
   }
 
-  // ✅ تعديل updateWorkPlan لاستخدام PATCH بشكل صحيح
   async updateWorkPlan(workPlanId, workPlanData) {
     console.log("🔄 API updateWorkPlan called for ID:", workPlanId);
     console.log("📤 API payload:", workPlanData);
     
-    // Remove empty/null values
     const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         acc[key] = value;
@@ -761,18 +741,44 @@ class ApiServices {
 
     console.log("🧹 Cleaned data:", cleanData);
 
-    // ✅ استخدام PATCH بدلاً من POST
     return api.patch(`/work_plans/${workPlanId}`, cleanData, {
       headers: {
         'Content-Type': 'application/json'
       }
     });
   }
+// ===== Payment Services =====
+async getPayments() {
+  return this.getEntities("payments");
+}
 
-  // ===== Switch User Service (SuperAdmin only) =====
-  async switchToUser(userId) {
-    return api.post(`/login_as/${userId}`);
-  }
+async getTrashedPayments() {
+  return this.getTrashedEntities("payments");
+}
+
+async createPayment(paymentData) {
+  return this.createEntity("payments", paymentData);
+}
+
+async updatePayment(paymentId, paymentData) {
+  return this.updateEntity("payments", paymentId, paymentData);
+}
+
+async deletePayment(paymentId, force = false) {
+  return this.deleteEntity("payments", paymentId, force);
+}
+
+async restorePayment(paymentId) {
+  return this.restoreEntity("payments", paymentId);
+}
+
+async bulkDeletePayments(paymentIds, force = false) {
+  return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
+}
+
+async bulkRestorePayments(paymentIds) {
+  return this.bulkRestoreEntities("payment", "payments", paymentIds);
+}
   async deleteWorkPlan(workPlanId, force = false) {
     return this.deleteEntity("work_plans", workPlanId, force);
   }
@@ -792,6 +798,11 @@ class ApiServices {
 
   async bulkRestoreWorkPlans(workPlanIds) {
     return this.bulkRestoreEntities("work_plan", "work_plans", workPlanIds);
+  }
+
+  // ===== Switch User Service (SuperAdmin only) =====
+  async switchToUser(userId) {
+    return api.post(`/login_as/${userId}`);
   }
 
   // ===== Map Services =====

@@ -1824,6 +1824,52 @@ export default {
     noImageSelected: "Please select an image first.",
   },
 
+  payment: {
+    title: "Payments",
+    addNew: "Add Payment",
+    edit: "Edit Payment",
+    delete: "Delete",
+    details: "Details",
+    actions: "Actions",
+    searchPlaceholder: "Search payments...",
+    filterByStatus: "Filter by Status",
+    activePayments: "Active Payments",
+    bulkDelete: "Delete Selected",
+    bulkRestore: "Restore Selected",
+    confirmDeleteTitle: "Confirm Delete",
+    confirmDelete: "Are you sure you want to delete this payment?",
+    id: "ID",
+    amount: "Amount",
+    currency: "Currency",
+    orderCode: "Order Code",
+    status: "Status",
+    entitySingular: "payment",
+    entityPlural: "payments",
+    clientCompany: "Client Company",
+    deliveryCompany: "Delivery Company",
+    driverReceived: "Driver Received",
+    driverPaid: "Driver Paid",
+    notes: "Notes",
+    form: {
+      amount: "Amount",
+      amountPlaceholder: "Enter amount",
+      order: "Order",
+      orderPlaceholder: "Select order",
+      currency: "Currency",
+      currencyPlaceholder: "Select currency",
+      status: "Status"
+    },
+    trashed: {
+      title: "Trashed Payments",
+      restore: "Restore"
+    }
+  },
+  paymentStatus: {
+    pending: "Pending",
+    completed: "Completed",
+    failed: "Failed"
+  },
+
   roles: {
     SuperAdmin: "Super Admin",
     Admin: "Admin",
