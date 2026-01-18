@@ -18,9 +18,9 @@
           </button>
           <span v-else class="page-link border-0 bg-transparent">...</span>
         </li>
-        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+        <li class="page-item" :class="{ disabled: currentPage === totalPagesComputed }">
           <button class="page-link rounded-circle pagination-arrow ms-1" @click="goToPage(currentPage + 1)"
-            :disabled="currentPage === totalPages">
+            :disabled="currentPage === totalPagesComputed">
             &gt;
           </button>
         </li>
@@ -40,10 +40,15 @@ const props = defineProps({
   totalItems: Number,
   itemsPerPage: Number,
   currentPage: Number,
+  totalPages: Number, // Optional: if provided, use directly from server instead of calculating
 });
 const emit = defineEmits(["update:currentPage"]);
 
-const totalPages = computed(() => {
+const totalPagesComputed = computed(() => {
+  // Use server-provided totalPages if available, otherwise calculate
+  if (props.totalPages !== undefined && props.totalPages !== null) {
+    return props.totalPages;
+  }
   return Math.ceil(props.totalItems / props.itemsPerPage);
 });
 
@@ -60,7 +65,7 @@ const endItem = computed(() => {
 
 const pageNumbers = computed(() => {
   const pages = [];
-  const total = totalPages.value;
+  const total = totalPagesComputed.value;
 
   if (total <= 7) {
     for (let i = 1; i <= total; i++) {
@@ -77,7 +82,7 @@ const pageNumbers = computed(() => {
 });
 
 const goToPage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
+  if (page >= 1 && page <= totalPagesComputed.value) {
     emit("update:currentPage", page);
   }
 };

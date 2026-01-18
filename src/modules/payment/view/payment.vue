@@ -101,10 +101,13 @@ const statuses = ref([
 const fetchDrivers = async () => {
   try {
     const driversResponse = await apiServices.getDrivers();
+    // ✅ نستخدم الاسم للعرض والـ ID للإرسال
     drivers.value = driversResponse.data.data.map(driver => ({
-      value: String(driver.id),
-      label: driver.name || `Driver #${driver.id}`
+      value: String(driver.id), // ✅ الـ ID للإرسال للـ API
+      label: driver.name || driver.user?.name || `Driver #${driver.id}` // ✅ الاسم للعرض
     }));
+
+    console.log('✅ Drivers loaded:', drivers.value);
   } catch (error) {
     console.error("❌ Failed to load drivers:", error);
   }
@@ -187,18 +190,18 @@ const detailsFields = computed(() => [
   { key: 'driver_paid_name', label: t('payment.driverPaid'), colClass: 'col-md-6' },
   { key: 'notes', label: t('payment.notes'), colClass: 'col-md-12' },
   { key: 'status', label: t('payment.status'), translationKey: 'paymentStatus', colClass: 'col-md-6' },
-  { 
-    key: 'created_at', 
-    label: t('payment.createdAt'), 
+  {
+    key: 'created_at',
+    label: t('payment.createdAt'),
     colClass: 'col-md-6',
     translator: (value) => {
       if (!value || value === 'null' || value === null) return 'N/A';
       return new Date(value).toLocaleString();
     }
   },
-  { 
-    key: 'updated_at', 
-    label: t('payment.updatedAt'), 
+  {
+    key: 'updated_at',
+    label: t('payment.updatedAt'),
     colClass: 'col-md-6',
     translator: (value) => {
       if (!value || value === 'null' || value === null) return 'N/A';
@@ -325,6 +328,7 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
 
     if (paymentMethodData.paid_by_driver_id) {
       paymentData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
+      console.log('✅ Driver ID being sent:', paymentData.paid_by_driver_id);
     }
 
     console.log("📤 Sending payment data:", paymentData);
@@ -339,11 +343,13 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
     closePaymentMethodModal();
   } catch (error) {
     console.error("❌ Failed to mark payments as paid:", error);
+    console.error("❌ Error response:", error.response?.data);
     alert(error.message || "Failed to process payment. Please try again.");
   } finally {
     paymentMethodLoading.value = false;
   }
 };
+
 </script>
 
 <style scoped>

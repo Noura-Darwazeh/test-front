@@ -108,9 +108,10 @@
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
                         <Pagination
-                            :totalItems="currentFilteredData.length"
+                            :totalItems="currentPagination.total"
                             :itemsPerPage="itemsPerPage"
                             :currentPage="currentPage"
+                            :totalPages="currentPagination.lastPage"
                             @update:currentPage="(page) => currentPage = page"
                         />
                     </div>
@@ -161,7 +162,7 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -176,7 +177,8 @@ const { companyId, companyOption } = useAuthDefaults();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -215,13 +217,37 @@ const fetchBranches = async () => {
 onMounted(async () => {
     try {
         await Promise.all([
-            driverStore.fetchDrivers(),
+            driverStore.fetchDrivers({ page: 1, perPage: itemsPerPage.value }),
             fetchBranches(),
         ]);
-        console.log("ƒo. Drivers loaded successfully");
+        console.log("✅ Drivers loaded successfully");
     } catch (error) {
-        console.error("ƒ?O Failed to load drivers:", error);
+        console.error("❌ Failed to load drivers:", error);
     }
+});
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        if (activeTab.value === "trashed") {
+            await driverStore.fetchTrashedDrivers({ page: newPage, perPage: itemsPerPage.value });
+        } else {
+            await driverStore.fetchDrivers({ page: newPage, perPage: itemsPerPage.value });
+        }
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+    return activeTab.value === "active"
+        ? driverStore.driversPagination
+        : driverStore.trashedPagination;
 });
 
 // Driver Form Fields - FIXED STATUS OPTIONS
@@ -355,17 +381,6 @@ const driverFields = computed(() => [
             }
             return null;
         }
-    },
-    {
-        name: 'set_location',
-        label: t('driver.form.location'),
-        type: 'button',
-        required: false,
-        text: t('driver.form.setLocation'),
-        colClass: 'col-md-6',
-        onClick: () => {
-            console.log('Setting driver location on map...');
-        }
     }
 ]);
 
@@ -436,12 +451,9 @@ const currentFilteredData = computed(() => {
     return result;
 });
 
+// Server already returns paginated data, apply local filters for search/grouping
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
 });
 
 watch([searchText, selectedGroups], () => {
@@ -482,17 +494,18 @@ const closeDetailsModal = () => {
 // Tab switching function
 const switchTab = async (tab) => {
     activeTab.value = tab;
+    skipNextPageWatch.value = true;
     currentPage.value = 1;
     selectedRows.value = [];
     if (tab === 'trashed') {
         try {
-            await driverStore.fetchTrashedDrivers();
+            await driverStore.fetchTrashedDrivers({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("âŒ Failed to fetch trashed drivers:", error);
         }
     } else {
         try {
-            await driverStore.fetchDrivers();
+            await driverStore.fetchDrivers({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("âŒ Failed to fetch drivers:", error);
         }
@@ -503,9 +516,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await driverStore.fetchTrashedDrivers();
+            await driverStore.fetchTrashedDrivers({ page: currentPage.value, perPage: itemsPerPage.value });
         } else {
-            await driverStore.fetchDrivers();
+            await driverStore.fetchDrivers({ page: currentPage.value, perPage: itemsPerPage.value });
         }
     } catch (error) {
         console.error("âŒ Failed to refresh drivers:", error);

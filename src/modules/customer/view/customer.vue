@@ -108,9 +108,10 @@
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
                         <Pagination
-                            :totalItems="currentFilteredData.length"
+                            :totalItems="currentPagination.total"
                             :itemsPerPage="itemsPerPage"
                             :currentPage="currentPage"
+                            :totalPages="currentPagination.lastPage"
                             @update:currentPage="(page) => currentPage = page"
                         />
                     </div>
@@ -159,7 +160,7 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import CustomerHeader from "../components/customerHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -173,7 +174,8 @@ const { companyId, companyOption } = useAuthDefaults();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -194,14 +196,38 @@ const trashedCustomers = computed(() => customerStore.trashedCustomers);
 // Fetch data on component mount
 onMounted(async () => {
     try {
-        await customerStore.fetchCustomers();
+        await customerStore.fetchCustomers({ page: 1, perPage: itemsPerPage.value });
         console.log("✅ Customers loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load customers:", error);
     }
 });
 
-// Customer Form Fields 
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        if (activeTab.value === "trashed") {
+            await customerStore.fetchTrashedCustomers({ page: newPage, perPage: itemsPerPage.value });
+        } else {
+            await customerStore.fetchCustomers({ page: newPage, perPage: itemsPerPage.value });
+        }
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+    return activeTab.value === "active"
+        ? customerStore.customersPagination
+        : customerStore.trashedPagination;
+});
+
+// Customer Form Fields
 const customerFields = computed(() => [
     {
         name: 'name',
@@ -256,15 +282,47 @@ const customerFields = computed(() => [
     },
 
     {
-        name: 'set_location',
-        label: t('customer.form.location'),
-        type: 'button',
+        name: 'latitude',
+        label: t('customer.form.latitude'),
+        type: 'text',
         required: false,
-        text: t('customer.form.setLocation'),
+        placeholder: t('customer.form.latitudePlaceholder'),
         colClass: 'col-md-6',
-        onClick: () => {
-            console.log('Setting customer location on map...');
+        defaultValue: isEditMode.value ? selectedCustomer.value.latitude : '',
+        validate: (value) => {
+            if (!value) return null; // Optional field
+            const lat = parseFloat(value);
+            if (isNaN(lat) || lat < -90 || lat > 90) {
+                return t('customer.validation.latitudeInvalid');
+            }
+            return null;
         }
+    },
+    {
+        name: 'longitude',
+        label: t('customer.form.longitude'),
+        type: 'text',
+        required: false,
+        placeholder: t('customer.form.longitudePlaceholder'),
+        colClass: 'col-md-6',
+        defaultValue: isEditMode.value ? selectedCustomer.value.longitude : '',
+        validate: (value) => {
+            if (!value) return null; // Optional field
+            const lng = parseFloat(value);
+            if (isNaN(lng) || lng < -180 || lng > 180) {
+                return t('customer.validation.longitudeInvalid');
+            }
+            return null;
+        }
+    },
+    {
+        name: 'locationPicker',
+        label: t('customer.form.locationPicker'),
+        type: 'locationPicker',
+        text: t('common.locateOnMap'),
+        latKey: 'latitude',
+        lngKey: 'longitude',
+        colClass: 'col-12'
     }
 ]);
 
@@ -274,6 +332,8 @@ const detailsFields = computed(() => [
     { key: 'name', label: t('customer.name'), colClass: 'col-md-6' },
     { key: 'phone_number', label: t('customer.phoneNumber'), colClass: 'col-md-6' },
     { key: 'company_name', label: t('customer.companyName'), colClass: 'col-md-6' },
+    { key: 'latitude', label: t('customer.form.latitude'), colClass: 'col-md-6' },
+    { key: 'longitude', label: t('customer.form.longitude'), colClass: 'col-md-6' },
 ]);
 
 const customerColumns = ref([
@@ -318,12 +378,9 @@ const currentFilteredData = computed(() => {
     return result;
 });
 
+// Server already returns paginated data, apply local filters for search/grouping
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
 });
 
 watch([searchText, selectedGroups], () => {
@@ -364,17 +421,18 @@ const closeDetailsModal = () => {
 // Tab switching function
 const switchTab = async (tab) => {
     activeTab.value = tab;
+    skipNextPageWatch.value = true;
     currentPage.value = 1;
     selectedRows.value = [];
     if (tab === 'trashed') {
         try {
-            await customerStore.fetchTrashedCustomers();
+            await customerStore.fetchTrashedCustomers({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("❌ Failed to fetch trashed customers:", error);
         }
     } else {
         try {
-            await customerStore.fetchCustomers();
+            await customerStore.fetchCustomers({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("❌ Failed to fetch customers:", error);
         }
@@ -385,9 +443,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await customerStore.fetchTrashedCustomers();
+            await customerStore.fetchTrashedCustomers({ page: currentPage.value, perPage: itemsPerPage.value });
         } else {
-            await customerStore.fetchCustomers();
+            await customerStore.fetchCustomers({ page: currentPage.value, perPage: itemsPerPage.value });
         }
     } catch (error) {
         console.error("❌ Failed to refresh customers:", error);

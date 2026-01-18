@@ -129,99 +129,9 @@
             :data="paginatedData"
             :actionsLabel="$t('orders.actionsLabel')"
             v-model="selectedRows"
-            :isExpandable="isOrderExpandable"
           >
-            <!-- Expand slot for exchange orders (grouped delivery + return) -->
-            <template #expand="{ row }">
-              <div class="exchange-details">
-                <div class="exchange-header mb-3">
-                  <i class="fas fa-exchange-alt me-2 text-warning"></i>
-                  <span class="fw-bold">{{ $t('orders.exchange.title') }}</span>
-                </div>
-                <div class="row">
-                  <!-- Delivery Part -->
-                  <div class="col-md-6">
-                    <div class="exchange-part delivery-part">
-                      <div class="part-header">
-                        <i class="fas fa-truck me-2"></i>
-                        {{ $t('orders.exchange.deliveryPart') }}
-                        <span class="badge bg-primary ms-2">#{{ row._deliveryOrder?.id }}</span>
-                      </div>
-                      <div class="part-body">
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.table.id') }}:</span>
-                          <span class="part-value">{{ row._deliveryOrder?.order_code || row._deliveryOrder?.id }}</span>
-                        </div>
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.form.case') }}:</span>
-                          <span class="part-value">{{ row._deliveryOrder?.case }}</span>
-                        </div>
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.form.price') }}:</span>
-                          <span class="part-value">{{ formatPrice(row._deliveryOrder?.price, row._deliveryOrder?.currency_symbol) }}</span>
-                        </div>
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.table.status') }}:</span>
-                          <span class="part-value">{{ row._deliveryOrder?.status }}</span>
-                        </div>
-                        <div v-if="row._deliveryOrder?.order_items && row._deliveryOrder.order_items.length > 0" class="part-items mt-2">
-                          <span class="part-label">{{ $t('orders.wizard.deliveryItems') }}:</span>
-                          <ul class="items-list mb-0">
-                            <li v-for="item in row._deliveryOrder.order_items" :key="item.id || item.name">
-                              {{ item.name }} <span class="text-muted">(x{{ item.quantity }})</span>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <!-- Return Part -->
-                  <div class="col-md-6">
-                    <div class="exchange-part return-part">
-                      <div class="part-header">
-                        <i class="fas fa-undo me-2"></i>
-                        {{ $t('orders.exchange.returnPart') }}
-                        <span class="badge bg-warning ms-2">#{{ row._returnOrder?.id }}</span>
-                      </div>
-                      <div class="part-body">
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.table.id') }}:</span>
-                          <span class="part-value">{{ row._returnOrder?.order_code || row._returnOrder?.id }}</span>
-                        </div>
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.form.case') }}:</span>
-                          <span class="part-value">{{ row._returnOrder?.case }}</span>
-                        </div>
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.form.returnPrice') }}:</span>
-                          <span class="part-value">{{ formatPrice(row._returnOrder?.price, row._returnOrder?.currency_symbol) }}</span>
-                        </div>
-                        <div class="part-item">
-                          <span class="part-label">{{ $t('orders.table.status') }}:</span>
-                          <span class="part-value">{{ row._returnOrder?.status }}</span>
-                        </div>
-                        <div v-if="row._returnOrder?.order_items && row._returnOrder.order_items.length > 0" class="part-items mt-2">
-                          <span class="part-label">{{ $t('orders.wizard.returnItems') }}:</span>
-                          <ul class="items-list mb-0">
-                            <li v-for="item in row._returnOrder.order_items" :key="item.id || item.name">
-                              {{ item.name }} <span class="text-muted">(x{{ item.quantity }})</span>
-                            </li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Parent Order Reference -->
-                <div v-if="row.parent_order_id" class="parent-order-ref mt-3 pt-3 border-top">
-                  <i class="fas fa-link me-2 text-muted"></i>
-                  <span class="text-muted">{{ $t('orders.exchange.parentOrder') }}:</span>
-                  <span class="fw-bold ms-1">#{{ row.parent_order_code || row.parent_order_id }}</span>
-                </div>
-              </div>
-            </template>
-
             <template #actions="{ row }">
+              <!-- Regular actions for all orders -->
               <ActionsDropdown
                 v-if="activeTab === 'active'"
                 :row="row"
@@ -249,9 +159,10 @@
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
             <Pagination
-              :totalItems="currentFilteredData.length"
+              :totalItems="currentPagination.total"
               :itemsPerPage="itemsPerPage"
               :currentPage="currentPage"
+              :totalPages="currentPagination.lastPage"
               @update:currentPage="(page) => (currentPage = page)"
             />
           </div>
@@ -289,11 +200,42 @@
       :isOpen="isDetailsModalOpen"
       :title="$t('orders.details.title')"
       :data="selectedOrder"
-      :fields="detailsFields"
+      :fields="detailsModalTab === 'details' ? detailsFields : []"
       @close="closeDetailsModal"
     >
+      <template #before-details>
+        <!-- Tabs for Details and Exchanged -->
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{ active: detailsModalTab === 'details' }"
+              @click="detailsModalTab = 'details'"
+            >
+              <i class="fas fa-info-circle me-2"></i>{{ $t('orders.details.detailsTab') }}
+            </button>
+          </li>
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{
+                active: detailsModalTab === 'exchanged',
+                'text-success': selectedOrderExchange.hasExchange,
+                'text-muted': !selectedOrderExchange.hasExchange
+              }"
+              @click="detailsModalTab = 'exchanged'"
+            >
+              <i class="fas fa-exchange-alt me-2"></i>{{ $t('orders.details.exchangedTab') }}
+              <span v-if="selectedOrderExchange.hasExchange" class="badge bg-success ms-2">{{ $t('common.active') }}</span>
+              <span v-else class="badge bg-secondary ms-2">{{ $t('orders.details.notExchanged') }}</span>
+            </button>
+          </li>
+        </ul>
+      </template>
+
       <template #after-details>
-        <div v-if="selectedOrder.order_items && selectedOrder.order_items.length > 0" class="mt-4">
+        <!-- Order Items (only shown in details tab) -->
+        <div v-if="detailsModalTab === 'details' && selectedOrder.order_items && selectedOrder.order_items.length > 0" class="mt-4">
           <h6 class="fw-bold text-primary mb-3">{{ $t('orders.details.orderItems') }}</h6>
           <div v-for="item in selectedOrder.order_items" :key="item.id" class="card border-0 shadow-sm mb-3">
             <div class="card-body p-3">
@@ -306,6 +248,124 @@
                     • {{ subItem.name }} ({{ subItem.quantity }})
                   </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exchanged Tab Content -->
+        <div v-if="detailsModalTab === 'exchanged'" class="exchange-tab-content">
+          <!-- No Exchange -->
+          <div v-if="!selectedOrderExchange.hasExchange" class="text-center py-5">
+            <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+            <p class="text-muted">{{ $t('orders.details.noExchange') }}</p>
+          </div>
+
+          <!-- Exchange Orders -->
+          <div v-else class="exchange-orders">
+            <div class="row">
+              <!-- Delivery Order Card -->
+              <div class="col-md-6 mb-3">
+                <div class="exchange-part delivery-part h-100">
+                  <div class="part-header d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1">
+                      <i class="fas fa-truck me-2"></i>
+                      {{ $t('orders.exchange.deliveryPart') }}
+                      <span class="badge bg-primary ms-2">#{{ selectedOrderExchange.delivery?.id }}</span>
+                    </div>
+                    <div class="flex-shrink-0 ms-2">
+                      <ActionsDropdown
+                        v-if="selectedOrderExchange.delivery"
+                        :row="selectedOrderExchange.delivery"
+                        :editLabel="$t('orders.actions.edit')"
+                        :detailsLabel="$t('orders.actions.view')"
+                        :deleteLabel="$t('orders.actions.delete')"
+                        :confirmDelete="true"
+                        @edit="editOrder"
+                        @details="viewOrderDetails"
+                        @delete="handleDeleteOrder"
+                      />
+                    </div>
+                  </div>
+                  <div class="part-body">
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.table.id') }}:</span>
+                      <span class="part-value">{{ selectedOrderExchange.delivery?.order_code || selectedOrderExchange.delivery?.id }}</span>
+                    </div>
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.form.case') }}:</span>
+                      <span class="part-value">{{ selectedOrderExchange.delivery?.case }}</span>
+                    </div>
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.form.price') }}:</span>
+                      <span class="part-value">{{ formatPrice(selectedOrderExchange.delivery?.price, selectedOrderExchange.delivery?.currency_symbol) }}</span>
+                    </div>
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.table.status') }}:</span>
+                      <span class="part-value">{{ selectedOrderExchange.delivery?.status }}</span>
+                    </div>
+                    <div v-if="selectedOrderExchange.delivery?.order_items && selectedOrderExchange.delivery.order_items.length > 0" class="part-items mt-2">
+                      <span class="part-label">{{ $t('orders.wizard.deliveryItems') }}:</span>
+                      <ul class="items-list mb-0">
+                        <li v-for="item in selectedOrderExchange.delivery.order_items" :key="item.id || item.name">
+                          {{ item.name }} <span class="text-muted">(x{{ item.quantity }})</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Return Order Card -->
+              <div class="col-md-6 mb-3">
+                <div class="exchange-part return-part h-100">
+                  <div class="part-header d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1">
+                      <i class="fas fa-undo me-2"></i>
+                      {{ $t('orders.exchange.returnPart') }}
+                      <span class="badge bg-warning ms-2">#{{ selectedOrderExchange.return?.id }}</span>
+                    </div>
+                    <div class="flex-shrink-0 ms-2">
+                      <ActionsDropdown
+                        v-if="selectedOrderExchange.return"
+                        :row="selectedOrderExchange.return"
+                        :editLabel="$t('orders.actions.edit')"
+                        :detailsLabel="$t('orders.actions.view')"
+                        :deleteLabel="$t('orders.actions.delete')"
+                        :confirmDelete="true"
+                        @edit="editOrder"
+                        @details="viewOrderDetails"
+                        @delete="handleDeleteOrder"
+                      />
+                    </div>
+                  </div>
+                  <div class="part-body">
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.table.id') }}:</span>
+                      <span class="part-value">{{ selectedOrderExchange.return?.order_code || selectedOrderExchange.return?.id }}</span>
+                    </div>
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.form.case') }}:</span>
+                      <span class="part-value">{{ selectedOrderExchange.return?.case }}</span>
+                    </div>
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.form.returnPrice') }}:</span>
+                      <span class="part-value">{{ formatPrice(selectedOrderExchange.return?.price, selectedOrderExchange.return?.currency_symbol) }}</span>
+                    </div>
+                    <div class="part-item">
+                      <span class="part-label">{{ $t('orders.table.status') }}:</span>
+                      <span class="part-value">{{ selectedOrderExchange.return?.status }}</span>
+                    </div>
+                    <div v-if="selectedOrderExchange.return?.order_items && selectedOrderExchange.return.order_items.length > 0" class="part-items mt-2">
+                      <span class="part-label">{{ $t('orders.wizard.returnItems') }}:</span>
+                      <ul class="items-list mb-0">
+                        <li v-for="item in selectedOrderExchange.return.order_items" :key="item.id || item.name">
+                          {{ item.name }} <span class="text-muted">(x{{ item.quantity }})</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -337,7 +397,7 @@ import OrderWizard from "../components/OrderWizard.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useOrderFormFields } from "../components/orderFormFields.js";
 import { useOrdersStore } from "../store/ordersStore.js";
@@ -446,12 +506,15 @@ const resolveCompanyPriceLabel = (price) => {
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false); // Flag to prevent double-fetch on tab switch
 const isWizardOpen = ref(false);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedOrder = ref({});
+const selectedOrderExchange = ref({ delivery: null, return: null, hasExchange: false });
+const detailsModalTab = ref('details'); // 'details' or 'exchanged'
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -557,7 +620,7 @@ const branchOptions = computed(() =>
 // Fetch orders, statistics, and dropdown data on component mount
 onMounted(async () => {
   const tasks = [
-    { label: "orders", action: () => ordersStore.fetchOrders() },
+    { label: "orders", action: () => ordersStore.fetchOrders({ page: 1, perPage: itemsPerPage.value }) },
     { label: "order statistics", action: () => ordersStore.fetchStatistics() },
     { label: "order dropdown data", action: () => fetchDropdownData() },
   ];
@@ -568,6 +631,25 @@ onMounted(async () => {
       console.error(`Failed to load ${tasks[index].label}:`, result.reason);
     }
   });
+});
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+  // Skip if this change was triggered by tab switch (data already fetched)
+  if (skipNextPageWatch.value) {
+    skipNextPageWatch.value = false;
+    return;
+  }
+
+  try {
+    if (activeTab.value === "trashed") {
+      await ordersStore.fetchTrashedOrders({ page: newPage, perPage: itemsPerPage.value });
+    } else {
+      await ordersStore.fetchOrders({ page: newPage, perPage: itemsPerPage.value });
+    }
+  } catch (err) {
+    console.error("Failed to load page:", err);
+  }
 });
 
 // Fetch all dropdown data required for order creation
@@ -783,51 +865,37 @@ const currentData = computed(() => {
     : ordersStore.trashedOrders;
 });
 
-// Process orders to group exchange orders (delivery + return with same parent_order_id)
+// Get child orders for a parent order (orders that have this order as parent_order_id)
+const getChildOrders = (parentId) => {
+  const orders = currentData.value;
+  if (!orders || orders.length === 0) return { delivery: null, return: null };
+
+  const children = orders.filter(o => String(o.parent_order_id) === String(parentId));
+  return {
+    delivery: children.find(o => o.type === 'delivery') || null,
+    return: children.find(o => o.type === 'return') || null,
+    hasExchange: children.some(o => o.type === 'delivery') && children.some(o => o.type === 'return')
+  };
+};
+
+// Process orders - show all orders, mark parent orders that have child orders as exchange type
 const processedOrders = computed(() => {
   const orders = currentData.value;
   if (!orders || orders.length === 0) return [];
 
-  // Group orders by parent_order_id
-  const parentGroups = {};
-  const standaloneOrders = [];
-
-  orders.forEach(order => {
-    if (order.parent_order_id) {
-      const parentId = String(order.parent_order_id);
-      if (!parentGroups[parentId]) {
-        parentGroups[parentId] = [];
-      }
-      parentGroups[parentId].push(order);
-    } else {
-      standaloneOrders.push(order);
-    }
-  });
-
-  const result = [...standaloneOrders];
-
-  // Process parent groups to detect exchanges
-  Object.entries(parentGroups).forEach(([parentId, groupOrders]) => {
-    // Check if we have both delivery and return with the same parent
-    const deliveryOrder = groupOrders.find(o => o.type === 'delivery');
-    const returnOrder = groupOrders.find(o => o.type === 'return');
-
-    if (deliveryOrder && returnOrder) {
-      // This is an exchange - create a combined row
-      const exchangeRow = {
-        ...deliveryOrder,
-        _isExchange: true,
-        _displayType: 'exchange', // Virtual type for display
-        _deliveryOrder: deliveryOrder,
-        _returnOrder: returnOrder,
-        // Use delivery order's ID as the main ID
-        id: deliveryOrder.id,
+  // Add metadata for parent orders - set display type to 'exchange' if they have both delivery and return child orders
+  const result = orders.map(order => {
+    const children = getChildOrders(order.id);
+    if (children.hasExchange) {
+      return {
+        ...order,
+        _hasExchange: true,
+        _displayType: 'exchange', // Show as exchange type in the table
+        _deliveryOrder: children.delivery,
+        _returnOrder: children.return
       };
-      result.push(exchangeRow);
-    } else {
-      // Not an exchange - add orders normally
-      groupOrders.forEach(order => result.push(order));
     }
+    return order;
   });
 
   // Sort by created_at descending (newest first)
@@ -883,12 +951,17 @@ const currentFilteredData = computed(() => {
   return result;
 });
 
+// With server-side pagination, we use the data directly from the store (already paginated by server)
+// We still apply frontend filters (search, status, time period) to the current page data
 const paginatedData = computed(() => {
-  return paginateData(
-    currentFilteredData.value,
-    currentPage.value,
-    itemsPerPage.value
-  );
+  return currentFilteredData.value;
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+  return activeTab.value === "active"
+    ? ordersStore.ordersPagination
+    : ordersStore.trashedPagination;
 });
 
 const bulkActions = computed(() => {
@@ -943,11 +1016,6 @@ const filterByStatus = (status) => {
   }
 };
 
-// Check if an order row should be expandable (only grouped exchange orders)
-const isOrderExpandable = (row) => {
-  return row._isExchange === true;
-};
-
 const openModal = () => {
   isWizardOpen.value = true;
 };
@@ -958,18 +1026,22 @@ const closeModal = () => {
 
 const switchTab = async (tab) => {
   activeTab.value = tab;
-  currentPage.value = 1;
   selectedRows.value = [];
 
+  // Reset to page 1 and fetch data for that tab
   if (tab === "trashed") {
     try {
-      await ordersStore.fetchTrashedOrders();
+      await ordersStore.fetchTrashedOrders({ page: 1, perPage: itemsPerPage.value });
+      skipNextPageWatch.value = true; // Prevent watcher from double-fetching
+      currentPage.value = 1;
     } catch (err) {
       console.error("Failed to load trashed orders:", err);
     }
   } else {
     try {
-      await ordersStore.fetchOrders();
+      await ordersStore.fetchOrders({ page: 1, perPage: itemsPerPage.value });
+      skipNextPageWatch.value = true; // Prevent watcher from double-fetching
+      currentPage.value = 1;
     } catch (err) {
       console.error("Failed to load orders:", err);
     }
@@ -980,9 +1052,9 @@ const handleRefresh = async () => {
   selectedRows.value = [];
   try {
     if (activeTab.value === "trashed") {
-      await ordersStore.fetchTrashedOrders();
+      await ordersStore.fetchTrashedOrders({ page: currentPage.value, perPage: itemsPerPage.value });
     } else {
-      await ordersStore.fetchOrders();
+      await ordersStore.fetchOrders({ page: currentPage.value, perPage: itemsPerPage.value });
     }
   } catch (err) {
     console.error("Failed to refresh orders:", err);
@@ -996,7 +1068,7 @@ const handleAddOrder = async (orderData) => {
         orderData.parentOrderId,
         orderData.payload
       );
-      await ordersStore.fetchOrders();
+      await ordersStore.fetchOrders({ page: currentPage.value, perPage: itemsPerPage.value });
       await ordersStore.fetchStatistics();
       closeModal();
     } catch (err) {
@@ -1081,6 +1153,9 @@ const cancelBulkAction = () => {
 
 const viewOrderDetails = (order) => {
   selectedOrder.value = { ...order };
+  // Check if this order has been exchanged (has child orders pointing to it)
+  selectedOrderExchange.value = getChildOrders(order.id);
+  detailsModalTab.value = 'details'; // Reset to details tab
   isDetailsModalOpen.value = true;
 };
 
@@ -1099,6 +1174,8 @@ const closeFormModal = () => {
 const closeDetailsModal = () => {
   isDetailsModalOpen.value = false;
   selectedOrder.value = {};
+  selectedOrderExchange.value = { delivery: null, return: null, hasExchange: false };
+  detailsModalTab.value = 'details';
 };
 
 const handleEditOrder = async (orderData) => {
@@ -1211,7 +1288,7 @@ const detailsFields = computed(() => [
     key: "price",
     label: t("orders.table.price"),
     colClass: "col-md-6",
-    translator: (value) => formatPrice(selectedOrder.value.price, selectedOrder.value.currency_symbol)
+    translator: () => formatPrice(selectedOrder.value.price, selectedOrder.value.currency_symbol)
   },
   {
     key: "discount_percentage",
@@ -1355,6 +1432,45 @@ watch([searchText, selectedGroups, selectedTimePeriod], () => {
 
 .parent-order-ref {
   font-size: 0.875rem;
+}
+
+/* Exchange tab styles in details modal */
+.exchange-tab-content {
+  min-height: 200px;
+}
+
+.exchange-orders .exchange-part {
+  height: 100%;
+}
+
+/* Nav tabs styling in details modal */
+.nav-tabs .nav-link {
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: transparent;
+  color: #0d6efd;
+}
+
+.nav-tabs .nav-link.active {
+  border-bottom-color: #0d6efd;
+  color: #0d6efd;
+  background-color: transparent;
+}
+
+.nav-tabs .nav-link.text-success {
+  color: #198754 !important;
+}
+
+.nav-tabs .nav-link.text-success.active {
+  border-bottom-color: #198754;
 }
 </style>
 

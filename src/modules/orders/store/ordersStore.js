@@ -19,6 +19,22 @@ export const useOrdersStore = defineStore("orders", () => {
   const statisticsLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state for orders
+  const ordersPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
+  // Pagination state for trashed orders
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   // Getters
   const ordersByStatus = computed(() => {
     const grouped = {};
@@ -71,19 +87,30 @@ export const useOrdersStore = defineStore("orders", () => {
     order_code: order.order_code,
     status: order.status,
     order_items: order.order_items || [],
+    parent_order_id: order.parent_order_id || null,
   });
 
   // Actions
-  const fetchOrders = async () => {
+  const fetchOrders = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getOrders();
+      const response = await apiServices.getOrders({ page, perPage });
 
       // Transform API response to match frontend format
       orders.value = response.data.data.map(transformOrder);
 
-      console.log(`✅ Successfully loaded ${orders.value.length} orders`);
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        ordersPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
+      console.log(`✅ Successfully loaded ${orders.value.length} orders (page ${page} of ${ordersPagination.value.lastPage})`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch orders";
@@ -149,7 +176,7 @@ export const useOrdersStore = defineStore("orders", () => {
 
       const response = await apiServices.createOrder(apiData);
 
-      console.log("�o. API Response:", response.data);
+      console.log("�o. API Response:", response.data);
 
       const responseData =
         response?.data?.data ||
@@ -191,6 +218,7 @@ export const useOrdersStore = defineStore("orders", () => {
         order_code: responseData.order_code,
         status: responseData.status,
         order_items: responseData.order_items || [],
+        parent_order_id: responseData.parent_order_id || null,
       };
 
       orders.value.push(newOrder);
@@ -309,6 +337,7 @@ export const useOrdersStore = defineStore("orders", () => {
           order_code: response.data.data.order_code,
           status: response.data.data.status,
           order_items: response.data.data.order_items || orders.value[index].order_items,
+          parent_order_id: response.data.data.parent_order_id || orders.value[index].parent_order_id,
         };
         console.log("✅ Order updated successfully");
       }
@@ -353,16 +382,26 @@ export const useOrdersStore = defineStore("orders", () => {
     }
   };
 
-  const fetchTrashedOrders = async () => {
+  const fetchTrashedOrders = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedOrders();
+      const response = await apiServices.getTrashedOrders({ page, perPage });
 
       // Transform API response to match frontend format
       trashedOrders.value = response.data.data.map(transformOrder);
 
-      console.log(`✅ Successfully loaded ${trashedOrders.value.length} trashed orders`);
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
+      console.log(`✅ Successfully loaded ${trashedOrders.value.length} trashed orders (page ${page} of ${trashedPagination.value.lastPage})`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed orders";
@@ -486,6 +525,9 @@ export const useOrdersStore = defineStore("orders", () => {
     trashedLoading,
     statisticsLoading,
     error,
+    // Pagination state
+    ordersPagination,
+    trashedPagination,
     // Getters
     ordersByStatus,
     ordersByCustomer,

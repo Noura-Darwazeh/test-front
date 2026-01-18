@@ -1,4 +1,3 @@
-// src/services/apiServices.js
 import api from "./api.js";
 
 // ===== Helper Functions =====
@@ -54,16 +53,16 @@ class ApiServices {
   }
 
   // ===== Dynamic CRUD Methods =====
-  async getEntities(entityPlural) {
-    return api.get(`/${entityPlural}`);
+  async getEntities(entityPlural, { page = 1, perPage = 10 } = {}) {
+    return api.get(`/${entityPlural}?page=${page}&per_page=${perPage}`);
   }
 
   async getEntityById(entityPlural, id) {
     return api.get(`/${entityPlural}/${id}`);
   }
 
-  async getTrashedEntities(entityPlural) {
-    return api.get(`/trashed/${entityPlural}`);
+  async getTrashedEntities(entityPlural, { page = 1, perPage = 10 } = {}) {
+    return api.get(`/trashed/${entityPlural}?page=${page}&per_page=${perPage}`);
   }
 
   async createEntity(entityPlural, data) {
@@ -94,7 +93,7 @@ class ApiServices {
       return api.post(`/${entityPlural}/${id}`, data, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
-          "Content-Type": "multipart/form-data"
+          "Content-Type": "multipart/form-data",
         },
       });
     }
@@ -136,8 +135,8 @@ class ApiServices {
     return api.post("/reset_password", data, {
       params: {
         token: data.token,
-        email: data.email
-      }
+        email: data.email,
+      },
     });
   }
 
@@ -150,12 +149,12 @@ class ApiServices {
   }
 
   // ===== User Services =====
-  async getUsers() {
-    return this.getEntities("users");
+  async getUsers({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("users", { page, perPage });
   }
 
-  async getTrashedUsers() {
-    return this.getTrashedEntities("users");
+  async getTrashedUsers({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("users", { page, perPage });
   }
 
   async createUser(userData) {
@@ -183,12 +182,12 @@ class ApiServices {
   }
 
   // ===== Driver Services =====
-  async getDrivers() {
-    return this.getEntities("drivers");
+  async getDrivers({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("drivers", { page, perPage });
   }
 
-  async getTrashedDrivers() {
-    return this.getTrashedEntities("drivers");
+  async getTrashedDrivers({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("drivers", { page, perPage });
   }
 
   async createDriver(driverData) {
@@ -216,12 +215,12 @@ class ApiServices {
   }
 
   // ===== Currency Services =====
-  async getCurrencies() {
-    return this.getEntities("currencies");
+  async getCurrencies({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("currencies", { page, perPage });
   }
 
-  async getTrashedCurrencies() {
-    return this.getTrashedEntities("currencies");
+  async getTrashedCurrencies({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("currencies", { page, perPage });
   }
 
   async createCurrency(currencyData) {
@@ -245,7 +244,7 @@ class ApiServices {
       "currency",
       "currencies",
       currencyIds,
-      force
+      force,
     );
   }
 
@@ -254,12 +253,12 @@ class ApiServices {
   }
 
   // ===== Branches Services =====
-  async getBranches() {
-    return this.getEntities("branches");
+  async getBranches({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("branches", { page, perPage });
   }
 
-  async getTrashedBranches() {
-    return this.getTrashedEntities("branches");
+  async getTrashedBranches({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("branches", { page, perPage });
   }
 
   async createBranch(branchData) {
@@ -287,12 +286,12 @@ class ApiServices {
   }
 
   // ===== Customer Services =====
-  async getCustomers() {
-    return this.getEntities("customers");
+  async getCustomers({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("customers", { page, perPage });
   }
 
-  async getTrashedCustomers() {
-    return this.getTrashedEntities("customers");
+  async getTrashedCustomers({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("customers", { page, perPage });
   }
 
   async createCustomer(customerData) {
@@ -320,12 +319,12 @@ class ApiServices {
   }
 
   // ===== Company Services =====
-  async getCompanies() {
-    return this.getEntities("companies");
+  async getCompanies({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("companies", { page, perPage });
   }
 
-  async getTrashedCompanies() {
-    return this.getTrashedEntities("companies");
+  async getTrashedCompanies({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("companies", { page, perPage });
   }
 
   async createCompany(companyData) {
@@ -335,7 +334,7 @@ class ApiServices {
       formData.append('type', companyData.type);
 
       companyData.branches.forEach((branch, index) => {
-        if (branch.name && branch.name.trim() !== '') {
+        if (branch.name && branch.name.trim() !== "") {
           formData.append(`branches[${index}][name]`, branch.name);
           if (branch.latitude !== undefined && branch.latitude !== "") {
             formData.append(`branches[${index}][latitude]`, branch.latitude);
@@ -346,10 +345,11 @@ class ApiServices {
         }
       });
 
-      return api.post('/companies', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      return api.post("/companies", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
     }
+
 
     return this.createEntity("companies", companyData);
   }
@@ -361,7 +361,7 @@ class ApiServices {
       formData.append('type', companyData.type);
 
       companyData.branches.forEach((branch, index) => {
-        if (branch.name && branch.name.trim() !== '') {
+        if (branch.name && branch.name.trim() !== "") {
           formData.append(`branches[${index}][name]`, branch.name);
           if (branch.latitude !== undefined && branch.latitude !== "") {
             formData.append(`branches[${index}][latitude]`, branch.latitude);
@@ -374,9 +374,9 @@ class ApiServices {
 
       return api.post(`/companies/${companyId}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-HTTP-Method-Override': 'PATCH'
-        }
+          "Content-Type": "multipart/form-data",
+          "X-HTTP-Method-Override": "PATCH",
+        },
       });
     }
 
@@ -400,12 +400,12 @@ class ApiServices {
   }
 
   // ===== Line Price Services =====
-  async getLinePrices() {
-    return this.getEntities("line_prices");
+  async getLinePrices({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("line_prices", { page, perPage });
   }
 
-  async getTrashedLinePrices() {
-    return this.getTrashedEntities("line_prices");
+  async getTrashedLinePrices({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("line_prices", { page, perPage });
   }
 
   async createLinePrice(priceData) {
@@ -429,7 +429,7 @@ class ApiServices {
       "line_price",
       "line_prices",
       priceIds,
-      force
+      force,
     );
   }
 
@@ -438,12 +438,12 @@ class ApiServices {
   }
 
   // ===== Lines Services =====
-  async getLines() {
-    return this.getEntities("lines");
+  async getLines({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("lines", { page, perPage });
   }
 
-  async getTrashedLines() {
-    return this.getTrashedEntities("lines");
+  async getTrashedLines({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("lines", { page, perPage });
   }
 
   async createLine(lineData) {
@@ -471,12 +471,12 @@ class ApiServices {
   }
 
   // ===== Regions Services =====
-  async getRegions() {
-    return api.get("/regions");
+  async getRegions({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/regions?page=${page}&per_page=${perPage}`);
   }
 
-  async getTrashedRegions() {
-    return this.getTrashedEntities("regions");
+  async getTrashedRegions({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("regions", { page, perPage });
   }
 
   async createRegion(regionData) {
@@ -504,12 +504,12 @@ class ApiServices {
   }
 
   // ===== Company Price Services =====
-  async getCompanyPrices() {
-    return api.get("/company_item_prices");
+  async getCompanyPrices({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/company_item_prices?page=${page}&per_page=${perPage}`);
   }
 
-  async getTrashedCompanyPrices() {
-    return this.getTrashedEntities("company_item_prices");
+  async getTrashedCompanyPrices({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("company_item_prices", { page, perPage });
   }
 
   async createCompanyPrice(priceData) {
@@ -533,7 +533,7 @@ class ApiServices {
       "company_item_price",
       "company_item_prices",
       priceIds,
-      force
+      force,
     );
   }
 
@@ -541,17 +541,17 @@ class ApiServices {
     return this.bulkRestoreEntities(
       "company_item_price",
       "company_item_prices",
-      priceIds
+      priceIds,
     );
   }
 
   // ===== Discount Services =====
-  async getDiscounts() {
-    return api.get("/discounts");
+  async getDiscounts({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/discounts?page=${page}&per_page=${perPage}`);
   }
 
-  async getTrashedDiscounts() {
-    return this.getTrashedEntities("discounts");
+  async getTrashedDiscounts({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("discounts", { page, perPage });
   }
 
   async createDiscount(discountData) {
@@ -579,12 +579,12 @@ class ApiServices {
   }
 
   // ===== Driver Line Services =====
-  async getDriverLines() {
-    return this.getEntities("driver_lines");
+  async getDriverLines({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("driver_lines", { page, perPage });
   }
 
-  async getTrashedDriverLines() {
-    return this.getTrashedEntities("driver_lines");
+  async getTrashedDriverLines({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("driver_lines", { page, perPage });
   }
 
   async createDriverLine(driverLineData) {
@@ -608,7 +608,7 @@ class ApiServices {
       "driver_line",
       "driver_lines",
       driverLineIds,
-      force
+      force,
     );
   }
 
@@ -616,21 +616,21 @@ class ApiServices {
     return this.bulkRestoreEntities(
       "driver_line",
       "driver_lines",
-      driverLineIds
+      driverLineIds,
     );
   }
 
   // ===== Orders Services =====
-  async getOrders() {
-    return this.getEntities("orders");
+  async getOrders({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/orders?page=${page}&per_page=${perPage}`);
   }
 
   async getOrderById(orderId) {
     return this.getEntityById("orders", orderId);
   }
 
-  async getTrashedOrders() {
-    return this.getTrashedEntities("orders");
+  async getTrashedOrders({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/trashed/orders?page=${page}&per_page=${perPage}`);
   }
 
   async createOrder(orderData) {
@@ -670,8 +670,8 @@ class ApiServices {
   }
 
   // ===== Line Work Services =====
-  async getLineWorks() {
-    return this.getEntities("line_works");
+  async getLineWorks({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("line_works", { page, perPage });
   }
 
   async createLineWork(lineWorkData) {
@@ -690,8 +690,8 @@ class ApiServices {
     return this.restoreEntity("line_works", lineWorkId);
   }
 
-  async getTrashedLineWorks() {
-    return this.getTrashedEntities("line_works");
+  async getTrashedLineWorks({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("line_works", { page, perPage });
   }
 
   async bulkDeleteLineWorks(lineWorkIds, force = false) {
@@ -699,7 +699,7 @@ class ApiServices {
       "line_work",
       "line_works",
       lineWorkIds,
-      force
+      force,
     );
   }
 
@@ -708,21 +708,24 @@ class ApiServices {
   }
 
   // ===== Work Plans Services =====
-  async getWorkPlans() {
-    return this.getEntities("work_plans");
+  async getWorkPlans({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("work_plans", { page, perPage });
   }
 
-  async getTrashedWorkPlans() {
-    return this.getTrashedEntities("work_plans");
+  async getTrashedWorkPlans({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("work_plans", { page, perPage });
   }
 
   async createWorkPlan(workPlanData) {
-    const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        acc[key] = value;
-      }
-      return acc;
-    }, {});
+    const cleanData = Object.entries(workPlanData).reduce(
+      (acc, [key, value]) => {
+        if (value !== null && value !== undefined && value !== "") {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {},
+    );
 
     return api.post("/work_plans", cleanData);
   }
@@ -742,57 +745,55 @@ class ApiServices {
 
     return api.patch(`/work_plans/${workPlanId}`, cleanData, {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     });
   }
   // ===== Payment Services =====
-  // ===== Payment Services =====
-async getPayments() {
-  return this.getEntities("payments");
-}
-
-async getTrashedPayments() {
-  return this.getTrashedEntities("payments");
-}
-
-// ✅ استخدام POST مع X-HTTP-Method-Override بدل PATCH
-async updatePayment(paymentId, paymentData) {
-  try {
-    console.log("🔄 Updating payment with POST override:", paymentId, paymentData);
-    
-    return api.post(`/payments/${paymentId}`, paymentData, {
-      headers: {
-        'X-HTTP-Method-Override': 'PATCH',
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    console.error("❌ Error in updatePayment:", error);
-    throw error;
+  async getPayments() {
+    return this.getEntities("payments");
   }
-}
 
-async deletePayment(paymentId, force = false) {
-  return this.deleteEntity("payments", paymentId, force);
-}
+  async getTrashedPayments() {
+    return this.getTrashedEntities("payments");
+  }
 
-async restorePayment(paymentId) {
-  return this.restoreEntity("payments", paymentId);
-}
+  async updatePayment(paymentId, paymentData) {
+    try {
+      console.log("🔄 Updating payment with POST override:", paymentId, paymentData);
 
-async bulkDeletePayments(paymentIds, force = false) {
-  return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
-}
+      return api.post(`/payments/${paymentId}`, paymentData, {
+        headers: {
+          'X-HTTP-Method-Override': 'PATCH',
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (error) {
+      console.error("❌ Error in updatePayment:", error);
+      throw error;
+    }
+  }
 
-async bulkRestorePayments(paymentIds) {
-  return this.bulkRestoreEntities("payment", "payments", paymentIds);
-}
+  async deletePayment(paymentId, force = false) {
+    return this.deleteEntity("payments", paymentId, force);
+  }
 
-// Mark payments as paid
-async markPaymentsAsPaid(paymentData) {
-  return api.patch('/payments', paymentData);
-}
+  async restorePayment(paymentId) {
+    return this.restoreEntity("payments", paymentId);
+  }
+
+  async bulkDeletePayments(paymentIds, force = false) {
+    return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
+  }
+
+  async bulkRestorePayments(paymentIds) {
+    return this.bulkRestoreEntities("payment", "payments", paymentIds);
+  }
+
+  // Mark payments as paid
+  async markPaymentsAsPaid(paymentData) {
+    return api.patch('/payments', paymentData);
+  }
 
 
 
@@ -809,7 +810,7 @@ async markPaymentsAsPaid(paymentData) {
       "work_plan",
       "work_plans",
       workPlanIds,
-      force
+      force,
     );
   }
 

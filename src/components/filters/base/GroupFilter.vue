@@ -18,7 +18,7 @@
     </button>
 
     <!-- Dropdown menu -->
-    <div class="dropdown-menu p-3 shadow border rounded-3 mt-2" :class="{ show: isOpen }">
+    <div class="dropdown-menu p-3 shadow border rounded-3 mt-2" :class="{ show: isOpen }" :style="menuStyles">
       <!-- Available groups (not selected) -->
       <div v-for="group in availableGroups" :key="group" class="dropdown-item py-2 d-flex align-items-center">
         <input type="checkbox" :id="`group-${group}`" :value="group" @change="addGroup(group)"
@@ -42,7 +42,7 @@
 </template>
 <script setup>
 import PrimaryButton from "@/components/shared/PrimaryButton.vue";
-import { ref, watch, computed, onMounted, onUnmounted } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from "vue";
 // ---------------------- Props and Emits ----------------
 const props = defineProps({
   data: Array,
@@ -56,6 +56,7 @@ const emit = defineEmits(["update:modelValue"]);
 const dropdownRef = ref(null);
 const isOpen = ref(false);
 const selectedGroups = ref([]);
+const menuStyles = ref({});
 
 // ------------------------ Computed -------------------
 const uniqueValues = computed(() => {
@@ -102,6 +103,56 @@ const handleClickOutside = (event) => {
   }
 };
 
+const updateMenuPosition = () => {
+  if (!dropdownRef.value) return;
+
+  const rect = dropdownRef.value.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const padding = 8;
+  const menuMinWidth = 220;
+
+  // Calculate available space
+  const spaceRight = viewportWidth - rect.left;
+  const spaceLeft = rect.right;
+  const spaceBelow = viewportHeight - rect.bottom;
+
+  const styles = {};
+
+  // Horizontal positioning
+  if (spaceRight < menuMinWidth && spaceLeft > spaceRight) {
+    // Not enough space on right, position to the left
+    styles.right = "0";
+    styles.left = "auto";
+  } else {
+    styles.left = "0";
+    styles.right = "auto";
+  }
+
+  // On very small screens, make menu full width
+  if (viewportWidth < 400) {
+    styles.left = `${-rect.left + padding}px`;
+    styles.right = "auto";
+    styles.width = `${viewportWidth - padding * 2}px`;
+    styles.minWidth = "auto";
+  }
+
+  // Vertical positioning - limit height if not enough space
+  const maxHeight = Math.min(300, spaceBelow - padding * 2);
+  if (maxHeight < 150) {
+    // Position above if not enough space below
+    styles.bottom = "100%";
+    styles.top = "auto";
+    styles.marginTop = "0";
+    styles.marginBottom = "0.5rem";
+  }
+
+  styles.maxHeight = `${Math.max(150, maxHeight)}px`;
+  styles.overflowY = "auto";
+
+  menuStyles.value = styles;
+};
+
 // -------------------- LifeCycle --------------
 onMounted(() => {
   if (props.modelValue && props.modelValue.length) {
@@ -123,6 +174,14 @@ watch(
   },
   { deep: true }
 );
+
+watch(isOpen, (newValue) => {
+  if (newValue) {
+    nextTick(() => {
+      updateMenuPosition();
+    });
+  }
+});
 </script>
 <style scoped>
 .group-filter button {
@@ -166,6 +225,14 @@ watch(
 
 .dropdown-menu {
   min-width: 220px;
-  top: 19%;
+  top: 100%;
+  position: absolute;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .dropdown-menu {
+    min-width: 180px;
+  }
 }
 </style>

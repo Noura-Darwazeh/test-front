@@ -654,10 +654,15 @@
                         <!-- Nested Items (Delivery/Return Orders) -->
                         <div v-if="wizardMode !== 'exchange'" class="col-12">
                           <label class="form-label fw-bold">
-                            {{ $t("orders.wizard.nestedItems") }}
+                            {{ wizardMode === 'return' ? $t("orders.wizard.returnItems") : $t("orders.wizard.nestedItems") }}
+                            <span v-if="wizardMode === 'return' && item._fromParent" class="badge bg-info ms-2">
+                              <i class="fas fa-link me-1"></i>{{ $t("orders.wizard.fromParentOrder") }}
+                            </span>
                           </label>
-                          <div class="border rounded p-3">
+                          <div class="border rounded p-3" :class="{ 'return-items-section': wizardMode === 'return' }">
+                            <!-- Only show add button for delivery mode or if not from parent -->
                             <button
+                              v-if="wizardMode === 'delivery' || !item._fromParent"
                               type="button"
                               class="btn btn-sm btn-success mb-2"
                               @click="addNestedItem(index)"
@@ -666,17 +671,26 @@
                               {{ $t("orders.wizard.addNestedItem") }}
                             </button>
 
+                            <!-- Info message for return items from parent -->
+                            <div v-if="wizardMode === 'return' && item._fromParent && item.items.length > 0" class="alert alert-info py-2 mb-2">
+                              <i class="fas fa-info-circle me-2"></i>
+                              {{ $t("orders.wizard.returnItemsFromParent") }}
+                            </div>
+
                             <div
                               v-for="(nestedItem, nestedIndex) in item.items"
                               :key="nestedIndex"
                               class="row g-2 mb-2 align-items-center"
+                              :class="{ 'from-parent-item': nestedItem._fromParent }"
                             >
                               <div class="col-md-5">
                                 <input
                                   v-model="nestedItem.name"
                                   type="text"
                                   class="form-control form-control-sm"
+                                  :class="{ 'bg-light': nestedItem._fromParent }"
                                   :placeholder="$t('orders.wizard.itemName')"
+                                  :readonly="nestedItem._fromParent"
                                 />
                               </div>
                               <div class="col-md-3">
@@ -698,6 +712,10 @@
                                   <span>X</span>
                                 </button>
                               </div>
+                            </div>
+
+                            <div v-if="item.items.length === 0" class="text-muted small">
+                              {{ wizardMode === 'return' ? $t("orders.wizard.noReturnItems") : $t("orders.wizard.noNestedItems") }}
                             </div>
                           </div>
                         </div>
@@ -762,9 +780,14 @@
                           <label class="form-label fw-bold text-warning">
                             <i class="fas fa-undo me-1"></i>
                             {{ $t("orders.wizard.returnItems") }}
+                            <span v-if="item._fromParent" class="badge bg-info ms-2">
+                              <i class="fas fa-link me-1"></i>{{ $t("orders.wizard.fromParentOrder") }}
+                            </span>
                           </label>
                           <div class="border border-warning rounded p-3 items-section return-section">
+                            <!-- Hide add button when items are from parent order -->
                             <button
+                              v-if="!item._fromParent"
                               type="button"
                               class="btn btn-sm btn-outline-warning mb-2"
                               @click="addNestedItem(index, 'itemsReturn')"
@@ -773,17 +796,26 @@
                               {{ $t("orders.wizard.addReturnItem") }}
                             </button>
 
+                            <!-- Info message for return items from parent -->
+                            <div v-if="item._fromParent && item.itemsReturn.length > 0" class="alert alert-warning py-2 mb-2">
+                              <i class="fas fa-info-circle me-2"></i>
+                              {{ $t("orders.wizard.returnItemsFromParent") }}
+                            </div>
+
                             <div
                               v-for="(nestedItem, nestedIndex) in item.itemsReturn"
                               :key="nestedIndex"
                               class="row g-2 mb-2 align-items-center"
+                              :class="{ 'from-parent-item': nestedItem._fromParent }"
                             >
                               <div class="col-7">
                                 <input
                                   v-model="nestedItem.name"
                                   type="text"
                                   class="form-control form-control-sm"
+                                  :class="{ 'bg-light': nestedItem._fromParent }"
                                   :placeholder="$t('orders.wizard.itemName')"
+                                  :readonly="nestedItem._fromParent"
                                 />
                               </div>
                               <div class="col-3">
@@ -1450,6 +1482,53 @@ watch(
     if (customerId !== "" && customerId !== null && customerId !== undefined) {
       formData.value.to_id = String(customerId);
     }
+
+    // Pre-populate return items from parent order
+    const parentItems = selected.order_items || [];
+    if (parentItems.length > 0) {
+      // Create a single order item with the return items from parent
+      const newOrderItem = {
+        branch_customer_company_id: "",
+        branch_delivery_company_id: "",
+        items: [], // For regular nested items
+        itemsDelivery: [], // For exchange delivery items
+        itemsReturn: [], // For exchange return items
+        _fromParent: true, // Mark as populated from parent
+      };
+
+      // Extract items from parent order
+      const extractedItems = parentItems.flatMap((orderItem) => {
+        // Handle nested items structure
+        const nestedItems = orderItem.items || orderItem.sub_items || [];
+        if (nestedItems.length > 0) {
+          return nestedItems.map((item) => ({
+            name: item.name || "",
+            quantity: item.quantity || 1,
+            _fromParent: true,
+          }));
+        }
+        // If no nested items, use the order item itself
+        if (orderItem.name) {
+          return [{
+            name: orderItem.name,
+            quantity: orderItem.quantity || 1,
+            _fromParent: true,
+          }];
+        }
+        return [];
+      });
+
+      if (wizardMode.value === "return") {
+        // For return mode, put items in the regular items array
+        newOrderItem.items = extractedItems;
+      } else if (wizardMode.value === "exchange") {
+        // For exchange mode, put items in itemsReturn
+        newOrderItem.itemsReturn = extractedItems;
+      }
+
+      // Replace order items with the pre-populated one
+      orderItems.value = [newOrderItem];
+    }
   }
 );
 
@@ -1823,6 +1902,24 @@ watch(
 
 .return-section {
   background-color: rgba(253, 126, 20, 0.05);
+}
+
+/* Return items section for return mode */
+.return-items-section {
+  background-color: rgba(23, 162, 184, 0.05);
+  border-color: rgba(23, 162, 184, 0.3) !important;
+}
+
+/* Items from parent order styling */
+.from-parent-item {
+  background-color: rgba(23, 162, 184, 0.08);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem !important;
+}
+
+.from-parent-item input[readonly] {
+  cursor: not-allowed;
 }
 
 @keyframes fadeIn {

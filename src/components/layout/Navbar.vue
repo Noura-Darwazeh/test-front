@@ -8,12 +8,8 @@
 
         <div class="d-flex align-items-center gap-3">
           <!-- Return to Admin Button (shown only when switched) -->
-          <button
-            v-if="authStore.isSwitchedUser"
-            @click="returnToAdmin"
-            class="btn btn-sm btn-warning d-flex align-items-center gap-2"
-            type="button"
-          >
+          <button v-if="authStore.isSwitchedUser" @click="returnToAdmin"
+            class="btn btn-sm btn-warning d-flex align-items-center gap-2" type="button">
             <i class="fas fa-undo"></i>
             <span class="d-none d-md-inline">{{ $t('navbar.returnToAdmin') }}</span>
           </button>
@@ -117,10 +113,7 @@
   </nav>
 
   <!-- Switch User Modal -->
-  <SwitchUserModal
-    :isOpen="isSwitchUserModalOpen"
-    @close="closeSwitchUserModal"
-  />
+  <SwitchUserModal :isOpen="isSwitchUserModalOpen" @close="closeSwitchUserModal" />
 </template>
 
 <script setup>
@@ -198,17 +191,16 @@ const closeSwitchUserModal = () => {
   isSwitchUserModalOpen.value = false;
 };
 
+// في Navbar.vue (سطر 135-149)
 const returnToAdmin = async () => {
   try {
     const success = authStore.returnToAdmin();
     if (success) {
       console.log("✅ Returned to admin account");
       
-      // Redirect to admin's default page
       const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || '/user';
       await router.push(defaultPage);
       
-      // Refresh the page to reset state
       window.location.reload();
     }
   } catch (error) {

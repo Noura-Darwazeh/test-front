@@ -214,7 +214,7 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
         // Actions
         fetchPayments,
         fetchTrashedPayments,
-        updatePayment, // ✅ دالة التعديل
+        updatePayment,
         deletePayment,
         restorePayment,
         bulkDeletePayments,

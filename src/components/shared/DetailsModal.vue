@@ -20,6 +20,9 @@
 
           <!-- Body -->
           <div class="modal-body p-4" style="max-height: 70vh;">
+            <!-- Custom Slot for Content Before Details (e.g., tabs) -->
+            <slot name="before-details"></slot>
+
             <!-- Image Section -->
             <div v-if="data.image || data.imagePreview" class="text-center mb-4">
               <div class="d-flex justify-content-center">
@@ -32,7 +35,7 @@
             </div>
 
             <!-- Details Grid -->
-            <div class="row g-3">
+            <div v-if="displayFields.length > 0" class="row g-3">
               <div v-for="field in displayFields" :key="field.key" :class="field.colClass || 'col-md-6'">
                 <div class="detail-item p-3 bg-light rounded-3">
                   <label class="detail-label text-muted small fw-semibold text-uppercase mb-1 d-block">

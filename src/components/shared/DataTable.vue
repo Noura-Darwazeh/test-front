@@ -70,14 +70,17 @@
         </thead>
         <tbody>
           <template v-for="row in sortedData" :key="row.id">
-            <tr :class="{ 'expanded-row': isExpanded(row.id), 'expandable-row': isRowExpandable(row) }">
+            <tr
+              :class="{ 'expanded-row': isExpanded(row.id), 'expandable-row': isRowExpandable(row) }"
+              @click="isRowExpandable(row) && toggleExpand(row.id)"
+            >
               <!-- Expand Toggle -->
               <td v-if="hasExpandSlot" class="expand-col text-center">
                 <button
                   v-if="isRowExpandable(row)"
                   type="button"
                   class="btn btn-sm btn-link expand-toggle p-0"
-                  @click="toggleExpand(row.id)"
+                  @click.stop="toggleExpand(row.id)"
                 >
                   <i :class="isExpanded(row.id) ? 'fas fa-chevron-down' : 'fas fa-chevron-right'"></i>
                 </button>
@@ -104,8 +107,8 @@
               </td>
 
               <!-- Actions Slot -->
-              <td v-if="hasActionsSlot" class="text-center">
-                <slot name="actions" :row="row"></slot>
+              <td v-if="hasActionsSlot" class="text-center" @click.stop>
+                <slot name="actions" :row="row" :toggleExpand="() => toggleExpand(row.id)" :isExpanded="isExpanded(row.id)"></slot>
               </td>
             </tr>
 
@@ -129,10 +132,11 @@
         :key="row.id"
         class="card mb-3 border shadow-sm"
         :class="{ 'expandable-card': isRowExpandable(row) }"
+        @click="isRowExpandable(row) && toggleExpand(row.id)"
       >
         <div class="card-body p-3">
           <!-- Mobile Expand Toggle and Checkbox -->
-          <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="d-flex align-items-center justify-content-between mb-2" @click.stop>
             <div v-if="showCheckbox">
               <input 
                 v-if="!isRowDisabled(row)"
@@ -185,8 +189,8 @@
           </div>
 
           <!-- Mobile Actions Slot -->
-          <div v-if="hasActionsSlot" class="mt-3 text-center">
-            <slot name="actions" :row="row"></slot>
+          <div v-if="hasActionsSlot" class="mt-3 text-center" @click.stop>
+            <slot name="actions" :row="row" :toggleExpand="() => toggleExpand(row.id)" :isExpanded="isExpanded(row.id)"></slot>
           </div>
         </div>
       </div>

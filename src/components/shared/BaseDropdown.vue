@@ -108,28 +108,57 @@ const updateMenuPosition = () => {
   const triggerRect = triggerRef.value.getBoundingClientRect();
   const menuRect = menuRef.value.getBoundingClientRect();
   const padding = 8;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
 
-  let left =
-    props.menuPosition === "start"
-      ? triggerRect.left
-      : triggerRect.right - menuRect.width;
+  // Calculate menu width - ensure it doesn't exceed viewport on mobile
+  const maxMenuWidth = viewportWidth - (padding * 2);
+  const menuWidth = Math.min(menuRect.width, maxMenuWidth);
 
-  let top = triggerRect.bottom;
+  // Determine horizontal position
+  let left;
+  if (props.menuPosition === "start") {
+    left = triggerRect.left;
+  } else {
+    left = triggerRect.right - menuWidth;
+  }
 
-  left = Math.max(
-    padding,
-    Math.min(left, window.innerWidth - menuRect.width - padding)
-  );
-  top = Math.max(
-    padding,
-    Math.min(top, window.innerHeight - menuRect.height - padding)
-  );
+  // Ensure horizontal bounds - clamp to viewport
+  left = Math.max(padding, Math.min(left, viewportWidth - menuWidth - padding));
+
+  // Determine vertical position
+  let top;
+  const spaceBelow = viewportHeight - triggerRect.bottom;
+  const spaceAbove = triggerRect.top;
+  const menuHeight = menuRect.height;
+
+  // Check if there's enough space below
+  if (spaceBelow >= menuHeight + padding) {
+    // Position below the trigger
+    top = triggerRect.bottom + 2;
+  } else if (spaceAbove >= menuHeight + padding) {
+    // Position above the trigger
+    top = triggerRect.top - menuHeight - 2;
+  } else {
+    // Not enough space above or below - position where there's more space
+    if (spaceBelow > spaceAbove) {
+      top = triggerRect.bottom + 2;
+    } else {
+      top = Math.max(padding, triggerRect.top - menuHeight - 2);
+    }
+  }
+
+  // Final vertical bounds check
+  top = Math.max(padding, Math.min(top, viewportHeight - menuHeight - padding));
 
   menuStyles.value = {
     position: "fixed",
     top: `${top}px`,
     left: `${left}px`,
     zIndex: 2000,
+    maxWidth: `${maxMenuWidth}px`,
+    maxHeight: `${viewportHeight - padding * 2}px`,
+    overflowY: "auto",
   };
 };
 

@@ -8,13 +8,13 @@
       v-model:groupModelValue="selectedGroups"
       :groupLabel="$t('user.filterByRole')"
       translationKey="roles"
-    :columns="userColumns"
-    v-model:visibleColumns="visibleColumns"
-    :showAddButton="isSuperAdmin"
-    :addButtonText="$t('user.addNew')"
-    @add-click="openModal"
-    @refresh-click="handleRefresh"
-  />
+      :columns="userColumns"
+      v-model:visibleColumns="visibleColumns"
+      :showAddButton="isSuperAdmin"
+      :addButtonText="$t('user.addNew')"
+      @add-click="openModal"
+      @refresh-click="handleRefresh"
+    />
 
     <div class="card border-0">
       <!-- Tabs -->
@@ -26,7 +26,7 @@
               :class="{ active: activeTab === 'active' }"
               @click="switchTab('active')"
             >
-              {{ $t('user.activeUsers') }}
+              {{ $t("user.activeUsers") }}
             </button>
           </li>
           <li class="nav-item">
@@ -35,7 +35,7 @@
               :class="{ active: activeTab === 'trashed' }"
               @click="switchTab('trashed')"
             >
-              {{ $t('user.trashed.title') }}
+              {{ $t("user.trashed.title") }}
             </button>
           </li>
         </ul>
@@ -54,9 +54,9 @@
         <!-- Loading State -->
         <div v-if="currentLoading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">{{ $t('common.loading') }}</span>
+            <span class="visually-hidden">{{ $t("common.loading") }}</span>
           </div>
-          <p class="mt-2">{{ $t('common.loading') }}</p>
+          <p class="mt-2">{{ $t("common.loading") }}</p>
         </div>
 
         <!-- Error State -->
@@ -98,9 +98,10 @@
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
             <Pagination
-              :totalItems="currentFilteredData.length"
+              :totalItems="currentPagination.total"
               :itemsPerPage="itemsPerPage"
               :currentPage="currentPage"
+              :totalPages="currentPagination.lastPage"
               @update:currentPage="(page) => (currentPage = page)"
             />
           </div>
@@ -161,7 +162,7 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -177,28 +178,32 @@ const usersStore = useUsersManagementStore();
 const authStore = useAuthStore();
 
 // ✅ API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
 
 // ✅ Helper function to get full image URL
 const getFullImageUrl = (imagePath) => {
   if (!imagePath) return null;
-  if (imagePath.startsWith('http')) return imagePath;
+  if (imagePath.startsWith("http")) return imagePath;
   return `${API_BASE_URL}${imagePath}`;
 };
 const { companyId, companyOption, currencyId } = useAuthDefaults();
-const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
+const isSuperAdmin = computed(
+  () => (authStore.userRole || "").toLowerCase() === "superadmin",
+);
 
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedUser = ref({});
 const userToDelete = ref(null);
-const activeTab = ref('active');
+const activeTab = ref("active");
 const selectedRows = ref([]);
 
 // Bulk action state
@@ -216,7 +221,6 @@ const roles = ref([
   { value: "Admin", label: "Admin" },
   { value: "Employee", label: "Employee" },
   { value: "Supervisor", label: "Supervisor" },
-  { value: "Driver", label: "Driver" },
 ]);
 
 const resolveIdValue = (value) => {
@@ -238,13 +242,13 @@ const normalizeUserForEdit = (user) => ({
 
 // Get users from store, excluding logged-in user and SuperAdmin users
 const users = computed(() => {
-  return usersStore.users.filter(user => {
+  return usersStore.users.filter((user) => {
     if (user.id === authStore.user?.id) return false;
 
     // Exclude SuperAdmin users (case-insensitive)
     // Handle role as array or string
     const userRole = Array.isArray(user.role) ? user.role[0] : user.role;
-    if (userRole?.toLowerCase() === 'superadmin') return false;
+    if (userRole?.toLowerCase() === "superadmin") return false;
 
     return true;
   });
@@ -255,25 +259,26 @@ const trashedUsers = computed(() => usersStore.trashedUsers);
 const fetchDropdownData = async () => {
   dataLoading.value = true;
   try {
-    const [regionsResponse, currenciesResponse, companiesResponse] = await Promise.all([
-      apiServices.getRegions(),
-      apiServices.getCurrencies(),
-      apiServices.getCompanies()
-    ]);
+    const [regionsResponse, currenciesResponse, companiesResponse] =
+      await Promise.all([
+        apiServices.getRegions(),
+        apiServices.getCurrencies(),
+        apiServices.getCompanies(),
+      ]);
 
-    regions.value = regionsResponse.data.data.map(region => ({
+    regions.value = regionsResponse.data.data.map((region) => ({
       value: String(region.id),
-      label: region.name
+      label: region.name,
     }));
 
-    currencies.value = currenciesResponse.data.data.map(currency => ({
+    currencies.value = currenciesResponse.data.data.map((currency) => ({
       value: String(currency.id),
-      label: `${currency.code} (${currency.symbol})`
+      label: `${currency.code} (${currency.symbol})`,
     }));
 
-    companies.value = companiesResponse.data.data.map(company => ({
+    companies.value = companiesResponse.data.data.map((company) => ({
       value: String(company.id),
-      label: company.name
+      label: company.name,
     }));
 
     console.log("✅ Regions, currencies, and companies loaded successfully");
@@ -288,13 +293,43 @@ const fetchDropdownData = async () => {
 onMounted(async () => {
   try {
     await Promise.all([
-      usersStore.fetchUsers(),
-      fetchDropdownData()
+      usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value }),
+      fetchDropdownData(),
     ]);
     console.log("✅ All data loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load data:", error);
   }
+});
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+  if (skipNextPageWatch.value) {
+    skipNextPageWatch.value = false;
+    return;
+  }
+  try {
+    if (activeTab.value === "trashed") {
+      await usersStore.fetchTrashedUsers({
+        page: newPage,
+        perPage: itemsPerPage.value,
+      });
+    } else {
+      await usersStore.fetchUsers({
+        page: newPage,
+        perPage: itemsPerPage.value,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to load page:", err);
+  }
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+  return activeTab.value === "active"
+    ? usersStore.usersPagination
+    : usersStore.trashedPagination;
 });
 
 // User Form Fields
@@ -306,9 +341,10 @@ const userFields = computed(() => [
     required: true,
     placeholder: t("user.form.namePlaceholder"),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.name : '',
+    defaultValue: isEditMode.value ? selectedUser.value.name : "",
     validate: (value) => {
-      if (value.length > VALIDATION_LIMITS.NAME_MAX_LENGTH) return t("user.validation.nameMax");
+      if (value.length > VALIDATION_LIMITS.NAME_MAX_LENGTH)
+        return t("user.validation.nameMax");
       return null;
     },
   },
@@ -319,9 +355,10 @@ const userFields = computed(() => [
     required: true,
     placeholder: t("user.form.usernamePlaceholder"),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.username : '',
+    defaultValue: isEditMode.value ? selectedUser.value.username : "",
     validate: (value) => {
-      if (value.length > VALIDATION_LIMITS.USERNAME_MAX_LENGTH) return t("user.validation.usernameMax");
+      if (value.length > VALIDATION_LIMITS.USERNAME_MAX_LENGTH)
+        return t("user.validation.usernameMax");
       if (!isEditMode.value) {
         const exists = users.value.some((u) => u.username === value);
         if (exists) return t("user.validation.usernameExists");
@@ -336,9 +373,10 @@ const userFields = computed(() => [
     required: false,
     placeholder: t("user.form.emailPlaceholder"),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.email : '',
+    defaultValue: isEditMode.value ? selectedUser.value.email : "",
     validate: (value) => {
-      if (value && value.length > VALIDATION_LIMITS.EMAIL_MAX_LENGTH) return t("user.validation.emailMax");
+      if (value && value.length > VALIDATION_LIMITS.EMAIL_MAX_LENGTH)
+        return t("user.validation.emailMax");
       return null;
     },
   },
@@ -348,9 +386,11 @@ const userFields = computed(() => [
     type: "password",
     required: !isEditMode.value,
     minlength: VALIDATION_LIMITS.PASSWORD_MIN_LENGTH,
-    placeholder: isEditMode.value ? 'Leave empty to keep current password' : t("user.form.passwordPlaceholder"),
+    placeholder: isEditMode.value
+      ? "Leave empty to keep current password"
+      : t("user.form.passwordPlaceholder"),
     colClass: "col-md-6",
-    defaultValue: '',
+    defaultValue: "",
   },
   {
     name: "phone_number",
@@ -359,9 +399,10 @@ const userFields = computed(() => [
     required: true,
     placeholder: t("user.form.phoneNumberPlaceholder"),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.phone_number : '',
+    defaultValue: isEditMode.value ? selectedUser.value.phone_number : "",
     validate: (value) => {
-      if (value.length > VALIDATION_LIMITS.PHONE_MAX_LENGTH) return t("user.validation.phoneMax");
+      if (value.length > VALIDATION_LIMITS.PHONE_MAX_LENGTH)
+        return t("user.validation.phoneMax");
       return null;
     },
   },
@@ -370,16 +411,16 @@ const userFields = computed(() => [
     label: t("user.form.role"),
     type: "select",
     required: true,
-    options: roles.value.map(role => ({
+    options: roles.value.map((role) => ({
       value: role.value,
-      label: role.label
+      label: role.label,
     })),
     colClass: "col-md-6",
     defaultValue: isEditMode.value
-      ? (Array.isArray(selectedUser.value.role)
+      ? selectedUser.value.role
         ? selectedUser.value.role[0]
-        : selectedUser.value.role)
-      : '',
+        : selectedUser.value.role
+      : "",
   },
   {
     name: "company_id",
@@ -394,7 +435,7 @@ const userFields = computed(() => [
     placeholder: t("user.form.companyPlaceholder"),
     colClass: "col-md-6",
     defaultValue: isEditMode.value
-      ? (selectedUser.value.company_id || companyId.value)
+      ? selectedUser.value.company_id || companyId.value
       : isSuperAdmin.value
         ? ""
         : companyId.value,
@@ -406,12 +447,9 @@ const userFields = computed(() => [
     label: t("user.form.region"),
     type: "select",
     required: false,
-    options: [
-      { value: "", label: t("user.form.noRegion") },
-      ...regions.value
-    ],
+    options: [{ value: "", label: t("user.form.noRegion") }, ...regions.value],
     colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.region_id : '',
+    defaultValue: isEditMode.value ? selectedUser.value.region_id : "",
   },
   {
     name: "currency_id",
@@ -420,7 +458,7 @@ const userFields = computed(() => [
     required: false,
     options: [
       { value: "", label: t("user.form.noCurrency") },
-      ...currencies.value
+      ...currencies.value,
     ],
     colClass: "col-md-6",
     defaultValue: isEditMode.value
@@ -431,13 +469,18 @@ const userFields = computed(() => [
 
 // Details Fields
 const detailsFields = computed(() => [
-  { key: 'id', label: t('user.id'), colClass: 'col-md-6' },
-  { key: 'name', label: t('user.fullName'), colClass: 'col-md-6' },
-  { key: 'username', label: t('user.username'), colClass: 'col-md-6' },
-  { key: 'email', label: t('user.email'), colClass: 'col-md-6' },
-  { key: 'phone_number', label: t('user.phoneNumber'), colClass: 'col-md-6' },
-  { key: 'role', label: t('user.userRole'), translationKey: 'roles', colClass: 'col-md-6' },
-  { key: 'company_name', label: t('user.company'), colClass: 'col-md-12' },
+  { key: "id", label: t("user.id"), colClass: "col-md-6" },
+  { key: "name", label: t("user.fullName"), colClass: "col-md-6" },
+  { key: "username", label: t("user.username"), colClass: "col-md-6" },
+  { key: "email", label: t("user.email"), colClass: "col-md-6" },
+  { key: "phone_number", label: t("user.phoneNumber"), colClass: "col-md-6" },
+  {
+    key: "role",
+    label: t("user.userRole"),
+    translationKey: "roles",
+    colClass: "col-md-6",
+  },
+  { key: "company_name", label: t("user.company"), colClass: "col-md-12" },
 ]);
 
 const userColumns = computed(() => [
@@ -464,17 +507,21 @@ const visibleColumns = ref([]);
 // Tab switching function
 const switchTab = async (tab) => {
   activeTab.value = tab;
+  skipNextPageWatch.value = true;
   currentPage.value = 1;
   selectedRows.value = [];
-  if (tab === 'trashed') {
+  if (tab === "trashed") {
     try {
-      await usersStore.fetchTrashedUsers();
+      await usersStore.fetchTrashedUsers({
+        page: 1,
+        perPage: itemsPerPage.value,
+      });
     } catch (error) {
       console.error("❌ Failed to load trashed users:", error);
     }
   } else {
     try {
-      await usersStore.fetchUsers();
+      await usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
       console.error("❌ Failed to load users:", error);
     }
@@ -484,10 +531,16 @@ const switchTab = async (tab) => {
 const handleRefresh = async () => {
   selectedRows.value = [];
   try {
-    if (activeTab.value === 'trashed') {
-      await usersStore.fetchTrashedUsers();
+    if (activeTab.value === "trashed") {
+      await usersStore.fetchTrashedUsers({
+        page: currentPage.value,
+        perPage: itemsPerPage.value,
+      });
     } else {
-      await usersStore.fetchUsers();
+      await usersStore.fetchUsers({
+        page: currentPage.value,
+        perPage: itemsPerPage.value,
+      });
     }
   } catch (error) {
     console.error("❌ Failed to refresh users:", error);
@@ -496,20 +549,20 @@ const handleRefresh = async () => {
 
 // Bulk actions configuration
 const bulkActions = computed(() => {
-  if (activeTab.value === 'active') {
+  if (activeTab.value === "active") {
     return [
       {
-        id: 'delete',
-        label: t('user.bulkDelete'),
-        bgColor: 'var(--color-danger)',
+        id: "delete",
+        label: t("user.bulkDelete"),
+        bgColor: "var(--color-danger)",
       },
     ];
   } else {
     return [
       {
-        id: 'restore',
-        label: t('user.bulkRestore'),
-        bgColor: 'var(--color-success)',
+        id: "restore",
+        label: t("user.bulkRestore"),
+        bgColor: "var(--color-success)",
       },
     ];
   }
@@ -517,35 +570,39 @@ const bulkActions = computed(() => {
 
 // Bulk confirmation message
 const bulkConfirmMessage = computed(() => {
-  if (!pendingBulkAction.value) return '';
+  if (!pendingBulkAction.value) return "";
 
-  const entity = selectedRows.value.length === 1
-    ? t('user.entitySingular')
-    : t('user.entityPlural');
+  const entity =
+    selectedRows.value.length === 1
+      ? t("user.entitySingular")
+      : t("user.entityPlural");
 
-  if (pendingBulkAction.value === 'delete') {
-    return t('common.bulkDeleteConfirmMessage', {
+  if (pendingBulkAction.value === "delete") {
+    return t("common.bulkDeleteConfirmMessage", {
       count: selectedRows.value.length,
-      entity
+      entity,
     });
   }
-  return '';
+  return "";
 });
 
 // Current loading state based on active tab
 const currentLoading = computed(() => {
-  return activeTab.value === 'active' ? usersStore.loading : usersStore.trashedLoading;
+  return activeTab.value === "active"
+    ? usersStore.loading
+    : usersStore.trashedLoading;
 });
 
 // Current data based on active tab
 const currentData = computed(() => {
-  return activeTab.value === 'active' ? users.value : trashedUsers.value;
+  return activeTab.value === "active" ? users.value : trashedUsers.value;
 });
 
 // Filtered columns based on active tab
 const filteredColumns = computed(() => {
-  const columns = activeTab.value === 'active' ? userColumns.value : trashedColumns.value;
-  if (activeTab.value === 'active') {
+  const columns =
+    activeTab.value === "active" ? userColumns.value : trashedColumns.value;
+  if (activeTab.value === "active") {
     return columns.filter((col) => visibleColumns.value.includes(col.key));
   }
   return columns;
@@ -554,20 +611,16 @@ const filteredColumns = computed(() => {
 // Filtered data based on active tab
 const currentFilteredData = computed(() => {
   let result = currentData.value;
-  if (activeTab.value === 'active') {
+  if (activeTab.value === "active") {
     result = filterByGroups(result, selectedGroups.value, "role");
   }
   result = filterData(result, searchText.value);
   return result;
 });
 
-// Paginated data for the active tab
+// Server already returns paginated data, apply local filters for search/grouping
 const paginatedData = computed(() => {
-  return paginateData(
-    currentFilteredData.value,
-    currentPage.value,
-    itemsPerPage.value
-  );
+  return currentFilteredData.value;
 });
 
 watch([searchText, selectedGroups], () => {
@@ -585,24 +638,24 @@ const openModal = () => {
 const openEditModal = (user) => {
   isEditMode.value = true;
   selectedUser.value = { ...user };
-  
+
   // ✅ إضافة المسار الكامل للصورة
   if (selectedUser.value.image) {
     selectedUser.value.imagePreview = getFullImageUrl(selectedUser.value.image);
   }
-  
+
   isModalOpen.value = true;
 };
 
 // Details Modal
 const openDetailsModal = (user) => {
   selectedUser.value = { ...user };
-  
+
   // ✅ إضافة المسار الكامل للصورة
   if (selectedUser.value.image) {
     selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
   }
-  
+
   isDetailsModalOpen.value = true;
 };
 
@@ -625,7 +678,11 @@ const closeDeleteModal = () => {
 const handleSubmitUser = async (userData) => {
   try {
     // Validate image size
-    if (userData.image && userData.image instanceof File && userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE) {
+    if (
+      userData.image &&
+      userData.image instanceof File &&
+      userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE
+    ) {
       console.error("❌ Image size exceeds limit");
       alert("Image size should not exceed 200KB");
       return;
@@ -633,11 +690,9 @@ const handleSubmitUser = async (userData) => {
     const selectedRole = Array.isArray(selectedUser.value.role)
       ? selectedUser.value.role[0]
       : selectedUser.value.role;
-    const rolePayload = Array.isArray(userData.role)
-      ? userData.role
-      : userData.role
-        ? [userData.role]
-        : [];
+    const normalizedRole = Array.isArray(userData.role)
+      ? userData.role[0]
+      : userData.role;
 
     if (isEditMode.value) {
       // Update existing user
@@ -651,13 +706,13 @@ const handleSubmitUser = async (userData) => {
         updatedData.username = userData.username;
       }
       if (userData.email !== selectedUser.value.email) {
-        updatedData.email = userData.email || '';
+        updatedData.email = userData.email || "";
       }
       if (userData.phone_number !== selectedUser.value.phone_number) {
         updatedData.phone_number = userData.phone_number;
       }
-      if (userData.role !== selectedRole) {
-        updatedData.role = rolePayload;
+      if (normalizedRole !== selectedRole) {
+        updatedData.role = normalizedRole;
       }
       if (userData.company_id !== selectedUser.value.company_id) {
         updatedData.company_id = userData.company_id || null;
@@ -671,7 +726,7 @@ const handleSubmitUser = async (userData) => {
       if (userData.password) {
         updatedData.password = userData.password;
       }
-      
+
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
         updatedData.image = userData.image;
@@ -687,15 +742,15 @@ const handleSubmitUser = async (userData) => {
         username: userData.username,
         password: userData.password,
         phone_number: userData.phone_number,
-        role: rolePayload,
+        role: normalizedRole,
         company_id: userData.company_id || null, // ✅ Always send, null if empty
-        region_id: userData.region_id || null,   // ✅ Always send, null if empty
+        region_id: userData.region_id || null, // ✅ Always send, null if empty
         currency_id: userData.currency_id || null, // ✅ Always send, null if empty
       };
 
       // Add optional email field only if provided
       if (userData.email) newUser.email = userData.email;
-      
+
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
         newUser.image = userData.image;
@@ -742,7 +797,7 @@ const confirmDelete = async () => {
 const handleBulkAction = ({ actionId }) => {
   pendingBulkAction.value = actionId;
 
-  if (actionId === 'delete') {
+  if (actionId === "delete") {
     isBulkConfirmOpen.value = true;
   } else {
     executeBulkAction();
@@ -753,18 +808,25 @@ const executeBulkAction = async () => {
   bulkActionLoading.value = true;
 
   try {
-    if (pendingBulkAction.value === 'delete') {
+    if (pendingBulkAction.value === "delete") {
       await usersStore.bulkDeleteUsers(selectedRows.value);
-      console.log(`✅ ${selectedRows.value.length} users deleted successfully!`);
-    } else if (pendingBulkAction.value === 'restore') {
+      console.log(
+        `✅ ${selectedRows.value.length} users deleted successfully!`,
+      );
+    } else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
-      console.log(`✅ ${selectedRows.value.length} users restored successfully!`);
+      console.log(
+        `✅ ${selectedRows.value.length} users restored successfully!`,
+      );
       await usersStore.fetchTrashedUsers();
     }
 
     selectedRows.value = [];
   } catch (error) {
-    console.error(`❌ Failed to execute bulk ${pendingBulkAction.value}:`, error);
+    console.error(
+      `❌ Failed to execute bulk ${pendingBulkAction.value}:`,
+      error,
+    );
   } finally {
     bulkActionLoading.value = false;
     isBulkConfirmOpen.value = false;

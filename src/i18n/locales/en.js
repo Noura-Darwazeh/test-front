@@ -327,6 +327,11 @@ export default {
       location: "Location",
       setLocation: "Set Location on Map",
       uploadImage: "Upload Image",
+      latitude: "Latitude",
+      latitudePlaceholder: "Enter latitude (e.g., 31.5)",
+      longitude: "Longitude",
+      longitudePlaceholder: "Enter longitude (e.g., 34.4)",
+      locationPicker: "Location Picker",
     },
 
     // Validation Messages
@@ -340,6 +345,8 @@ export default {
       phoneRequired: "Phone number is required",
       phoneMax: "Phone number must not exceed 20 characters",
       companyRequired: "Company is required",
+      latitudeInvalid: "Invalid latitude (must be between -90 and 90)",
+      longitudeInvalid: "Invalid longitude (must be between -180 and 180)",
     },
 
     // Trashed Items
@@ -1115,6 +1122,9 @@ export default {
       addReturnItem: "Add Return Item",
       addNestedItem: "Add Nested Item",
       noItems: "No items added yet. Click 'Add Item' to start.",
+      noNestedItems: "No nested items added",
+      fromParentOrder: "From Parent",
+      returnItemsFromParent: "These items are from the parent order. You can remove items or adjust quantities.",
       itemName: "Item Name",
       itemQuantity: "Quantity",
       itemDescription: "Description",
@@ -1171,14 +1181,20 @@ export default {
       orderItems: "Order Items",
       quantity: "Quantity",
       subItems: "Sub-Items",
+      detailsTab: "Details",
+      exchangedTab: "Exchanged",
+      notExchanged: "Not Exchanged",
+      noExchange: "This order has not been exchanged.",
     },
 
     // Exchange Order Details (for expandable row)
     exchange: {
       title: "Exchange Order Details",
+      childOrders: "Exchange Orders",
       deliveryPart: "Delivery Part",
       returnPart: "Return Part",
       parentOrder: "Parent Order",
+      viewExchange: "View Exchange",
     },
 
     // Status Updates

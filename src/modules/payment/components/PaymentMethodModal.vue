@@ -60,10 +60,16 @@
                                     <select v-model="selectedDriver" class="form-select"
                                         :class="{ 'is-invalid': showError && !selectedDriver }">
                                         <option value="">{{ $t('payment.selectDriverPlaceholder') }}</option>
+
                                         <option v-for="driver in drivers" :key="driver.value" :value="driver.value">
                                             {{ driver.label }}
                                         </option>
                                     </select>
+
+                                    <small class="text-muted d-block mt-1" v-if="selectedDriver">
+                                        Selected ID: {{ selectedDriver }}
+                                    </small>
+
                                     <div v-if="showError && !selectedDriver" class="invalid-feedback">
                                         {{ $t('payment.driverRequired') }}
                                     </div>
@@ -144,16 +150,11 @@ const handleSubmit = () => {
 
     if (paymentMethod.value === 'driver') {
         data.paid_by_driver_id = parseInt(selectedDriver.value);
+        console.log('✅ Sending driver ID:', data.paid_by_driver_id);
     }
 
     emit('submit', data);
 };
-
-
-
-
-
-
 
 // Reset on modal open
 watch(() => props.isOpen, (newVal) => {
@@ -161,6 +162,9 @@ watch(() => props.isOpen, (newVal) => {
         paymentMethod.value = '';
         selectedDriver.value = '';
         showError.value = false;
+
+        // ✅ Log drivers for debugging
+        console.log('📋 Available drivers:', props.drivers);
 
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.overflow = 'hidden';

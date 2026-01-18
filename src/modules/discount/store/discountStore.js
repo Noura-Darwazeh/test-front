@@ -9,6 +9,21 @@ export const useDiscountStore = defineStore("discounts", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const discountsPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   const extractIdName = (value) => {
     if (Array.isArray(value)) {
       return { id: value[0], name: value[1] || "" };
@@ -46,15 +61,26 @@ export const useDiscountStore = defineStore("discounts", () => {
     };
   };
 
-  const fetchDiscounts = async () => {
+  const fetchDiscounts = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getDiscounts();
+      const response = await apiServices.getDiscounts({ page, perPage });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
       discounts.value = data.map(normalizeDiscount);
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        discountsPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch discounts";
@@ -65,15 +91,26 @@ export const useDiscountStore = defineStore("discounts", () => {
     }
   };
 
-  const fetchTrashedDiscounts = async () => {
+  const fetchTrashedDiscounts = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedDiscounts();
+      const response = await apiServices.getTrashedDiscounts({ page, perPage });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
       trashedDiscounts.value = data.map(normalizeDiscount);
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed discounts";
@@ -229,6 +266,8 @@ export const useDiscountStore = defineStore("discounts", () => {
     loading,
     trashedLoading,
     error,
+    discountsPagination,
+    trashedPagination,
     // Actions
     fetchDiscounts,
     fetchTrashedDiscounts,

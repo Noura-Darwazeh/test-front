@@ -10,6 +10,21 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const usersPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   const extractIdName = (value, fallbackId = null, fallbackName = "") => {
     if (Array.isArray(value)) {
       return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
@@ -54,14 +69,24 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
   );
 
   // Actions
-  const fetchUsers = async () => {
+  const fetchUsers = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getUsers();
+      const response = await apiServices.getUsers({ page, perPage });
 
       // Use backend data directly, no mapping needed
       users.value = response.data.data.map(normalizeUser);
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        usersPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       return response.data;
     } catch (err) {
@@ -73,14 +98,24 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     }
   };
 
-  const fetchTrashedUsers = async () => {
+  const fetchTrashedUsers = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedUsers();
+      const response = await apiServices.getTrashedUsers({ page, perPage });
 
       // Use backend data directly, no mapping needed
       trashedUsers.value = response.data.data.map(normalizeUser);
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       return response.data;
     } catch (err) {
@@ -224,6 +259,8 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     loading,
     trashedLoading,
     error,
+    usersPagination,
+    trashedPagination,
     // Getters
     activeUsers,
     inactiveUsers,

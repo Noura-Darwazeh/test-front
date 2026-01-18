@@ -337,6 +337,11 @@
       location: "الموقع",
       setLocation: "تحديد الموقع على الخريطة",
       uploadImage: "تحميل صورة",
+      latitude: "خط العرض",
+      latitudePlaceholder: "أدخل خط العرض (مثال: 31.5)",
+      longitude: "خط الطول",
+      longitudePlaceholder: "أدخل خط الطول (مثال: 34.4)",
+      locationPicker: "محدد الموقع",
     },
 
     // رسائل التحقق
@@ -351,6 +356,8 @@
       phoneMax: "يجب ألا يتجاوز رقم الهاتف 20 حرفاً",
       companyRequired: "الشركة مطلوبة",
       locationRequired: "الموقع مطلوب",
+      latitudeInvalid: "خط العرض غير صالح (يجب أن يكون بين -90 و 90)",
+      longitudeInvalid: "خط الطول غير صالح (يجب أن يكون بين -180 و 180)",
     },
 
     // العناصر المحذوفة
@@ -1122,6 +1129,9 @@
       addReturnItem: "إضافة عنصر إرجاع",
       addNestedItem: "إضافة عنصر فرعي",
       noItems: "لم يتم إضافة عناصر بعد. انقر على 'إضافة عنصر' للبدء.",
+      noNestedItems: "لا توجد عناصر فرعية مضافة",
+      fromParentOrder: "من الطلب الأصلي",
+      returnItemsFromParent: "هذه العناصر من الطلب الأصلي. يمكنك إزالة العناصر أو تعديل الكميات.",
       itemName: "اسم العنصر",
       itemQuantity: "الكمية",
       itemDescription: "الوصف",
@@ -1181,14 +1191,20 @@
       orderItems: "عناصر الطلب",
       quantity: "الكمية",
       subItems: "العناصر الفرعية",
+      detailsTab: "التفاصيل",
+      exchangedTab: "التبديل",
+      notExchanged: "غير مبدّل",
+      noExchange: "لم يتم تبديل هذا الطلب.",
     },
 
     // تفاصيل طلب التبديل (للصف القابل للتوسيع)
     exchange: {
       title: "تفاصيل طلب التبديل",
+      childOrders: "طلبات التبديل",
       deliveryPart: "جزء التوصيل",
       returnPart: "جزء الإرجاع",
       parentOrder: "الطلب الأصلي",
+      viewExchange: "عرض التبديل",
     },
 
     // تحديثات الحالة

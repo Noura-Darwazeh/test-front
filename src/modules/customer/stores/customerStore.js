@@ -10,6 +10,21 @@ export const useCustomerStore = defineStore("customer", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const customersPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   const extractIdName = (value, fallbackId = null, fallbackName = "") => {
     if (Array.isArray(value)) {
       return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
@@ -80,14 +95,24 @@ export const useCustomerStore = defineStore("customer", () => {
   });
 
   // Actions
-  const fetchCustomers = async () => {
+  const fetchCustomers = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCustomers();
+      const response = await apiServices.getCustomers({ page, perPage });
 
       // Transform API response to match frontend format
       customers.value = response.data.data.map(normalizeCustomer);
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        customersPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       console.log(`✅ Successfully loaded ${customers.value.length} customers`);
       return response.data;
@@ -221,14 +246,24 @@ export const useCustomerStore = defineStore("customer", () => {
     }
   };
 
-  const fetchTrashedCustomers = async () => {
+  const fetchTrashedCustomers = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCustomers();
+      const response = await apiServices.getTrashedCustomers({ page, perPage });
 
       // Transform API response to match frontend format
       trashedCustomers.value = response.data.data.map(normalizeCustomer);
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       console.log(`✅ Successfully loaded ${trashedCustomers.value.length} trashed customers`);
       return response.data;
@@ -326,6 +361,8 @@ export const useCustomerStore = defineStore("customer", () => {
     loading,
     trashedLoading,
     error,
+    customersPagination,
+    trashedPagination,
     // Getters
     customersByCompany,
     // Actions

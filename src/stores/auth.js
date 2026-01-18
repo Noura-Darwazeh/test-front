@@ -412,5 +412,8 @@ export const useAuthStore = defineStore("auth", () => {
     hasRole,
     hasAnyRole,
     switchUser,
+
+    isSwitchedUser,
+    returnToAdmin,
   };
 });

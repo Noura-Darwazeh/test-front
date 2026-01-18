@@ -10,15 +10,40 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const currenciesPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   // Actions
-  const fetchCurrencies = async () => {
+  const fetchCurrencies = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCurrencies();
+      const response = await apiServices.getCurrencies({ page, perPage });
 
       // Use backend data directly, no mapping needed
       currencies.value = response.data.data;
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        currenciesPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       return response.data;
     } catch (err) {
@@ -69,12 +94,23 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     }
   };
 
-  const fetchTrashedCurrencies = async () => {
+  const fetchTrashedCurrencies = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCurrencies();
+      const response = await apiServices.getTrashedCurrencies({ page, perPage });
       trashedCurrencies.value = response.data.data;
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed currencies";
@@ -190,6 +226,8 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     loading,
     trashedLoading,
     error,
+    currenciesPagination,
+    trashedPagination,
     // Actions
     fetchCurrencies,
     fetchTrashedCurrencies,
