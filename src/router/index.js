@@ -120,6 +120,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/companyIcon.svg",
+        roles: ["SuperAdmin"],
       },
     },
     {
@@ -219,6 +220,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/itemprice/price.svg",
+        
       },
     },
     {
@@ -274,6 +276,7 @@ const router = createRouter({
     requireAuth: true,
     showInSidebar: true,
     icon: "/src/assets/sidebar/priceIcon.svg", 
+    roles: ["Admin", "Driver"]
   },
 }
   ],

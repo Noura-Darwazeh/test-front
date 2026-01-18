@@ -43,19 +43,32 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useSidebar } from "@/composables/useSidebar";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { isCollapsed, isMobile } = useSidebar();
 const isMobileMenuOpen = ref(false);
 const route = useRoute();
 const router = useRouter();
 const { t, locale } = useI18n();
+const authStore = useAuthStore();
 
 const isRTL = computed(() => locale.value === "ar");
 
 const menuItems = computed(() => {
   return router
     .getRoutes()
-    .filter((r) => r.meta?.showInSidebar)
+    .filter((r) => {
+      // Check if route should show in sidebar
+      if (!r.meta?.showInSidebar) return false;
+
+      // ✅ Check if route has role restrictions
+      if (r.meta.roles && r.meta.roles.length > 0) {
+        // Check if user has required role
+        return authStore.hasAnyRole(r.meta.roles);
+      }
+      // If no role restrictions, show to everyone
+      return true;
+    })
     .map((r) => ({
       path: r.path,
       label: r.meta.titleKey ? t(r.meta.titleKey) : "Dashboard",
@@ -183,9 +196,6 @@ onUnmounted(() => {
 
 
 }
-
-
-
 
 .nav-tooltip {
   position: absolute;
