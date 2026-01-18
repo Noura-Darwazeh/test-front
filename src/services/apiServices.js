@@ -112,9 +112,8 @@ class ApiServices {
   }
 
   async bulkDeleteEntities(entitySingular, entityPlural, ids, force = false) {
-    const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${
-      force ? 1 : 0
-    }`;
+    const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${force ? 1 : 0
+      }`;
     return api.delete(endpoint, {
       data: { ids },
     });
@@ -334,7 +333,7 @@ class ApiServices {
       const formData = new FormData();
       formData.append('name', companyData.name);
       formData.append('type', companyData.type);
-      
+
       companyData.branches.forEach((branch, index) => {
         if (branch.name && branch.name.trim() !== '') {
           formData.append(`branches[${index}][name]`, branch.name);
@@ -346,12 +345,12 @@ class ApiServices {
           }
         }
       });
-      
+
       return api.post('/companies', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
     }
-    
+
     return this.createEntity("companies", companyData);
   }
 
@@ -360,7 +359,7 @@ class ApiServices {
       const formData = new FormData();
       formData.append('name', companyData.name);
       formData.append('type', companyData.type);
-      
+
       companyData.branches.forEach((branch, index) => {
         if (branch.name && branch.name.trim() !== '') {
           formData.append(`branches[${index}][name]`, branch.name);
@@ -372,7 +371,7 @@ class ApiServices {
           }
         }
       });
-      
+
       return api.post(`/companies/${companyId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -380,7 +379,7 @@ class ApiServices {
         }
       });
     }
-    
+
     return this.updateEntity("companies", companyId, companyData);
   }
 
@@ -731,7 +730,7 @@ class ApiServices {
   async updateWorkPlan(workPlanId, workPlanData) {
     console.log("🔄 API updateWorkPlan called for ID:", workPlanId);
     console.log("📤 API payload:", workPlanData);
-    
+
     const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
         acc[key] = value;
@@ -747,38 +746,46 @@ class ApiServices {
       }
     });
   }
-// ===== Payment Services =====
-async getPayments() {
-  return this.getEntities("payments");
-}
+  // ===== Payment Services =====
+  async getPayments() {
+    return this.getEntities("payments");
+  }
+  async getTrashedPayments() {
+    return this.getTrashedEntities("payments");
+  }
 
-async getTrashedPayments() {
-  return this.getTrashedEntities("payments");
-}
+  async createPayment(paymentData) {
+    return this.createEntity("payments", paymentData);
+  }
 
-async createPayment(paymentData) {
-  return this.createEntity("payments", paymentData);
-}
+  async updatePayment(paymentId, paymentData) {
+    return this.updateEntity("payments", paymentId, paymentData);
+  }
 
-async updatePayment(paymentId, paymentData) {
-  return this.updateEntity("payments", paymentId, paymentData);
-}
+  async deletePayment(paymentId, force = false) {
+    return this.deleteEntity("payments", paymentId, force);
+  }
 
-async deletePayment(paymentId, force = false) {
-  return this.deleteEntity("payments", paymentId, force);
-}
+  async restorePayment(paymentId) {
+    return this.restoreEntity("payments", paymentId);
+  }
 
-async restorePayment(paymentId) {
-  return this.restoreEntity("payments", paymentId);
-}
+  async bulkDeletePayments(paymentIds, force = false) {
+    return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
+  }
 
-async bulkDeletePayments(paymentIds, force = false) {
-  return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
-}
+  async bulkRestorePayments(paymentIds) {
+    return this.bulkRestoreEntities("payment", "payments", paymentIds);
+  }
 
-async bulkRestorePayments(paymentIds) {
-  return this.bulkRestoreEntities("payment", "payments", paymentIds);
-}
+  // Mark payments as paid
+  async markPaymentsAsPaid(paymentData) {
+    return api.patch('/payments', paymentData);
+  }
+
+
+
+
   async deleteWorkPlan(workPlanId, force = false) {
     return this.deleteEntity("work_plans", workPlanId, force);
   }
@@ -808,6 +815,10 @@ async bulkRestorePayments(paymentIds) {
   // ===== Map Services =====
   async getMapData() {
     return api.get("/map-data");
+  }
+
+  async markPaymentsAsPaid(paymentData) {
+    return api.patch('/payments', paymentData);
   }
 }
 

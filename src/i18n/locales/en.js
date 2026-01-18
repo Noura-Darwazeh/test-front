@@ -465,13 +465,13 @@ export default {
     },
 
     // Validation Messages
-      validation: {
-        nameRequired: "Name is required",
-        nameMax: "Name must not exceed 255 characters",
-        typeRequired: "Type is required",
-        latitudeInvalid: "Invalid latitude (must be between -90 and 90)",
-        longitudeInvalid: "Invalid longitude (must be between -180 and 180)",
-      },
+    validation: {
+      nameRequired: "Name is required",
+      nameMax: "Name must not exceed 255 characters",
+      typeRequired: "Type is required",
+      latitudeInvalid: "Invalid latitude (must be between -90 and 90)",
+      longitudeInvalid: "Invalid longitude (must be between -180 and 180)",
+    },
 
     // Trashed Items
     trashed: {
@@ -545,19 +545,19 @@ export default {
       ramallah: "Ramallah",
     },
     // Form Fields
-      form: {
-        name: "Branch Name",
-        namePlaceholder: "Enter full name",
-        location: "Branch location",
-        locationPlaceholder: "Select branch location",
-        latitude: "Latitude",
-        longitude: "Longitude",
-        latitudePlaceholder: "32.2270",
-        longitudePlaceholder: "35.2544",
-        locationPicker: "Location on Map",
-        company: "Company",
-        companyPlaceholder: "Select company",
-        companies: {
+    form: {
+      name: "Branch Name",
+      namePlaceholder: "Enter full name",
+      location: "Branch location",
+      locationPlaceholder: "Select branch location",
+      latitude: "Latitude",
+      longitude: "Longitude",
+      latitudePlaceholder: "32.2270",
+      longitudePlaceholder: "35.2544",
+      locationPicker: "Location on Map",
+      company: "Company",
+      companyPlaceholder: "Select company",
+      companies: {
         company1: "Company 1",
         company2: "Company 2",
       },
@@ -939,16 +939,16 @@ export default {
     next: "Next",
   },
   map: {
-      title: "Map",
-      pageTitle: "Tracking Drivers Map",
-      pageSubtitle: "Tracking Map",
-      popup: {
-        company: "Company",
-        branch: "Branch",
-        coordinates: "Coordinates",
-        viewDetails: "View Company Details",
-      },
+    title: "Map",
+    pageTitle: "Tracking Drivers Map",
+    pageSubtitle: "Tracking Map",
+    popup: {
+      company: "Company",
+      branch: "Branch",
+      coordinates: "Coordinates",
+      viewDetails: "View Company Details",
     },
+  },
 
   orders: {
     // Page Headers
@@ -1142,11 +1142,11 @@ export default {
       noOrderItems: "At least one order item is required",
       singlePackageOneItem: "Single package orders must have exactly one item",
       multiPackageMinItems: "Multi-package orders must have at least 2 items",
-        incompleteOrderItem:
-          "Order item {index} is incomplete. Please fill all required fields.",
-        sameBranchNotAllowed:
-          "Order item {index} must use different customer and delivery branches.",
-        multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
+      incompleteOrderItem:
+        "Order item {index} is incomplete. Please fill all required fields.",
+      sameBranchNotAllowed:
+        "Order item {index} must use different customer and delivery branches.",
+      multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
       fromCompanyRequired: "Order item {index} requires a from company for Fast case.",
       toCompanyRequired: "Order item {index} requires a to company for Part case.",
     },
@@ -1826,30 +1826,27 @@ export default {
 
   payment: {
     title: "Payments",
-    addNew: "Add Payment",
-    edit: "Edit Payment",
-    delete: "Delete",
-    details: "Details",
-    actions: "Actions",
     searchPlaceholder: "Search payments...",
+    addNew: "Add New Payment",
+    edit: "Edit Payment",
+    delete: "Delete Payment",
+    details: "Payment Details",
+    actions: "Actions",
     filterByStatus: "Filter by Status",
-    activePayments: "Active Payments",
-    bulkDelete: "Delete Selected",
-    bulkRestore: "Restore Selected",
-    confirmDeleteTitle: "Confirm Delete",
-    confirmDelete: "Are you sure you want to delete this payment?",
+
+    // Fields
     id: "ID",
     amount: "Amount",
     currency: "Currency",
     orderCode: "Order Code",
-    status: "Status",
-    entitySingular: "payment",
-    entityPlural: "payments",
     clientCompany: "Client Company",
     deliveryCompany: "Delivery Company",
     driverReceived: "Driver Received",
     driverPaid: "Driver Paid",
+    status: "Status",
     notes: "Notes",
+
+    // Form
     form: {
       amount: "Amount",
       amountPlaceholder: "Enter amount",
@@ -1857,18 +1854,49 @@ export default {
       orderPlaceholder: "Select order",
       currency: "Currency",
       currencyPlaceholder: "Select currency",
-      status: "Status"
+      status: "Status",
     },
+
+    // Status
+    paymentStatus: {
+      pending: "Pending",
+      completed: "Completed",
+      failed: "Failed",
+    },
+
+    // Actions
+    confirmDeleteTitle: "Confirm Delete",
+    confirmDelete: "Are you sure you want to delete this payment?",
+    bulkDelete: "Delete Selected Payments",
+    bulkRestore: "Restore Selected Payments",
+
+    // Tabs
+    activePayments: "Active Payments",
+
+    // Trashed
     trashed: {
       title: "Trashed Payments",
-      restore: "Restore"
-    }
+      restore: "Restore",
+    },
+
+    // Entity labels for bulk actions
+    entitySingular: "payment",
+    entityPlural: "payments",
+
+    // Payment Method Modal
+    markAsPaid: "Mark as Paid",
+    selectPaymentMethod: "Select Payment Method",
+    selectedPayments: "{count} payment(s) selected",
+    bankPayment: "Bank Payment",
+    bankPaymentDesc: "Payments will be marked as paid through bank",
+    driverPayment: "Driver Payment",
+    driverPaymentDesc: "Payments will be transferred to selected driver",
+    selectDriver: "Select Driver",
+    selectDriverPlaceholder: "-- Select Driver --",
+    driverRequired: "Driver selection is required",
+    selectPaymentMethodError: "Please select a payment method",
   },
-  paymentStatus: {
-    pending: "Pending",
-    completed: "Completed",
-    failed: "Failed"
-  },
+
 
   roles: {
     SuperAdmin: "Super Admin",

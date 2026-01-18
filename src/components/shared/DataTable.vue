@@ -17,6 +17,7 @@
                 type="checkbox"
                 v-model="selectAll"
                 @change="toggleSelectAll"
+                :disabled="allRowsDisabled"
               />
             </th>
 
@@ -82,9 +83,15 @@
                 </button>
               </td>
 
-              <!-- Checkbox for each row -->
+              <!-- Checkbox for each row - Hide if disabled -->
               <td v-if="showCheckbox" class="text-center">
-                <input type="checkbox" :value="row.id" v-model="selectedRows" />
+                <input 
+                  v-if="!isRowDisabled(row)"
+                  type="checkbox" 
+                  :value="row.id" 
+                  v-model="selectedRows" 
+                />
+                <span v-else class="text-muted">—</span>
               </td>
 
               <td v-for="col in columns" :key="col.key" class="text-dark">
@@ -127,7 +134,13 @@
           <!-- Mobile Expand Toggle and Checkbox -->
           <div class="d-flex align-items-center justify-content-between mb-2">
             <div v-if="showCheckbox">
-              <input type="checkbox" :value="row.id" v-model="selectedRows" />
+              <input 
+                v-if="!isRowDisabled(row)"
+                type="checkbox" 
+                :value="row.id" 
+                v-model="selectedRows" 
+              />
+              <span v-else class="text-muted small">—</span>
             </div>
             <button
               v-if="hasExpandSlot && isRowExpandable(row)"
@@ -224,6 +237,11 @@ const props = defineProps({
     type: Function,
     default: () => true,
   },
+  // ✅ Function to determine if a row checkbox should be disabled/hidden
+  disableRowWhen: {
+    type: Function,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -261,6 +279,18 @@ const toggleExpand = (rowId) => {
   expandedRows.value = new Set(expandedRows.value);
 };
 
+// ✅ Check if a row should be disabled
+const isRowDisabled = (row) => {
+  if (!props.disableRowWhen) return false;
+  return props.disableRowWhen(row);
+};
+
+// ✅ Check if all rows are disabled
+const allRowsDisabled = computed(() => {
+  if (!props.disableRowWhen) return false;
+  return sortedData.value.every(row => props.disableRowWhen(row));
+});
+
 const sortedData = computed(() => {
   return sortData(props.data, sortKey.value, sortDirection.value);
 });
@@ -281,17 +311,23 @@ const handleSort = (columnKey) => {
   }
 };
 
+// ✅ Modified to only select non-disabled rows
 const toggleSelectAll = () => {
   if (selectAll.value) {
-    selectedRows.value = sortedData.value.map((row) => row.id);
+    // Select only non-disabled rows
+    selectedRows.value = sortedData.value
+      .filter(row => !isRowDisabled(row))
+      .map((row) => row.id);
   } else {
     selectedRows.value = [];
   }
 };
 
+// ✅ Modified to check only enabled rows for selectAll state
 watch(selectedRows, (newVal) => {
-  selectAll.value =
-    newVal.length === sortedData.value.length && newVal.length > 0;
+  const enabledRows = sortedData.value.filter(row => !isRowDisabled(row));
+  selectAll.value = newVal.length === enabledRows.length && enabledRows.length > 0;
+  
   if (!arraysEqual(newVal, props.modelValue)) {
     emit("update:modelValue", newVal);
   }

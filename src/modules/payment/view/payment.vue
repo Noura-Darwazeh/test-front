@@ -1,57 +1,18 @@
 <template>
   <div class="payment-page-container bg-light">
-    <TableHeader
-      v-model="searchText"
-      :searchPlaceholder="$t('payment.searchPlaceholder')"
-      :data="payments"
-      groupKey="status"
-      v-model:groupModelValue="selectedGroups"
-      :groupLabel="$t('payment.filterByStatus')"
-      translationKey="paymentStatus"
-      :columns="paymentColumns"
-      v-model:visibleColumns="visibleColumns"
-      :addButtonText="$t('payment.addNew')"
-      @add-click="openModal"
-      @refresh-click="handleRefresh"
-    />
+    <TableHeader v-model="searchText" :searchPlaceholder="$t('payment.searchPlaceholder')" :data="payments"
+      groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('payment.filterByStatus')"
+      translationKey="paymentStatus" :columns="paymentColumns" v-model:visibleColumns="visibleColumns"
+      :addButtonText="$t('payment.addNew')" @add-click="openModal" @refresh-click="handleRefresh" />
 
     <div class="card border-0">
-      <!-- Tabs -->
-      <div class="card-header bg-white border-bottom">
-        <ul class="nav nav-tabs card-header-tabs">
-          <li class="nav-item">
-            <button
-              class="nav-link"
-              :class="{ active: activeTab === 'active' }"
-              @click="switchTab('active')"
-            >
-              {{ $t('payment.activePayments') }}
-            </button>
-          </li>
-          <li class="nav-item">
-            <button
-              class="nav-link trashed-tab"
-              :class="{ active: activeTab === 'trashed' }"
-              @click="switchTab('trashed')"
-            >
-              {{ $t('payment.trashed.title') }}
-            </button>
-          </li>
-        </ul>
-      </div>
-
       <div class="card-body p-0">
-        <!-- Bulk Actions Bar -->
-        <BulkActionsBar
-          :selectedCount="selectedRows.length"
-          entityName="payment"
-          :actions="bulkActions"
-          :loading="bulkActionLoading"
-          @action="handleBulkAction"
-        />
+        <!-- Bulk Actions Bar - Custom for Payments -->
+        <BulkActionsBar :selectedCount="selectedRows.length" entityName="payment" :actions="bulkActions"
+          :loading="bulkActionLoading" @action="handleBulkAction" />
 
         <!-- Loading State -->
-        <div v-if="currentLoading" class="text-center py-5">
+        <div v-if="paymentsStore.loading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">{{ $t('common.loading') }}</span>
           </div>
@@ -66,85 +27,33 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable
-            :columns="filteredColumns"
-            :data="paginatedData"
-            :actionsLabel="$t('payment.actions')"
-            v-model="selectedRows"
-          >
+          <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('payment.actions')"
+            v-model="selectedRows" :disableRowWhen="isPaymentCompleted">
             <template #actions="{ row }">
-              <ActionsDropdown
-                v-if="activeTab === 'active'"
-                :row="row"
-                :editLabel="$t('payment.edit')"
-                :detailsLabel="$t('payment.details')"
-                :deleteLabel="$t('payment.delete')"
-                :showDelete="true"
-                @edit="openEditModal"
-                @details="openDetailsModal"
-                @delete="handleDeletePayment"
-              />
-              <PrimaryButton
-                v-else
-                :text="$t('payment.trashed.restore')"
-                bgColor="var(--color-success)"
-                class="d-inline-flex align-items-center"
-                @click="handleRestorePayment(row)"
-              />
+              <ActionsDropdown :row="row" :editLabel="$t('payment.edit')" :detailsLabel="$t('payment.details')"
+                :showDelete="false" @edit="openEditModal" @details="openDetailsModal" />
             </template>
           </DataTable>
+
           <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination
-              :totalItems="currentFilteredData.length"
-              :itemsPerPage="itemsPerPage"
-              :currentPage="currentPage"
-              @update:currentPage="(page) => (currentPage = page)"
-            />
+            <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Form Modal -->
-    <FormModal
-      :isOpen="isModalOpen"
-      :title="isEditMode ? $t('payment.edit') : $t('payment.addNew')"
-      :fields="paymentFields"
-      :showImageUpload="false"
-      @close="closeModal"
-      @submit="handleSubmitPayment"
-    />
+    <FormModal :isOpen="isModalOpen" :title="isEditMode ? $t('payment.edit') : $t('payment.addNew')"
+      :fields="paymentFields" :showImageUpload="false" @close="closeModal" @submit="handleSubmitPayment" />
 
     <!-- Details Modal -->
-    <DetailsModal
-      :isOpen="isDetailsModalOpen"
-      :title="$t('payment.details')"
-      :data="selectedPayment"
-      :fields="detailsFields"
-      @close="closeDetailsModal"
-    />
+    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('payment.details')" :data="selectedPayment"
+      :fields="detailsFields" @close="closeDetailsModal" />
 
-    <!-- Delete Confirmation -->
-    <ConfirmationModal
-      :isOpen="isDeleteModalOpen"
-      :title="$t('payment.confirmDeleteTitle')"
-      :message="$t('payment.confirmDelete')"
-      :confirmText="$t('payment.delete')"
-      :cancelText="$t('common.cancel')"
-      @close="closeDeleteModal"
-      @confirm="confirmDelete"
-    />
-
-    <!-- Bulk Confirmation -->
-    <ConfirmationModal
-      :isOpen="isBulkConfirmOpen"
-      :title="$t('common.bulkDeleteConfirmTitle')"
-      :message="bulkConfirmMessage"
-      :confirmText="$t('common.confirm')"
-      :cancelText="$t('common.cancel')"
-      @confirm="executeBulkAction"
-      @close="cancelBulkAction"
-    />
+    <!-- Payment Method Modal -->
+    <PaymentMethodModal :isOpen="isPaymentMethodModalOpen" :selectedCount="selectedRows.length" :drivers="drivers"
+      :loading="paymentMethodLoading" @close="closePaymentMethodModal" @submit="handlePaymentMethodSubmit" />
   </div>
 </template>
 
@@ -154,11 +63,10 @@ import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
-import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import TableHeader from "../../../components/shared/TableHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
+import PaymentMethodModal from "../components/PaymentMethodModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { usePaymentsManagementStore } from "../store/paymentsManagement.js";
@@ -174,19 +82,17 @@ const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const isDeleteModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedPayment = ref({});
-const paymentToDelete = ref(null);
-const activeTab = ref('active');
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
-const isBulkConfirmOpen = ref(false);
-const pendingBulkAction = ref(null);
+const isPaymentMethodModalOpen = ref(false);
+const paymentMethodLoading = ref(false);
 
 // Data
 const orders = ref([]);
 const currencies = ref([]);
+const drivers = ref([]);
 
 // Status options
 const statuses = ref([
@@ -198,9 +104,10 @@ const statuses = ref([
 // Fetch dropdown data
 const fetchDropdownData = async () => {
   try {
-    const [ordersResponse, currenciesResponse] = await Promise.all([
+    const [ordersResponse, currenciesResponse, driversResponse] = await Promise.all([
       apiServices.getOrders(),
-      apiServices.getCurrencies()
+      apiServices.getCurrencies(),
+      apiServices.getDrivers()
     ]);
 
     orders.value = ordersResponse.data.data.map(order => ({
@@ -211,6 +118,11 @@ const fetchDropdownData = async () => {
     currencies.value = currenciesResponse.data.data.map(currency => ({
       value: String(currency.id),
       label: `${currency.code} (${currency.symbol})`
+    }));
+
+    drivers.value = driversResponse.data.data.map(driver => ({
+      value: String(driver.id),
+      label: driver.name || `Driver #${driver.id}`
     }));
   } catch (error) {
     console.error("❌ Failed to load dropdown data:", error);
@@ -231,7 +143,6 @@ onMounted(async () => {
 
 // Computed
 const payments = computed(() => paymentsStore.payments);
-const trashedPayments = computed(() => paymentsStore.trashedPayments);
 
 const paymentColumns = computed(() => [
   { key: "id", label: t("payment.id"), sortable: true },
@@ -242,21 +153,13 @@ const paymentColumns = computed(() => [
   { key: "delivery_company_name", label: t("payment.deliveryCompany"), sortable: false },
   { key: "driver_received_name", label: t("payment.driverReceived"), sortable: false },
   { key: "driver_paid_name", label: t("payment.driverPaid"), sortable: false },
-  { 
-    key: "status", 
-    label: t("payment.status"), 
-    sortable: true, 
-    component: "StatusBadge", 
-    componentProps: { type: "payment" } 
+  {
+    key: "status",
+    label: t("payment.status"),
+    sortable: true,
+    component: "StatusBadge",
+    componentProps: { type: "payment" }
   },
-]);
-
-const trashedColumns = computed(() => [
-  { key: "id", label: t("payment.id") },
-  { key: "amount", label: t("payment.amount") },
-  { key: "currency", label: t("payment.currency") },
-  { key: "order_code", label: t("payment.orderCode") },
-  { key: "status", label: t("payment.status") },
 ]);
 
 const visibleColumns = ref(paymentColumns.value.map(col => col.key));
@@ -316,27 +219,13 @@ const detailsFields = computed(() => [
   { key: 'status', label: t('payment.status'), translationKey: 'paymentStatus', colClass: 'col-md-12' },
 ]);
 
-const currentLoading = computed(() => {
-  return activeTab.value === 'active' ? paymentsStore.loading : paymentsStore.trashedLoading;
-});
-
-const currentData = computed(() => {
-  return activeTab.value === 'active' ? payments.value : trashedPayments.value;
-});
-
 const filteredColumns = computed(() => {
-  const columns = activeTab.value === 'active' ? paymentColumns.value : trashedColumns.value;
-  if (activeTab.value === 'active') {
-    return columns.filter((col) => visibleColumns.value.includes(col.key));
-  }
-  return columns;
+  return paymentColumns.value.filter((col) => visibleColumns.value.includes(col.key));
 });
 
 const currentFilteredData = computed(() => {
-  let result = currentData.value;
-  if (activeTab.value === 'active') {
-    result = filterByGroups(result, selectedGroups.value, "status");
-  }
+  let result = payments.value;
+  result = filterByGroups(result, selectedGroups.value, "status");
   result = filterData(result, searchText.value);
   return result;
 });
@@ -349,41 +238,13 @@ const paginatedData = computed(() => {
   );
 });
 
-const bulkActions = computed(() => {
-  if (activeTab.value === 'active') {
-    return [
-      {
-        id: 'delete',
-        label: t('payment.bulkDelete'),
-        bgColor: 'var(--color-danger)',
-      },
-    ];
-  } else {
-    return [
-      {
-        id: 'restore',
-        label: t('payment.bulkRestore'),
-        bgColor: 'var(--color-success)',
-      },
-    ];
-  }
-});
-
-const bulkConfirmMessage = computed(() => {
-  if (!pendingBulkAction.value) return '';
-
-  const entity = selectedRows.value.length === 1
-    ? t('payment.entitySingular')
-    : t('payment.entityPlural');
-
-  if (pendingBulkAction.value === 'delete') {
-    return t('common.bulkDeleteConfirmMessage', {
-      count: selectedRows.value.length,
-      entity
-    });
-  }
-  return '';
-});
+const bulkActions = computed(() => [
+  {
+    id: 'paid',
+    label: t('payment.markAsPaid'),
+    bgColor: 'var(--color-success)',
+  },
+]);
 
 // Watchers
 watch([searchText, selectedGroups], () => {
@@ -391,33 +252,14 @@ watch([searchText, selectedGroups], () => {
 });
 
 // Methods
-const switchTab = async (tab) => {
-  activeTab.value = tab;
-  currentPage.value = 1;
-  selectedRows.value = [];
-  if (tab === 'trashed') {
-    try {
-      await paymentsStore.fetchTrashedPayments();
-    } catch (error) {
-      console.error("❌ Failed to load trashed payments:", error);
-    }
-  } else {
-    try {
-      await paymentsStore.fetchPayments();
-    } catch (error) {
-      console.error("❌ Failed to load payments:", error);
-    }
-  }
+const isPaymentCompleted = (row) => {
+  return row.status === 'completed';
 };
 
 const handleRefresh = async () => {
   selectedRows.value = [];
   try {
-    if (activeTab.value === 'trashed') {
-      await paymentsStore.fetchTrashedPayments();
-    } else {
-      await paymentsStore.fetchPayments();
-    }
+    await paymentsStore.fetchPayments();
   } catch (error) {
     console.error("❌ Failed to refresh payments:", error);
   }
@@ -451,11 +293,6 @@ const closeDetailsModal = () => {
   selectedPayment.value = {};
 };
 
-const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false;
-  paymentToDelete.value = null;
-};
-
 const handleSubmitPayment = async (paymentData) => {
   try {
     const data = {
@@ -480,66 +317,47 @@ const handleSubmitPayment = async (paymentData) => {
   }
 };
 
-const handleRestorePayment = async (payment) => {
-  try {
-    await paymentsStore.restorePayment(payment.id);
-    console.log("✅ Payment restored successfully!");
-    await paymentsStore.fetchTrashedPayments();
-  } catch (error) {
-    console.error("❌ Failed to restore payment:", error);
-  }
-};
-
-const handleDeletePayment = (payment) => {
-  paymentToDelete.value = payment;
-  isDeleteModalOpen.value = true;
-};
-
-const confirmDelete = async () => {
-  try {
-    if (paymentToDelete.value) {
-      await paymentsStore.deletePayment(paymentToDelete.value.id);
-      console.log("✅ Payment deleted successfully!");
-      paymentToDelete.value = null;
-    }
-  } catch (error) {
-    console.error("❌ Failed to delete payment:", error);
-  }
-};
-
 const handleBulkAction = ({ actionId }) => {
-  pendingBulkAction.value = actionId;
-  if (actionId === 'delete') {
-    isBulkConfirmOpen.value = true;
-  } else {
-    executeBulkAction();
+  if (actionId === 'paid') {
+    isPaymentMethodModalOpen.value = true;
   }
 };
 
-const executeBulkAction = async () => {
-  bulkActionLoading.value = true;
+const closePaymentMethodModal = () => {
+  isPaymentMethodModalOpen.value = false;
+};
+
+const handlePaymentMethodSubmit = async (paymentMethodData) => {
+  paymentMethodLoading.value = true;
   try {
-    if (pendingBulkAction.value === 'delete') {
-      await paymentsStore.bulkDeletePayments(selectedRows.value);
-      console.log(`✅ ${selectedRows.value.length} payments deleted successfully!`);
-    } else if (pendingBulkAction.value === 'restore') {
-      await paymentsStore.bulkRestorePayments(selectedRows.value);
-      console.log(`✅ ${selectedRows.value.length} payments restored successfully!`);
-      await paymentsStore.fetchTrashedPayments();
-    }
-    selectedRows.value = [];
-  } catch (error) {
-    console.error(`❌ Failed to execute bulk ${pendingBulkAction.value}:`, error);
-  } finally {
-    bulkActionLoading.value = false;
-    isBulkConfirmOpen.value = false;
-    pendingBulkAction.value = null;
-  }
-};
+    // تحضير البيانات حسب structure الـ API
+    const paymentData = {
+      payment_ids: selectedRows.value, // array of payment IDs
+    };
 
-const cancelBulkAction = () => {
-  isBulkConfirmOpen.value = false;
-  pendingBulkAction.value = null;
+    // إضافة paid_by_driver_id فقط إذا كان الدفع للسائق
+    if (paymentMethodData.paid_by_driver_id) {
+      paymentData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
+    }
+
+    console.log("📤 Sending payment data:", paymentData);
+
+    const response = await apiServices.markPaymentsAsPaid(paymentData);
+
+    console.log("✅ Payments marked as paid successfully!");
+
+    // Refresh data
+    await paymentsStore.fetchPayments();
+
+    // Clear selection
+    selectedRows.value = [];
+    closePaymentMethodModal();
+  } catch (error) {
+    console.error("❌ Failed to mark payments as paid:", error);
+    alert(error.message || "Failed to process payment. Please try again.");
+  } finally {
+    paymentMethodLoading.value = false;
+  }
 };
 </script>
 
