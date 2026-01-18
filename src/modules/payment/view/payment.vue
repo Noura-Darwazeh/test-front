@@ -1,15 +1,29 @@
 <template>
   <div class="payment-page-container bg-light">
-    <TableHeader v-model="searchText" :searchPlaceholder="$t('payment.searchPlaceholder')" :data="payments"
-      groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('payment.filterByStatus')"
-      translationKey="paymentStatus" :columns="paymentColumns" v-model:visibleColumns="visibleColumns"
-      :addButtonText="$t('payment.addNew')" @add-click="openModal" @refresh-click="handleRefresh" />
+    <TableHeader 
+      v-model="searchText" 
+      :searchPlaceholder="$t('payment.searchPlaceholder')" 
+      :data="payments"
+      groupKey="status" 
+      v-model:groupModelValue="selectedGroups" 
+      :groupLabel="$t('payment.filterByStatus')"
+      translationKey="paymentStatus" 
+      :columns="paymentColumns" 
+      v-model:visibleColumns="visibleColumns"
+      :showAddButton="false"
+      @refresh-click="handleRefresh" 
+    />
 
     <div class="card border-0">
       <div class="card-body p-0">
-        <!-- Bulk Actions Bar - Custom for Payments -->
-        <BulkActionsBar :selectedCount="selectedRows.length" entityName="payment" :actions="bulkActions"
-          :loading="bulkActionLoading" @action="handleBulkAction" />
+        <!-- Bulk Actions Bar -->
+        <BulkActionsBar 
+          :selectedCount="selectedRows.length" 
+          entityName="payment" 
+          :actions="bulkActions"
+          :loading="bulkActionLoading" 
+          @action="handleBulkAction" 
+        />
 
         <!-- Loading State -->
         <div v-if="paymentsStore.loading" class="text-center py-5">
@@ -27,33 +41,65 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('payment.actions')"
-            v-model="selectedRows" :disableRowWhen="isPaymentCompleted">
+          <DataTable 
+            :columns="filteredColumns" 
+            :data="paginatedData" 
+            :actionsLabel="$t('payment.actions')"
+            v-model="selectedRows" 
+            :disableRowWhen="isPaymentCompleted"
+          >
             <template #actions="{ row }">
-              <ActionsDropdown :row="row" :editLabel="$t('payment.edit')" :detailsLabel="$t('payment.details')"
-                :showDelete="false" @edit="openEditModal" @details="openDetailsModal" />
+              <ActionsDropdown 
+                :row="row" 
+                :editLabel="$t('payment.edit')"
+                :detailsLabel="$t('payment.details')"
+                :showDelete="false"
+                @edit="openEditModal"
+                @details="openDetailsModal" 
+              />
             </template>
           </DataTable>
 
           <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
-              @update:currentPage="(page) => (currentPage = page)" />
+            <Pagination 
+              :totalItems="currentFilteredData.length" 
+              :itemsPerPage="itemsPerPage" 
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)" 
+            />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Form Modal -->
-    <FormModal :isOpen="isModalOpen" :title="isEditMode ? $t('payment.edit') : $t('payment.addNew')"
-      :fields="paymentFields" :showImageUpload="false" @close="closeModal" @submit="handleSubmitPayment" />
+    <!-- Edit Modal - للتعديل فقط على Amount, Status, Notes -->
+    <FormModal 
+      :isOpen="isModalOpen" 
+      :title="$t('payment.edit')"
+      :fields="paymentFields" 
+      :showImageUpload="false" 
+      @close="closeModal" 
+      @submit="handleSubmitPayment" 
+    />
 
     <!-- Details Modal -->
-    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('payment.details')" :data="selectedPayment"
-      :fields="detailsFields" @close="closeDetailsModal" />
+    <DetailsModal 
+      :isOpen="isDetailsModalOpen" 
+      :title="$t('payment.details')" 
+      :data="selectedPayment"
+      :fields="detailsFields" 
+      @close="closeDetailsModal" 
+    />
 
     <!-- Payment Method Modal -->
-    <PaymentMethodModal :isOpen="isPaymentMethodModalOpen" :selectedCount="selectedRows.length" :drivers="drivers"
-      :loading="paymentMethodLoading" @close="closePaymentMethodModal" @submit="handlePaymentMethodSubmit" />
+    <PaymentMethodModal 
+      :isOpen="isPaymentMethodModalOpen" 
+      :selectedCount="selectedRows.length" 
+      :drivers="drivers"
+      :loading="paymentMethodLoading" 
+      @close="closePaymentMethodModal" 
+      @submit="handlePaymentMethodSubmit" 
+    />
   </div>
 </template>
 
@@ -82,7 +128,6 @@ const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const isEditMode = ref(false);
 const selectedPayment = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
@@ -90,42 +135,25 @@ const isPaymentMethodModalOpen = ref(false);
 const paymentMethodLoading = ref(false);
 
 // Data
-const orders = ref([]);
-const currencies = ref([]);
 const drivers = ref([]);
 
 // Status options
 const statuses = ref([
-  { value: "pending", label: "Pending" },
-  { value: "completed", label: "Completed" },
-  { value: "failed", label: "Failed" },
+  { value: "pending", label: t("paymentStatus.pending") },
+  { value: "completed", label: t("paymentStatus.completed") },
+  { value: "failed", label: t("paymentStatus.failed") },
 ]);
 
-// Fetch dropdown data
-const fetchDropdownData = async () => {
+// Fetch drivers
+const fetchDrivers = async () => {
   try {
-    const [ordersResponse, currenciesResponse, driversResponse] = await Promise.all([
-      apiServices.getOrders(),
-      apiServices.getCurrencies(),
-      apiServices.getDrivers()
-    ]);
-
-    orders.value = ordersResponse.data.data.map(order => ({
-      value: String(order.id),
-      label: order.order_code || `Order #${order.id}`
-    }));
-
-    currencies.value = currenciesResponse.data.data.map(currency => ({
-      value: String(currency.id),
-      label: `${currency.code} (${currency.symbol})`
-    }));
-
+    const driversResponse = await apiServices.getDrivers();
     drivers.value = driversResponse.data.data.map(driver => ({
       value: String(driver.id),
       label: driver.name || `Driver #${driver.id}`
     }));
   } catch (error) {
-    console.error("❌ Failed to load dropdown data:", error);
+    console.error("❌ Failed to load drivers:", error);
   }
 };
 
@@ -134,7 +162,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       paymentsStore.fetchPayments(),
-      fetchDropdownData()
+      fetchDrivers()
     ]);
   } catch (error) {
     console.error("❌ Failed to load data:", error);
@@ -164,6 +192,7 @@ const paymentColumns = computed(() => [
 
 const visibleColumns = ref(paymentColumns.value.map(col => col.key));
 
+// ✅ فقط 3 حقول للتعديل: Amount, Status, Notes
 const paymentFields = computed(() => [
   {
     name: "amount",
@@ -172,28 +201,8 @@ const paymentFields = computed(() => [
     required: true,
     step: "0.01",
     placeholder: t("payment.form.amountPlaceholder"),
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedPayment.value.amount : '',
-  },
-  {
-    name: "order_id",
-    label: t("payment.form.order"),
-    type: "select",
-    required: true,
-    options: orders.value,
-    placeholder: t("payment.form.orderPlaceholder"),
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? String(selectedPayment.value.order_id) : '',
-  },
-  {
-    name: "currency_id",
-    label: t("payment.form.currency"),
-    type: "select",
-    required: true,
-    options: currencies.value,
-    placeholder: t("payment.form.currencyPlaceholder"),
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? String(selectedPayment.value.currency_id) : '',
+    colClass: "col-md-12",
+    defaultValue: selectedPayment.value.amount || '',
   },
   {
     name: "status",
@@ -201,8 +210,17 @@ const paymentFields = computed(() => [
     type: "select",
     required: true,
     options: statuses.value,
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedPayment.value.status : 'pending',
+    colClass: "col-md-12",
+    defaultValue: selectedPayment.value.status || 'pending',
+  },
+  {
+    name: "notes",
+    label: t("payment.form.notes"),
+    type: "text",
+    required: false,
+    placeholder: t("payment.form.notesPlaceholder"),
+    colClass: "col-md-12",
+    defaultValue: selectedPayment.value.notes || '',
   },
 ]);
 
@@ -265,14 +283,7 @@ const handleRefresh = async () => {
   }
 };
 
-const openModal = () => {
-  isEditMode.value = false;
-  selectedPayment.value = {};
-  isModalOpen.value = true;
-};
-
 const openEditModal = (payment) => {
-  isEditMode.value = true;
   selectedPayment.value = { ...payment };
   isModalOpen.value = true;
 };
@@ -284,7 +295,6 @@ const openDetailsModal = (payment) => {
 
 const closeModal = () => {
   isModalOpen.value = false;
-  isEditMode.value = false;
   selectedPayment.value = {};
 };
 
@@ -293,27 +303,40 @@ const closeDetailsModal = () => {
   selectedPayment.value = {};
 };
 
+// ✅ التعديل فقط على Amount, Status, Notes
+// ✅ التعديل الصحيح - استخدام "note" بدل "notes"
 const handleSubmitPayment = async (paymentData) => {
   try {
     const data = {
-      amount: paymentData.amount,
-      order_id: paymentData.order_id,
-      currency_id: paymentData.currency_id,
+      payment_ids: [selectedPayment.value.id],
       status: paymentData.status,
     };
 
-    if (isEditMode.value) {
-      await paymentsStore.updatePayment(selectedPayment.value.id, data);
-      console.log("✅ Payment updated successfully!");
-      closeModal();
-    } else {
-      await paymentsStore.addPayment(data);
-      console.log("✅ Payment added successfully!");
-      closeModal();
+    // ✅ استخدام "note" (مفرد) مش "notes"
+    if (paymentData.notes && paymentData.notes.trim() !== '') {
+      data.note = paymentData.notes;
     }
+
+    // ✅ إضافة amount إذا موجود
+    if (paymentData.amount) {
+      data.amount = parseFloat(paymentData.amount);
+    }
+
+    console.log("📤 Sending update request:", data);
+
+    const response = await apiServices.markPaymentsAsPaid(data);
+    
+    console.log("✅ Response:", response.data);
+    
+    // ✅ Refresh البيانات
+    await paymentsStore.fetchPayments();
+    
+    console.log("✅ Payment updated successfully!");
+    closeModal();
   } catch (error) {
-    console.error("❌ Failed to save payment:", error);
-    alert(error.message || "Failed to save payment. Please try again.");
+    console.error("❌ Failed to update payment:", error);
+    console.error("❌ Error details:", error.response?.data);
+    alert(error.response?.data?.message || error.message || "Failed to update payment. Please try again.");
   }
 };
 
@@ -330,27 +353,23 @@ const closePaymentMethodModal = () => {
 const handlePaymentMethodSubmit = async (paymentMethodData) => {
   paymentMethodLoading.value = true;
   try {
-    // ✅ استخدمي البيانات اللي جاية من الـ modal مباشرة
     const paymentData = {
       payment_ids: selectedRows.value,
-      status: paymentMethodData.status || 'completed' // ✅ خذي الـ status من الـ modal
+      status: paymentMethodData.status || 'completed'
     };
 
-    // ✅ أضيفي paid_by_driver_id إذا موجود
     if (paymentMethodData.paid_by_driver_id) {
       paymentData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
     }
 
     console.log("📤 Sending payment data:", paymentData);
 
-    const response = await apiServices.markPaymentsAsPaid(paymentData);
+    await apiServices.markPaymentsAsPaid(paymentData);
 
     console.log("✅ Payments marked as paid successfully!");
 
-    // Refresh data
     await paymentsStore.fetchPayments();
 
-    // Clear selection
     selectedRows.value = [];
     closePaymentMethodModal();
   } catch (error) {
@@ -360,11 +379,6 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
     paymentMethodLoading.value = false;
   }
 };
- 
-
-  
-
-
 </script>
 
 <style scoped>

@@ -11,46 +11,34 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
     const error = ref(null);
 
    const normalizePayment = (payment) => {
-    // ✅ طباعة دقيقة للـ objects
     console.log("🔍 Raw payment:", JSON.stringify(payment, null, 2));
     
-    // ✅ استخراج البيانات مباشرة
     const clientCompany = payment["Clinet company"];
     const deliveryCompany = payment["Delivery company"];
     const driverReceived = payment["Driver received"];
     const driverPaid = payment["Driver paid"];
     const order = payment.Order || payment.order;
     
-    // ✅ طباعة كل object لحاله
-    console.log("🏢 Client Company:", JSON.stringify(clientCompany, null, 2));
-    console.log("🚚 Delivery Company:", JSON.stringify(deliveryCompany, null, 2));
-    console.log("👤 Driver Received:", JSON.stringify(driverReceived, null, 2));
-    console.log("💰 Driver Paid:", JSON.stringify(driverPaid, null, 2));
-    
     const normalized = {
         id: payment.id,
         amount: payment.amount,
         status: payment.status,
-        notes: payment.notes || "N/A",
+        // ✅ دعم كل من "note" و "notes"
+        notes: payment.note || payment.notes || "N/A",
         currency: payment["currency "] ? payment["currency "].trim() : (payment.currency || "N/A"),
 
-        // Order data
         order_id: order ? order.id : null,
         order_code: order ? order.order_code : "N/A",
 
-        // Client company
         client_company_id: clientCompany ? clientCompany.id : null,
         client_company_name: clientCompany ? clientCompany.name : "N/A",
 
-        // Delivery company
         delivery_company_id: deliveryCompany ? deliveryCompany.id : null,
         delivery_company_name: deliveryCompany ? deliveryCompany.name : "N/A",
 
-        // Driver received
         driver_received_id: driverReceived ? driverReceived.id : null,
         driver_received_name: driverReceived ? driverReceived.name : "N/A",
 
-        // Driver paid
         driver_paid_id: driverPaid ? driverPaid.id : null,
         driver_paid_name: driverPaid ? driverPaid.name : "N/A",
         
@@ -61,9 +49,50 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
     console.log("✅ Final normalized:", JSON.stringify(normalized, null, 2));
     return normalized;
 };
-      
-           
- 
+
+// ✅ تبسيط دالة updatePayment
+const updatePayment = async (paymentId, paymentData) => {
+    loading.value = true;
+    error.value = null;
+    try {
+        console.log("🔄 Updating payment:", paymentId, paymentData);
+        
+        // ✅ تجهيز البيانات للـ API
+        const data = {
+            payment_ids: [paymentId],
+            status: paymentData.status,
+        };
+
+        // ✅ استخدام "note" مش "notes"
+        if (paymentData.notes && paymentData.notes.trim() !== '') {
+            data.note = paymentData.notes;
+        }
+
+        // ✅ إضافة amount
+        if (paymentData.amount) {
+            data.amount = parseFloat(paymentData.amount);
+        }
+        
+        console.log("📤 Sending to API:", data);
+        
+        const response = await apiServices.markPaymentsAsPaid(data);
+        
+        console.log("📥 Update response:", response.data);
+        
+        // ✅ Refresh البيانات بعد التعديل
+        await fetchPayments();
+        
+        return response.data;
+    } catch (err) {
+        error.value = err.message || "Failed to update payment";
+        console.error("❌ Error updating payment:", err);
+        throw err;
+    } finally {
+        loading.value = false;
+    }
+};
+    
+   
 
     // Getters
     const completedPayments = computed(() =>
@@ -80,14 +109,8 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
         error.value = null;
         try {
             const response = await apiServices.getPayments();
-
-            console.log("📦 Raw API Response:", response.data);
-            console.log("📦 First payment:", response.data.data[0]);
-
             payments.value = response.data.data.map(normalizePayment);
-
             console.log("✅ Normalized Payments:", payments.value);
-
             return response.data;
         } catch (err) {
             error.value = err.message || "Failed to fetch payments";
@@ -114,41 +137,10 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
         }
     };
 
-    const addPayment = async (paymentData) => {
-        loading.value = true;
-        error.value = null;
-        try {
-            const response = await apiServices.createPayment(paymentData);
-            const newPayment = normalizePayment(response.data.data);
-            payments.value.push(newPayment);
-            return newPayment;
-        } catch (err) {
-            error.value = err.message || "Failed to add payment";
-            console.error("❌ Error adding payment:", err);
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const updatePayment = async (paymentId, paymentData) => {
-        loading.value = true;
-        error.value = null;
-        try {
-            const response = await apiServices.updatePayment(paymentId, paymentData);
-            const index = payments.value.findIndex((p) => p.id === paymentId);
-            if (index > -1) {
-                payments.value[index] = normalizePayment(response.data.data);
-            }
-            return payments.value[index];
-        } catch (err) {
-            error.value = err.message || "Failed to update payment";
-            console.error("❌ Error updating payment:", err);
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    };
+  
+            
+          
+ 
 
     const deletePayment = async (paymentId) => {
         loading.value = true;
@@ -235,8 +227,7 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
         // Actions
         fetchPayments,
         fetchTrashedPayments,
-        addPayment,
-        updatePayment,
+        updatePayment, // ✅ دالة التعديل
         deletePayment,
         restorePayment,
         bulkDeletePayments,

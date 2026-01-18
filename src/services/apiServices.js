@@ -747,42 +747,52 @@ class ApiServices {
     });
   }
   // ===== Payment Services =====
-  async getPayments() {
-    return this.getEntities("payments");
-  }
-  async getTrashedPayments() {
-    return this.getTrashedEntities("payments");
-  }
+  // ===== Payment Services =====
+async getPayments() {
+  return this.getEntities("payments");
+}
 
-  async createPayment(paymentData) {
-    return this.createEntity("payments", paymentData);
-  }
+async getTrashedPayments() {
+  return this.getTrashedEntities("payments");
+}
 
-  async updatePayment(paymentId, paymentData) {
-    return this.updateEntity("payments", paymentId, paymentData);
+// ✅ استخدام POST مع X-HTTP-Method-Override بدل PATCH
+async updatePayment(paymentId, paymentData) {
+  try {
+    console.log("🔄 Updating payment with POST override:", paymentId, paymentData);
+    
+    return api.post(`/payments/${paymentId}`, paymentData, {
+      headers: {
+        'X-HTTP-Method-Override': 'PATCH',
+        'Content-Type': 'application/json'
+      }
+    });
+  } catch (error) {
+    console.error("❌ Error in updatePayment:", error);
+    throw error;
   }
+}
 
-  async deletePayment(paymentId, force = false) {
-    return this.deleteEntity("payments", paymentId, force);
-  }
+async deletePayment(paymentId, force = false) {
+  return this.deleteEntity("payments", paymentId, force);
+}
 
-  async restorePayment(paymentId) {
-    return this.restoreEntity("payments", paymentId);
-  }
+async restorePayment(paymentId) {
+  return this.restoreEntity("payments", paymentId);
+}
 
-  async bulkDeletePayments(paymentIds, force = false) {
-    return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
-  }
+async bulkDeletePayments(paymentIds, force = false) {
+  return this.bulkDeleteEntities("payment", "payments", paymentIds, force);
+}
 
-  async bulkRestorePayments(paymentIds) {
-    return this.bulkRestoreEntities("payment", "payments", paymentIds);
-  }
+async bulkRestorePayments(paymentIds) {
+  return this.bulkRestoreEntities("payment", "payments", paymentIds);
+}
 
-  // Mark payments as paid
-  async markPaymentsAsPaid(paymentData) {
-    return api.patch('/payments', paymentData);
-  }
-
+// Mark payments as paid
+async markPaymentsAsPaid(paymentData) {
+  return api.patch('/payments', paymentData);
+}
 
 
 

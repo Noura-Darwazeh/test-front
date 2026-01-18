@@ -166,19 +166,18 @@ const handleSubmit = () => {
     return;
   }
 
-  // ✅ Prepare data - Always include status: "completed"
+  // ✅ تجهيز البيانات مع "note" بدل "notes"
   const data = {
-    status: 'completed' // ✅ دايماً نرسل completed
+    status: 'completed'
   };
 
-  // ✅ إذا كان الدفع عن طريق Driver، نضيف paid_by_driver_id
   if (paymentMethod.value === 'driver') {
     data.paid_by_driver_id = parseInt(selectedDriver.value);
   }
-  // ✅ إذا كان دفع بنكي، نرسل status: completed بس (بدون paid_by_driver_id)
 
   emit('submit', data);
 };
+
 
 
 
