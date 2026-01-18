@@ -150,6 +150,8 @@ const closeModal = () => {
   emit('close');
 };
 
+
+
 const handleSubmit = () => {
   showError.value = false;
 
@@ -164,19 +166,24 @@ const handleSubmit = () => {
     return;
   }
 
-  // Prepare data according to API structure
+  // ✅ Prepare data - Always include status: "completed"
   const data = {
-    status: 'completed' // ✅ إضافة status completed دائماً
+    status: 'completed' // ✅ دايماً نرسل completed
   };
 
+  // ✅ إذا كان الدفع عن طريق Driver، نضيف paid_by_driver_id
   if (paymentMethod.value === 'driver') {
-    // إذا كان الدفع للسائق، نرسل paid_by_driver_id
     data.paid_by_driver_id = parseInt(selectedDriver.value);
   }
-  // إذا كان دفع بنكسي، نرسل payment_ids و status فقط
+  // ✅ إذا كان دفع بنكي، نرسل status: completed بس (بدون paid_by_driver_id)
 
   emit('submit', data);
 };
+
+
+
+  
+
 
 // Reset on modal open
 watch(() => props.isOpen, (newVal) => {
