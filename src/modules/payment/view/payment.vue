@@ -330,12 +330,13 @@ const closePaymentMethodModal = () => {
 const handlePaymentMethodSubmit = async (paymentMethodData) => {
   paymentMethodLoading.value = true;
   try {
-    // تحضير البيانات حسب structure الـ API
+    // ✅ استخدمي البيانات اللي جاية من الـ modal مباشرة
     const paymentData = {
-      payment_ids: selectedRows.value, // array of payment IDs
+      payment_ids: selectedRows.value,
+      status: paymentMethodData.status || 'completed' // ✅ خذي الـ status من الـ modal
     };
 
-    // إضافة paid_by_driver_id فقط إذا كان الدفع للسائق
+    // ✅ أضيفي paid_by_driver_id إذا موجود
     if (paymentMethodData.paid_by_driver_id) {
       paymentData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
     }
@@ -359,6 +360,11 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
     paymentMethodLoading.value = false;
   }
 };
+ 
+
+  
+
+
 </script>
 
 <style scoped>
