@@ -1895,6 +1895,9 @@ export default {
     selectDriverPlaceholder: "-- Select Driver --",
     driverRequired: "Driver selection is required",
     selectPaymentMethodError: "Please select a payment method",
+
+    createdAt: "Created At",
+    updatedAt: "Updated At"
   },
 
 

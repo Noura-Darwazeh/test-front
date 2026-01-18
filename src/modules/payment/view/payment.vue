@@ -186,7 +186,25 @@ const detailsFields = computed(() => [
   { key: 'driver_received_name', label: t('payment.driverReceived'), colClass: 'col-md-6' },
   { key: 'driver_paid_name', label: t('payment.driverPaid'), colClass: 'col-md-6' },
   { key: 'notes', label: t('payment.notes'), colClass: 'col-md-12' },
-  { key: 'status', label: t('payment.status'), translationKey: 'paymentStatus', colClass: 'col-md-12' },
+  { key: 'status', label: t('payment.status'), translationKey: 'paymentStatus', colClass: 'col-md-6' },
+  { 
+    key: 'created_at', 
+    label: t('payment.createdAt'), 
+    colClass: 'col-md-6',
+    translator: (value) => {
+      if (!value || value === 'null' || value === null) return 'N/A';
+      return new Date(value).toLocaleString();
+    }
+  },
+  { 
+    key: 'updated_at', 
+    label: t('payment.updatedAt'), 
+    colClass: 'col-md-6',
+    translator: (value) => {
+      if (!value || value === 'null' || value === null) return 'N/A';
+      return new Date(value).toLocaleString();
+    }
+  },
 ]);
 
 const filteredColumns = computed(() => {
@@ -231,7 +249,7 @@ const handleRefresh = async () => {
   try {
     await paymentsStore.fetchPayments();
   } catch (error) {
-    console.error(" Failed to refresh payments:", error);
+    console.error("❌ Failed to refresh payments:", error);
   }
 };
 

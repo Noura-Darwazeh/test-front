@@ -1829,4 +1829,9 @@
       "هل أنت متأكد من الحذف النهائي لـ {count} {entity}؟",
     bulkRestoreConfirm: "هل أنت متأكد من استعادة {count} {entity}؟",
   },
+
+  payment: {
+    createdAt: "تاريخ الإنشاء",
+    updatedAt: "تاريخ التحديث"
+  }
 };
