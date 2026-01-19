@@ -1618,7 +1618,14 @@ export default {
       symbol: "Currency Symbol",
       symbolPlaceholder: "Enter currency symbol (e.g., $, €)",
     },
-
+  details: {
+    id: "ID",
+    key: "Key",
+    nameEnglish: "Name (English)",
+    nameArabic: "Name (Arabic)",
+    symbol: "Symbol",
+    status: "Status"
+  },
     // Validation Messages
     validation: {
       keyRequired: "Currency code is required",
@@ -1632,6 +1639,8 @@ export default {
     actions: {
       edit: "Edit",
       delete: "Delete",
+      details: "Details",
+
     },
 
     // Bulk Actions

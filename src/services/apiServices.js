@@ -111,9 +111,8 @@ class ApiServices {
   }
 
   async bulkDeleteEntities(entitySingular, entityPlural, ids, force = false) {
-    const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${
-      force ? 1 : 0
-    }`;
+    const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${force ? 1 : 0
+      }`;
     return api.delete(endpoint, {
       data: { ids },
     });
@@ -229,7 +228,18 @@ class ApiServices {
   }
 
   async updateCurrency(currencyId, currencyData) {
-    return this.updateEntity("currencies", currencyId, currencyData);
+    try {
+      console.log('🔄 Updating currency:', currencyId, currencyData);
+
+      return api.patch(`/currencies/${currencyId}`, currencyData, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error updating currency:', error);
+      throw error;
+    }
   }
 
   async deleteCurrency(currencyId, force = false) {
@@ -829,9 +839,9 @@ class ApiServices {
   }
 
 
-async returnToOriginalUser() {
-  return api.post("/return_login");
-}
+  async returnToOriginalUser() {
+    return api.post("/return_login");
+  }
   // ===== Map Services =====
   async getMapData() {
     return api.get("/map-data");

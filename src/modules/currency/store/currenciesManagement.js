@@ -77,17 +77,23 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     loading.value = true;
     error.value = null;
     try {
+      console.log('🔄 Store: Updating currency:', currencyId);
+      console.log('📤 Store: Payload:', currencyData);
+
       const response = await apiServices.updateCurrency(currencyId, currencyData);
+
+      console.log('✅ Store: API response:', response.data);
 
       // Update local state directly with backend response
       const index = currencies.value.findIndex((c) => c.id === currencyId);
       if (index > -1) {
         currencies.value[index] = response.data.data;
       }
+      
       return currencies.value[index];
     } catch (err) {
       error.value = err.message || "Failed to update currency";
-      console.error("Error updating currency:", err);
+      console.error("❌ Store: Error updating currency:", err);
       throw err;
     } finally {
       loading.value = false;

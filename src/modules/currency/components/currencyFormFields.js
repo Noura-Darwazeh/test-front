@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
-export function useCurrencyFormFields() {
+export function useCurrencyFormFields(isEditMode, selectedCurrency) {
   const { t } = useI18n();
 
   const currencyFields = computed(() => [
@@ -11,6 +11,7 @@ export function useCurrencyFormFields() {
       type: "text",
       placeholder: t("currency.form.keyPlaceholder"),
       required: true,
+      defaultValue: isEditMode.value ? selectedCurrency.value.key : '',
       validation: {
         required: true,
         message: t("currency.validation.keyRequired"),
@@ -22,6 +23,7 @@ export function useCurrencyFormFields() {
       type: "text",
       placeholder: t("currency.form.nameEnglishPlaceholder"),
       required: true,
+      defaultValue: isEditMode.value ? selectedCurrency.value.nameenglish : '',
       validation: {
         required: true,
         message: t("currency.validation.nameEnglishRequired"),
@@ -33,6 +35,7 @@ export function useCurrencyFormFields() {
       type: "text",
       placeholder: t("currency.form.nameArabicPlaceholder"),
       required: true,
+      defaultValue: isEditMode.value ? selectedCurrency.value.namearabic : '',
       validation: {
         required: true,
         message: t("currency.validation.nameArabicRequired"),
@@ -44,6 +47,7 @@ export function useCurrencyFormFields() {
       type: "text",
       placeholder: t("currency.form.symbolPlaceholder"),
       required: true,
+      defaultValue: isEditMode.value ? selectedCurrency.value.symbol : '',
       validation: {
         required: true,
         message: t("currency.validation.symbolRequired"),

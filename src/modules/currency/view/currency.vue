@@ -7,9 +7,9 @@
       :data="currenciesWithLocalizedName"
       :columns="currencyColumns"
       v-model:visibleColumns="visibleColumns"
-      :showAddButton="true"
+      :showAddButton="canAdd"
       :addButtonText="$t('currency.addNew')"
-      @add-click="openModal"
+      @add-click="openAddModal"
       @refresh-click="handleRefresh"
     />
 
@@ -26,7 +26,7 @@
               {{ $t('common.active') }}
             </button>
           </li>
-          <li class="nav-item">
+          <li v-if="canDelete" class="nav-item">
             <button
               class="nav-link trashed-tab"
               :class="{ active: activeTab === 'trashed' }"
@@ -38,7 +38,9 @@
         </ul>
       </div>
       <div class="card-body p-0">
+        <!-- Bulk Actions Bar - Only for SuperAdmin -->
         <BulkActionsBar
+          v-if="canDelete"
           :selectedCount="selectedRows.length"
           entityName="currency"
           :actions="bulkActions"
@@ -66,15 +68,21 @@
             :columns="filteredColumns"
             :data="paginatedData"
             v-model="selectedRows"
+            :showCheckbox="canDelete"
           >
             <template #actions="{ row }">
               <Actions
                 v-if="activeTab === 'active'"
                 :row="row"
+                :editLabel="$t('currency.actions.edit')"
+                :detailsLabel="$t('currency.actions.details')"
                 :deleteLabel="$t('currency.actions.delete')"
-                :showEdit="false"
-                :showDetails="false"
+                :showEdit="canEdit"
+                :showDetails="true"
+                :showDelete="canDelete"
                 :confirmDelete="true"
+                @edit="openEditModal"
+                @details="openDetailsModal"
                 @delete="handleDeleteCurrency"
               />
               <Actions
@@ -84,7 +92,7 @@
                 :deleteLabel="$t('currency.trashed.delete')"
                 :showEdit="false"
                 :showDetails="false"
-                :showRestore="true"
+                :showRestore="canDelete"
                 :confirmDelete="true"
                 @restore="handleRestoreCurrency"
                 @delete="handlePermanentDeleteCurrency"
@@ -104,16 +112,26 @@
       </div>
     </div>
 
-    <!-- Form Modal for Currency -->
+    <!-- Form Modal for Add/Edit Currency -->
     <FormModal
-      :isOpen="isModalOpen"
-      :title="$t('currency.addNew')"
+      :isOpen="isFormModalOpen"
+      :title="isEditMode ? $t('currency.edit') : $t('currency.addNew')"
       :fields="currencyFields"
       :showImageUpload="false"
-      @close="closeModal"
-      @submit="handleAddCurrency"
+      @close="closeFormModal"
+      @submit="handleSubmitCurrency"
     />
 
+    <!-- Details Modal -->
+    <DetailsModal
+      :isOpen="isDetailsModalOpen"
+      :title="$t('currency.details')"
+      :data="selectedCurrency"
+      :fields="detailsFields"
+      @close="closeDetailsModal"
+    />
+
+    <!-- Bulk Action Confirmation Modal -->
     <ConfirmationModal
       :isOpen="isBulkConfirmOpen"
       :title="$t('common.bulkDeleteConfirmTitle')"
@@ -132,6 +150,7 @@ import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import CurrencyHeader from "../components/currencyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
@@ -139,16 +158,26 @@ import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCurrencyFormFields } from "../components/currencyFormFields.js";
 import { useCurrenciesManagementStore } from "../store/currenciesManagement.js";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { t, locale } = useI18n();
-const { currencyFields } = useCurrencyFormFields();
 const currenciesStore = useCurrenciesManagementStore();
+const authStore = useAuthStore();
+
+// Permissions
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
+const canAdd = computed(() => isSuperAdmin.value);
+const canEdit = computed(() => isSuperAdmin.value);
+const canDelete = computed(() => isSuperAdmin.value);
 
 const searchText = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
-const isModalOpen = ref(false);
+const isFormModalOpen = ref(false);
+const isDetailsModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedCurrency = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -158,6 +187,9 @@ const activeTab = ref('active');
 // Get currencies from store
 const currencies = computed(() => currenciesStore.currencies);
 const trashedCurrencies = computed(() => currenciesStore.trashedCurrencies);
+
+// Use currency fields with refs
+const { currencyFields } = useCurrencyFormFields(isEditMode, selectedCurrency);
 
 // Fetch currencies on component mount
 onMounted(async () => {
@@ -191,12 +223,14 @@ const currencyColumns = computed(() => [
   { key: "id", label: t("currency.table.id"), sortable: true },
   { key: "name", label: t("currency.table.name"), sortable: true },
   { key: "symbol", label: t("currency.table.symbol"), sortable: true },
+  { key: "key", label: t("currency.table.key"), sortable: true },
 ]);
 
 const trashedColumns = computed(() => [
   { key: "id", label: t("currency.table.id") },
   { key: "name", label: t("currency.table.name") },
   { key: "symbol", label: t("currency.table.symbol") },
+  { key: "key", label: t("currency.table.key") },
 ]);
 
 const visibleColumns = ref([]);
@@ -209,6 +243,16 @@ const filteredColumns = computed(() => {
   }
   return trashedColumns.value;
 });
+
+// Details fields
+const detailsFields = computed(() => [
+  { key: 'id', label: t('currency.details.id'), colClass: 'col-md-6' },
+  { key: 'key', label: t('currency.details.key'), colClass: 'col-md-6' },
+  { key: 'nameenglish', label: t('currency.details.nameEnglish'), colClass: 'col-md-6' },
+  { key: 'namearabic', label: t('currency.details.nameArabic'), colClass: 'col-md-6' },
+  { key: 'symbol', label: t('currency.details.symbol'), colClass: 'col-md-6' },
+  { key: 'is_active', label: t('currency.details.status'), colClass: 'col-md-6' },
+]);
 
 // Add localized name to currencies
 const currenciesWithLocalizedName = computed(() => {
@@ -306,12 +350,32 @@ const bulkConfirmMessage = computed(() => {
 });
 
 // Action methods
-const openModal = () => {
-  isModalOpen.value = true;
+const openAddModal = () => {
+  isEditMode.value = false;
+  selectedCurrency.value = {};
+  isFormModalOpen.value = true;
 };
 
-const closeModal = () => {
-  isModalOpen.value = false;
+const openEditModal = (currency) => {
+  isEditMode.value = true;
+  selectedCurrency.value = { ...currency };
+  isFormModalOpen.value = true;
+};
+
+const openDetailsModal = (currency) => {
+  selectedCurrency.value = { ...currency };
+  isDetailsModalOpen.value = true;
+};
+
+const closeFormModal = () => {
+  isFormModalOpen.value = false;
+  isEditMode.value = false;
+  selectedCurrency.value = {};
+};
+
+const closeDetailsModal = () => {
+  isDetailsModalOpen.value = false;
+  selectedCurrency.value = {};
 };
 
 const switchTab = async (tab) => {
@@ -348,31 +412,73 @@ const handleRefresh = async () => {
   }
 };
 
-const handleAddCurrency = async (currencyData) => {
+const handleSubmitCurrency = async (currencyData) => {
   try {
-    // Check for unique key validation
-    const existingCurrency = currencies.value.find(
-      (c) => c.key && c.key.toLowerCase() === currencyData.key.toLowerCase()
-    );
-    if (existingCurrency) {
-      alert(t("currency.validation.keyExists"));
-      return;
+    if (isEditMode.value) {
+      // Update existing currency - إرسال فقط الحقول المعدلة
+      console.log('📝 Component: Editing currency:', selectedCurrency.value.id);
+      console.log('📦 Component: Form data:', currencyData);
+
+      const updateData = {};
+      
+      // التحقق من كل حقل وإضافته فقط إذا تم تعديله
+      if (currencyData.key && currencyData.key !== selectedCurrency.value.key) {
+        updateData.key = currencyData.key.toUpperCase();
+      }
+      
+      if (currencyData.nameenglish && currencyData.nameenglish !== selectedCurrency.value.nameenglish) {
+        updateData.nameenglish = currencyData.nameenglish;
+      }
+      
+      if (currencyData.namearabic && currencyData.namearabic !== selectedCurrency.value.namearabic) {
+        updateData.namearabic = currencyData.namearabic;
+      }
+      
+      if (currencyData.symbol && currencyData.symbol !== selectedCurrency.value.symbol) {
+        updateData.symbol = currencyData.symbol;
+      }
+
+      // التحقق من وجود بيانات للتحديث
+      if (Object.keys(updateData).length === 0) {
+        console.log('⚠️ Component: No changes detected');
+        closeFormModal();
+        return;
+      }
+
+      console.log('📤 Component: Sending update data:', updateData);
+
+      await currenciesStore.updateCurrency(selectedCurrency.value.id, updateData);
+      console.log("✅ Component: Currency updated successfully!");
+      
+    } else {
+      // Add new currency
+      console.log('📝 Component: Adding new currency');
+      
+      // Check for unique key validation
+      const existingCurrency = currencies.value.find(
+        (c) => c.key && c.key.toLowerCase() === currencyData.key.toLowerCase()
+      );
+      if (existingCurrency) {
+        alert(t("currency.validation.keyExists"));
+        return;
+      }
+
+      const newCurrency = {
+        key: currencyData.key.toUpperCase(),
+        nameenglish: currencyData.nameenglish,
+        namearabic: currencyData.namearabic,
+        symbol: currencyData.symbol,
+      };
+
+      console.log('📤 Component: Sending new currency data:', newCurrency);
+
+      await currenciesStore.addCurrency(newCurrency);
+      console.log("✅ Component: Currency added successfully!");
     }
-
-    // Send to backend
-    const newCurrency = {
-      key: currencyData.key.toUpperCase(),
-      nameenglish: currencyData.nameenglish,
-      namearabic: currencyData.namearabic,
-      symbol: currencyData.symbol,
-    };
-
-    await currenciesStore.addCurrency(newCurrency);
-    console.log("✅ Currency added successfully!");
-    closeModal();
+    closeFormModal();
   } catch (error) {
-    console.error("❌ Failed to add currency:", error);
-    alert(error.message || "Failed to add currency");
+    console.error("❌ Component: Failed to save currency:", error);
+    alert(error.message || "Failed to save currency");
   }
 };
 
@@ -425,7 +531,7 @@ const executeBulkAction = async () => {
     }
     selectedRows.value = [];
   } catch (error) {
-    console.error("Failed to bulk delete currencies:", error);
+    console.error("Failed to bulk action currencies:", error);
   } finally {
     bulkActionLoading.value = false;
     isBulkConfirmOpen.value = false;
@@ -448,4 +554,3 @@ watch([searchText], () => {
   max-width: 100%;
 }
 </style>
-
