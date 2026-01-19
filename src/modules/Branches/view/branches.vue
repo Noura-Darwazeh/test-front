@@ -1,40 +1,24 @@
 <template>
     <div class="user-page-container bg-light">
-        <BranchesHeader
-            v-model="searchText"
-            :searchPlaceholder="$t('branch.searchPlaceholder')"
-            :data="branches"
-            groupKey="company_name"
-            v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('branch.filterByCompany')"
-            translationKey=""
-            :columns="branchColumns"
-            v-model:visibleColumns="visibleColumns"
-            :showAddButton="true"
-            :addButtonText="$t('branch.addNew')"
-            @add-click="openAddModal"
-            @refresh-click="handleRefresh"
-        />
+        <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches"
+            :groupKey="isSuperAdmin ? 'company_name' : null" v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('branch.filterByCompany')" translationKey="" :columns="displayColumns"
+            v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('branch.addNew')"
+            @add-click="openAddModal" @refresh-click="handleRefresh" />
 
         <div class="card border-0">
             <!-- Tabs -->
             <div class="card-header bg-white border-bottom">
                 <ul class="nav nav-tabs card-header-tabs">
                     <li class="nav-item">
-                        <button
-                            class="nav-link"
-                            :class="{ active: activeTab === 'active' }"
-                            @click="switchTab('active')"
-                        >
+                        <button class="nav-link" :class="{ active: activeTab === 'active' }"
+                            @click="switchTab('active')">
                             {{ $t('branch.activeBranches') }}
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button
-                            class="nav-link trashed-tab"
-                            :class="{ active: activeTab === 'trashed' }"
-                            @click="switchTab('trashed')"
-                        >
+                        <button class="nav-link trashed-tab" :class="{ active: activeTab === 'trashed' }"
+                            @click="switchTab('trashed')">
                             {{ $t('branch.trashed.title') }}
                         </button>
                     </li>
@@ -43,13 +27,8 @@
 
             <div class="card-body p-0">
                 <!-- Bulk Actions Bar -->
-                <BulkActionsBar
-                    :selectedCount="selectedRows.length"
-                    entityName="branch"
-                    :actions="bulkActions"
-                    :loading="bulkActionLoading"
-                    @action="handleBulkAction"
-                />
+                <BulkActionsBar :selectedCount="selectedRows.length" entityName="branch" :actions="bulkActions"
+                    :loading="bulkActionLoading" @action="handleBulkAction" />
 
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
@@ -67,47 +46,24 @@
 
                 <!-- Data Table -->
                 <div v-else>
-                    <DataTable
-                        :columns="filteredColumns"
-                        :data="paginatedData"
-                        :actionsLabel="$t('branch.actions')"
-                        v-model="selectedRows"
-                    >
+                    <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('branch.actions')"
+                        v-model="selectedRows">
                         <template #actions="{ row }">
                             <!-- Active Branches Actions -->
-                            <ActionsDropdown
-                                v-if="activeTab === 'active'"
-                                :row="row"
-                                :editLabel="$t('branch.edit')"
-                                :detailsLabel="$t('branch.details')"
-                                :deleteLabel="$t('branch.delete')"
-                                :confirmDelete="true"
-                                @edit="openEditModal"
-                                @details="openDetailsModal"
-                                @delete="handleDeleteBranch"
-                            />
+                            <ActionsDropdown v-if="activeTab === 'active'" :row="row" :editLabel="$t('branch.edit')"
+                                :detailsLabel="$t('branch.details')" :deleteLabel="$t('branch.delete')"
+                                :confirmDelete="true" @edit="openEditModal" @details="openDetailsModal"
+                                @delete="handleDeleteBranch" />
                             <!-- Trashed Branches Actions -->
-                            <ActionsDropdown
-                                v-else
-                                :row="row"
-                                :restoreLabel="$t('branch.trashed.restore')"
-                                :deleteLabel="$t('branch.trashed.delete')"
-                                :showEdit="false"
-                                :showDetails="false"
-                                :showRestore="true"
-                                :confirmDelete="true"
-                                @restore="handleRestorebranch"
-                                @delete="handlePermanentDeleteBranch"
-                            />
+                            <ActionsDropdown v-else :row="row" :restoreLabel="$t('branch.trashed.restore')"
+                                :deleteLabel="$t('branch.trashed.delete')" :showEdit="false" :showDetails="false"
+                                :showRestore="true" :confirmDelete="true" @restore="handleRestorebranch"
+                                @delete="handlePermanentDeleteBranch" />
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination
-                            :totalItems="currentFilteredData.length"
-                            :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage"
-                            @update:currentPage="(page) => currentPage = page"
-                        />
+                        <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                     </div>
                 </div>
             </div>
@@ -122,15 +78,9 @@
             :fields="detailsFields" @close="closeDetailsModal" />
 
         <!-- Bulk Action Confirmation Modal -->
-        <ConfirmationModal
-            :isOpen="isBulkConfirmOpen"
-            :title="$t('common.bulkDeleteConfirmTitle')"
-            :message="bulkConfirmMessage"
-            :confirmText="$t('common.confirm')"
-            :cancelText="$t('common.cancel')"
-            @confirm="executeBulkAction"
-            @close="cancelBulkAction"
-        />
+        <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction" @close="cancelBulkAction" />
     </div>
 </template>
 
@@ -151,7 +101,10 @@ import { useBranchesManagementStore } from "../stores/branchesStore";
 
 const { t } = useI18n();
 const branchesStore = useBranchesManagementStore();
-const { companyId, companyOption } = useAuthDefaults();
+const { companyId, companyOption, authStore } = useAuthDefaults();
+
+// ✅ Check if user is SuperAdmin
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -169,11 +122,11 @@ const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 
-// Use store data instead of local refs
+// Use store data
 const branches = computed(() => branchesStore.branches);
 const trashedbranches = computed(() => branchesStore.trashedBranches);
 
-// Load branches and companies on component mount
+// Load branches on component mount
 onMounted(async () => {
     try {
         await branchesStore.fetchBranches();
@@ -182,7 +135,7 @@ onMounted(async () => {
     }
 });
 
-// branch Form Fields 
+// Branch Form Fields 
 const branchFields = computed(() => [
     {
         name: 'name',
@@ -253,30 +206,65 @@ const branchFields = computed(() => [
     },
 ]);
 
-// Details Fields
-const detailsFields = computed(() => [
-    { key: 'id', label: t('branch.id'), colClass: 'col-md-6' },
-    { key: 'name', label: t('branch.name'), colClass: 'col-md-6' },
-    { key: 'company_name', label: t('branch.company'), colClass: 'col-md-6' },
-    { key: 'latitude', label: t('branch.form.latitude'), colClass: 'col-md-6' },
-    { key: 'longitude', label: t('branch.form.longitude'), colClass: 'col-md-6' },
-]);
+// ✅ Details Fields - Hide company for Admin
+const detailsFields = computed(() => {
+    const fields = [
+        { key: 'id', label: t('branch.id'), colClass: 'col-md-6' },
+        { key: 'name', label: t('branch.name'), colClass: 'col-md-6' },
+    ];
 
-// عرض فقط Name و Company في الجدول
-const branchColumns = ref([
+    // Only show company field for SuperAdmin
+    if (isSuperAdmin.value) {
+        fields.push({ key: 'company_name', label: t('branch.company'), colClass: 'col-md-6' });
+    }
+
+    fields.push(
+        { key: 'latitude', label: t('branch.form.latitude'), colClass: 'col-md-6' },
+        { key: 'longitude', label: t('branch.form.longitude'), colClass: 'col-md-6' }
+    );
+
+    return fields;
+});
+
+// ✅ Base columns - will be filtered based on role
+const baseColumns = ref([
     { key: "name", label: t("branch.name"), sortable: true },
     { key: "company_name", label: t("branch.company"), sortable: true },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "name", label: t("branch.name") },
-    { key: "company_name", label: t("branch.company") },
-]);
+// ✅ Columns to display based on user role
+const displayColumns = computed(() => {
+    if (isSuperAdmin.value) {
+        return baseColumns.value;
+    }
+    // For Admin, exclude company_name column
+    return baseColumns.value.filter(col => col.key !== 'company_name');
+});
+
+const trashedColumns = computed(() => {
+    const columns = [
+        { key: "name", label: t("branch.name") },
+    ];
+
+    // Only show company for SuperAdmin
+    if (isSuperAdmin.value) {
+        columns.push({ key: "company_name", label: t("branch.company") });
+    }
+
+    return columns;
+});
 
 const visibleColumns = ref([]);
 
+// ✅ Initialize visible columns based on role
+watch(() => displayColumns.value, (newColumns) => {
+    if (visibleColumns.value.length === 0) {
+        visibleColumns.value = newColumns.map(col => col.key);
+    }
+}, { immediate: true });
+
 const filteredColumns = computed(() => {
-    return branchColumns.value.filter((col) =>
+    return displayColumns.value.filter((col) =>
         visibleColumns.value.includes(col.key)
     );
 });
@@ -291,12 +279,15 @@ const currentLoading = computed(() => {
     return activeTab.value === 'active' ? branchesStore.loading : branchesStore.trashedLoading;
 });
 
-// Filter current data
+// ✅ Filter current data - only apply group filter for SuperAdmin
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    if (activeTab.value === 'active') {
+
+    // Only apply company filter for SuperAdmin
+    if (activeTab.value === 'active' && isSuperAdmin.value) {
         result = filterByGroups(result, selectedGroups.value, "company_name");
     }
+
     result = filterData(result, searchText.value);
     return result;
 });
@@ -461,7 +452,6 @@ const cancelBulkAction = () => {
 
 const handleSubmitbranch = async (branchData) => {
     try {
-        // تحضير البيانات بالتنسيق الصحيح
         const formattedData = {
             name: branchData.name,
             company_id: companyId.value ? parseInt(companyId.value) : null,
@@ -472,11 +462,9 @@ const handleSubmitbranch = async (branchData) => {
         console.log('📤 Submitting branch data:', formattedData);
 
         if (isEditMode.value) {
-            // Update existing branch using store action
             await branchesStore.updateBranch(selectedbranch.value.id, formattedData);
             console.log('✅ Branch updated successfully!');
         } else {
-            // Add new branch using store action
             await branchesStore.addBranch(formattedData);
             console.log('✅ Branch added successfully!');
         }
@@ -499,9 +487,9 @@ const handleRestorebranch = async (branch) => {
 const handleDeleteBranch = async (branch) => {
     try {
         await branchesStore.deleteBranch(branch.id);
-        console.log("?o. Branch deleted successfully!");
+        console.log("✅ Branch deleted successfully!");
     } catch (error) {
-        console.error("??O Error deleting branch:", error);
+        console.error("❌ Error deleting branch:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };
