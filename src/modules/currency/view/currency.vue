@@ -415,13 +415,13 @@ const handleRefresh = async () => {
 const handleSubmitCurrency = async (currencyData) => {
   try {
     if (isEditMode.value) {
-      // Update existing currency - إرسال فقط الحقول المعدلة
+      // Update existing currency
       console.log('📝 Component: Editing currency:', selectedCurrency.value.id);
       console.log('📦 Component: Form data:', currencyData);
 
       const updateData = {};
       
-      // التحقق من كل حقل وإضافته فقط إذا تم تعديله
+      // Check each field and add only if modified
       if (currencyData.key && currencyData.key !== selectedCurrency.value.key) {
         updateData.key = currencyData.key.toUpperCase();
       }
@@ -438,7 +438,7 @@ const handleSubmitCurrency = async (currencyData) => {
         updateData.symbol = currencyData.symbol;
       }
 
-      // التحقق من وجود بيانات للتحديث
+      // Check if there are changes to update
       if (Object.keys(updateData).length === 0) {
         console.log('⚠️ Component: No changes detected');
         closeFormModal();
