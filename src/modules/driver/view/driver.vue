@@ -97,12 +97,17 @@
                                 @delete="handleDeleteDriver"
                             />
                             <!-- Trashed Drivers Actions -->
-                            <PrimaryButton
+                            <ActionsDropdown
                                 v-else
-                                :text="$t('driver.trashed.restore')"
-                                bgColor="var(--color-success)"
-                                class="d-inline-flex align-items-center"
-                                @click="handleRestoreDriver(row)"
+                                :row="row"
+                                :restoreLabel="$t('driver.trashed.restore')"
+                                :deleteLabel="$t('driver.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                :confirmDelete="true"
+                                @restore="handleRestoreDriver"
+                                @delete="handlePermanentDeleteDriver"
                             />
                         </template>
                     </DataTable>
@@ -161,7 +166,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
@@ -681,6 +685,16 @@ const handleDeleteDriver = async (driver) => {
         console.log("?o. Driver deleted successfully!");
     } catch (error) {
         console.error("??O Failed to delete driver:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handlePermanentDeleteDriver = async (driver) => {
+    try {
+        await driverStore.deleteDriver(driver.id, true);
+        console.log("Driver permanently deleted successfully!");
+    } catch (error) {
+        console.error("Failed to permanently delete driver:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

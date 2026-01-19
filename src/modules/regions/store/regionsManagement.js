@@ -10,15 +10,39 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const regionsPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   // Actions
-  const fetchRegions = async () => {
+  const fetchRegions = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getRegions();
+      const response = await apiServices.getRegions({ page, perPage });
 
       // Use backend data directly, no mapping needed
       regions.value = response.data.data;
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        regionsPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       return response.data;
     } catch (err) {
@@ -69,12 +93,23 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
     }
   };
 
-  const fetchTrashedRegions = async () => {
+  const fetchTrashedRegions = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedRegions();
+      const response = await apiServices.getTrashedRegions({ page, perPage });
       trashedRegions.value = response.data.data;
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed regions";
@@ -190,6 +225,8 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
     loading,
     trashedLoading,
     error,
+    regionsPagination,
+    trashedPagination,
     // Actions
     fetchRegions,
     fetchTrashedRegions,

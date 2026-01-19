@@ -93,9 +93,10 @@
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
             <Pagination
-              :totalItems="currentFilteredData.length"
+              :totalItems="currentPagination.total"
               :itemsPerPage="itemsPerPage"
               :currentPage="currentPage"
+              :totalPages="currentPagination.lastPage"
               @update:currentPage="(page) => (currentPage = page)"
             />
           </div>
@@ -134,7 +135,7 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, paginateData } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCurrencyFormFields } from "../components/currencyFormFields.js";
 import { useCurrenciesManagementStore } from "../store/currenciesManagement.js";
@@ -145,7 +146,8 @@ const currenciesStore = useCurrenciesManagementStore();
 
 const searchText = ref("");
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isModalOpen = ref(false);
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
@@ -160,10 +162,27 @@ const trashedCurrencies = computed(() => currenciesStore.trashedCurrencies);
 // Fetch currencies on component mount
 onMounted(async () => {
   try {
-    await currenciesStore.fetchCurrencies();
+    await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage.value });
     console.log("✅ Currencies loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load currencies:", error);
+  }
+});
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+  if (skipNextPageWatch.value) {
+    skipNextPageWatch.value = false;
+    return;
+  }
+  try {
+    if (activeTab.value === "trashed") {
+      await currenciesStore.fetchTrashedCurrencies({ page: newPage, perPage: itemsPerPage.value });
+    } else {
+      await currenciesStore.fetchCurrencies({ page: newPage, perPage: itemsPerPage.value });
+    }
+  } catch (err) {
+    console.error("Failed to load page:", err);
   }
 });
 
@@ -230,12 +249,16 @@ const currentFilteredData = computed(() => {
   return result;
 });
 
+// Server already returns paginated data
 const paginatedData = computed(() => {
-  return paginateData(
-    currentFilteredData.value,
-    currentPage.value,
-    itemsPerPage.value
-  );
+  return currentFilteredData.value;
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+  return activeTab.value === "active"
+    ? currenciesStore.currenciesPagination
+    : currenciesStore.trashedPagination;
 });
 
 const bulkActions = computed(() => {
@@ -293,18 +316,19 @@ const closeModal = () => {
 
 const switchTab = async (tab) => {
   activeTab.value = tab;
+  skipNextPageWatch.value = true;
   currentPage.value = 1;
   selectedRows.value = [];
 
   if (tab === "trashed") {
     try {
-      await currenciesStore.fetchTrashedCurrencies();
+      await currenciesStore.fetchTrashedCurrencies({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
       console.error("Failed to load trashed currencies:", error);
     }
   } else {
     try {
-      await currenciesStore.fetchCurrencies();
+      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
       console.error("Failed to load currencies:", error);
     }
@@ -315,9 +339,9 @@ const handleRefresh = async () => {
   selectedRows.value = [];
   try {
     if (activeTab.value === "trashed") {
-      await currenciesStore.fetchTrashedCurrencies();
+      await currenciesStore.fetchTrashedCurrencies({ page: currentPage.value, perPage: itemsPerPage.value });
     } else {
-      await currenciesStore.fetchCurrencies();
+      await currenciesStore.fetchCurrencies({ page: currentPage.value, perPage: itemsPerPage.value });
     }
   } catch (error) {
     console.error("Failed to refresh currencies:", error);

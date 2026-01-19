@@ -212,6 +212,52 @@ const activeTab = ref('active');
 const driverLines = computed(() => driverLineStore.driverLines);
 const trashedDriverLines = computed(() => driverLineStore.trashedDriverLines);
 
+const driversById = computed(() => {
+  const map = {};
+  drivers.value.forEach((driver) => {
+    if (driver?.id === undefined || driver?.id === null) return;
+    map[driver.id] = driver.name || driver.user?.name || driver.username || "";
+  });
+  return map;
+});
+
+const lineWorksById = computed(() => {
+  const map = {};
+  lineWorks.value.forEach((lineWork) => {
+    if (lineWork?.id === undefined || lineWork?.id === null) return;
+    map[lineWork.id] = lineWork.name || "";
+  });
+  return map;
+});
+
+const withDisplayNames = (driverLine) => {
+  const driverName =
+    driverLine.driver_name ||
+    driversById.value[driverLine.driver_id] ||
+    (driverLine.driver_id !== undefined && driverLine.driver_id !== null
+      ? `Driver ${driverLine.driver_id}`
+      : "");
+  const lineWorkName =
+    driverLine.line_work_name ||
+    lineWorksById.value[driverLine.line_work_id] ||
+    (driverLine.line_work_id !== undefined && driverLine.line_work_id !== null
+      ? `Line Work ${driverLine.line_work_id}`
+      : "");
+
+  return {
+    ...driverLine,
+    driver_name: driverName,
+    line_work_name: lineWorkName,
+  };
+};
+
+const driverLinesWithNames = computed(() =>
+  driverLines.value.map(withDisplayNames)
+);
+const trashedDriverLinesWithNames = computed(() =>
+  trashedDriverLines.value.map(withDisplayNames)
+);
+
 // Fetch data on component mount
 onMounted(async () => {
   try {
@@ -257,8 +303,8 @@ const filteredColumns = computed(() => {
 
 const currentData = computed(() => {
   return activeTab.value === "active"
-    ? driverLines.value
-    : trashedDriverLines.value;
+    ? driverLinesWithNames.value
+    : trashedDriverLinesWithNames.value;
 });
 
 const currentLoading = computed(() => {

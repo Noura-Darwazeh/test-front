@@ -87,12 +87,17 @@
                 @delete="handleDeleteUser"
               />
               <!-- Trashed Users Actions -->
-              <PrimaryButton
+              <ActionsDropdown
                 v-else
-                :text="$t('user.trashed.restore')"
-                bgColor="var(--color-success)"
-                class="d-inline-flex align-items-center"
-                @click="handleRestoreUser(row)"
+                :row="row"
+                :restoreLabel="$t('user.trashed.restore')"
+                :deleteLabel="$t('user.trashed.delete')"
+                :showEdit="false"
+                :showDetails="false"
+                :showRestore="true"
+                :confirmDelete="true"
+                @restore="handleRestoreUser"
+                @delete="handlePermanentDeleteUser"
               />
             </template>
           </DataTable>
@@ -166,7 +171,6 @@ import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { useUsersManagementStore } from "../store/usersManagement.js";
 import { VALIDATION_LIMITS } from "../constants/userConstants.js";
 import apiServices from "@/services/apiServices.js";
@@ -557,31 +561,36 @@ const bulkActions = computed(() => {
         bgColor: "var(--color-danger)",
       },
     ];
-  } else {
-    return [
-      {
-        id: "restore",
-        label: t("user.bulkRestore"),
-        bgColor: "var(--color-success)",
-      },
-    ];
   }
+  return [
+    {
+      id: "restore",
+      label: t("user.bulkRestore"),
+      bgColor: "var(--color-success)",
+    },
+    {
+      id: "permanentDelete",
+      label: t("common.permanentDelete"),
+      bgColor: "var(--color-danger)",
+    },
+  ];
 });
 
 // Bulk confirmation message
 const bulkConfirmMessage = computed(() => {
   if (!pendingBulkAction.value) return "";
 
-  const entity =
-    selectedRows.value.length === 1
-      ? t("user.entitySingular")
-      : t("user.entityPlural");
+  const count = selectedRows.value.length;
+  const entity = count === 1 ? t("user.entitySingular") : t("user.entityPlural");
 
   if (pendingBulkAction.value === "delete") {
-    return t("common.bulkDeleteConfirmMessage", {
-      count: selectedRows.value.length,
-      entity,
-    });
+    return t("common.bulkDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "permanentDelete") {
+    return t("common.bulkPermanentDeleteConfirm", { count, entity });
+  }
+  if (pendingBulkAction.value === "restore") {
+    return t("common.bulkRestoreConfirm", { count, entity });
   }
   return "";
 });
@@ -781,6 +790,16 @@ const handleDeleteUser = (user) => {
   isDeleteModalOpen.value = true;
 };
 
+const handlePermanentDeleteUser = async (user) => {
+  try {
+    await usersStore.deleteUser(user.id, true);
+    console.log("User permanently deleted successfully!");
+  } catch (error) {
+    console.error("Failed to permanently delete user:", error);
+    alert(error.message || t("common.saveFailed"));
+  }
+};
+
 const confirmDelete = async () => {
   try {
     if (userToDelete.value) {
@@ -797,7 +816,7 @@ const confirmDelete = async () => {
 const handleBulkAction = ({ actionId }) => {
   pendingBulkAction.value = actionId;
 
-  if (actionId === "delete") {
+  if (actionId === "delete" || actionId === "permanentDelete") {
     isBulkConfirmOpen.value = true;
   } else {
     executeBulkAction();
@@ -809,14 +828,19 @@ const executeBulkAction = async () => {
 
   try {
     if (pendingBulkAction.value === "delete") {
-      await usersStore.bulkDeleteUsers(selectedRows.value);
+      await usersStore.bulkDeleteUsers(selectedRows.value, false);
       console.log(
-        `✅ ${selectedRows.value.length} users deleted successfully!`,
+        `? ${selectedRows.value.length} users deleted successfully!`,
+      );
+    } else if (pendingBulkAction.value === "permanentDelete") {
+      await usersStore.bulkDeleteUsers(selectedRows.value, true);
+      console.log(
+        `? ${selectedRows.value.length} users permanently deleted successfully!`,
       );
     } else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
       console.log(
-        `✅ ${selectedRows.value.length} users restored successfully!`,
+        `? ${selectedRows.value.length} users restored successfully!`,
       );
       await usersStore.fetchTrashedUsers();
     }
@@ -824,7 +848,7 @@ const executeBulkAction = async () => {
     selectedRows.value = [];
   } catch (error) {
     console.error(
-      `❌ Failed to execute bulk ${pendingBulkAction.value}:`,
+      `? Failed to execute bulk ${pendingBulkAction.value}:`,
       error,
     );
   } finally {

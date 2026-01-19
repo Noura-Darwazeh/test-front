@@ -87,12 +87,17 @@
                                 @delete="handleDeleteBranch"
                             />
                             <!-- Trashed Branches Actions -->
-                            <PrimaryButton
+                            <ActionsDropdown
                                 v-else
-                                :text="$t('branch.trashed.restore')"
-                                bgColor="var(--color-success)"
-                                class="d-inline-flex align-items-center"
-                                @click="handleRestorebranch(row)"
+                                :row="row"
+                                :restoreLabel="$t('branch.trashed.restore')"
+                                :deleteLabel="$t('branch.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                :confirmDelete="true"
+                                @restore="handleRestorebranch"
+                                @delete="handlePermanentDeleteBranch"
                             />
                         </template>
                     </DataTable>
@@ -137,7 +142,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
@@ -498,6 +502,16 @@ const handleDeleteBranch = async (branch) => {
         console.log("?o. Branch deleted successfully!");
     } catch (error) {
         console.error("??O Error deleting branch:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handlePermanentDeleteBranch = async (branch) => {
+    try {
+        await branchesStore.deleteBranch(branch.id, true);
+        console.log("Branch permanently deleted successfully!");
+    } catch (error) {
+        console.error("Failed to permanently delete branch:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

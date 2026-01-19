@@ -10,6 +10,20 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const companiesPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   // Getters
   const activeCompanies = computed(() =>
     companies.value.filter((company) => company.status === "active")
@@ -20,14 +34,24 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
   );
 
   // Actions
-  const fetchCompanies = async () => {
+  const fetchCompanies = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCompanies();
+      const response = await apiServices.getCompanies({ page, perPage });
 
       // Use backend data directly, no mapping needed
       companies.value = response.data.data;
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        companiesPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       return response.data;
     } catch (err) {
@@ -39,14 +63,24 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     }
   };
 
-  const fetchTrashedCompanies = async () => {
+  const fetchTrashedCompanies = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCompanies();
+      const response = await apiServices.getTrashedCompanies({ page, perPage });
 
       // Use backend data directly, no mapping needed
       trashedCompanies.value = response.data.data;
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
 
       return response.data;
     } catch (err) {
@@ -210,6 +244,8 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     loading,
     trashedLoading,
     error,
+    companiesPagination,
+    trashedPagination,
     // Getters
     activeCompanies,
     inactiveCompanies,

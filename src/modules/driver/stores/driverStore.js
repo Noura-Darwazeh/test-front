@@ -268,20 +268,27 @@ export const useDriverStore = defineStore("driver", () => {
 };
   
 
-  const deleteDriver = async (driverId) => {
+  const deleteDriver = async (driverId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteDriver(driverId);
+      await apiServices.deleteDriver(driverId, force);
 
-      const index = drivers.value.findIndex((d) => d.id === driverId);
-      if (index > -1) {
-        const driver = drivers.value.splice(index, 1)[0];
-        trashedDrivers.value.push(driver);
+      if (force) {
+        drivers.value = drivers.value.filter((driver) => driver.id !== driverId);
+        trashedDrivers.value = trashedDrivers.value.filter(
+          (driver) => driver.id !== driverId
+        );
+      } else {
+        const index = drivers.value.findIndex((d) => d.id === driverId);
+        if (index > -1) {
+          const driver = drivers.value.splice(index, 1)[0];
+          trashedDrivers.value.push(driver);
+        }
       }
     } catch (err) {
       error.value = err.message || "Failed to delete driver";
-      console.error("❌ Error deleting driver:", err);
+      console.error("??O Error deleting driver:", err);
       throw err;
     } finally {
       loading.value = false;

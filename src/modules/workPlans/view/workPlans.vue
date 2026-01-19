@@ -1,14 +1,14 @@
 <template>
     <div class="user-page-container bg-light">
-        <WorkPlansHeader v-model="searchText" :searchPlaceholder="$t('workPlan.searchPlaceholder')" :data="workPlans"
+        <WorkPlansHeader v-model="searchText" :searchPlaceholder="$t('workPlan.searchPlaceholder')" :data="headerData"
             groupKey="company_name" v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('workPlan.filterByCompany')" translationKey="" :columns="workPlanColumns"
             v-model:visibleColumns="visibleColumns" 
-            :showAddButton="canAddWorkPlan"
+            :showAddButton="canAddWorkPlan && activeTab !== 'trashed'"
             :addButtonText="$t('workPlan.addNew')"
-            :showTrashedButton="true" 
-            @add-click="openAddModal" 
-            @trashed-click="openTrashedModal" />
+            :showTrashedButton="false" 
+            @add-click="openAddModal"
+            @refresh-click="handleRefresh" />
 
         <!-- Tabs Navigation -->
         <div class="card border-0 mb-3">
@@ -16,14 +16,20 @@
                 <ul class="nav nav-tabs">
                     <li class="nav-item">
                         <button class="nav-link" :class="{ active: activeTab === 'calendar' }"
-                            @click="activeTab = 'calendar'">
+                            @click="switchTab('calendar')">
                             <i class="bi bi-calendar3 me-2"></i> {{ $t('workPlan.tabs.calendar') }}
                         </button>
                     </li>
                     <li class="nav-item">
                         <button class="nav-link" :class="{ active: activeTab === 'table' }"
-                            @click="activeTab = 'table'">
+                            @click="switchTab('table')">
                             <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
+                        </button>
+                    </li>
+                    <li v-if="canAddWorkPlan" class="nav-item">
+                        <button class="nav-link trashed-tab" :class="{ active: activeTab === 'trashed' }"
+                            @click="switchTab('trashed')">
+                            <i class="bi bi-trash me-2"></i> {{ $t('workPlan.trashed.title') }}
                         </button>
                     </li>
                 </ul>
@@ -50,7 +56,7 @@
                             :loading="bulkActionLoading"
                             @action="handleBulkAction"
                         />
-                        <DataTable :columns="filteredColumns" :data="paginatedworkPlans"
+                        <DataTable :columns="filteredColumns" :data="paginatedTableData"
                             :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
                             :showCheckbox="canAddWorkPlan">
                             <template #actions="{ row }">
@@ -74,8 +80,52 @@
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
-                            <Pagination :totalItems="filteredworkPlan.length" :itemsPerPage="itemsPerPage"
-                                :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                            <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" :totalPages="currentPagination.lastPage"
+                                @update:currentPage="(page) => currentPage = page" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'trashed'" class="tab-pane fade" :class="{ 'show active': activeTab === 'trashed' }">
+                <div class="card border-0">
+                    <div class="card-body p-0">
+                        <BulkActionsBar
+                            v-if="canAddWorkPlan"
+                            :selectedCount="selectedRows.length"
+                            entityName="workPlan"
+                            :actions="bulkActions"
+                            :loading="bulkActionLoading"
+                            @action="handleBulkAction"
+                        />
+                        <DataTable :columns="filteredColumns" :data="paginatedTableData"
+                            :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
+                            :showCheckbox="canAddWorkPlan">
+                            <template #actions="{ row }">
+                            <ActionsDropdown
+                                v-if="canAddWorkPlan"
+                                :row="row"
+                                :restoreLabel="$t('workPlan.trashed.restore')"
+                                :deleteLabel="$t('workPlan.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                @restore="handleRestoreworkPlan"
+                                @delete="handlePermanentDeleteWorkPlan" />
+                            <PrimaryButton
+                                v-else
+                                :text="$t('workPlan.details')"
+                                bgColor="var(--primary-color)"
+                                class="d-inline-flex align-items-center"
+                                @click="openDetailsModal(row)"
+                            />
+                            </template>
+                        </DataTable>
+                        <div class="px-3 pt-1 pb-2 bg-light">
+                            <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" :totalPages="currentPagination.lastPage"
+                                @update:currentPage="(page) => currentPage = page" />
                         </div>
                     </div>
                 </div>
@@ -89,22 +139,6 @@
         <!-- Details Modal -->
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('workPlan.details')" :data="selectedworkPlan"
             :fields="detailsFields" @close="closeDetailsModal" />
-
-        <!-- Trashed workPlans Modal -->
-        <TrashedItemsModal 
-            v-if="canAddWorkPlan"
-            :isOpen="isTrashedModalOpen" 
-            :title="$t('workPlan.trashed.title')"
-            :emptyMessage="$t('workPlan.trashed.empty')" 
-            :columns="trashedColumns" 
-            :trashedItems="trashedworkPlans"
-            entityName="workPlan" 
-            :bulkActions="trashedBulkActions" 
-            :bulkLoading="bulkActionLoading"
-            @close="closeTrashedModal" 
-            @restore="handleRestoreworkPlan" 
-            @delete="handlePermanentDeleteWorkPlan"
-            @bulk-action="handleTrashedBulkAction" />
 
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
             :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
@@ -120,11 +154,10 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import WorkPlansHeader from "../components/workPlansHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
-import TrashedItemsModal from "../../../components/shared/TrashedItemsModal.vue";
 import WorkPlanCalendar from "../components/calender.vue"
 import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
@@ -139,10 +172,10 @@ const driverStore = useDriverStore();
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const isTrashedModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedworkPlan = ref({});
 const activeTab = ref('calendar');
@@ -205,12 +238,83 @@ const driverOptions = computed(() => {
 onMounted(async () => {
     try {
         await driverStore.fetchDrivers();
-        await workPlansStore.fetchWorkPlans(driverStore.drivers);
+        await workPlansStore.fetchWorkPlans({ page: 1, perPage: itemsPerPage.value, drivers: driverStore.drivers });
         await fetchOrdersWithItems();
     } catch (error) {
         console.error("Failed to load initial data:", error);
     }
 });
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        if (activeTab.value === "trashed") {
+            await workPlansStore.fetchTrashedWorkPlans({
+                page: newPage,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        } else {
+            await workPlansStore.fetchWorkPlans({
+                page: newPage,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        }
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+const switchTab = async (tab) => {
+    activeTab.value = tab;
+    skipNextPageWatch.value = true;
+    currentPage.value = 1;
+    selectedRows.value = [];
+
+    try {
+        if (tab === "trashed") {
+            await workPlansStore.fetchTrashedWorkPlans({
+                page: 1,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        } else {
+            await workPlansStore.fetchWorkPlans({
+                page: 1,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        }
+    } catch (error) {
+        console.error("Failed to switch tabs:", error);
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        if (activeTab.value === "trashed") {
+            await workPlansStore.fetchTrashedWorkPlans({
+                page: currentPage.value,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        } else {
+            await workPlansStore.fetchWorkPlans({
+                page: currentPage.value,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        }
+    } catch (error) {
+        console.error("Failed to refresh work plans:", error);
+    }
+};
 
 // ✅ تعديل workPlan Form Fields لدعم التعديل
 const workPlanFields = computed(() => {
@@ -340,46 +444,63 @@ const trashedColumns = computed(() => [
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-    return workPlanColumns.value.filter((col) =>
-        visibleColumns.value.includes(col.key)
-    );
+    const columns =
+        activeTab.value === "trashed" ? trashedColumns.value : workPlanColumns.value;
+    if (activeTab.value === "trashed") return columns;
+    return columns.filter((col) => visibleColumns.value.includes(col.key));
 });
 
-const filteredworkPlan = computed(() => {
-    let result = workPlans.value;
+const headerData = computed(() => {
+    return activeTab.value === "trashed" ? trashedworkPlans.value : workPlans.value;
+});
+
+const currentTableData = computed(() => {
+    return activeTab.value === "trashed" ? trashedworkPlans.value : workPlans.value;
+});
+
+const filteredTableData = computed(() => {
+    let result = currentTableData.value;
     result = filterByGroups(result, selectedGroups.value, "company_name");
     result = filterData(result, searchText.value);
     return result;
 });
 
-const paginatedworkPlans = computed(() => {
-    return paginateData(
-        filteredworkPlan.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+// Server already returns paginated data
+const paginatedTableData = computed(() => {
+    return filteredTableData.value;
 });
 
-const bulkActions = computed(() => [
-    {
-        id: 'delete',
-        label: t('workPlan.bulkDelete'),
-        bgColor: 'var(--color-danger)'
-    }
-]);
+// Get pagination metadata from store
+const currentPagination = computed(() =>
+    activeTab.value === "trashed"
+        ? workPlansStore.trashedPagination
+        : workPlansStore.workPlansPagination
+);
 
-const trashedBulkActions = computed(() => [
-    {
-        id: 'restore',
-        label: t('workPlan.bulkRestore'),
-        bgColor: 'var(--color-success)'
-    },
-    {
-        id: 'permanentDelete',
-        label: t('common.permanentDelete'),
-        bgColor: 'var(--color-danger)'
+const bulkActions = computed(() => {
+    if (activeTab.value === "trashed") {
+        return [
+            {
+                id: "restore",
+                label: t("workPlan.bulkRestore"),
+                bgColor: "var(--color-success)",
+            },
+            {
+                id: "permanentDelete",
+                label: t("common.permanentDelete"),
+                bgColor: "var(--color-danger)",
+            },
+        ];
     }
-]);
+    return [
+        {
+            id: "delete",
+            label: t("workPlan.bulkDelete"),
+            bgColor: "var(--color-danger)",
+        },
+    ];
+});
+
 
 const bulkConfirmMessage = computed(() => {
     if (!pendingBulkAction.value) return '';
@@ -387,6 +508,12 @@ const bulkConfirmMessage = computed(() => {
     const count = selectedRows.value.length;
     const entity = count === 1 ? t('workPlan.entitySingular') : t('workPlan.entityPlural');
 
+    if (pendingBulkAction.value === "restore") {
+        return t('common.bulkRestoreConfirm', { count, entity });
+    }
+    if (pendingBulkAction.value === "permanentDelete") {
+        return t('common.bulkPermanentDeleteConfirm', { count, entity });
+    }
     return t('common.bulkDeleteConfirm', { count, entity });
 });
 
@@ -474,23 +601,7 @@ const closeDetailsModal = () => {
     selectedworkPlan.value = {};
 };
 
-const openTrashedModal = async () => {
-    if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to view trashed work plans");
-        return;
-    }
-    try {
-        await workPlansStore.fetchTrashedWorkPlans(driverStore.drivers);
-    } catch (error) {
-        console.error("Failed to load trashed work plans:", error);
-    } finally {
-        isTrashedModalOpen.value = true;
-    }
-};
 
-const closeTrashedModal = () => {
-    isTrashedModalOpen.value = false;
-};
 
 // ✅ تعديل handleSubmitworkPlan لدعم التعديل بشكل صحيح
 const handleSubmitworkPlan = async (workPlanData) => {
@@ -615,8 +726,15 @@ const executeBulkAction = async () => {
     bulkActionLoading.value = true;
 
     try {
-        await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, false);
+        if (pendingBulkAction.value === "delete") {
+            await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, false);
+        } else if (pendingBulkAction.value === "restore") {
+            await workPlansStore.bulkRestoreWorkPlans(selectedRows.value);
+        } else if (pendingBulkAction.value === "permanentDelete") {
+            await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, true);
+        }
         selectedRows.value = [];
+        await handleRefresh();
     } catch (error) {
         console.error("Failed to bulk delete work plans:", error);
     } finally {
@@ -631,26 +749,6 @@ const cancelBulkAction = () => {
     pendingBulkAction.value = null;
 };
 
-const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
-    if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission for trashed bulk actions");
-        return;
-    }
-    if (!selectedIds.length) return;
-    bulkActionLoading.value = true;
-
-    try {
-        if (actionId === "restore") {
-            await workPlansStore.bulkRestoreWorkPlans(selectedIds);
-        } else if (actionId === "permanentDelete") {
-            await workPlansStore.bulkDeleteWorkPlans(selectedIds, true);
-        }
-    } catch (error) {
-        console.error("Failed to perform bulk action on work plans:", error);
-    } finally {
-        bulkActionLoading.value = false;
-    }
-};
 
 </script>
 

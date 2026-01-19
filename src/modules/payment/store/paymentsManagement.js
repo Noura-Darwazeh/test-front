@@ -10,6 +10,20 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
     const trashedLoading = ref(false);
     const error = ref(null);
 
+    // Pagination state
+    const paymentsPagination = ref({
+        currentPage: 1,
+        perPage: 10,
+        total: 0,
+        lastPage: 1,
+    });
+    const trashedPagination = ref({
+        currentPage: 1,
+        perPage: 10,
+        total: 0,
+        lastPage: 1,
+    });
+
     const normalizePayment = (payment) => {
         console.log("🔍 Raw payment:", JSON.stringify(payment, null, 2));
 

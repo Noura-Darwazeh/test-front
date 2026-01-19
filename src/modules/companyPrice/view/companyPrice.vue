@@ -152,13 +152,13 @@ import { useCompanyPriceStore } from "../store/companyPriceStore.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
-const { companyId } = useAuthDefaults();
+const { companyId, currencyId, currencyName } = useAuthDefaults();
 const companyPriceStore = useCompanyPriceStore();
 
 // Simple price formatter
-const formatPrice = (value) => {
-  if (!value || isNaN(value)) return "$0.00";
-  return `$${Number(value).toFixed(2)}`;
+const formatPrice = (value, symbol = "$") => {
+  if (!value || isNaN(value)) return `${symbol}0.00`;
+  return `${symbol}${Number(value).toFixed(2)}`;
 };
 
 const searchText = ref("");
@@ -190,24 +190,28 @@ onMounted(async () => {
 // Add localized item type names
 const companyPricesWithLocalizedData = computed(() => {
   return companyPrices.value.map((item) => {
+    const symbol =
+      item.currency_symbol || item.currency_name || currencyName.value || "$";
     return {
       ...item,
       itemTypeDisplay: t(
         `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
       ),
-      priceDisplay: formatPrice(item.price),
+      priceDisplay: formatPrice(item.price, symbol),
     };
   });
 });
 
 const trashedCompanyPricesWithLocalizedData = computed(() => {
   return trashedCompanyPrices.value.map((item) => {
+    const symbol =
+      item.currency_symbol || item.currency_name || currencyName.value || "$";
     return {
       ...item,
       itemTypeDisplay: t(
         `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
       ),
-      priceDisplay: formatPrice(item.price),
+      priceDisplay: formatPrice(item.price, symbol),
     };
   });
 });
@@ -385,14 +389,20 @@ const handleAddCompanyPrice = async (priceData) => {
     : priceData.company_id
       ? parseInt(priceData.company_id, 10)
       : null;
+  const resolvedCurrencyId = currencyId.value
+    ? parseInt(currencyId.value, 10)
+    : priceData.currency_id
+      ? parseInt(priceData.currency_id, 10)
+      : null;
 
   const price = parseFloat(priceData.price);
 
   try {
     const payload = {
       price,
-      item_type: priceData.itemType,
+      itemType: priceData.itemType,
       company_id: resolvedCompanyId,
+      currency_id: resolvedCurrencyId,
     };
 
     if (isEditMode.value) {

@@ -111,8 +111,9 @@ class ApiServices {
   }
 
   async bulkDeleteEntities(entitySingular, entityPlural, ids, force = false) {
-    const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${force ? 1 : 0
-      }`;
+    const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${
+      force ? 1 : 0
+    }`;
     return api.delete(endpoint, {
       data: { ids },
     });
@@ -330,8 +331,8 @@ class ApiServices {
   async createCompany(companyData) {
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
-      formData.append('name', companyData.name);
-      formData.append('type', companyData.type);
+      formData.append("name", companyData.name);
+      formData.append("type", companyData.type);
 
       companyData.branches.forEach((branch, index) => {
         if (branch.name && branch.name.trim() !== "") {
@@ -350,15 +351,14 @@ class ApiServices {
       });
     }
 
-
     return this.createEntity("companies", companyData);
   }
 
   async updateCompany(companyId, companyData) {
     if (companyData.branches && companyData.branches.length > 0) {
       const formData = new FormData();
-      formData.append('name', companyData.name);
-      formData.append('type', companyData.type);
+      formData.append("name", companyData.name);
+      formData.append("type", companyData.type);
 
       companyData.branches.forEach((branch, index) => {
         if (branch.name && branch.name.trim() !== "") {
@@ -734,12 +734,15 @@ class ApiServices {
     console.log("🔄 API updateWorkPlan called for ID:", workPlanId);
     console.log("📤 API payload:", workPlanData);
 
-    const cleanData = Object.entries(workPlanData).reduce((acc, [key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        acc[key] = value;
-      }
-      return acc;
-    }, {});
+    const cleanData = Object.entries(workPlanData).reduce(
+      (acc, [key, value]) => {
+        if (value !== null && value !== undefined && value !== "") {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {},
+    );
 
     console.log("🧹 Cleaned data:", cleanData);
 
@@ -750,23 +753,27 @@ class ApiServices {
     });
   }
   // ===== Payment Services =====
-  async getPayments() {
-    return this.getEntities("payments");
+  async getPayments({ page = 1, perPage = 10 } = {}) {
+    return this.getEntities("payments", { page, perPage });
   }
 
-  async getTrashedPayments() {
-    return this.getTrashedEntities("payments");
+  async getTrashedPayments({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("payments", { page, perPage });
   }
 
   async updatePayment(paymentId, paymentData) {
     try {
-      console.log("🔄 Updating payment with POST override:", paymentId, paymentData);
+      console.log(
+        "🔄 Updating payment with POST override:",
+        paymentId,
+        paymentData,
+      );
 
       return api.post(`/payments/${paymentId}`, paymentData, {
         headers: {
-          'X-HTTP-Method-Override': 'PATCH',
-          'Content-Type': 'application/json'
-        }
+          "X-HTTP-Method-Override": "PATCH",
+          "Content-Type": "application/json",
+        },
       });
     } catch (error) {
       console.error("❌ Error in updatePayment:", error);
@@ -792,10 +799,8 @@ class ApiServices {
 
   // Mark payments as paid
   async markPaymentsAsPaid(paymentData) {
-    return api.patch('/payments', paymentData);
+    return api.patch("/payments", paymentData);
   }
-
-
 
   async deleteWorkPlan(workPlanId, force = false) {
     return this.deleteEntity("work_plans", workPlanId, force);
@@ -833,7 +838,7 @@ async returnToOriginalUser() {
   }
 
   async markPaymentsAsPaid(paymentData) {
-    return api.patch('/payments', paymentData);
+    return api.patch("/payments", paymentData);
   }
 }
 

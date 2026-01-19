@@ -93,9 +93,10 @@
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
             <Pagination
-              :totalItems="currentFilteredData.length"
+              :totalItems="currentPagination.total"
               :itemsPerPage="itemsPerPage"
               :currentPage="currentPage"
+              :totalPages="currentPagination.lastPage"
               @update:currentPage="(page) => (currentPage = page)"
             />
           </div>
@@ -145,7 +146,7 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDiscountFormFields } from "../components/discountFormFields.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
@@ -215,7 +216,8 @@ const formatPriceWithFallback = (value, fallbackText = "N/A") => {
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -233,13 +235,30 @@ const trashedDiscounts = computed(() => discountStore.trashedDiscounts);
 onMounted(async () => {
   try {
     await Promise.all([
-      discountStore.fetchDiscounts(),
+      discountStore.fetchDiscounts({ page: 1, perPage: itemsPerPage.value }),
       customers.value.length ? Promise.resolve() : customerStore.fetchCustomers(),
       regions.value.length ? Promise.resolve() : regionsStore.fetchRegions(),
       lines.value.length ? Promise.resolve() : linesStore.fetchLines(),
     ]);
   } catch (error) {
     console.error("Failed to load discounts:", error);
+  }
+});
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+  if (skipNextPageWatch.value) {
+    skipNextPageWatch.value = false;
+    return;
+  }
+  try {
+    if (activeTab.value === "trashed") {
+      await discountStore.fetchTrashedDiscounts({ page: newPage, perPage: itemsPerPage.value });
+    } else {
+      await discountStore.fetchDiscounts({ page: newPage, perPage: itemsPerPage.value });
+    }
+  } catch (err) {
+    console.error("Failed to load page:", err);
   }
 });
 
@@ -323,12 +342,16 @@ const currentFilteredData = computed(() => {
   return result;
 });
 
+// Server already returns paginated data
 const paginatedData = computed(() => {
-  return paginateData(
-    currentFilteredData.value,
-    currentPage.value,
-    itemsPerPage.value
-  );
+  return currentFilteredData.value;
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+  return activeTab.value === "active"
+    ? discountStore.discountsPagination
+    : discountStore.trashedPagination;
 });
 
 const bulkActions = computed(() => {
@@ -390,18 +413,19 @@ const closeModal = () => {
 
 const switchTab = async (tab) => {
   activeTab.value = tab;
+  skipNextPageWatch.value = true;
   currentPage.value = 1;
   selectedRows.value = [];
 
   if (tab === "trashed") {
     try {
-      await discountStore.fetchTrashedDiscounts();
+      await discountStore.fetchTrashedDiscounts({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
       console.error("Failed to load trashed discounts:", error);
     }
   } else {
     try {
-      await discountStore.fetchDiscounts();
+      await discountStore.fetchDiscounts({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
       console.error("Failed to load discounts:", error);
     }
@@ -412,9 +436,9 @@ const handleRefresh = async () => {
   selectedRows.value = [];
   try {
     if (activeTab.value === "trashed") {
-      await discountStore.fetchTrashedDiscounts();
+      await discountStore.fetchTrashedDiscounts({ page: currentPage.value, perPage: itemsPerPage.value });
     } else {
-      await discountStore.fetchDiscounts();
+      await discountStore.fetchDiscounts({ page: currentPage.value, perPage: itemsPerPage.value });
     }
   } catch (error) {
     console.error("Failed to refresh discounts:", error);

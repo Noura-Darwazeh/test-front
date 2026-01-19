@@ -93,12 +93,17 @@
                                 @delete="handleDeleteLinePrice"
                             />
                             <!-- Trashed Line Prices Actions -->
-                            <PrimaryButton
+                            <ActionsDropdown
                                 v-else
-                                :text="$t('linePrice.trashed.restore')"
-                                bgColor="var(--color-success)"
-                                class="d-inline-flex align-items-center"
-                                @click="handleRestoreLinePrice(row)"
+                                :row="row"
+                                :restoreLabel="$t('linePrice.trashed.restore')"
+                                :deleteLabel="$t('linePrice.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                :confirmDelete="true"
+                                @restore="handleRestoreLinePrice"
+                                @delete="handlePermanentDeleteLinePrice"
                             />
                         </template>
                     </DataTable>
@@ -154,7 +159,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
@@ -582,6 +586,16 @@ const handleDeleteLinePrice = async (linePrice) => {
         console.log("?o. Line price deleted successfully!");
     } catch (error) {
         console.error("??O Failed to delete line price:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handlePermanentDeleteLinePrice = async (linePrice) => {
+    try {
+        await linePriceStore.deleteLinePrice(linePrice.id, true);
+        console.log("Line price permanently deleted successfully!");
+    } catch (error) {
+        console.error("Failed to permanently delete line price:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

@@ -97,12 +97,17 @@
                                 @delete="handleDeleteCustomer"
                             />
                             <!-- Trashed Customers Actions -->
-                            <PrimaryButton
+                            <ActionsDropdown
                                 v-else
-                                :text="$t('customer.trashed.restore')"
-                                bgColor="var(--color-success)"
-                                class="d-inline-flex align-items-center"
-                                @click="handleRestoreCustomer(row)"
+                                :row="row"
+                                :restoreLabel="$t('customer.trashed.restore')"
+                                :deleteLabel="$t('customer.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                :confirmDelete="true"
+                                @restore="handleRestoreCustomer"
+                                @delete="handlePermanentDeleteCustomer"
                             />
                         </template>
                     </DataTable>
@@ -159,7 +164,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import CustomerHeader from "../components/customerHeader.vue";
@@ -628,6 +632,16 @@ const handleDeleteCustomer = async (customer) => {
         console.log("✅ Customer deleted successfully!");
     } catch (error) {
         console.error("❌ Failed to delete customer:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handlePermanentDeleteCustomer = async (customer) => {
+    try {
+        await customerStore.deleteCustomer(customer.id, true);
+        console.log("Customer permanently deleted successfully!");
+    } catch (error) {
+        console.error("Failed to permanently delete customer:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

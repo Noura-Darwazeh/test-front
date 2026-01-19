@@ -40,8 +40,9 @@
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="filteredcompanies.length" :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                        <Pagination :totalItems="companyStore.companiesPagination.total" :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" :totalPages="companyStore.companiesPagination.lastPage"
+                            @update:currentPage="(page) => currentPage = page" />
                     </div>
                 </div>
             </div>
@@ -69,8 +70,8 @@
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="filteredTrashedCompanies.length" :itemsPerPage="itemsPerPage"
-                            :currentPage="trashedCurrentPage"
+                        <Pagination :totalItems="companyStore.trashedPagination.total" :itemsPerPage="itemsPerPage"
+                            :currentPage="trashedCurrentPage" :totalPages="companyStore.trashedPagination.lastPage"
                             @update:currentPage="(page) => trashedCurrentPage = page" />
                     </div>
                 </div>
@@ -219,7 +220,7 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import CompanyHeader from "../components/companyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -236,12 +237,14 @@ const activeTab = ref('active');
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 
 // Search and Filters - Trashed Tab
 const trashedSearchText = ref("");
 const trashedSelectedGroups = ref([]);
 const trashedCurrentPage = ref(1);
+const skipNextTrashedPageWatch = ref(false);
 
 // Modal States
 const isFormModalOpen = ref(false);
@@ -346,7 +349,7 @@ const filteredColumns = computed(() => {
     );
 });
 
-// Active Companies Filtering and Pagination
+// Active Companies Filtering (server handles pagination)
 const filteredcompanies = computed(() => {
     let result = companies.value;
     result = filterByGroups(result, selectedGroups.value, "type");
@@ -354,15 +357,12 @@ const filteredcompanies = computed(() => {
     return result;
 });
 
+// Server already returns paginated data
 const paginatedcompanies = computed(() => {
-    return paginateData(
-        filteredcompanies.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return filteredcompanies.value;
 });
 
-// Trashed Companies Filtering and Pagination
+// Trashed Companies Filtering (server handles pagination)
 const filteredTrashedCompanies = computed(() => {
     let result = trashedCompanies.value;
     result = filterByGroups(result, trashedSelectedGroups.value, "type");
@@ -370,12 +370,9 @@ const filteredTrashedCompanies = computed(() => {
     return result;
 });
 
+// Server already returns paginated data
 const paginatedTrashedCompanies = computed(() => {
-    return paginateData(
-        filteredTrashedCompanies.value,
-        trashedCurrentPage.value,
-        itemsPerPage.value
-    );
+    return filteredTrashedCompanies.value;
 });
 
 // Bulk Actions Configuration
@@ -459,23 +456,52 @@ watch(activeTab, () => {
 // Fetch data on mount
 onMounted(async () => {
     try {
-        await companyStore.fetchCompanies();
+        await companyStore.fetchCompanies({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
         console.error("Failed to fetch companies:", error);
     }
 });
 
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        await companyStore.fetchCompanies({ page: newPage, perPage: itemsPerPage.value });
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+watch(trashedCurrentPage, async (newPage) => {
+    if (skipNextTrashedPageWatch.value) {
+        skipNextTrashedPageWatch.value = false;
+        return;
+    }
+    try {
+        await companyStore.fetchTrashedCompanies({ page: newPage, perPage: itemsPerPage.value });
+    } catch (err) {
+        console.error("Failed to load trashed page:", err);
+    }
+});
+
 // Watch active tab and refresh current list
 watch(activeTab, async (newTab) => {
+    skipNextPageWatch.value = true;
+    skipNextTrashedPageWatch.value = true;
     if (newTab === 'trashed') {
+        trashedCurrentPage.value = 1;
         try {
-            await companyStore.fetchTrashedCompanies();
+            await companyStore.fetchTrashedCompanies({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("Failed to fetch trashed companies:", error);
         }
     } else {
+        currentPage.value = 1;
         try {
-            await companyStore.fetchCompanies();
+            await companyStore.fetchCompanies({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("Failed to fetch companies:", error);
         }
@@ -644,9 +670,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await companyStore.fetchTrashedCompanies();
+            await companyStore.fetchTrashedCompanies({ page: trashedCurrentPage.value, perPage: itemsPerPage.value });
         } else {
-            await companyStore.fetchCompanies();
+            await companyStore.fetchCompanies({ page: currentPage.value, perPage: itemsPerPage.value });
         }
     } catch (error) {
         console.error("Failed to refresh companies:", error);

@@ -173,21 +173,28 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     }
   };
 
-  const deleteBranch = async (branchId) => {
+  const deleteBranch = async (branchId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteBranch(branchId);
+      await apiServices.deleteBranch(branchId, force);
 
-      // Remove from active branches
-      const index = branches.value.findIndex((b) => b.id === branchId);
-      if (index > -1) {
-        branches.value.splice(index, 1);
+      if (force) {
+        branches.value = branches.value.filter((branch) => branch.id !== branchId);
+        trashedBranches.value = trashedBranches.value.filter(
+          (branch) => branch.id !== branchId
+        );
+      } else {
+        const index = branches.value.findIndex((b) => b.id === branchId);
+        if (index > -1) {
+          const branch = branches.value.splice(index, 1)[0];
+          trashedBranches.value.push(branch);
+        }
       }
-      console.log("✅ Branch deleted successfully");
+      console.log("?o. Branch deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete branch";
-      console.error("❌ Error deleting branch:", err);
+      console.error("??O Error deleting branch:", err);
       throw err;
     } finally {
       loading.value = false;

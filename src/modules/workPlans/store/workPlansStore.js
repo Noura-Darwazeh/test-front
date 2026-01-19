@@ -9,6 +9,20 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  // Pagination state
+  const workPlansPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   const extractIdName = (value) => {
     if (Array.isArray(value)) {
       return { id: value[0], name: value[1] || "" };
@@ -91,15 +105,26 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     };
   };
 
-  const fetchWorkPlans = async (drivers = []) => {
+  const fetchWorkPlans = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getWorkPlans();
+      const response = await apiServices.getWorkPlans({ page, perPage });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
       workPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        workPlansPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
       console.log("✅ Fetched work plans:", workPlans.value);
       return response.data;
     } catch (err) {
@@ -111,15 +136,26 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
-  const fetchTrashedWorkPlans = async (drivers = []) => {
+  const fetchTrashedWorkPlans = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedWorkPlans();
+      const response = await apiServices.getTrashedWorkPlans({ page, perPage });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
       trashedWorkPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
+
+      // Update pagination metadata from response
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      }
+
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed work plans";
@@ -296,6 +332,8 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     loading,
     trashedLoading,
     error,
+    workPlansPagination,
+    trashedPagination,
     // Actions
     fetchWorkPlans,
     fetchTrashedWorkPlans,

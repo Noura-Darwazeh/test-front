@@ -255,21 +255,28 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     }
   };
 
-  const deleteLinePrice = async (priceId) => {
+  const deleteLinePrice = async (priceId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteLinePrice(priceId);
+      await apiServices.deleteLinePrice(priceId, force);
 
-      const index = linePrices.value.findIndex((p) => p.id === priceId);
-      if (index > -1) {
-        const price = linePrices.value.splice(index, 1)[0];
-        trashedLinePrices.value.push(price);
+      if (force) {
+        linePrices.value = linePrices.value.filter((price) => price.id !== priceId);
+        trashedLinePrices.value = trashedLinePrices.value.filter(
+          (price) => price.id !== priceId
+        );
+      } else {
+        const index = linePrices.value.findIndex((p) => p.id === priceId);
+        if (index > -1) {
+          const price = linePrices.value.splice(index, 1)[0];
+          trashedLinePrices.value.push(price);
+        }
       }
-      console.log("✅ Line price deleted successfully");
+      console.log("? Line price deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete line price";
-      console.error("❌ Error deleting line price:", err);
+      console.error("? Error deleting line price:", err);
       throw err;
     } finally {
       loading.value = false;

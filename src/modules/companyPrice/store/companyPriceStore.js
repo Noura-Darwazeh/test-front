@@ -26,6 +26,19 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
       price.company_name ||
       companyInfo.name ||
       (companyId ? `Company ${companyId}` : "");
+    const currencyInfo = extractIdName(price.currency_id ?? price.currency);
+    const currencyId = currencyInfo.id;
+    const currencyName =
+      price.currency_name ||
+      price.currency?.name ||
+      currencyInfo.name ||
+      "";
+    const currencySymbol =
+      price.currency_symbol ||
+      price.currency?.symbol ||
+      price.currency?.name ||
+      currencyName ||
+      "";
 
     return {
       id: price.id,
@@ -33,6 +46,9 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
       itemType: price.itemType || price.item_type || "",
       company_id: companyId,
       company_name: companyName,
+      currency_id: currencyId,
+      currency_name: currencyName,
+      currency_symbol: currencySymbol,
       created_at: price.created_at,
       updated_at: price.updated_at,
       deleted_at: price.deleted_at,

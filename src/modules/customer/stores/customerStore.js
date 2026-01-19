@@ -225,21 +225,28 @@ export const useCustomerStore = defineStore("customer", () => {
     }
   };
 
-  const deleteCustomer = async (customerId) => {
+  const deleteCustomer = async (customerId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteCustomer(customerId);
+      await apiServices.deleteCustomer(customerId, force);
 
-      const index = customers.value.findIndex((c) => c.id === customerId);
-      if (index > -1) {
-        const customer = customers.value.splice(index, 1)[0];
-        trashedCustomers.value.push(customer);
+      if (force) {
+        customers.value = customers.value.filter((c) => c.id !== customerId);
+        trashedCustomers.value = trashedCustomers.value.filter(
+          (c) => c.id !== customerId
+        );
+      } else {
+        const index = customers.value.findIndex((c) => c.id === customerId);
+        if (index > -1) {
+          const customer = customers.value.splice(index, 1)[0];
+          trashedCustomers.value.push(customer);
+        }
       }
-      console.log("✅ Customer deleted successfully");
+      console.log("? Customer deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete customer";
-      console.error("❌ Error deleting customer:", err);
+      console.error("? Error deleting customer:", err);
       throw err;
     } finally {
       loading.value = false;

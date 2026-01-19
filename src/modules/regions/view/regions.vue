@@ -2,12 +2,12 @@
     <div class="user-page-container bg-light">
         <RegionsHeader v-model="searchText" :searchPlaceholder="$t('regions.searchPlaceholder')" :data="regions"
             :columns="regionsColumns" v-model:visibleColumns="visibleColumns"
-            :showAddButton="true" :addButtonText="$t('regions.addNew')" @add-click="openAddModal"
+            :showAddButton="isSuperAdmin" :addButtonText="$t('regions.addNew')" @add-click="openAddModal"
             @refresh-click="handleRefresh" />
 
         <div class="card border-0">
-            <!-- Tabs -->
-            <div class="card-header bg-white border-bottom">
+            <!-- Tabs - إخفاء تاب Trashed من الأدمن -->
+            <div class="card-header bg-white border-bottom" v-if="isSuperAdmin">
                 <ul class="nav nav-tabs card-header-tabs">
                     <li class="nav-item">
                         <button
@@ -29,14 +29,18 @@
                     </li>
                 </ul>
             </div>
+            
             <div class="card-body p-0">
+                <!-- إخفاء BulkActionsBar من الأدمن -->
                 <BulkActionsBar
+                    v-if="isSuperAdmin"
                     :selectedCount="selectedRows.length"
                     entityName="regions"
                     :actions="bulkActions"
                     :loading="bulkActionLoading"
                     @action="handleBulkAction"
                 />
+                
                 <!-- Loading State -->
                 <div v-if="currentLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status">
@@ -53,16 +57,36 @@
 
                 <!-- Data Table -->
                 <div v-else>
-                    <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('regions.actions')"
-                        v-model="selectedRows">
+                    <DataTable 
+                        :columns="filteredColumns" 
+                        :data="paginatedData" 
+                        :actionsLabel="$t('regions.actions')"
+                        v-model="selectedRows"
+                        :showCheckbox="isSuperAdmin"
+                    >
                         <template #actions="{ row }">
+                            <!-- للأدمن: فقط Details -->
                             <ActionsDropdown
-                                v-if="activeTab === 'active'"
+                                v-if="!isSuperAdmin"
+                                :row="row"
+                                :detailsLabel="$t('regions.details')"
+                                :showEdit="false"
+                                :showDelete="false"
+                                :showRestore="false"
+                                @details="openDetailsModal"
+                            />
+                            
+                            <!-- للسوبر أدمن: كل الصلاحيات -->
+                            <ActionsDropdown
+                                v-else-if="activeTab === 'active'"
                                 :row="row"
                                 :editLabel="$t('regions.edit')"
-                                :detailsLabel="$t('regions.details')" :deleteLabel="$t('regions.delete')"
+                                :detailsLabel="$t('regions.details')" 
+                                :deleteLabel="$t('regions.delete')"
                                 :confirmDelete="true"
-                                @edit="openEditModal" @details="openDetailsModal" @delete="handleDeleteRegion"
+                                @edit="openEditModal" 
+                                @details="openDetailsModal" 
+                                @delete="handleDeleteRegion"
                             />
                             <ActionsDropdown
                                 v-else
@@ -79,24 +103,45 @@
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
+                        <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage"
+                            :currentPage="currentPage" :totalPages="currentPagination.lastPage"
+                            @update:currentPage="(page) => currentPage = page" />
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Dynamic Form Modal for Add/Edit regions -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('regions.edit') : $t('regions.addNew')"
-            :fields="regionsFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitregions" />
+        <!-- Form Modal - فقط للسوبر أدمن -->
+        <FormModal 
+            v-if="isSuperAdmin"
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('regions.edit') : $t('regions.addNew')"
+            :fields="regionsFields" 
+            :showImageUpload="false" 
+            @close="closeFormModal" 
+            @submit="handleSubmitregions" 
+        />
 
-        <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('regions.details')" :data="selectedregions"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <!-- Details Modal - للجميع -->
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('regions.details')" 
+            :data="selectedregions"
+            :fields="detailsFields" 
+            @close="closeDetailsModal" 
+        />
 
-        <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
-            :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
-            @confirm="executeBulkAction" @close="cancelBulkAction" />
+        <!-- Confirmation Modal - فقط للسوبر أدمن -->
+        <ConfirmationModal 
+            v-if="isSuperAdmin"
+            :isOpen="isBulkConfirmOpen" 
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage" 
+            :confirmText="$t('common.confirm')" 
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction" 
+            @close="cancelBulkAction" 
+        />
     </div>
 </template>
 
@@ -108,18 +153,24 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, paginateData } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import RegionsHeader from "../components/regionsHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useRegionsManagementStore } from "../store/regionsManagement.js";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { t, locale } = useI18n();
 const regionsStore = useRegionsManagementStore();
+const authStore = useAuthStore();
+
+// ✅ التحقق من صلاحيات السوبر أدمن
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -137,11 +188,28 @@ const trashedregions = computed(() => regionsStore.trashedRegions);
 // Fetch regions on component mount
 onMounted(async () => {
   try {
-    await regionsStore.fetchRegions();
+    await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage.value });
     console.log("✅ Regions loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load regions:", error);
   }
+});
+
+// Watch for page changes to fetch new data from server
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        if (activeTab.value === "trashed") {
+            await regionsStore.fetchTrashedRegions({ page: newPage, perPage: itemsPerPage.value });
+        } else {
+            await regionsStore.fetchRegions({ page: newPage, perPage: itemsPerPage.value });
+        }
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
 });
 
 // regions Form Fields
@@ -273,12 +341,16 @@ const currentFilteredData = computed(() => {
     return result;
 });
 
+// Server already returns paginated data
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
+});
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+    return activeTab.value === "active"
+        ? regionsStore.regionsPagination
+        : regionsStore.trashedPagination;
 });
 
 const bulkActions = computed(() => {
@@ -328,21 +400,29 @@ watch([searchText], () => {
     currentPage.value = 1;
 });
 
-// Add Modal
+// Add Modal - فقط للسوبر أدمن
 const openAddModal = () => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot add regions');
+        return;
+    }
     isEditMode.value = false;
     selectedregions.value = {};
     isFormModalOpen.value = true;
 };
 
-// Edit Modal
+// Edit Modal - فقط للسوبر أدمن
 const openEditModal = (regions) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot edit regions');
+        return;
+    }
     isEditMode.value = true;
     selectedregions.value = { ...regions };
     isFormModalOpen.value = true;
 };
 
-// Details Modal
+// Details Modal - للجميع
 const openDetailsModal = (regions) => {
     selectedregions.value = { ...regions };
     isDetailsModalOpen.value = true;
@@ -360,19 +440,25 @@ const closeDetailsModal = () => {
 };
 
 const switchTab = async (tab) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot access trashed tab');
+        return;
+    }
+    
     activeTab.value = tab;
+    skipNextPageWatch.value = true;
     currentPage.value = 1;
     selectedRows.value = [];
 
     if (tab === 'trashed') {
         try {
-            await regionsStore.fetchTrashedRegions();
+            await regionsStore.fetchTrashedRegions({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("Failed to load trashed regions:", error);
         }
     } else {
         try {
-            await regionsStore.fetchRegions();
+            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("Failed to load regions:", error);
         }
@@ -383,9 +469,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await regionsStore.fetchTrashedRegions();
+            await regionsStore.fetchTrashedRegions({ page: currentPage.value, perPage: itemsPerPage.value });
         } else {
-            await regionsStore.fetchRegions();
+            await regionsStore.fetchRegions({ page: currentPage.value, perPage: itemsPerPage.value });
         }
     } catch (error) {
         console.error("Failed to refresh regions:", error);
@@ -393,6 +479,11 @@ const handleRefresh = async () => {
 };
 
 const handleSubmitregions = async (regionsData) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot submit regions');
+        return;
+    }
+    
     try {
         const keyValue = (regionsData.key || "").trim();
         const payload = {
@@ -417,6 +508,11 @@ const handleSubmitregions = async (regionsData) => {
 };
 
 const handleRestoreregions = async (region) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot restore regions');
+        return;
+    }
+    
     try {
         await regionsStore.restoreRegion(region.id);
         console.log("Region restored successfully!");
@@ -427,6 +523,11 @@ const handleRestoreregions = async (region) => {
 };
 
 const handleDeleteRegion = async (region) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot delete regions');
+        return;
+    }
+    
     try {
         await regionsStore.deleteRegion(region.id);
         console.log("Region deleted successfully!");
@@ -437,6 +538,11 @@ const handleDeleteRegion = async (region) => {
 };
 
 const handlePermanentDeleteRegion = async (region) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot permanently delete regions');
+        return;
+    }
+    
     try {
         await regionsStore.deleteRegion(region.id, true);
         console.log("Region permanently deleted successfully!");
@@ -447,12 +553,18 @@ const handlePermanentDeleteRegion = async (region) => {
 };
 
 const handleBulkAction = ({ actionId }) => {
+    if (!isSuperAdmin.value) {
+        console.warn('⚠️ Admin users cannot perform bulk actions');
+        return;
+    }
+    
     pendingBulkAction.value = actionId;
     isBulkConfirmOpen.value = true;
 };
 
 const executeBulkAction = async () => {
-    if (!pendingBulkAction.value) return;
+    if (!isSuperAdmin.value || !pendingBulkAction.value) return;
+    
     bulkActionLoading.value = true;
 
     try {
@@ -485,4 +597,3 @@ const cancelBulkAction = () => {
     max-width: 100%;
 }
 </style>
-

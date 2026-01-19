@@ -221,21 +221,28 @@ export const useLinesStore = defineStore("lines", () => {
     }
   };
 
-  const deleteLine = async (lineId) => {
+  const deleteLine = async (lineId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteLine(lineId);
+      await apiServices.deleteLine(lineId, force);
 
-      const index = lines.value.findIndex((l) => l.id === lineId);
-      if (index > -1) {
-        const line = lines.value.splice(index, 1)[0];
-        trashedLines.value.push(line);
+      if (force) {
+        lines.value = lines.value.filter((line) => line.id !== lineId);
+        trashedLines.value = trashedLines.value.filter(
+          (line) => line.id !== lineId
+        );
+      } else {
+        const index = lines.value.findIndex((l) => l.id === lineId);
+        if (index > -1) {
+          const line = lines.value.splice(index, 1)[0];
+          trashedLines.value.push(line);
+        }
       }
-      console.log("✅ Line deleted successfully");
+      console.log("? Line deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete line";
-      console.error("❌ Error deleting line:", err);
+      console.error("? Error deleting line:", err);
       throw err;
     } finally {
       loading.value = false;

@@ -167,18 +167,22 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     }
   };
 
-  const deleteUser = async (userId) => {
+  const deleteUser = async (userId, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteEntity('users', userId, false);
+      await apiServices.deleteEntity('users', userId, force);
 
-      // Remove from active users after successful API call
-      const index = users.value.findIndex((u) => u.id === userId);
-      if (index > -1) {
-        users.value.splice(index, 1);
+      if (force) {
+        users.value = users.value.filter((u) => u.id !== userId);
+        trashedUsers.value = trashedUsers.value.filter((u) => u.id !== userId);
+      } else {
+        // Remove from active users after successful API call
+        const index = users.value.findIndex((u) => u.id === userId);
+        if (index > -1) {
+          users.value.splice(index, 1);
+        }
       }
-      // Note: Trashed users will be fetched from API when needed
     } catch (err) {
       error.value = err.message || "Failed to delete user";
       console.error("Error deleting user:", err);
@@ -213,14 +217,21 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     }
   };
 
-  const bulkDeleteUsers = async (userIds) => {
+  const bulkDeleteUsers = async (userIds, force = false) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.bulkDeleteEntities('user', 'users', userIds, false);
+      await apiServices.bulkDeleteEntities('user', 'users', userIds, force);
 
-      // Remove deleted users from active users list
-      users.value = users.value.filter((u) => !userIds.includes(u.id));
+      if (force) {
+        trashedUsers.value = trashedUsers.value.filter(
+          (u) => !userIds.includes(u.id)
+        );
+        users.value = users.value.filter((u) => !userIds.includes(u.id));
+      } else {
+        // Remove deleted users from active users list
+        users.value = users.value.filter((u) => !userIds.includes(u.id));
+      }
     } catch (err) {
       error.value = err.message || "Failed to bulk delete users";
       console.error("Error bulk deleting users:", err);

@@ -97,12 +97,17 @@
                                 @delete="handleDeleteLine"
                             />
                             <!-- Trashed Lines Actions -->
-                            <PrimaryButton
+                            <ActionsDropdown
                                 v-else
-                                :text="$t('lines.trashed.restore')"
-                                bgColor="var(--color-success)"
-                                class="d-inline-flex align-items-center"
-                                @click="handleRestoreLine(row)"
+                                :row="row"
+                                :restoreLabel="$t('lines.trashed.restore')"
+                                :deleteLabel="$t('lines.trashed.delete')"
+                                :showEdit="false"
+                                :showDetails="false"
+                                :showRestore="true"
+                                :confirmDelete="true"
+                                @restore="handleRestoreLine"
+                                @delete="handlePermanentDeleteLine"
                             />
                         </template>
                     </DataTable>
@@ -158,7 +163,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
@@ -526,6 +530,16 @@ const handleDeleteLine = async (line) => {
         console.log("?o. Line deleted successfully!");
     } catch (error) {
         console.error("??O Failed to delete line:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handlePermanentDeleteLine = async (line) => {
+    try {
+        await linesStore.deleteLine(line.id, true);
+        console.log("Line permanently deleted successfully!");
+    } catch (error) {
+        console.error("Failed to permanently delete line:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };
