@@ -20,6 +20,7 @@ export const useAuthStore = defineStore("auth", () => {
   const device = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
+  const isSwitchedUser = ref(false); // ✅ غيّرناها من computed لـ ref
 
   // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -129,6 +130,7 @@ export const useAuthStore = defineStore("auth", () => {
         user.value = data.user;
         token.value = data.token;
         device.value = data.device;
+        isSwitchedUser.value = false; // ✅ Reset switched user state on login
 
         // Persist to localStorage
         setItem("auth_token", data.token);
@@ -210,6 +212,7 @@ export const useAuthStore = defineStore("auth", () => {
     const savedToken = getItem("auth_token");
     const savedUser = getItem("auth_user");
     const savedDevice = getItem("auth_device");
+    const savedIsSwitched = getItem("is_switched_user"); // ✅ اقري الحالة
 
     if (savedToken && savedUser) {
       // ✅ Convert image path to full URL if needed
@@ -220,8 +223,11 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
+      isSwitchedUser.value = !!savedIsSwitched; // ✅ حدّثي الـ state
+      
       console.log("✅ Auth initialized from localStorage");
       console.log("📸 User image:", savedUser.image);
+      console.log("🔄 Is switched user:", isSwitchedUser.value);
     }
   }
 
@@ -230,11 +236,15 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     device.value = null;
     error.value = null;
+    isSwitchedUser.value = false; // ✅ امسحي الـ state
 
     removeItem("auth_token");
     removeItem("auth_user");
     removeItem("auth_device");
     removeItem("user_language");
+    removeItem("original_admin_token");
+    removeItem("original_admin_user");
+    removeItem("is_switched_user");
   }
 
   function clearError() {
@@ -242,7 +252,7 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   /**
-   * Update user data - محدّث
+   * Update user data
    * @param {Object} userData - Updated user data
    */
   function updateUser(userData) {
@@ -339,6 +349,8 @@ export const useAuthStore = defineStore("auth", () => {
     setItem("auth_token", loginAsToken);
     setItem("auth_user", userData);
     setItem("is_switched_user", true);
+    
+    isSwitchedUser.value = true; // ✅ حدّثي الـ state
 
     console.log(`✅ Switched to user: ${userData.name}`);
     console.log("📸 User image:", userData.image);
@@ -347,37 +359,62 @@ export const useAuthStore = defineStore("auth", () => {
   /**
    * Return to original SuperAdmin account
    */
-  function returnToAdmin() {
+  async function returnToAdmin() {
     const originalToken = getItem("original_admin_token");
     const originalUser = getItem("original_admin_user");
 
-    if (originalToken && originalUser) {
-      // Restore original admin session
-      token.value = originalToken;
-      user.value = originalUser;
+    if (!originalToken || !originalUser) {
+      console.warn("⚠️ No original admin session found");
+      return false;
+    }
 
-      // Update localStorage
+    try {
+      // استخدمي الـ login_as_token للرجوع
+      const currentToken = token.value;
+      
+      // استرجعي الـ token الأصلي مؤقتًا لعمل الـ API call
+      token.value = originalToken;
+      
+      const response = await api.post("/return_to_original");
+      
+      if (response.data?.status === 'success') {
+        // Restore original admin session
+        user.value = originalUser;
+        token.value = originalToken;
+
+        // Update localStorage
+        setItem("auth_token", originalToken);
+        setItem("auth_user", originalUser);
+
+        // Clear switch session data
+        removeItem("original_admin_token");
+        removeItem("original_admin_user");
+        removeItem("is_switched_user");
+        
+        isSwitchedUser.value = false; // ✅ حدّثي الـ state
+
+        console.log(`✅ Returned to admin account: ${originalUser.name}`);
+        return true;
+      }
+    } catch (error) {
+      console.error("❌ Error returning to admin:", error);
+      
+      // حتى لو فشل الـ API، ارجعي للـ admin محليًا
+      user.value = originalUser;
+      token.value = originalToken;
       setItem("auth_token", originalToken);
       setItem("auth_user", originalUser);
-
-      // Clear switch session data
       removeItem("original_admin_token");
       removeItem("original_admin_user");
       removeItem("is_switched_user");
-
-      console.log(`✅ Returned to admin account: ${originalUser.name}`);
+      
+      isSwitchedUser.value = false; // ✅ حدّثي الـ state
+      
       return true;
     }
 
     return false;
   }
-
-  /**
-   * Check if currently switched to another user
-   */
-  const isSwitchedUser = computed(() => {
-    return !!getItem("is_switched_user");
-  });
 
   // Initialize auth on store creation
   initializeAuth();
@@ -389,6 +426,7 @@ export const useAuthStore = defineStore("auth", () => {
     device,
     isLoading,
     error,
+    isSwitchedUser, // ✅ هسا reactive ref
 
     // Getters
     isAuthenticated,
@@ -412,8 +450,6 @@ export const useAuthStore = defineStore("auth", () => {
     hasRole,
     hasAnyRole,
     switchUser,
-
-    isSwitchedUser,
     returnToAdmin,
   };
 });

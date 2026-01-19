@@ -192,9 +192,12 @@ const closeSwitchUserModal = () => {
 };
 
 // في Navbar.vue (سطر 135-149)
+// في src/components/layout/Navbar.vue - عدّلي دالة returnToAdmin
+
 const returnToAdmin = async () => {
   try {
-    const success = authStore.returnToAdmin();
+    const success = await authStore.returnToAdmin(); // لاحظي await
+    
     if (success) {
       console.log("✅ Returned to admin account");
       
@@ -202,9 +205,13 @@ const returnToAdmin = async () => {
       await router.push(defaultPage);
       
       window.location.reload();
+    } else {
+      console.error("❌ Failed to return to admin");
+      alert("Failed to return to admin account");
     }
   } catch (error) {
     console.error("❌ Error returning to admin:", error);
+    alert("Error returning to admin account");
   }
 };
 

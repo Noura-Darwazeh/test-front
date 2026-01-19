@@ -823,6 +823,10 @@ class ApiServices {
     return api.post(`/login_as/${userId}`);
   }
 
+
+async returnToOriginalUser() {
+  return api.post("/return_login");
+}
   // ===== Map Services =====
   async getMapData() {
     return api.get("/map-data");
