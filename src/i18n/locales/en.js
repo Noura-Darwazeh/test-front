@@ -9,7 +9,8 @@ export default {
     logout: "Log Out",
     signedInAs: "Signed in as",
     confirmLogout: "Are you sure you want to logout?",
-    switchToUser: "Log in"
+    switchToUser: "Log in",
+    returnToAdmin: "Return"
   },
 
   login: {

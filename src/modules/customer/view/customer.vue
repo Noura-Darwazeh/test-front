@@ -14,11 +14,11 @@
             v-model="searchText"
             :searchPlaceholder="$t('customer.searchPlaceholder')"
             :data="customers"
-            groupKey="company_name"
+            :groupKey="isSuperAdmin ? 'company_name' : null"
             v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('customer.filterByCompany')"
             translationKey=""
-            :columns="customerColumns"
+            :columns="displayColumns"
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true"
             :addButtonText="$t('customer.addNew')"
@@ -169,7 +169,10 @@ import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const customerStore = useCustomerStore();
-const { companyId, companyOption } = useAuthDefaults();
+const { companyId, companyOption, authStore } = useAuthDefaults();
+
+// ✅ Check if user is SuperAdmin
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -290,7 +293,7 @@ const customerFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedCustomer.value.latitude : '',
         validate: (value) => {
-            if (!value) return null; // Optional field
+            if (!value) return null;
             const lat = parseFloat(value);
             if (isNaN(lat) || lat < -90 || lat > 90) {
                 return t('customer.validation.latitudeInvalid');
@@ -307,7 +310,7 @@ const customerFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: isEditMode.value ? selectedCustomer.value.longitude : '',
         validate: (value) => {
-            if (!value) return null; // Optional field
+            if (!value) return null;
             const lng = parseFloat(value);
             if (isNaN(lng) || lng < -180 || lng > 180) {
                 return t('customer.validation.longitudeInvalid');
@@ -326,34 +329,70 @@ const customerFields = computed(() => [
     }
 ]);
 
-// Details Fields
-const detailsFields = computed(() => [
-    { key: 'id', label: t('customer.id'), colClass: 'col-md-6' },
-    { key: 'name', label: t('customer.name'), colClass: 'col-md-6' },
-    { key: 'phone_number', label: t('customer.phoneNumber'), colClass: 'col-md-6' },
-    { key: 'company_name', label: t('customer.companyName'), colClass: 'col-md-6' },
-    { key: 'latitude', label: t('customer.form.latitude'), colClass: 'col-md-6' },
-    { key: 'longitude', label: t('customer.form.longitude'), colClass: 'col-md-6' },
-]);
+// ✅ Details Fields - Hide company for Admin
+const detailsFields = computed(() => {
+    const fields = [
+        { key: 'id', label: t('customer.id'), colClass: 'col-md-6' },
+        { key: 'name', label: t('customer.name'), colClass: 'col-md-6' },
+        { key: 'phone_number', label: t('customer.phoneNumber'), colClass: 'col-md-6' },
+    ];
+    
+    // Only show company field for SuperAdmin
+    if (isSuperAdmin.value) {
+        fields.push({ key: 'company_name', label: t('customer.companyName'), colClass: 'col-md-6' });
+    }
+    
+    fields.push(
+        { key: 'latitude', label: t('customer.form.latitude'), colClass: 'col-md-6' },
+        { key: 'longitude', label: t('customer.form.longitude'), colClass: 'col-md-6' }
+    );
+    
+    return fields;
+});
 
-const customerColumns = ref([
+// ✅ Base columns - will be filtered based on role
+const baseColumns = ref([
     { key: "id", label: t("customer.id"), sortable: true },
     { key: "name", label: t("customer.name"), sortable: true },
     { key: "phone_number", label: t("customer.phoneNumber"), sortable: false },
     { key: 'company_name', label: t('customer.companyName'), sortable: false },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "id", label: t("customer.id") },
-    { key: "name", label: t("customer.name") },
-    { key: "phone_number", label: t("customer.phoneNumber") },
-    { key: 'company_name', label: t('customer.companyName') },
-]);
+// ✅ Columns to display based on user role
+const displayColumns = computed(() => {
+    if (isSuperAdmin.value) {
+        return baseColumns.value;
+    }
+    // For Admin, exclude company_name column
+    return baseColumns.value.filter(col => col.key !== 'company_name');
+});
+
+const trashedColumns = computed(() => {
+    const columns = [
+        { key: "id", label: t("customer.id") },
+        { key: "name", label: t("customer.name") },
+        { key: "phone_number", label: t("customer.phoneNumber") },
+    ];
+    
+    // Only show company for SuperAdmin
+    if (isSuperAdmin.value) {
+        columns.push({ key: 'company_name', label: t('customer.companyName') });
+    }
+    
+    return columns;
+});
 
 const visibleColumns = ref([]);
 
+// ✅ Initialize visible columns based on role
+watch(() => displayColumns.value, (newColumns) => {
+    if (visibleColumns.value.length === 0) {
+        visibleColumns.value = newColumns.map(col => col.key);
+    }
+}, { immediate: true });
+
 const filteredColumns = computed(() => {
-    return customerColumns.value.filter((col) =>
+    return displayColumns.value.filter((col) =>
         visibleColumns.value.includes(col.key)
     );
 });
@@ -368,12 +407,15 @@ const currentLoading = computed(() => {
     return activeTab.value === 'active' ? customerStore.loading : customerStore.trashedLoading;
 });
 
-// Filter current data
+// ✅ Filter current data - only apply group filter for SuperAdmin
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    if (activeTab.value === 'active') {
+    
+    // Only apply company filter for SuperAdmin
+    if (activeTab.value === 'active' && isSuperAdmin.value) {
         result = filterByGroups(result, selectedGroups.value, "company_name");
     }
+    
     result = filterData(result, searchText.value);
     return result;
 });
@@ -535,7 +577,6 @@ const cancelBulkAction = () => {
 };
 
 const handleSubmitCustomer = async (customerData) => {
-    // Clear previous validation error
     validationError.value = null;
     
     try {
@@ -544,11 +585,9 @@ const handleSubmitCustomer = async (customerData) => {
             company_name: companyId.value || customerData.company_name,
         };
         if (isEditMode.value) {
-            // Update existing customer
             await customerStore.updateCustomer(selectedCustomer.value.id, payload);
             console.log('✅ Customer updated successfully!');
         } else {
-            // Add new customer
             await customerStore.addCustomer(payload);
             console.log('✅ Customer added successfully!');
         }
@@ -556,18 +595,15 @@ const handleSubmitCustomer = async (customerData) => {
     } catch (error) {
         console.error('❌ Failed to save customer:', error);
         
-        // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
             validationError.value = error.response.data.error;
             
-            // Auto-dismiss after 5 seconds
             setTimeout(() => {
                 validationError.value = null;
             }, 5000);
-            return; // Keep form open for correction
+            return;
         }
         
-        // For other errors, show generic alert
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -589,9 +625,9 @@ const handleRestoreCustomer = async (customer) => {
 const handleDeleteCustomer = async (customer) => {
     try {
         await customerStore.deleteCustomer(customer.id);
-        console.log("?o. Customer deleted successfully!");
+        console.log("✅ Customer deleted successfully!");
     } catch (error) {
-        console.error("??O Failed to delete customer:", error);
+        console.error("❌ Failed to delete customer:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };
