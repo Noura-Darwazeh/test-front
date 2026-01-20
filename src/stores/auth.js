@@ -255,24 +255,34 @@ export const useAuthStore = defineStore("auth", () => {
    * Update user data
    * @param {Object} userData - Updated user data
    */
-  function updateUser(userData) {
-    // ✅ Convert image path to full URL with cache busting
-    if (userData.image) {
-      if (!userData.image.startsWith('http')) {
-        userData.image = getFullImageUrl(userData.image);
-      }
-      // ✅ أضيفي timestamp فريد
-      const hasTimestamp = userData.image.includes('?t=');
-      if (!hasTimestamp) {
-        userData.image = `${userData.image}?t=${Date.now()}`;
-      }
-    }
+  // في src/stores/auth.js
 
-    user.value = { ...user.value, ...userData };
-    setItem("auth_user", user.value);
-    console.log("✅ User updated:", user.value);
-    console.log("📸 User image:", user.value.image);
+/**
+ * Update user data
+ * @param {Object} userData - Updated user data
+ */
+function updateUser(userData) {
+  // ✅ Convert image path to full URL with cache busting
+  if (userData.image) {
+    if (!userData.image.startsWith('http')) {
+      userData.image = getFullImageUrl(userData.image);
+    }
+    const hasTimestamp = userData.image.includes('?t=');
+    if (!hasTimestamp) {
+      userData.image = `${userData.image}?t=${Date.now()}`;
+    }
   }
+
+  // ✅ دمج البيانات الجديدة مع القديمة
+  user.value = { ...user.value, ...userData };
+  
+  // ✅ خزّني كل شي بالـ localStorage
+  setItem("auth_user", user.value);
+  
+  console.log("✅ User updated:", user.value);
+  console.log("📸 User image:", user.value.image);
+  console.log("🏠 Landing page:", user.value.default_page); // ✅ أضفت هاي
+}
 
   /**
    * Update user language in backend and locally

@@ -15,40 +15,21 @@
             <!-- Profile Image -->
             <div class="col-auto">
               <div class="position-relative">
-                <div
-                  class="rounded-circle overflow-hidden border border-3 border-light bg-white shadow-sm"
-                  style="width: 120px; height: 120px"
-                >
-                  <img
-                    v-if="formData.imagePreview || userProfile?.image"
-                    :src="formData.imagePreview || getImageUrl(userProfile.image)"
-                    alt="Profile"
-                    class="w-100 h-100"
-                    style="object-fit: cover"
-                  />
-                  <div
-                    v-else
-                    class="d-flex flex-column align-items-center justify-content-center h-100 bg-light"
-                  >
+                <div class="rounded-circle overflow-hidden border border-3 border-light bg-white shadow-sm"
+                  style="width: 120px; height: 120px">
+                  <img v-if="formData.imagePreview || userProfile?.image"
+                    :src="formData.imagePreview || getImageUrl(userProfile.image)" alt="Profile" class="w-100 h-100"
+                    style="object-fit: cover" />
+                  <div v-else class="d-flex flex-column align-items-center justify-content-center h-100 bg-light">
                     <img :src="userIcon" alt="user" width="50" height="50" />
                   </div>
                 </div>
                 <!-- Edit Profile Image Button -->
-                <button
-                  class="btn btn-sm rounded-circle position-absolute bottom-0 end-0 shadow"
-                  style="width: 36px; height: 36px"
-                  @click="triggerFileInput"
-                  type="button"
-                >
+                <button class="btn btn-sm rounded-circle position-absolute bottom-0 end-0 shadow"
+                  style="width: 36px; height: 36px" @click="triggerFileInput" type="button">
                   <img :src="cameraIcon" alt="camera" width="16" height="16" />
                 </button>
-                <input
-                  type="file"
-                  class="d-none"
-                  accept="image/*"
-                  @change="handleImageUpload"
-                  ref="fileInput"
-                />
+                <input type="file" class="d-none" accept="image/*" @change="handleImageUpload" ref="fileInput" />
               </div>
             </div>
 
@@ -86,56 +67,35 @@
                   <!-- ID (Read-only) -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.id')" />
-                    <input
-                      type="text"
-                      class="form-control bg-light"
-                      :value="userProfile?.id"
-                      disabled
-                    />
+                    <input type="text" class="form-control bg-light" :value="userProfile?.id" disabled />
                   </div>
 
                   <!-- Full Name -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.fullName')" :required="true" />
-                    <TextField
-                      v-model="formData.name"
-                      type="text"
-                      :placeholder="$t('user.form.namePlaceholder')"
-                      @input="markAsChanged"
-                    />
+                    <TextField v-model="formData.name" type="text" :placeholder="$t('user.form.namePlaceholder')"
+                      @input="markAsChanged" />
                   </div>
 
                   <!-- Username -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.username')" :required="true" />
-                    <TextField
-                      v-model="formData.username"
-                      type="text"
-                      :placeholder="$t('user.form.usernamePlaceholder')"
-                      @input="markAsChanged"
-                    />
+                    <TextField v-model="formData.username" type="text"
+                      :placeholder="$t('user.form.usernamePlaceholder')" @input="markAsChanged" />
                   </div>
 
                   <!-- Email -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.email')" />
-                    <TextField
-                      v-model="formData.email"
-                      type="email"
-                      :placeholder="$t('user.form.emailPlaceholder')"
-                      @input="markAsChanged"
-                    />
+                    <TextField v-model="formData.email" type="email" :placeholder="$t('user.form.emailPlaceholder')"
+                      @input="markAsChanged" />
                   </div>
 
                   <!-- Phone Number -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.phoneNumber')" :required="true" />
-                    <TextField
-                      v-model="formData.phone_number"
-                      type="tel"
-                      :placeholder="$t('user.form.phoneNumberPlaceholder')"
-                      @input="markAsChanged"
-                    />
+                    <TextField v-model="formData.phone_number" type="tel"
+                      :placeholder="$t('user.form.phoneNumberPlaceholder')" @input="markAsChanged" />
                   </div>
                 </div>
               </div>
@@ -156,28 +116,16 @@
                   <!-- User Role (Read-only) -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.userRole')" />
-                    <input
-                      type="text"
-                      class="form-control bg-light"
-                      :value="$t(`roles.${userProfile?.role?.[0]}`)"
-                      disabled
-                    />
+                    <input type="text" class="form-control bg-light" :value="$t(`roles.${userProfile?.role?.[0]}`)"
+                      disabled />
                   </div>
 
                   <!-- Company -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.form.company')" />
-                    <select
-                      v-model="formData.company_id"
-                      class="form-select"
-                      @change="markAsChanged"
-                    >
+                    <select v-model="formData.company_id" class="form-select" @change="markAsChanged">
                       <option value="">{{ $t('user.form.companyPlaceholder') }}</option>
-                      <option
-                        v-for="company in companies"
-                        :key="company.value"
-                        :value="company.value"
-                      >
+                      <option v-for="company in companies" :key="company.value" :value="company.value">
                         {{ company.label }}
                       </option>
                     </select>
@@ -186,17 +134,9 @@
                   <!-- Region -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.form.region')" />
-                    <select
-                      v-model="formData.region_id"
-                      class="form-select"
-                      @change="markAsChanged"
-                    >
+                    <select v-model="formData.region_id" class="form-select" @change="markAsChanged">
                       <option value="">{{ $t('user.form.noRegion') }}</option>
-                      <option
-                        v-for="region in regions"
-                        :key="region.value"
-                        :value="region.value"
-                      >
+                      <option v-for="region in regions" :key="region.value" :value="region.value">
                         {{ region.label }}
                       </option>
                     </select>
@@ -205,17 +145,9 @@
                   <!-- Currency -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.form.currency')" />
-                    <select
-                      v-model="formData.currency_id"
-                      class="form-select"
-                      @change="markAsChanged"
-                    >
+                    <select v-model="formData.currency_id" class="form-select" @change="markAsChanged">
                       <option value="">{{ $t('user.form.noCurrency') }}</option>
-                      <option
-                        v-for="currency in currencies"
-                        :key="currency.value"
-                        :value="currency.value"
-                      >
+                      <option v-for="currency in currencies" :key="currency.value" :value="currency.value">
                         {{ currency.label }}
                       </option>
                     </select>
@@ -224,16 +156,8 @@
                   <!-- Default Landing Page -->
                   <div class="col-12">
                     <FormLabel :label="$t('profile.defaultLandingPage')" />
-                    <select
-                      v-model="formData.default_page"
-                      class="form-select"
-                      @change="markAsChanged"
-                    >
-                      <option
-                        v-for="page in availablePages"
-                        :key="page.value"
-                        :value="page.value"
-                      >
+                    <select v-model="formData.default_page" class="form-select" @change="markAsChanged">
+                      <option v-for="page in availablePages" :key="page.value" :value="page.value">
                         {{ page.label }}
                       </option>
                     </select>
@@ -242,11 +166,7 @@
                   <!-- Language -->
                   <div class="col-12">
                     <FormLabel :label="$t('profile.language')" />
-                    <select
-                      v-model="formData.language"
-                      class="form-select"
-                      @change="handleLanguageChange"
-                    >
+                    <select v-model="formData.language" class="form-select" @change="handleLanguageChange">
                       <option value="english">{{ $t('profile.languages.english') }}</option>
                       <option value="arabic">العربية</option>
                     </select>
@@ -259,30 +179,15 @@
 
         <!-- Action Buttons -->
         <Transition name="slide-up">
-          <div
-            v-if="hasChanges"
-            class="fixed-action-bar bg-white border-top shadow-lg"
-          >
+          <div v-if="hasChanges" class="fixed-action-bar bg-white border-top shadow-lg">
             <div class="container-fluid">
               <div class="d-flex gap-3 justify-content-center align-items-center py-3">
-                <PrimaryButton
-                  :text="$t('common.cancel')"
-                  bgColor="var(--color-secondary)"
-                  @click="handleCancel"
-                  type="button"
-                />
-                <PrimaryButton
-                  :text="$t('common.saveChanges')"
-                  bgColor="var(--color-success)"
-                  :loading="isSaving"
-                  type="submit"
-                />
-                <PrimaryButton
-                  :text="$t('profile.changePassword')"
-                  bgColor="var(--color-warning)"
-                  @click="openPasswordModal"
-                  type="button"
-                />
+                <PrimaryButton :text="$t('common.cancel')" bgColor="var(--color-secondary)" @click="handleCancel"
+                  type="button" />
+                <PrimaryButton :text="$t('common.saveChanges')" bgColor="var(--color-success)" :loading="isSaving"
+                  type="submit" />
+                <PrimaryButton :text="$t('profile.changePassword')" bgColor="var(--color-warning)"
+                  @click="openPasswordModal" type="button" />
               </div>
             </div>
           </div>
@@ -290,24 +195,14 @@
 
         <!-- Change Password Button (when no changes) -->
         <div v-if="!hasChanges" class="d-flex gap-3 mt-4 justify-content-center">
-          <PrimaryButton
-            :text="$t('profile.changePassword')"
-            bgColor="var(--color-warning)"
-            @click="openPasswordModal"
-            type="button"
-          />
+          <PrimaryButton :text="$t('profile.changePassword')" bgColor="var(--color-warning)" @click="openPasswordModal"
+            type="button" />
         </div>
       </form>
 
       <!-- Change Password Modal -->
-      <FormModal
-        :isOpen="isPasswordModalOpen"
-        :title="$t('profile.changePassword')"
-        :fields="passwordFields"
-        :showImageUpload="false"
-        @close="closePasswordModal"
-        @submit="handleChangePassword"
-      />
+      <FormModal :isOpen="isPasswordModalOpen" :title="$t('profile.changePassword')" :fields="passwordFields"
+        :showImageUpload="false" @close="closePasswordModal" @submit="handleChangePassword" />
     </div>
   </div>
 </template>
@@ -373,7 +268,7 @@ const availablePages = computed(() => {
       value: route.path,
       label: route.meta.titleKey ? t(route.meta.titleKey) : route.name
     }));
-  
+
   return routes;
 });
 
@@ -437,7 +332,7 @@ const fetchDropdownData = async () => {
         label: company.name
       }));
     }
-    
+
     console.log('✅ Dropdowns loaded from API - Companies:', companies.value.length, 'Regions:', regions.value.length, 'Currencies:', currencies.value.length);
   } catch (error) {
     console.error('❌ Failed to load dropdown data (will use profile data):', error);
@@ -447,14 +342,14 @@ const fetchDropdownData = async () => {
 // NEW: Populate dropdowns from user profile data (for Admin users)
 const populateDropdownsFromProfile = () => {
   if (!userProfile.value) return;
-  
+
   const user = userProfile.value;
-  
+
   // ✅ Add user's company to companies dropdown
   if (user.company?.id) {
     const companyId = String(user.company.id);
     const companyName = user.company.name;
-    
+
     if (!companies.value.find(c => c.value === companyId)) {
       companies.value.push({
         value: companyId,
@@ -463,12 +358,12 @@ const populateDropdownsFromProfile = () => {
       console.log('✅ Added company to dropdown:', companyName);
     }
   }
-  
+
   // ✅ Add user's region to regions dropdown
   if (user.region?.id) {
     const regionId = String(user.region.id);
     const regionName = user.region.name;
-    
+
     if (!regions.value.find(r => r.value === regionId)) {
       regions.value.push({
         value: regionId,
@@ -477,12 +372,12 @@ const populateDropdownsFromProfile = () => {
       console.log('✅ Added region to dropdown:', regionName);
     }
   }
-  
+
   // ✅ Add user's currency to currencies dropdown
   if (user.currency?.id) {
     const currencyId = String(user.currency.id);
     const currencyName = user.currency.name;
-    
+
     if (!currencies.value.find(c => c.value === currencyId)) {
       currencies.value.push({
         value: currencyId,
@@ -491,7 +386,7 @@ const populateDropdownsFromProfile = () => {
       console.log('✅ Added currency to dropdown:', currencyName);
     }
   }
-  
+
   console.log('✅ Dropdowns populated from profile:', {
     companies: companies.value,
     regions: regions.value,
@@ -502,37 +397,37 @@ const populateDropdownsFromProfile = () => {
 // Initialize form data from userProfile
 const initializeFormData = () => {
   if (!userProfile.value) return;
-  
+
   const user = userProfile.value;
-  
+
   console.log('👤 User Profile:', user);
   console.log('🏢 Company Raw:', user.company);
   console.log('🌍 Region Raw:', user.region);
   console.log('💰 Currency Raw:', user.currency);
-  
+
   formData.name = user.name || '';
   formData.username = user.username || '';
   formData.email = user.email || '';
   formData.phone_number = user.phone_number || '';
-  
+
   // ✅ Company: object {id: 1, name: "shiply2"} -> extract id
-  formData.company_id = user.company?.id 
-    ? String(user.company.id) 
+  formData.company_id = user.company?.id
+    ? String(user.company.id)
     : '';
   console.log('✅ Company ID set to:', formData.company_id);
-    
+
   // ✅ Region: object {id: 1, name: "Jordan"} -> extract id
-  formData.region_id = user.region?.id 
-    ? String(user.region.id) 
+  formData.region_id = user.region?.id
+    ? String(user.region.id)
     : '';
   console.log('✅ Region ID set to:', formData.region_id);
-    
+
   // ✅ Currency: object {id: 1, name: "JOD"} -> extract id
   formData.currency_id = user.currency?.id
     ? String(user.currency.id)
     : '';
   console.log('✅ Currency ID set to:', formData.currency_id);
-  
+
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
   formData.imagePreview = null;
@@ -550,7 +445,7 @@ const initializeFormData = () => {
     language: formData.language,
     default_page: formData.default_page,
   };
-  
+
   console.log('📝 Form Data Final:', formData);
 };
 
@@ -559,7 +454,7 @@ const fetchUserProfile = async () => {
   try {
     isLoading.value = true;
     const userId = authStore.user?.id;
-    
+
     if (!userId) {
       console.error('No user ID found');
       return;
@@ -567,15 +462,15 @@ const fetchUserProfile = async () => {
 
     const response = await apiServices.getUserProfile(userId);
     userProfile.value = response.data.data;
-    
+
     console.log('✅ User profile loaded:', userProfile.value);
-    
+
     // ✅ Populate dropdowns from profile (for Admin users who can't access full lists)
     populateDropdownsFromProfile();
-    
+
     // Initialize form with fetched data
     initializeFormData();
-    
+
   } catch (error) {
     console.error('❌ Failed to fetch user profile:', error);
     alert(t('profile.loadError') || 'Failed to load profile');
@@ -587,7 +482,7 @@ const fetchUserProfile = async () => {
 // ✅ Get full image URL with cache-busting
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
-  
+
   if (imagePath.startsWith('http')) {
     const hasTimestamp = imagePath.includes('?t=');
     if (!hasTimestamp) {
@@ -595,7 +490,7 @@ const getImageUrl = (imagePath) => {
     }
     return imagePath;
   }
-  
+
   return `${API_BASE_URL}${imagePath}?t=${Date.now()}`;
 };
 
@@ -641,31 +536,31 @@ const triggerFileInput = () => {
 // Handle language change
 const handleLanguageChange = async () => {
   markAsChanged();
-  
+
   // Update UI language immediately for better UX
   const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
   setLocale(uiLang);
 };
 
-// ✅ Handle save changes
+
 const handleSaveChanges = async () => {
   const languageChanged = formData.language !== originalData.value.language;
   try {
     isSaving.value = true;
 
     const formDataToSend = new FormData();
-    
+
     formDataToSend.append('name', formData.name);
     formDataToSend.append('phone_number', formData.phone_number);
-    
+
     if (formData.email && formData.email.trim() !== '') {
       formDataToSend.append('email', formData.email);
     }
-    
+
     if (formData.username !== originalData.value.username) {
       formDataToSend.append('username', formData.username);
     }
-    
+
     if (formData.company_id && formData.company_id !== '') {
       formDataToSend.append('company_id', formData.company_id);
     }
@@ -675,32 +570,33 @@ const handleSaveChanges = async () => {
     if (formData.currency_id && formData.currency_id !== '') {
       formDataToSend.append('currency_id', formData.currency_id);
     }
-    
+
     formDataToSend.append('language', formData.language);
+
+    formDataToSend.append('default_page', formData.default_page);
 
     if (imageFile.value) {
       formDataToSend.append('image', imageFile.value);
-      console.log('📸 Image file added to FormData:', imageFile.value.name);
     }
-
-    console.log("📤 Sending FormData to API");
 
     const response = await apiServices.updateUser(userProfile.value.id, formDataToSend);
 
     if (response.data?.data) {
       const userData = response.data.data;
-      
-      // ✅ Add timestamp to break cache
+
       if (userData.image) {
         if (!userData.image.startsWith('http')) {
           userData.image = `${API_BASE_URL}${userData.image}`;
         }
         userData.image = `${userData.image}?t=${Date.now()}`;
       }
-      
-      // Update auth store
+
+      if (!userData.default_page) {
+        userData.default_page = formData.default_page;
+      }
+
       authStore.updateUser(userData);
-      
+
       console.log('✅ Profile updated successfully!', userData);
       alert(t('profile.updateSuccess') || 'Profile updated successfully!');
 
@@ -710,35 +606,49 @@ const handleSaveChanges = async () => {
         setTimeout(() => window.location.reload(), 500);
         return;
       }
-      
-      // ✅ Update local state
+
       userProfile.value = userData;
-      
-      // Clear the file input
+
       imageFile.value = null;
       formData.imagePreview = null;
-      
+
       if (fileInput.value) {
         fileInput.value.value = '';
       }
-      
-      // Reinitialize form with new data
+
       initializeFormData();
       hasChanges.value = false;
-      
-      // ✅ Force page reload to show new image
+
       setTimeout(() => {
         window.location.reload();
       }, 500);
     }
   } catch (error) {
     console.error('❌ Failed to update profile:', error);
+
+    if (formData.default_page !== originalData.value.default_page) {
+      const currentUser = authStore.user;
+      currentUser.default_page = formData.default_page;
+      authStore.updateUser(currentUser);
+      console.log('✅ Landing page saved locally:', formData.default_page);
+    }
+
     const errorMessage = error.response?.data?.message || error.message || t('profile.updateError') || 'Failed to update profile';
     alert(errorMessage);
   } finally {
     isSaving.value = false;
   }
 };
+
+
+
+
+
+
+
+
+
+
 
 // Handle cancel
 const handleCancel = () => {
@@ -765,14 +675,14 @@ const handleChangePassword = async (passwordData) => {
       alert(t('profile.passwordMismatch'));
       return;
     }
-    
+
     // Validate password strength
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&#]).{8,}$/;
     if (!passwordRegex.test(passwordData.new_password)) {
       alert('Password must contain:\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one symbol (@$!%*?&#)\n- Minimum 8 characters');
       return;
     }
-    
+
     const response = await apiServices.changePassword({
       current_password: passwordData.current_password,
       password: passwordData.new_password,
@@ -783,7 +693,7 @@ const handleChangePassword = async (passwordData) => {
       console.log('✅ Password changed successfully!', response.data);
       alert(t('profile.passwordChangeSuccess'));
       closePasswordModal();
-      
+
       // Logout after password change
       setTimeout(() => {
         authStore.logout();
@@ -812,7 +722,7 @@ const getRoleBadgeClass = (role) => {
 onMounted(async () => {
   // Step 1: Load dropdowns FIRST (will fail for Admin, but that's ok)
   await fetchDropdownData();
-  
+
   // Step 2: Load user profile AFTER (will populate dropdowns from profile data)
   await fetchUserProfile();
 });
