@@ -136,6 +136,51 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal for Multiple Plans Selection -->
+        <Teleport to="body">
+            <Transition name="modal">
+                <div v-if="showPlansModal" class="modal d-block" tabindex="-1" @click.self="closePlansModal">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content shadow-lg border-0 rounded-3">
+                            <div class="modal-header bg-light border-bottom">
+                                <h5 class="modal-title fw-semibold">
+                                    <i class="bi bi-calendar-event me-2"></i>
+                                    {{ $t('workPlan.selectPlan') }} ({{ plansForModal.length }})
+                                </h5>
+                                <button type="button" class="btn-close" @click="closePlansModal"></button>
+                            </div>
+                            <div class="modal-body p-3" style="max-height: 60vh; overflow-y: auto;">
+                                <div
+                                    v-for="plan in plansForModal"
+                                    :key="plan.id"
+                                    class="plan-option p-3 mb-2 border rounded-3 cursor-pointer"
+                                    @click="selectPlanFromModal(plan)"
+                                >
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="mb-1 fw-semibold">{{ plan.name }}</h6>
+                                            <small class="text-muted">
+                                                <i class="bi bi-person-badge me-1"></i>
+                                                {{ plan.driver_name || '-' }}
+                                            </small>
+                                        </div>
+                                        <div>
+                                            <span v-if="plan.orders && plan.orders.length > 0" class="badge bg-primary">
+                                                {{ plan.orders.length }} {{ plan.orders.length === 1 ? $t('workPlan.order') : $t('workPlan.orders') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+            <Transition name="backdrop">
+                <div v-if="showPlansModal" class="modal-backdrop" @click="closePlansModal"></div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 
@@ -160,9 +205,10 @@ const emit = defineEmits(['edit-plan', 'view-details']);
 const { t, locale } = useI18n();
 const calendar = ref(null);
 const selectedPlan = ref(null);
+const showPlansModal = ref(false);
+const plansForModal = ref([]);
 
 onMounted(() => {
-    // Set initial events after calendar is mounted
     nextTick(() => {
         if (calendar.value) {
             const calendarApi = calendar.value.getApi();
@@ -175,38 +221,88 @@ onMounted(() => {
 });
 
 const calendarEvents = computed(() => {
-    const events = props.workPlans
-        .filter(plan => plan.date && plan.date.trim() !== '') // Only include plans with dates
-        .map(plan => {
-            // Ensure date is in YYYY-MM-DD format
+    // Group plans by date
+    const plansByDate = {};
+    
+    props.workPlans
+        .filter(plan => plan.date && plan.date.trim() !== '')
+        .forEach(plan => {
             let date = plan.date;
             if (date.includes('T')) {
-                date = date.split('T')[0]; // Extract date part if it's datetime
+                date = date.split('T')[0];
             }
             
-            // إضافة عدد الطلبات إلى العنوان
-            const orderCount = plan.orders && plan.orders.length > 0 ? plan.orders.length : 0;
-            const title = orderCount > 0 
-                ? `${plan.name} (${orderCount} ${orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')})`
-                : plan.name;
-            
-            return {
-                id: plan.id,
-                title: title,
-                start: date,
-                backgroundColor: "var(--primary-color)",
-                borderColor: "var(--primary-color)",
-                textColor: '#fff',
-                extendedProps: {
-                    ...plan
-                }
-            };
+            if (!plansByDate[date]) {
+                plansByDate[date] = [];
+            }
+            plansByDate[date].push(plan);
         });
+    
+    // Create events
+    const events = [];
+    Object.entries(plansByDate).forEach(([date, plans]) => {
+        const totalPlans = plans.length;
+        const firstPlan = plans[0];
+        const orderCount = firstPlan.orders && firstPlan.orders.length > 0 ? firstPlan.orders.length : 0;
+        
+        // Truncate name to first 12 characters for display
+        let displayName = firstPlan.name.length > 12 ? firstPlan.name.substring(0, 12) + '...' : firstPlan.name;
+        
+        // Show order count if any
+        let title = displayName;
+        if (orderCount > 0) {
+            title = `${displayName} (${orderCount})`;
+        }
+        
+        // Add first plan event
+        events.push({
+            id: firstPlan.id,
+            title: title,
+            start: date,
+            backgroundColor: "var(--primary-color",
+            borderColor: "var(--primary-color)",
+            textColor: '#fff',
+            classNames: ['work-plan-event'],
+            extendedProps: {
+                ...firstPlan,
+                fullName: firstPlan.name,
+                orderCount: orderCount,
+                plansOnThisDate: totalPlans,
+                allPlansForDate: plans,
+                hasMultiplePlans: totalPlans > 1,
+                 sortOrder: 1,
+                isMainPlan: true
+            }
+        });
+        
+        // Add "+N" button if there are more plans
+        if (totalPlans > 1) {
+            events.push({
+                id: `more-${date}`,
+                title: `+${totalPlans - 1}`,
+                start: date,
+                backgroundColor: "transparent",
+                borderColor: "transparent",
+                textColor: '#6c757d',
+                classNames: ['more-plans-button'],
+                extendedProps: {
+                    isMoreButton: true,
+                    allPlansForDate: plans,
+                    date: date,
+                    totalPlans: totalPlans,
+                     sortOrder: 2,
+                }
+            });
+        }
+    });
+    
     return events;
 });
 
 // Calendar options
 const calendarOptions = ref({
+        eventOrder: 'extendedProps.sortOrder',
+
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
     locale: locale.value === 'ar' ? arLocale : 'en',
@@ -221,18 +317,107 @@ const calendarOptions = ref({
     },
     height: 600,
     eventClick: handleEventClick,
-    dayMaxEvents: false, // إظهار جميع الخطط بدون حد
+    dayMaxEvents: false,
     moreLinkText: (num) => `+${num}`,
     firstDay: 0,
     eventDisplay: 'block',
-    displayEventTime: false, // إخفاء الوقت من العرض
+    displayEventTime: false,
     displayEventEnd: false,
+    eventDidMount: function(info) {
+        const props = info.event.extendedProps;
+        
+        // Skip tooltip for "+N" button
+        if (props.isMoreButton) {
+            return;
+        }
+        
+        // Add tooltip on hover for main plans
+        const tooltip = document.createElement('div');
+        tooltip.className = 'event-tooltip';
+        
+        if (props.hasMultiplePlans) {
+            // Show info that there are multiple plans
+            tooltip.innerHTML = `
+                <div class="tooltip-content">
+                    <strong>${props.fullName}</strong>
+                    ${props.driver_name ? `<div class="mt-1 small text-muted"><i class="bi bi-person-badge me-1"></i>${props.driver_name}</div>` : ''}
+                    ${props.orderCount > 0 ? 
+                        `<div class="mt-1 small"><i class="bi bi-box-seam me-1"></i>${props.orderCount} ${props.orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')}</div>` 
+                        : ''}
+                    <div class="mt-2 pt-2" style="border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                        <small class="text-muted"><i class="bi bi-calendar-plus me-1"></i>${props.plansOnThisDate} ${t('workPlan.totalPlans')}</small>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Show single plan details
+            tooltip.innerHTML = `
+                <div class="tooltip-content">
+                    <strong>${props.fullName}</strong>
+                    ${props.driver_name ? `<div class="mt-1 small text-muted"><i class="bi bi-person-badge me-1"></i>${props.driver_name}</div>` : ''}
+                    ${props.orderCount > 0 ? 
+                        `<div class="mt-1 small"><i class="bi bi-box-seam me-1"></i>${props.orderCount} ${props.orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')}</div>` 
+                        : ''}
+                </div>
+            `;
+        }
+        
+        info.el.addEventListener('mouseenter', () => {
+            document.body.appendChild(tooltip);
+            const rect = info.el.getBoundingClientRect();
+            tooltip.style.top = `${rect.top - tooltip.offsetHeight - 8}px`;
+            tooltip.style.left = `${rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2)}px`;
+            
+            // Adjust if tooltip goes off screen
+            const tooltipRect = tooltip.getBoundingClientRect();
+            if (tooltipRect.left < 10) {
+                tooltip.style.left = '10px';
+            }
+            if (tooltipRect.right > window.innerWidth - 10) {
+                tooltip.style.left = `${window.innerWidth - tooltipRect.width - 10}px`;
+            }
+            
+            tooltip.classList.add('show');
+        });
+        
+        info.el.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('show');
+            setTimeout(() => {
+                if (document.body.contains(tooltip)) {
+                    document.body.removeChild(tooltip);
+                }
+            }, 200);
+        });
+    }
 });
 
 // Handle event click
 function handleEventClick(info) {
-    const planId = parseInt(info.event.id);
-    selectedPlan.value = props.workPlans.find(p => p.id === planId);
+    const props = info.event.extendedProps;
+    
+    // If it's the "+N" button - show modal with all plans
+    if (props.isMoreButton) {
+        plansForModal.value = props.allPlansForDate;
+        showPlansModal.value = true;
+        return;
+    }
+    
+    // If it's a main plan with multiple plans - show details of clicked plan
+    if (props.isMainPlan) {
+        selectedPlan.value = props;
+    }
+}
+
+// Select plan from modal
+function selectPlanFromModal(plan) {
+    selectedPlan.value = plan;
+    closePlansModal();
+}
+
+// Close modal
+function closePlansModal() {
+    showPlansModal.value = false;
+    plansForModal.value = [];
 }
 
 // Format date
@@ -283,18 +468,6 @@ watch(calendarEvents, (newEvents) => {
     animation: fadeIn 0.3s ease-in;
 }
 
-/* @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-} */
-
 .animate-slide-in {
     animation: slideIn 0.3s ease-out;
 }
@@ -303,11 +476,9 @@ watch(calendarEvents, (newEvents) => {
     transition: all 0.2s ease;
 }
 
-
 .order-item {
     transition: all 0.2s ease;
 }
-
 
 .orders-list {
     max-height: 300px;
@@ -361,40 +532,207 @@ watch(calendarEvents, (newEvents) => {
 
 .fc-event {
     cursor: pointer;
-    font-size: 0.75rem;
-    padding: 4px 6px;
+    font-size: 0.8rem;
+    padding: 6px 8px;
     border: none !important;
-    border-radius: 4px;
-    margin: 2px 0;
+    border-radius: 6px;
+    margin: 3px 0;
     font-weight: 500;
-    white-space: normal !important; /* السماح بالنص أن يلتف */
-    overflow: visible !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
     line-height: 1.3;
+    display: block !important;
 }
 
 .fc-event:hover {
-    opacity: 0.85;
-    transform: scale(1.02);
+    opacity: 0.9;
+    transform: translateY(-1px);
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
 }
 
-/* تحسين عرض الأحداث المتعددة */
+/* Style for the +N button */
+.fc-event.more-plans-button {
+    background-color: red !important;
+    border-color: red !important;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    text-align: center;
+    font-weight: 600;
+    margin-top: 2px !important;
+    cursor: pointer !important;
+}
+
+.fc-event.more-plans-button:hover {
+    background-color: red !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Style for main work plan events */
+.fc-event.work-plan-event {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
 .fc-daygrid-event-harness {
-    margin-bottom: 2px !important;
+    margin-bottom: 0 !important;
 }
 
 .fc-daygrid-day-events {
-    margin-top: 2px !important;
+    margin-top: 3px !important;
+    min-height: 24px;
 }
 
-/* تحسين حجم الخلايا */
 .fc .fc-daygrid-day {
     min-height: 100px !important;
 }
 
 .fc .fc-daygrid-day-frame {
     min-height: 100px !important;
+    position: relative;
+}
+
+.fc-daygrid-day-bottom {
+    margin-top: 0 !important;
+}
+
+/* Tooltip Styles */
+:deep(.event-tooltip) {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.95);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    max-width: 300px;
+    min-width: 200px;
+}
+
+:deep(.event-tooltip.show) {
+    opacity: 1;
+}
+
+:deep(.event-tooltip::before) {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid rgba(0, 0, 0, 0.95);
+}
+
+:deep(.tooltip-content) {
+    line-height: 1.5;
+}
+
+:deep(.tooltip-plan) {
+    padding: 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:deep(.tooltip-plan:first-child) {
+    padding-top: 0;
+    border-top: none;
+}
+
+:deep(.tooltip-plan strong) {
+    display: block;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+:deep(.tooltip-plan .small) {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+:deep(.tooltip-plan .text-muted) {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1050;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.plan-option {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.plan-option:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal Transitions */
+.modal-enter-active {
+    transition: opacity 0.2s ease;
+}
+
+.modal-leave-active {
+    transition: opacity 0.15s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
+}
+
+.modal-enter-active .modal-dialog {
+    transition: transform 0.2s ease-out;
+}
+
+.modal-leave-active .modal-dialog {
+    transition: transform 0.15s ease-in;
+}
+
+.modal-enter-from .modal-dialog {
+    transform: scale(0.9) translateY(-20px);
+}
+
+.modal-leave-to .modal-dialog {
+    transform: scale(0.95);
+}
+
+.backdrop-enter-active,
+.backdrop-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.backdrop-enter-from,
+.backdrop-leave-to {
+    opacity: 0;
 }
 
 /* RTL Support */
@@ -409,7 +747,6 @@ watch(calendarEvents, (newEvents) => {
 
 /* Responsive */
 @media (max-width: 768px) {
-
     .col-md-7,
     .col-md-5 {
         flex: 0 0 100%;
