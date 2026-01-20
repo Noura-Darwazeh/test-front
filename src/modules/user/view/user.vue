@@ -10,7 +10,7 @@
       translationKey="roles"
       :columns="userColumns"
       v-model:visibleColumns="visibleColumns"
-      :showAddButton="isSuperAdmin"
+      :showAddButton="canAddUser"
       :addButtonText="$t('user.addNew')"
       @add-click="openModal"
       @refresh-click="handleRefresh"
@@ -191,10 +191,19 @@ const getFullImageUrl = (imagePath) => {
   if (imagePath.startsWith("http")) return imagePath;
   return `${API_BASE_URL}${imagePath}`;
 };
+
 const { companyId, companyOption, currencyId } = useAuthDefaults();
+
+// ✅ Check if user can add users (SuperAdmin or Admin)
 const isSuperAdmin = computed(
   () => (authStore.userRole || "").toLowerCase() === "superadmin",
 );
+
+const isAdmin = computed(
+  () => (authStore.userRole || "").toLowerCase() === "admin",
+);
+
+const canAddUser = computed(() => isSuperAdmin.value || isAdmin.value);
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -221,11 +230,24 @@ const currencies = ref([]);
 const companies = ref([]);
 const dataLoading = ref(false);
 
-const roles = ref([
-  { value: "Admin", label: "Admin" },
-  { value: "Employee", label: "Employee" },
-  { value: "Supervisor", label: "Supervisor" },
-]);
+// ✅ Roles available based on user type
+const roles = computed(() => {
+  if (isSuperAdmin.value) {
+    // SuperAdmin can add all roles
+    return [
+      { value: "Admin", label: "Admin" },
+      { value: "Employee", label: "Employee" },
+      { value: "Supervisor", label: "Supervisor" },
+    ];
+  } else if (isAdmin.value) {
+    // Admin can only add Employee and Supervisor
+    return [
+      { value: "Employee", label: "Employee" },
+      { value: "Supervisor", label: "Supervisor" },
+    ];
+  }
+  return [];
+});
 
 const resolveIdValue = (value) => {
   if (Array.isArray(value)) {
@@ -257,6 +279,7 @@ const users = computed(() => {
     return true;
   });
 });
+
 const trashedUsers = computed(() => usersStore.trashedUsers);
 
 // Fetch dropdown data (regions, currencies, companies)
@@ -336,7 +359,7 @@ const currentPagination = computed(() => {
     : usersStore.trashedPagination;
 });
 
-// User Form Fields
+// ✅ User Form Fields with conditional logic
 const userFields = computed(() => [
   {
     name: "name",
@@ -431,6 +454,7 @@ const userFields = computed(() => [
     label: t("user.form.company"),
     type: "select",
     required: false,
+    // ✅ SuperAdmin sees all companies, Admin sees only their company (hidden field)
     options: isSuperAdmin.value
       ? companies.value
       : companyOption.value.length
@@ -443,8 +467,8 @@ const userFields = computed(() => [
       : isSuperAdmin.value
         ? ""
         : companyId.value,
-    locked: !isSuperAdmin.value,
-    hidden: !isSuperAdmin.value,
+    locked: !isSuperAdmin.value, // ✅ Locked for Admin
+    hidden: !isSuperAdmin.value, // ✅ Hidden for Admin
   },
   {
     name: "region_id",
@@ -696,12 +720,24 @@ const handleSubmitUser = async (userData) => {
       alert("Image size should not exceed 200KB");
       return;
     }
+    
     const selectedRole = Array.isArray(selectedUser.value.role)
       ? selectedUser.value.role[0]
       : selectedUser.value.role;
     const normalizedRole = Array.isArray(userData.role)
       ? userData.role[0]
       : userData.role;
+
+    // ✅ Validation for Admin: prevent adding Admin role
+    if (isAdmin.value && normalizedRole === "Admin") {
+      alert(t("user.validation.cannotAddAdmin"));
+      return;
+    }
+
+    // ✅ Force company_id for Admin users
+    if (isAdmin.value && !userData.company_id) {
+      userData.company_id = companyId.value;
+    }
 
     if (isEditMode.value) {
       // Update existing user
@@ -723,9 +759,12 @@ const handleSubmitUser = async (userData) => {
       if (normalizedRole !== selectedRole) {
         updatedData.role = normalizedRole;
       }
-      if (userData.company_id !== selectedUser.value.company_id) {
+      
+      // ✅ Admin cannot change company_id
+      if (isSuperAdmin.value && userData.company_id !== selectedUser.value.company_id) {
         updatedData.company_id = userData.company_id || null;
       }
+      
       if (userData.region_id !== selectedUser.value.region_id) {
         updatedData.region_id = userData.region_id || null;
       }
@@ -752,9 +791,9 @@ const handleSubmitUser = async (userData) => {
         password: userData.password,
         phone_number: userData.phone_number,
         role: normalizedRole,
-        company_id: userData.company_id || null, // ✅ Always send, null if empty
-        region_id: userData.region_id || null, // ✅ Always send, null if empty
-        currency_id: userData.currency_id || null, // ✅ Always send, null if empty
+        company_id: isAdmin.value ? companyId.value : (userData.company_id || null), // ✅ Force Admin's company
+        region_id: userData.region_id || null,
+        currency_id: userData.currency_id || null,
       };
 
       // Add optional email field only if provided
@@ -830,17 +869,17 @@ const executeBulkAction = async () => {
     if (pendingBulkAction.value === "delete") {
       await usersStore.bulkDeleteUsers(selectedRows.value, false);
       console.log(
-        `? ${selectedRows.value.length} users deleted successfully!`,
+        `✅ ${selectedRows.value.length} users deleted successfully!`,
       );
     } else if (pendingBulkAction.value === "permanentDelete") {
       await usersStore.bulkDeleteUsers(selectedRows.value, true);
       console.log(
-        `? ${selectedRows.value.length} users permanently deleted successfully!`,
+        `✅ ${selectedRows.value.length} users permanently deleted successfully!`,
       );
     } else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
       console.log(
-        `? ${selectedRows.value.length} users restored successfully!`,
+        `✅ ${selectedRows.value.length} users restored successfully!`,
       );
       await usersStore.fetchTrashedUsers();
     }
@@ -848,7 +887,7 @@ const executeBulkAction = async () => {
     selectedRows.value = [];
   } catch (error) {
     console.error(
-      `? Failed to execute bulk ${pendingBulkAction.value}:`,
+      `❌ Failed to execute bulk ${pendingBulkAction.value}:`,
       error,
     );
   } finally {

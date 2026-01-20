@@ -542,9 +542,9 @@ const handleLanguageChange = async () => {
   setLocale(uiLang);
 };
 
-
 const handleSaveChanges = async () => {
   const languageChanged = formData.language !== originalData.value.language;
+  
   try {
     isSaving.value = true;
 
@@ -564,16 +564,19 @@ const handleSaveChanges = async () => {
     if (formData.company_id && formData.company_id !== '') {
       formDataToSend.append('company_id', formData.company_id);
     }
+    
     if (formData.region_id && formData.region_id !== '') {
       formDataToSend.append('region_id', formData.region_id);
     }
+    
     if (formData.currency_id && formData.currency_id !== '') {
       formDataToSend.append('currency_id', formData.currency_id);
     }
 
     formDataToSend.append('language', formData.language);
 
-    formDataToSend.append('default_page', formData.default_page);
+    // ❌ ما نبعتها للـ backend
+    // formDataToSend.append('default_page', formData.default_page);
 
     if (imageFile.value) {
       formDataToSend.append('image', imageFile.value);
@@ -591,13 +594,15 @@ const handleSaveChanges = async () => {
         userData.image = `${userData.image}?t=${Date.now()}`;
       }
 
-      if (!userData.default_page) {
-        userData.default_page = formData.default_page;
-      }
+      // ✅ حطّي الـ landing page محليًا (مش من الـ backend)
+      userData.default_page = formData.default_page;
 
+      // ✅ حدّثي الـ authStore (هيك بتتخزن في localStorage)
       authStore.updateUser(userData);
 
-      console.log('✅ Profile updated successfully!', userData);
+      console.log('✅ Profile updated successfully!');
+      console.log('🏠 Landing page saved:', userData.default_page);
+      
       alert(t('profile.updateSuccess') || 'Profile updated successfully!');
 
       if (languageChanged) {
@@ -608,7 +613,6 @@ const handleSaveChanges = async () => {
       }
 
       userProfile.value = userData;
-
       imageFile.value = null;
       formData.imagePreview = null;
 
@@ -619,26 +623,44 @@ const handleSaveChanges = async () => {
       initializeFormData();
       hasChanges.value = false;
 
+      // ✅ بس reload عادي (بدون redirect)
       setTimeout(() => {
         window.location.reload();
       }, 500);
     }
   } catch (error) {
     console.error('❌ Failed to update profile:', error);
+    
+    // ✅ حتى لو فشل الـ API، احفظي الـ landing page محليًا
+    const currentUser = authStore.user;
+    currentUser.default_page = formData.default_page;
+    authStore.updateUser(currentUser);
+    console.log('✅ Landing page saved locally:', formData.default_page);
 
-    if (formData.default_page !== originalData.value.default_page) {
-      const currentUser = authStore.user;
-      currentUser.default_page = formData.default_page;
-      authStore.updateUser(currentUser);
-      console.log('✅ Landing page saved locally:', formData.default_page);
-    }
-
-    const errorMessage = error.response?.data?.message || error.message || t('profile.updateError') || 'Failed to update profile';
+    const errorMessage = error.response?.data?.message || error.message || t('profile.updateError');
     alert(errorMessage);
   } finally {
     isSaving.value = false;
   }
 };
+
+   
+
+
+
+
+
+
+  
+
+  
+    
+  
+
+    
+    
+
+ 
 
 
 

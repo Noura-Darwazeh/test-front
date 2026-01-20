@@ -33,7 +33,7 @@ const router = createRouter({
       redirect: (to) => {
         // Redirect to user's default page or /user
         const authStore = useAuthStore();
-        const defaultPage = authStore.user?.default_page || authStore.user?.landing_page;
+    const defaultPage = authStore.user?.default_page || '/user';
         if (authStore.isAuthenticated && defaultPage) {
           return defaultPage;
         }

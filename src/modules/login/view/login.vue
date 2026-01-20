@@ -179,7 +179,7 @@ async function onSubmit() {
 
     // Redirect to user's landing page on success
     console.log('✅ Login successful, redirecting...');
-    const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || '/user';
+      const defaultPage = authStore.user?.default_page || '/user';
     router.push(defaultPage);
   } catch (error) {
     // Error is already set in the store

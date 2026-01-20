@@ -90,15 +90,15 @@
                                         <div v-for="(order, index) in selectedPlan.orders" :key="index"
                                             class="order-item mb-2 p-3 bg-white rounded border">
                                             <div class="row">
-                                                <div class="col-md-6 mb-2 mb-md-0">
+                                                <div class="col-md-12 mb-2 mb-md-0">
                                                     <span class="badge bg-secondary me-2">{{ index + 1 }}</span>
                                                     <strong>{{ $t('workPlan.orderName') }}:</strong>
                                                     <span class="text-primary ms-1">{{ order.order || '-' }}</span>
                                                 </div>
-                                                <div class="col-md-6">
+                                                <!-- <div class="col-md-6">
                                                     <strong>{{ $t('workPlan.orderItems') }}:</strong>
                                                     <span class="text-success ms-1">{{ order.items || '-' }}</span>
-                                                </div>
+                                                </div> -->
                                             </div>
                                         </div>
                                     </div>

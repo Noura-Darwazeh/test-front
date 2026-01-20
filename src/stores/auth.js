@@ -98,75 +98,90 @@ export const useAuthStore = defineStore("auth", () => {
    * @param {Object} credentials - Login credentials {login, password}
    * @returns {Promise<Object>} User data
    */
-  async function login(credentials) {
-    isLoading.value = true;
-    error.value = null;
+ async function login(credentials) {
+  isLoading.value = true;
+  error.value = null;
 
-    try {
-      // Validate input
-      if (!credentials.login || !credentials.login.trim()) {
-        throw new Error("Email or username is required");
-      }
-
-      if (!credentials.password) {
-        throw new Error("Password is required");
-      }
-
-      const response = await api.post("/login", {
-        login: credentials.login.trim(),
-        password: credentials.password,
-      });
-
-      const data = response.data;
-
-      // Check if login was successful
-      if (data.success === true) {
-        // ✅ Convert image path to full URL
-        if (data.user?.image) {
-          data.user.image = getFullImageUrl(data.user.image);
-        }
-
-        // Save auth data
-        user.value = data.user;
-        token.value = data.token;
-        device.value = data.device;
-        isSwitchedUser.value = false; // ✅ Reset switched user state on login
-
-        // Persist to localStorage
-        setItem("auth_token", data.token);
-        setItem("auth_user", data.user);
-        setItem("auth_device", data.device);
-
-        // Set user's preferred language
-        if (data.user?.language) {
-          const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
-          setItem("user_language", uiLang);
-          console.log(`🌐 User language preference: ${data.user.language}`);
-        }
-
-        console.log("✅ Login successful:", data.user.name);
-        console.log("📸 User image:", data.user.image);
-        return data;
-      } else {
-        throw new Error(data.message || "Login failed");
-      }
-    } catch (err) {
-      if (err.response?.data?.success === false) {
-        error.value = err.response.data.message || "Invalid credentials";
-      } else if (err.response?.status === 401) {
-        error.value = "Invalid username/email or password";
-      } else if (err.response?.status === 422) {
-        error.value = "Please check your input and try again";
-      } else {
-        error.value = err.message || "Login failed. Please try again.";
-      }
-
-      console.error("❌ Login error:", err);
-      throw err;
-    } finally {
-      isLoading.value = false;
+  try {
+    if (!credentials.login || !credentials.login.trim()) {
+      throw new Error("Email or username is required");
     }
+
+    if (!credentials.password) {
+      throw new Error("Password is required");
+    }
+
+    const response = await api.post("/login", {
+      login: credentials.login.trim(),
+      password: credentials.password,
+    });
+
+    const data = response.data;
+
+    if (data.success === true) {
+      // ✅ Convert image path to full URL
+      if (data.user?.image) {
+        data.user.image = getFullImageUrl(data.user.image);
+      }
+
+      // ✅ جيبي الـ default_page المخزنة محليًا (إذا موجودة)
+      const savedUser = getItem("auth_user");
+      if (savedUser?.default_page && data.user.id === savedUser.id) {
+        // ✅ نفس اليوزر، احتفظي بالـ landing page القديمة
+        data.user.default_page = savedUser.default_page;
+        console.log('🏠 Restored saved landing page:', data.user.default_page);
+      } else {
+        // ✅ يوزر جديد أو ما في landing page محفوظة
+        data.user.default_page = data.user.landing_page || '/user';
+        console.log('🏠 Using default landing page:', data.user.default_page);
+      }
+
+      // Save auth data
+      user.value = data.user;
+      token.value = data.token;
+      device.value = data.device;
+      isSwitchedUser.value = false;
+
+      // Persist to localStorage
+      setItem("auth_token", data.token);
+      setItem("auth_user", data.user);
+      setItem("auth_device", data.device);
+
+      // Set user's preferred language
+      if (data.user?.language) {
+        const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
+        setItem("user_language", uiLang);
+        console.log(`🌐 User language preference: ${data.user.language}`);
+      }
+
+      console.log("✅ Login successful:", data.user.name);
+      console.log("📸 User image:", data.user.image);
+      return data;
+    } else {
+      throw new Error(data.message || "Login failed");
+    }
+  } catch (err) {
+    if (err.response?.data?.success === false) {
+      error.value = err.response.data.message || "Invalid credentials";
+    } else if (err.response?.status === 401) {
+      error.value = "Invalid username/email or password";
+    } else if (err.response?.status === 422) {
+      error.value = "Please check your input and try again";
+    } else {
+      error.value = err.message || "Login failed. Please try again.";
+    }
+
+    console.error("❌ Login error:", err);
+    throw err;
+  } finally {
+    isLoading.value = false;
   }
+}
+
+
+    
+   
+
 
   async function logout() {
     isLoading.value = true;
@@ -212,14 +227,16 @@ export const useAuthStore = defineStore("auth", () => {
     const savedToken = getItem("auth_token");
     const savedUser = getItem("auth_user");
     const savedDevice = getItem("auth_device");
-    const savedIsSwitched = getItem("is_switched_user"); // ✅ اقري الحالة
+    const savedIsSwitched = getItem("is_switched_user");  
 
     if (savedToken && savedUser) {
       // ✅ Convert image path to full URL if needed
       if (savedUser.image && !savedUser.image.startsWith('http')) {
         savedUser.image = getFullImageUrl(savedUser.image);
       }
-
+  if (!savedUser.default_page) {
+      savedUser.default_page = '/user';
+    }
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
