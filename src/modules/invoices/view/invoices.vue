@@ -15,23 +15,10 @@
       @refresh-click="handleRefresh" 
       @trashed-click="openTrashedModal"
        @add-click="openAddModal"
-    
+  :disableRowWhen="isInvoiceDisabled"  
+
     />
-      <!-- <DriversHeader
-            v-model="searchText"
-            :searchPlaceholder="$t('driver.searchPlaceholder')"
-            :data="drivers"
-            groupKey="status"
-            v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('driver.filterByStatus')"
-            translationKey="statuses"
-        :columns="driverColumns"
-        v-model:visibleColumns="visibleColumns"
-        :showAddButton="true"
-        :addButtonText="$t('driver.addNew')"
-        @add-click="openAddModal"
-        @refresh-click="handleRefresh"
-    /> -->
+
     <div class="card border-0">
       <div class="card-body p-0">
         <!-- Bulk Actions Bar -->
@@ -255,6 +242,13 @@ const trashedBulkActions = computed(() => [
     bgColor: 'var(--color-danger)',
   },
 ]);
+
+// ✅ الدالة صارت برّا وبمكانها الصحيح
+const isInvoiceDisabled = (row) => {
+  // ✅ إذا invoice_id موجود (مش null)، معناها الـ invoice مستخدم ف collection
+  // وبالتالي ما بنقدر نحذفه
+  return row.invoice_id !== null && row.invoice_id !== undefined;
+};
 
 // Methods
 const handlePageChange = async (page) => {
