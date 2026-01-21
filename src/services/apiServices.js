@@ -870,6 +870,54 @@ class ApiServices {
   async markPaymentsAsPaid(paymentData) {
     return api.patch("/payments", paymentData);
   }
+
+  // في src/services/apiServices.js
+// أضيفي هاي الدوال الجديدة
+
+// ===== Collections Services =====
+async getCollections({ page = 1, perPage = 10 } = {}) {
+  return api.get(`/collections?page=${page}&per_page=${perPage}`);
+}
+
+async getTrashedCollections({ page = 1, perPage = 10 } = {}) {
+  return this.getTrashedEntities("collections", { page, perPage });
+}
+
+async updateCollection(collectionId, collectionData) {
+  try {
+    console.log("🔄 Updating collection:", collectionId, collectionData);
+
+    return api.post(`/collections/${collectionId}`, collectionData, {
+      headers: {
+        "X-HTTP-Method-Override": "PATCH",
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error in updateCollection:", error);
+    throw error;
+  }
+}
+
+async deleteCollection(collectionId, force = false) {
+  return this.deleteEntity("collections", collectionId, force);
+}
+
+async restoreCollection(collectionId) {
+  return this.restoreEntity("collections", collectionId);
+}
+
+async bulkDeleteCollections(collectionIds, force = false) {
+  return this.bulkDeleteEntities("collection", "collections", collectionIds, force);
+}
+
+async bulkRestoreCollections(collectionIds) {
+  return this.bulkRestoreEntities("collection", "collections", collectionIds);
+}
+
+async markCollectionsAsPaid(collectionData) {
+  return api.patch("/collections", collectionData);
+}
 }
 
 // Create and freeze the singleton instance

@@ -1618,14 +1618,14 @@ export default {
       symbol: "Currency Symbol",
       symbolPlaceholder: "Enter currency symbol (e.g., $, €)",
     },
-  details: {
-    id: "ID",
-    key: "Key",
-    nameEnglish: "Name (English)",
-    nameArabic: "Name (Arabic)",
-    symbol: "Symbol",
-    status: "Status"
-  },
+    details: {
+      id: "ID",
+      key: "Key",
+      nameEnglish: "Name (English)",
+      nameArabic: "Name (Arabic)",
+      symbol: "Symbol",
+      status: "Status"
+    },
     // Validation Messages
     validation: {
       keyRequired: "Currency code is required",
@@ -1850,82 +1850,34 @@ export default {
     noImageSelected: "Please select an image first.",
   },
 
-  payment: {
-    title: "Payments",
-    searchPlaceholder: "Search payments...",
-    addNew: "Add New Payment",
-    edit: "Edit Payment",
-    delete: "Delete Payment",
-    details: "Payment Details",
-    actions: "Actions",
-    filterByStatus: "Filter by Status",
-
-    // Fields
+  collection: {
+    title: "Collections",
     id: "ID",
-    amount: "Amount",
-    currency: "Currency",
-    orderCode: "Order Code",
-    clientCompany: "Client Company",
-    deliveryCompany: "Delivery Company",
-    driverReceived: "Driver Received",
-    driverPaid: "Driver Paid",
+    invoiceCode: "Invoice Code",
+    driverName: "Driver Name",
+    note: "Note",
     status: "Status",
-    notes: "Notes",
-
-    // Form
-    form: {
-      amount: "Amount",
-      amountPlaceholder: "Enter amount",
-      order: "Order",
-      orderPlaceholder: "Select order",
-      currency: "Currency",
-      currencyPlaceholder: "Select currency",
-      status: "Status",
-    },
-
-    // Status
-    paymentStatus: {
-      pending: "Pending",
-      completed: "Completed",
-      failed: "Failed",
-    },
-
-    // Actions
-    confirmDeleteTitle: "Confirm Delete",
-    confirmDelete: "Are you sure you want to delete this payment?",
-    bulkDelete: "Delete Selected Payments",
-    bulkRestore: "Restore Selected Payments",
-
-    // Tabs
-    activePayments: "Active Payments",
-
-    // Trashed
-    trashed: {
-      title: "Trashed Payments",
-      restore: "Restore",
-    },
-
-    // Entity labels for bulk actions
-    entitySingular: "payment",
-    entityPlural: "payments",
-
-    // Payment Method Modal
+    actions: "Actions",
+    edit: "Edit",
+    details: "Details",
+    searchPlaceholder: "Search collections...",
+    filterByStatus: "Filter by Status",
     markAsPaid: "Mark as Paid",
-    selectPaymentMethod: "Select Payment Method",
-    selectedPayments: "{count} payment(s) selected",
-    bankPayment: "Bank Payment",
-    bankPaymentDesc: "Payments will be marked as paid through bank",
-    driverPayment: "Driver Payment",
-    driverPaymentDesc: "Payments will be transferred to selected driver",
-    selectDriver: "Select Driver",
-    selectDriverPlaceholder: "-- Select Driver --",
-    driverRequired: "Driver selection is required",
-    selectPaymentMethodError: "Please select a payment method",
-
     createdAt: "Created At",
-    updatedAt: "Updated At"
+    updatedAt: "Updated At",
+    form: {
+      status: "Status",
+      note: "Note",
+      notePlaceholder: "Enter note..."
+    },
+    entitySingular: "collection",
+    entityPlural: "collections"
   },
-
+  collectionStatus: {
+    pending: "Pending",
+    completed: "Completed",
+    failed: "Failed"
+  },
 
   roles: {
     SuperAdmin: "Super Admin",

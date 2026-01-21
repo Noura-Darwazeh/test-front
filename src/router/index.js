@@ -23,7 +23,7 @@ import resetPassword from "../modules/resetPassword/view/resetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
 import workPlans from "../modules/workPlans/view/workPlans.vue";
 import Profile from "../modules/profile/view/profile.vue";
-import payment from "../modules/payment/view/payment.vue";
+import collections from "../modules/payment/view/collections.vue";
 import permissions from "../modules/permissions/view/permissions.vue";
 
 const router = createRouter({
@@ -50,6 +50,7 @@ const router = createRouter({
         requiresGuest: true,
       },
     },
+
     {
       path: "/forgot-password",
       name: "forgetPassword",
@@ -268,18 +269,20 @@ const router = createRouter({
         return "/user";
       },
     },
+    
 {
-  path: "/payment",
-  name: "Payment",
-  component: payment,
+  path: "/collections",
+  name: "Collections",
+  component: collections,
   meta: {
-    titleKey: "payment.title",
+    titleKey: "collection.title",
     requireAuth: true,
     showInSidebar: true,
     icon: "/src/assets/sidebar/priceIcon.svg",
     roles: ["Admin", "Driver"]
   },
 },
+
 {
   path: "/permissions",
   name: "Permissions",
@@ -291,7 +294,10 @@ const router = createRouter({
     icon: "/src/assets/sidebar/permission.svg",
     roles: ["SuperAdmin", "Admin"],
   },
-}
+},
+
+
+
   ],
 });
 
