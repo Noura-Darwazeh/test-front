@@ -59,6 +59,37 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     };
   };
 
+  const extractUsersPayload = (payload) => {
+    const dataRoot = payload?.data;
+    const usersArray = Array.isArray(dataRoot)
+      ? dataRoot
+      : Array.isArray(dataRoot?.data)
+        ? dataRoot.data
+        : [];
+
+    const metaSource =
+      payload?.meta ||
+      dataRoot?.meta ||
+      (dataRoot && dataRoot.current_page !== undefined ? dataRoot : null);
+
+    return { usersArray, metaSource };
+  };
+
+  const buildPagination = (metaSource, page, perPage, totalFallback) => {
+    const resolvedPerPage = metaSource?.per_page ?? perPage;
+    const resolvedTotal = metaSource?.total ?? totalFallback;
+    const resolvedLastPage =
+      metaSource?.last_page ??
+      Math.max(1, Math.ceil(resolvedTotal / resolvedPerPage));
+
+    return {
+      currentPage: metaSource?.current_page ?? page,
+      perPage: resolvedPerPage,
+      total: resolvedTotal,
+      lastPage: resolvedLastPage,
+    };
+  };
+
   // Getters
   const activeUsers = computed(() =>
     users.value.filter((user) => user.status === "active")
@@ -75,18 +106,14 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     try {
       const response = await apiServices.getUsers({ page, perPage });
 
-      // Use backend data directly, no mapping needed
-      users.value = response.data.data.map(normalizeUser);
-
-      // Update pagination metadata from response
-      if (response.data.meta) {
-        usersPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
-        };
-      }
+      const { usersArray, metaSource } = extractUsersPayload(response.data);
+      users.value = usersArray.map(normalizeUser);
+      usersPagination.value = buildPagination(
+        metaSource,
+        page,
+        perPage,
+        usersArray.length,
+      );
 
       return response.data;
     } catch (err) {
@@ -104,18 +131,14 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     try {
       const response = await apiServices.getTrashedUsers({ page, perPage });
 
-      // Use backend data directly, no mapping needed
-      trashedUsers.value = response.data.data.map(normalizeUser);
-
-      // Update pagination metadata from response
-      if (response.data.meta) {
-        trashedPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
-        };
-      }
+      const { usersArray, metaSource } = extractUsersPayload(response.data);
+      trashedUsers.value = usersArray.map(normalizeUser);
+      trashedPagination.value = buildPagination(
+        metaSource,
+        page,
+        perPage,
+        usersArray.length,
+      );
 
       return response.data;
     } catch (err) {

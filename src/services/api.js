@@ -1,8 +1,15 @@
 import axios from "axios";
 import { getItem, removeItem } from "@/utils/shared/storageUtils";
 // ---- axios instance ----
+const rawBaseUrl =
+  import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35/api";
+const normalizedBaseUrl = rawBaseUrl.replace(/\/+$/, "");
+const apiBaseUrl = normalizedBaseUrl.endsWith("/api")
+  ? normalizedBaseUrl
+  : `${normalizedBaseUrl}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35/api",
+  baseURL: apiBaseUrl,
   timeout: 30000,
   headers: {
     Accept: "application/json",

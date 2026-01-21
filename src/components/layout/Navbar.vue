@@ -50,7 +50,10 @@
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
               <button class="btn btn-link p-0 d-flex align-items-center gap-2 text-decoration-none" type="button">
-                <img :src="userAvatar" alt="User profile picture" class="rounded-circle" width="36" height="36" />
+                <img v-if="userAvatar" :src="userAvatar" alt="User profile picture" class="rounded-circle" width="36" height="36" />
+                <div v-else class="user-avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: #667eea; color: white;">
+                  <i class="fas fa-user"></i>
+                </div>
                 <span class="d-none d-md-inline text-dark">{{ authStore.userName || 'User' }}</span>
                 <img src="/src/assets/Navbar/DropDown.svg" alt="Dropdown" width="16" height="16" />
               </button>
@@ -147,7 +150,9 @@ const displayTitle = computed(() => {
 
 const notificationCount = ref(3);
 const userAvatar = computed(() => {
-  return authStore.user?.image || "https://via.placeholder.com/36";
+  const image = authStore.user?.image;
+  if (!image || image.includes("placeholder")) return null;
+  return image;
 });
 
 const isSwitchUserModalOpen = ref(false);

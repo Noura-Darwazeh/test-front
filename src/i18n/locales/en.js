@@ -1934,4 +1934,16 @@ export default {
     Supervisor: "Supervisor",
     Driver: "Driver",
   },
+
+  // Permissions Management
+  permissions: {
+    title: "Permissions Management",
+    subtitle: "Manage user permissions and access control",
+    searchUsers: "Search users...",
+    availablePermissions: "Available Permissions",
+    noPermissions: "No permissions available",
+    userPermissions: "User Permissions",
+    noPermissionsAvailable: "No permissions available",
+    noUsersFound: "No users found",
+  },
 };

@@ -208,7 +208,6 @@ const canAddUser = computed(() => isSuperAdmin.value || isAdmin.value);
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
@@ -218,6 +217,15 @@ const selectedUser = ref({});
 const userToDelete = ref(null);
 const activeTab = ref("active");
 const selectedRows = ref([]);
+
+// Get the correct pagination metadata based on active tab
+const currentPagination = computed(() => {
+  return activeTab.value === "active"
+    ? usersStore.usersPagination
+    : usersStore.trashedPagination;
+});
+
+const itemsPerPage = computed(() => currentPagination.value.perPage || 10);
 
 // Bulk action state
 const bulkActionLoading = ref(false);
@@ -352,13 +360,6 @@ watch(currentPage, async (newPage) => {
   }
 });
 
-// Get the correct pagination metadata based on active tab
-const currentPagination = computed(() => {
-  return activeTab.value === "active"
-    ? usersStore.usersPagination
-    : usersStore.trashedPagination;
-});
-
 // ✅ User Form Fields with conditional logic
 const userFields = computed(() => [
   {
@@ -443,11 +444,13 @@ const userFields = computed(() => [
       label: role.label,
     })),
     colClass: "col-md-6",
-    defaultValue: isEditMode.value
-      ? selectedUser.value.role
-        ? selectedUser.value.role[0]
-        : selectedUser.value.role
-      : "",
+    // defaultValue: isEditMode.value
+    //   ? selectedUser.value.role
+    //     ? selectedUser.value.role[0]
+    //     : selectedUser.value.role
+    //   : "",
+      defaultValue: isEditMode.value ? selectedUser.value.role : "", // ✅ هسا string
+
   },
   {
     name: "company_id",
@@ -670,7 +673,15 @@ const openModal = () => {
 // Edit Modal
 const openEditModal = (user) => {
   isEditMode.value = true;
-  selectedUser.value = { ...user };
+  // selectedUser.value = { ...user };
+
+
+    const normalizedUser = {
+    ...user,
+    role: Array.isArray(user.role) ? user.role[0] : user.role
+  };
+  
+  selectedUser.value = normalizedUser;
 
   // ✅ إضافة المسار الكامل للصورة
   if (selectedUser.value.image) {

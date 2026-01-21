@@ -24,6 +24,7 @@ import regions from "../modules/regions/view/regions.vue";
 import workPlans from "../modules/workPlans/view/workPlans.vue";
 import Profile from "../modules/profile/view/profile.vue";
 import payment from "../modules/payment/view/payment.vue";
+import permissions from "../modules/permissions/view/permissions.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -275,8 +276,20 @@ const router = createRouter({
     titleKey: "payment.title",
     requireAuth: true,
     showInSidebar: true,
-    icon: "/src/assets/sidebar/priceIcon.svg", 
+    icon: "/src/assets/sidebar/priceIcon.svg",
     roles: ["Admin", "Driver"]
+  },
+},
+{
+  path: "/permissions",
+  name: "Permissions",
+  component: permissions,
+  meta: {
+    titleKey: "permissions.title",
+    requireAuth: true,
+    showInSidebar: true,
+    icon: "/src/assets/sidebar/permission.svg",
+    roles: ["SuperAdmin", "Admin"],
   },
 }
   ],

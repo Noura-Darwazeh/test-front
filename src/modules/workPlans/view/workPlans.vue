@@ -335,6 +335,8 @@ const handleRefresh = async () => {
     }
 };
 
+// في src/modules/workPlans/view/workPlans.vue
+
 // ✅ تعديل workPlan Form Fields لدعم التعديل
 const workPlanFields = computed(() => {
     let defaultOrders = [{ order: '', items: [] }];
@@ -367,7 +369,7 @@ const workPlanFields = computed(() => {
         orderItemsMap.forEach((itemIds, orderCode) => {
             defaultOrders.push({
                 order: orderCode,
-                items: itemIds
+                items: itemIds // ✅ هون المشكلة - لازم يكون array
             });
         });
         
@@ -379,68 +381,96 @@ const workPlanFields = computed(() => {
     }
     
     return [
-    {
-        name: 'name',
-        label: t('workPlan.form.name'),
-        type: 'text',
-        required: true,
-        placeholder: t('workPlan.form.namePlaceholder'),
-        colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.name || '',
-        validate: (value) => {
-            if (!value || value.trim().length === 0) {
-                return t('workPlan.validation.nameRequired');
+        {
+            name: 'name',
+            label: t('workPlan.form.name'),
+            type: 'text',
+            required: true,
+            placeholder: t('workPlan.form.namePlaceholder'),
+            colClass: 'col-md-6',
+            defaultValue: selectedworkPlan.value.name || '',
+            validate: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return t('workPlan.validation.nameRequired');
+                }
+                if (value.length > 255) {
+                    return t('workPlan.validation.nameMax');
+                }
+                return null;
             }
-            if (value.length > 255) {
-                return t('workPlan.validation.nameMax');
-            }
-            return null;
+        },
+        {
+            name: 'driver_id',
+            label: t('workPlan.form.driverName'),
+            type: 'select',
+            required: true,
+            options: driverOptions,
+            colClass: 'col-md-6',
+            defaultValue: selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
+        },
+        {
+            name: 'date',
+            label: t('workPlan.form.date'),
+            type: 'date',
+            required: false,
+            colClass: 'col-md-6',
+            defaultValue: selectedworkPlan.value.date || '',
+        },
+        {
+            name: 'company_id',
+            label: t('workPlan.form.company'),
+            type: 'select',
+            required: true,
+            options: companyOption.value.length
+                ? companyOption.value
+                : [{ value: "", label: t("common.noCompanyAssigned") }],
+            colClass: 'col-md-6',
+            defaultValue: companyId.value || '',
+            locked: true,
+            hidden: true
+        },
+        {
+            name: 'orders',
+            label: t('workPlan.form.orders'),
+            type: 'orderRows',
+            required: false,
+            colClass: 'col-12',
+            orderLabel: t('workPlan.form.orderName'),
+            itemsLabel: t('workPlan.form.orderItems'),
+            orderOptions: orderOptions,
+            getItemsOptions: getItemsOptionsForOrder, // ✅ هاي المشكلة الثانية
+            itemsSize: 5,
+            defaultValue: defaultOrders
         }
-    },
-    {
-        name: 'driver_id',
-        label: t('workPlan.form.driverName'),
-        type: 'select',
-        required: true,
-        options: driverOptions,
-        colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
-    },
-    {
-        name: 'date',
-        label: t('workPlan.form.date'),
-        type: 'date',
-        required: false,
-        colClass: 'col-md-6',
-        defaultValue: selectedworkPlan.value.date || '',
-    },
-    {
-        name: 'company_id',
-        label: t('workPlan.form.company'),
-        type: 'select',
-        required: true,
-        options: companyOption.value.length
-            ? companyOption.value
-            : [{ value: "", label: t("common.noCompanyAssigned") }],
-        colClass: 'col-md-6',
-        defaultValue: companyId.value || '',
-        locked: true,
-        hidden: true
-    },
-    {
-        name: 'orders',
-        label: t('workPlan.form.orders'),
-        type: 'orderRows',
-        required: false,
-        colClass: 'col-12',
-        orderLabel: t('workPlan.form.orderName'),
-        itemsLabel: t('workPlan.form.orderItems'),
-        orderOptions: orderOptions,
-        getItemsOptions: getItemsOptionsForOrder,
-        itemsSize: 5,
-        defaultValue: defaultOrders
-    }];
+    ];
 });
+
+// ✅ تعديل getItemsOptionsForOrder عشان يجيب الـ items الصحيحة
+const getItemsOptionsForOrder = (orderCode) => {
+    if (!orderCode) {
+        console.log("⚠️ No order code provided");
+        return [];
+    }
+    
+    console.log("🔍 Getting items for order:", orderCode);
+    
+    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
+    if (!order || !order.order_items || order.order_items.length === 0) {
+        console.log("⚠️ No items found for order:", orderCode);
+        return [];
+    }
+    
+    const items = order.order_items.map(item => ({
+        value: item.order_item_id,
+        label: item.orderitemname
+    }));
+    
+    console.log("✅ Items options for", orderCode, ":", items);
+    return items;
+};
+        
+        
+    
 
 // Details Fields
 const detailsFields = computed(() => [
@@ -571,28 +601,8 @@ const fetchOrdersWithItems = async () => {
 };
 
 // Get items options for a selected order
-const getItemsOptionsForOrder = (orderCode) => {
-    if (!orderCode) {
-        console.log("⚠️ No order code provided");
-        return [];
-    }
-    
-    console.log("🔍 Getting items for order:", orderCode);
-    
-    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
-    if (!order || !order.order_items || order.order_items.length === 0) {
-        console.log("⚠️ No items found for order:", orderCode);
-        return [];
-    }
-    
-    const items = order.order_items.map(item => ({
-        value: item.order_item_id,
-        label: item.orderitemname
-    }));
-    
-    console.log("✅ Items options for", orderCode, ":", items);
-    return items;
-};
+
+
 
 // Add Modal
 const openAddModal = async () => {

@@ -323,6 +323,7 @@ const props = defineProps({
   showImageUpload: { type: Boolean, default: true },
   imageUploadLabel: { type: String, default: "" },
   imageRequired: { type: Boolean, default: false },
+  initialImage: { type: String, default: "" },
 });
 
 const emit = defineEmits(["close", "submit"]);
@@ -488,31 +489,31 @@ const renderFields = computed(() =>
 );
 
 // Initialize form
+// في src/components/shared/FormModal.vue
+
+// Initialize form
 const initializeForm = () => {
   if (!props.fields || props.fields.length === 0) return;
 
   props.fields.forEach((field) => {
     if (field && field.name) {
       if (field.type === "orderRows") {
-        formData[field.name] =
-          field.defaultValue ||
-          [
-            {
-              order: "",
-              items: [],
-            },
-          ];
+        // ✅ تعديل هون
+        const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
+          ? field.defaultValue
+          : [{ order: "", items: [] }];
+        
+        formData[field.name] = defaultRows.map((row) => ({
+          order: row?.order || "",
+          items: Array.isArray(row?.items) ? [...row.items] : [] // ✅ نسخ الـ items
+        }));
+        
+        console.log("🔄 Initialized orderRows:", formData[field.name]);
       } else if (field.type === "branchRows") {
         const defaultRows =
           Array.isArray(field.defaultValue) && field.defaultValue.length
             ? field.defaultValue
-            : [
-                {
-                  name: "",
-                  latitude: "",
-                  longitude: "",
-                },
-              ];
+            : [{ name: "", latitude: "", longitude: "" }];
         formData[field.name] = defaultRows.map((row) => ({
           name: row?.name || "",
           latitude: row?.latitude ?? "",
@@ -524,8 +525,21 @@ const initializeForm = () => {
       errors[field.name] = "";
     }
   });
+  
+  // ✅ لوج لشوف شو صار
+  console.log("📋 Form data after initialization:", formData);
+
+  if (!imageFile.value) {
+    imagePreview.value = props.initialImage || null;
+    imageError.value = "";
+    if (fileInput.value) {
+      fileInput.value.value = "";
+    }
+  }
 };
 
+
+// Reset form
 // Reset form
 const resetForm = () => {
   if (!props.fields || props.fields.length === 0) return;
@@ -533,25 +547,20 @@ const resetForm = () => {
   props.fields.forEach((field) => {
     if (field && field.name) {
       if (field.type === "orderRows") {
-        formData[field.name] =
-          field.defaultValue ||
-          [
-            {
-              order: "",
-              items: [],
-            },
-          ];
+        // ✅ تعديل هون
+        const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
+          ? field.defaultValue
+          : [{ order: "", items: [] }];
+        
+        formData[field.name] = defaultRows.map((row) => ({
+          order: row?.order || "",
+          items: Array.isArray(row?.items) ? [...row.items] : [] // ✅ نسخ الـ items
+        }));
       } else if (field.type === "branchRows") {
         const defaultRows =
           Array.isArray(field.defaultValue) && field.defaultValue.length
             ? field.defaultValue
-            : [
-                {
-                  name: "",
-                  latitude: "",
-                  longitude: "",
-                },
-              ];
+            : [{ name: "", latitude: "", longitude: "" }];
         formData[field.name] = defaultRows.map((row) => ({
           name: row?.name || "",
           latitude: row?.latitude ?? "",
@@ -572,6 +581,8 @@ const resetForm = () => {
   }
   closeMapPicker();
 };
+    
+
 
 // Add / Remove order rows
 const addOrderRow = (fieldName) => {

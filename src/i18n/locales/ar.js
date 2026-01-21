@@ -1849,5 +1849,17 @@
   payment: {
     createdAt: "تاريخ الإنشاء",
     updatedAt: "تاريخ التحديث"
-  }
+  },
+
+  // إدارة الصلاحيات
+  permissions: {
+    title: "إدارة الصلاحيات",
+    subtitle: "إدارة صلاحيات المستخدمين والتحكم في الوصول",
+    searchUsers: "البحث عن مستخدمين...",
+    availablePermissions: "الصلاحيات المتاحة",
+    noPermissions: "لا توجد صلاحيات متاحة",
+    userPermissions: "صلاحيات المستخدم",
+    noPermissionsAvailable: "لا توجد صلاحيات متاحة",
+    noUsersFound: "لم يتم العثور على مستخدمين",
+  },
 };

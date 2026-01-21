@@ -154,14 +154,14 @@
                   </div>
 
                   <!-- Default Landing Page -->
-                  <div class="col-12">
+                  <!-- <div class="col-12">
                     <FormLabel :label="$t('profile.defaultLandingPage')" />
                     <select v-model="formData.default_page" class="form-select" @change="markAsChanged">
                       <option v-for="page in availablePages" :key="page.value" :value="page.value">
                         {{ page.label }}
                       </option>
                     </select>
-                  </div>
+                  </div> -->
 
                   <!-- Language -->
                   <div class="col-12">

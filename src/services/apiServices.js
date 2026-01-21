@@ -833,6 +833,26 @@ class ApiServices {
     return this.bulkRestoreEntities("work_plan", "work_plans", workPlanIds);
   }
 
+  // ===== Permissions Services =====
+  async getPermissions({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/permissions?page=${page}&per_page=${perPage}`);
+  }
+
+  async getUsersWithPermissions({ page = 1, perPage = 10 } = {}) {
+    return api.get(`/user_permissions?page=${page}&per_page=${perPage}`);
+  }
+
+  async assignPermissionToUser(userId, permissionId) {
+    return api.post("/user_permissions", {
+      user_id: userId,
+      permission_id: permissionId,
+    });
+  }
+
+  async removePermissionFromUser(userId, permissionId) {
+    return api.delete(`/user_permissions/${userId}/${permissionId}`);
+  }
+
   // ===== Switch User Service (SuperAdmin only) =====
   async switchToUser(userId) {
     return api.post(`/login_as/${userId}`);

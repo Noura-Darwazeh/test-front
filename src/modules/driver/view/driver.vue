@@ -132,6 +132,7 @@
             :showImageUpload="true" 
             :imageRequired="false"
             :imageUploadLabel="$t('driver.form.uploadImage')"
+            :initialImage="selectedDriverImage"
             @close="closeFormModal" 
             @submit="handleSubmitDriver" 
         />
@@ -178,6 +179,13 @@ const { t } = useI18n();
 const driverStore = useDriverStore();
 const { companyId, companyOption } = useAuthDefaults();
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35").replace(/\/api\/?$/, "");
+const getFullImageUrl = (imagePath) => {
+    if (!imagePath || imagePath === "path/test") return null;
+    if (imagePath.startsWith("http")) return imagePath;
+    return `${API_BASE_URL}${imagePath}`;
+};
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -190,6 +198,10 @@ const selectedDriver = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
+
+const selectedDriverImage = computed(() =>
+    getFullImageUrl(selectedDriver.value?.image)
+);
 
 // Bulk action state
 const bulkActionLoading = ref(false);
@@ -207,6 +219,24 @@ const branchOptions = computed(() =>
         label: branch.name,
     }))
 );
+
+const toSelectValue = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    return String(value);
+};
+
+const normalizeDriverForEdit = (driver) => ({
+    ...driver,
+    name: driver.user?.name || driver.name || "",
+    username: driver.user?.username || driver.username || "",
+    email: driver.user?.email || driver.email || "",
+    phone_number: driver.user?.phone_number || driver.phone_number || "",
+    branch_id: toSelectValue(driver.branch_id ?? driver.branch?.id),
+    company_id: toSelectValue(driver.company_id ?? driver.company?.id),
+    status: driver.status || "available",
+    type: driver.type || "delivery driver",
+    vehicle_number: driver.vehicle_number || "",
+});
 
 const fetchBranches = async () => {
     try {
@@ -474,7 +504,7 @@ const openAddModal = () => {
 // Edit Modal
 const openEditModal = (driver) => {
     isEditMode.value = true;
-    selectedDriver.value = { ...driver };
+    selectedDriver.value = normalizeDriverForEdit(driver);
     isFormModalOpen.value = true;
 };
 

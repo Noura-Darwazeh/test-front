@@ -62,7 +62,7 @@
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage"
+                        <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage" :totalPages="currentPagination.lastPage"
                             :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
                     </div>
                 </div>
@@ -92,7 +92,7 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import BranchesHeader from "../components/branchesHeader.vue";
@@ -109,7 +109,12 @@ const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(5);
+const currentPagination = computed(() => {
+    return activeTab.value === 'active'
+        ? branchesStore.branchesPagination
+        : branchesStore.trashedPagination;
+});
+const itemsPerPage = computed(() => currentPagination.value.perPage || 10);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -129,12 +134,24 @@ const trashedbranches = computed(() => branchesStore.trashedBranches);
 // Load branches on component mount
 onMounted(async () => {
     try {
-        await branchesStore.fetchBranches();
+        await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
         console.error("Failed to load data:", error);
     }
 });
 
+
+watch(currentPage, async (newPage) => {
+    try {
+        if (activeTab.value === 'trashed') {
+            await branchesStore.fetchTrashedBranches({ page: newPage, perPage: itemsPerPage.value });
+        } else {
+            await branchesStore.fetchBranches({ page: newPage, perPage: itemsPerPage.value });
+        }
+    } catch (error) {
+        console.error("Failed to load page:", error);
+    }
+});
 // Branch Form Fields 
 const branchFields = computed(() => [
     {
@@ -293,11 +310,7 @@ const currentFilteredData = computed(() => {
 });
 
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
 });
 
 watch([searchText, selectedGroups], () => {
@@ -342,13 +355,13 @@ const switchTab = async (tab) => {
     selectedRows.value = [];
     if (tab === 'trashed') {
         try {
-            await branchesStore.fetchTrashedBranches();
+            await branchesStore.fetchTrashedBranches({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("❌ Failed to fetch trashed branches:", error);
         }
     } else {
         try {
-            await branchesStore.fetchBranches();
+            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage.value });
         } catch (error) {
             console.error("❌ Failed to fetch branches:", error);
         }
@@ -359,9 +372,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await branchesStore.fetchTrashedBranches();
+            await branchesStore.fetchTrashedBranches({ page: currentPage.value, perPage: itemsPerPage.value });
         } else {
-            await branchesStore.fetchBranches();
+            await branchesStore.fetchBranches({ page: currentPage.value, perPage: itemsPerPage.value });
         }
     } catch (error) {
         console.error("❌ Failed to refresh branches:", error);

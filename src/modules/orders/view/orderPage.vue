@@ -129,6 +129,7 @@
             :data="paginatedData"
             :actionsLabel="$t('orders.actionsLabel')"
             v-model="selectedRows"
+            :isExpandable="isOrderExpandable"
           >
             <template #actions="{ row }">
               <!-- Regular actions for all orders -->
@@ -155,6 +156,91 @@
                 @restore="handleRestoreOrder"
                 @delete="handlePermanentDeleteOrder"
               />
+            </template>
+
+            <!-- Expanded content for orders with children -->
+            <template #expand="{ row }">
+              <div class="child-orders-container p-3">
+                <h6 class="text-muted mb-3">
+                  <i class="fas fa-level-down-alt me-2"></i>
+                  {{ row._displayType === 'exchange' ? $t('orders.exchange.childOrders') : $t('orders.exchange.childOrders') }}
+                </h6>
+                <div class="row">
+                  <!-- Delivery Child Order -->
+                  <div v-if="row._deliveryOrder" class="col-md-6 mb-2">
+                    <div class="child-order-card delivery-card">
+                      <div class="child-order-header">
+                        <i class="fas fa-truck me-2"></i>
+                        {{ $t('orders.form.typeDelivery') }}
+                        <span class="badge bg-primary ms-2">#{{ row._deliveryOrder.order_code || row._deliveryOrder.id }}</span>
+                      </div>
+                      <div class="child-order-body">
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">{{ $t('orders.table.price') }}:</span>
+                          <span>{{ formatPrice(row._deliveryOrder.price, row._deliveryOrder.currency_symbol) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">{{ $t('orders.table.status') }}:</span>
+                          <span>{{ row._deliveryOrder.status }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">{{ $t('orders.table.case') }}:</span>
+                          <span>{{ row._deliveryOrder.case }}</span>
+                        </div>
+                      </div>
+                      <div class="child-order-actions">
+                        <ActionsDropdown
+                          :row="row._deliveryOrder"
+                          :editLabel="$t('orders.actions.edit')"
+                          :detailsLabel="$t('orders.actions.view')"
+                          :deleteLabel="$t('orders.actions.delete')"
+                          :confirmDelete="true"
+                          @edit="editOrder"
+                          @details="viewOrderDetails"
+                          @delete="handleDeleteOrder"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Return Child Order -->
+                  <div v-if="row._returnOrder" class="col-md-6 mb-2">
+                    <div class="child-order-card return-card">
+                      <div class="child-order-header">
+                        <i class="fas fa-undo me-2"></i>
+                        {{ $t('orders.form.typeReturn') }}
+                        <span class="badge bg-warning ms-2">#{{ row._returnOrder.order_code || row._returnOrder.id }}</span>
+                      </div>
+                      <div class="child-order-body">
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">{{ $t('orders.table.price') }}:</span>
+                          <span>{{ formatPrice(row._returnOrder.price, row._returnOrder.currency_symbol) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">{{ $t('orders.table.status') }}:</span>
+                          <span>{{ row._returnOrder.status }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                          <span class="text-muted">{{ $t('orders.table.case') }}:</span>
+                          <span>{{ row._returnOrder.case }}</span>
+                        </div>
+                      </div>
+                      <div class="child-order-actions">
+                        <ActionsDropdown
+                          :row="row._returnOrder"
+                          :editLabel="$t('orders.actions.edit')"
+                          :detailsLabel="$t('orders.actions.view')"
+                          :deleteLabel="$t('orders.actions.delete')"
+                          :confirmDelete="true"
+                          @edit="editOrder"
+                          @details="viewOrderDetails"
+                          @delete="handleDeleteOrder"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </template>
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
@@ -866,36 +952,64 @@ const currentData = computed(() => {
 });
 
 // Get child orders for a parent order (orders that have this order as parent_order_id)
-const getChildOrders = (parentId) => {
-  const orders = currentData.value;
-  if (!orders || orders.length === 0) return { delivery: null, return: null };
+const getChildOrders = (parentId, allOrders) => {
+  if (!allOrders || allOrders.length === 0) return { delivery: null, return: null, children: [] };
 
-  const children = orders.filter(o => String(o.parent_order_id) === String(parentId));
+  const children = allOrders.filter(o => String(o.parent_order_id) === String(parentId));
+  const deliveryChild = children.find(o => o.type === 'delivery') || null;
+  const returnChild = children.find(o => o.type === 'return') || null;
+
   return {
-    delivery: children.find(o => o.type === 'delivery') || null,
-    return: children.find(o => o.type === 'return') || null,
-    hasExchange: children.some(o => o.type === 'delivery') && children.some(o => o.type === 'return')
+    delivery: deliveryChild,
+    return: returnChild,
+    children: children,
+    hasDelivery: !!deliveryChild,
+    hasReturn: !!returnChild,
+    hasExchange: !!deliveryChild && !!returnChild, // Both delivery AND return = exchange
+    hasChildren: children.length > 0
   };
 };
 
-// Process orders - show all orders, mark parent orders that have child orders as exchange type
+// Process orders - filter out child orders, mark parents with children
 const processedOrders = computed(() => {
-  const orders = currentData.value;
-  if (!orders || orders.length === 0) return [];
+  const allOrders = currentData.value;
+  if (!allOrders || allOrders.length === 0) return [];
 
-  // Add metadata for parent orders - set display type to 'exchange' if they have both delivery and return child orders
-  const result = orders.map(order => {
-    const children = getChildOrders(order.id);
-    if (children.hasExchange) {
+  // Step 1: Filter out child orders (orders that have a parent_order_id)
+  const parentOrders = allOrders.filter(order => !order.parent_order_id);
+
+  // Step 2: For each parent order, check if it has children and mark accordingly
+  const result = parentOrders.map(order => {
+    const childInfo = getChildOrders(order.id, allOrders);
+
+    if (childInfo.hasExchange) {
+      // Has both delivery AND return children = show as "Exchange"
       return {
         ...order,
-        _hasExchange: true,
-        _displayType: 'exchange', // Show as exchange type in the table
-        _deliveryOrder: children.delivery,
-        _returnOrder: children.return
+        _hasChildren: true,
+        _displayType: 'exchange',
+        _childOrders: childInfo.children,
+        _deliveryOrder: childInfo.delivery,
+        _returnOrder: childInfo.return
+      };
+    } else if (childInfo.hasChildren) {
+      // Has only one type of child (e.g., only return) - keep original type but mark expandable
+      return {
+        ...order,
+        _hasChildren: true,
+        _displayType: order.type, // Keep original type
+        _childOrders: childInfo.children,
+        _deliveryOrder: childInfo.delivery,
+        _returnOrder: childInfo.return
       };
     }
-    return order;
+
+    // No children - regular order
+    return {
+      ...order,
+      _hasChildren: false,
+      _childOrders: []
+    };
   });
 
   // Sort by created_at descending (newest first)
@@ -903,6 +1017,11 @@ const processedOrders = computed(() => {
 
   return result;
 });
+
+// Function to check if a row is expandable (has child orders)
+const isOrderExpandable = (row) => {
+  return row._hasChildren === true;
+};
 
 const currentLoading = computed(() => {
   return activeTab.value === "active"
@@ -1154,7 +1273,7 @@ const cancelBulkAction = () => {
 const viewOrderDetails = (order) => {
   selectedOrder.value = { ...order };
   // Check if this order has been exchanged (has child orders pointing to it)
-  selectedOrderExchange.value = getChildOrders(order.id);
+  selectedOrderExchange.value = getChildOrders(order.id, currentData.value);
   detailsModalTab.value = 'details'; // Reset to details tab
   isDetailsModalOpen.value = true;
 };
@@ -1471,6 +1590,55 @@ watch([searchText, selectedGroups, selectedTimePeriod], () => {
 
 .nav-tabs .nav-link.text-success.active {
   border-bottom-color: #198754;
+}
+
+/* Child orders expandable row styles */
+.child-orders-container {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.child-order-card {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
+
+.child-order-header {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+}
+
+.delivery-card .child-order-header {
+  background-color: rgba(13, 110, 253, 0.1);
+  color: #0d6efd;
+}
+
+.return-card .child-order-header {
+  background-color: rgba(253, 126, 20, 0.1);
+  color: #fd7e14;
+}
+
+.child-order-body {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.child-order-body > div {
+  padding: 0.25rem 0;
+}
+
+.child-order-actions {
+  padding: 0.5rem 1rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
 

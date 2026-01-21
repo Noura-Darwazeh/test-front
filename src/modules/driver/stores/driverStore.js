@@ -34,6 +34,7 @@ export const useDriverStore = defineStore("driver", () => {
         id: value.id ?? fallbackId,
         name: value.name ?? value.label ?? fallbackName,
       };
+
     }
     if (value === null || value === undefined) {
       return { id: fallbackId, name: fallbackName };
@@ -154,7 +155,6 @@ export const useDriverStore = defineStore("driver", () => {
       const apiData = {
         name: driverData.name,
         username: driverData.username,
-        email: driverData.email || "",
         password: driverData.password,
         phone_number: driverData.phone_number,
         role: "Driver",
@@ -167,8 +167,16 @@ export const useDriverStore = defineStore("driver", () => {
         vehicle_number: driverData.vehicle_number,
         latitude: driverData.latitude || 32.0,
         longitude: driverData.longitude || 35.0,
-        image: driverData.imagePreview || null,
+        image: driverData.image && driverData.image instanceof File ? driverData.image : null,
       };
+
+      const emailValue = typeof driverData.email === "string"
+        ? driverData.email.trim()
+        : driverData.email;
+      if (emailValue) {
+        apiData.email = emailValue;
+      }
+
 
       console.log("📤 Sending driver data to API:", {
         ...apiData,
@@ -212,7 +220,14 @@ export const useDriverStore = defineStore("driver", () => {
     // Add only provided fields
     if (driverData.name) apiData.name = driverData.name;
     if (driverData.username) apiData.username = driverData.username;
-    if (driverData.email !== undefined) apiData.email = driverData.email || "";
+    if (driverData.email !== undefined && driverData.email !== null) {
+      const emailValue = typeof driverData.email === "string"
+        ? driverData.email.trim()
+        : driverData.email;
+      if (emailValue !== "") {
+        apiData.email = emailValue;
+      }
+    }
     if (driverData.phone_number) apiData.phone_number = driverData.phone_number;
     if (driverData.status) apiData.status = driverData.status;
     if (driverData.type) apiData.type = driverData.type;
@@ -231,8 +246,8 @@ export const useDriverStore = defineStore("driver", () => {
     }
 
     // Only include image if it's provided
-    if (driverData.imagePreview) {
-      apiData.image = driverData.imagePreview;
+    if (driverData.image && driverData.image instanceof File) {
+      apiData.image = driverData.image;
     }
 
     console.log("📤 Updating driver:", {

@@ -10,6 +10,20 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   const trashedLoading = ref(false);
   const error = ref(null);
 
+  const branchesPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
+  const trashedPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+
   const extractIdName = (value, fallbackId = null, fallbackName = "") => {
     if (Array.isArray(value)) {
       return { id: value[0] ?? fallbackId, name: value[1] ?? fallbackName };
@@ -90,14 +104,30 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   };
 
   // Actions
-  const fetchBranches = async () => {
+  const fetchBranches = async ({ page = 1, perPage = 10 } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getBranches();
+      const response = await apiServices.getBranches({ page, perPage });
 
       // Enrich branches with company_name and flatten location
       branches.value = await enrichBranchesWithCompanyName(response.data.data);
+
+      if (response.data.meta) {
+        branchesPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      } else {
+        branchesPagination.value = {
+          currentPage: page,
+          perPage,
+          total: branches.value.length,
+          lastPage: 1,
+        };
+      }
 
       console.log("✅ Branches loaded successfully:", branches.value.length);
       return response.data;
@@ -201,14 +231,30 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     }
   };
 
-  const fetchTrashedBranches = async () => {
+  const fetchTrashedBranches = async ({ page = 1, perPage = 10 } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedBranches();
+      const response = await apiServices.getTrashedBranches({ page, perPage });
 
       // Enrich branches with company_name and flatten location
       trashedBranches.value = await enrichBranchesWithCompanyName(response.data.data);
+
+      if (response.data.meta) {
+        trashedPagination.value = {
+          currentPage: response.data.meta.current_page,
+          perPage: response.data.meta.per_page,
+          total: response.data.meta.total,
+          lastPage: response.data.meta.last_page,
+        };
+      } else {
+        trashedPagination.value = {
+          currentPage: page,
+          perPage,
+          total: trashedBranches.value.length,
+          lastPage: 1,
+        };
+      }
 
       console.log(`✅ Successfully loaded ${trashedBranches.value.length} trashed branches`);
       return response.data;
@@ -312,6 +358,8 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     loading,
     trashedLoading,
     error,
+    branchesPagination,
+    trashedPagination,
     // Actions
     fetchBranches,
     fetchTrashedBranches,
