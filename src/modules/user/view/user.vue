@@ -72,6 +72,8 @@
             :data="paginatedData"
             :actionsLabel="$t('user.actions')"
             v-model="selectedRows"
+                        :disableRowWhen="disableUserSelection"
+
           >
             <template #actions="{ row }">
               <!-- Active Users Actions -->
@@ -81,7 +83,9 @@
                 :editLabel="$t('user.edit')"
                 :detailsLabel="$t('user.details')"
                 :deleteLabel="$t('user.delete')"
-                :showDelete="true"
+                :showEdit="canEditUser(row)"
+                :showDelete="canDeleteUser(row)"
+                :showDetails="true"
                 @edit="openEditModal"
                 @details="openDetailsModal"
                 @delete="handleDeleteUser"
@@ -911,6 +915,37 @@ const executeBulkAction = async () => {
 const cancelBulkAction = () => {
   isBulkConfirmOpen.value = false;
   pendingBulkAction.value = null;
+};
+
+
+
+
+// ✅ دالة للتحقق من إمكانية تعديل المستخدم
+const canEditUser = (user) => {
+  // SuperAdmin يقدر يعدل على أي حد
+  if (isSuperAdmin.value) return true;
+  
+  // Admin يقدر يعدل فقط على المستخدمين التابعين لشركته
+  if (isAdmin.value) {
+    const userCompanyId = resolveIdValue(user.company_id ?? user.company);
+    return userCompanyId === companyId.value;
+  }
+  
+  return false;
+};
+
+// ✅ دالة للتحقق من إمكانية حذف المستخدم
+const canDeleteUser = (user) => {
+  // SuperAdmin يقدر يحذف أي حد
+  if (isSuperAdmin.value) return true;
+  
+  // Admin يقدر يحذف فقط المستخدمين التابعين لشركته
+  if (isAdmin.value) {
+    const userCompanyId = resolveIdValue(user.company_id ?? user.company);
+    return userCompanyId === companyId.value;
+  }
+  
+  return false;
 };
 </script>
 

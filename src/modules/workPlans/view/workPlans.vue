@@ -438,8 +438,7 @@ const workPlanFields = computed(() => {
             orderLabel: t('workPlan.form.orderName'),
             itemsLabel: t('workPlan.form.orderItems'),
             orderOptions: orderOptions,
-            getItemsOptions: getItemsOptionsForOrder, // ✅ هاي المشكلة الثانية
-            itemsSize: 5,
+            getItemsOptions: getItemsOptionsForOrder, 
             defaultValue: defaultOrders
         }
     ];
@@ -630,11 +629,39 @@ const openEditModal = async (workPlan) => {
 };
 
 // Details Modal
+// const openDetailsModal = (workPlan) => {
+//     selectedworkPlan.value = { ...workPlan };
+//     isDetailsModalOpen.value = true;
+// };
+
+
 const openDetailsModal = (workPlan) => {
-    selectedworkPlan.value = { ...workPlan };
+    const orderGroups = {};
+    
+    workPlan.workplanorder?.forEach(wo => {
+        const orderItemName = wo.order_item?.name || '';
+        const orderCode = orderItemName.split(' - ')[0].trim();
+        const itemName = orderItemName.split(' - ')[1]?.trim() || '';
+        
+        if (!orderGroups[orderCode]) {
+            orderGroups[orderCode] = [];
+        }
+        if (itemName) {
+            orderGroups[orderCode].push(itemName);
+        }
+    });
+    
+    // تنسيق العرض
+    const ordersDisplay = Object.entries(orderGroups)
+        .map(([code, items]) => `${code}: ${items.join(', ')}`)
+        .join('\n') || t('workPlan.noOrders');
+
+    selectedworkPlan.value = { 
+        ...workPlan,
+        orders: ordersDisplay
+    };
     isDetailsModalOpen.value = true;
 };
-
 const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
@@ -646,7 +673,6 @@ const closeDetailsModal = () => {
     selectedworkPlan.value = {};
 };
 
-// ✅ تعديل handleSubmitworkPlan لدعم التعديل بشكل صحيح
 const handleSubmitworkPlan = async (workPlanData) => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to submit work plans");
