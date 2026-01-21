@@ -24,6 +24,7 @@ import regions from "../modules/regions/view/regions.vue";
 import workPlans from "../modules/workPlans/view/workPlans.vue";
 import Profile from "../modules/profile/view/profile.vue";
 import collections from "../modules/payment/view/collections.vue";
+import invoices from "../modules/invoices/view/invoices.vue";
 import permissions from "../modules/permissions/view/permissions.vue";
 
 const router = createRouter({
@@ -283,6 +284,17 @@ const router = createRouter({
   },
 },
 
+{
+  path: "/invoices",
+  name: "Invoices",
+  component: invoices,
+  meta: {
+    titleKey: "invoice.title",
+    requireAuth: true,
+    showInSidebar: true,
+    icon: "/src/assets/sidebar/invoiceIcon.svg",   
+  },
+},
 {
   path: "/permissions",
   name: "Permissions",

@@ -1886,7 +1886,34 @@ export default {
     Supervisor: "Supervisor",
     Driver: "Driver",
   },
-
+invoice: {
+  title: "Invoices",
+  searchPlaceholder: "Search for invoice...",
+  filterByStatus: "Filter by Status",
+  id: "Invoice ID",
+  invoiceCode: "Invoice Code",
+  deliveryCompany: "Delivery Company",
+  clientCompany: "Client Company",
+  collectionAmount: "Collection Amount",
+  dueAmount: "Due Amount",
+  periodStart: "Period Start",
+  periodEnd: "Period End",
+  status: "Status",
+  createdAt: "Created At",
+  actions: "Actions",
+  details: "Details",
+  delete: "Delete",
+  deleteConfirm: "Are you sure you want to delete this invoice?",
+  permanentDeleteConfirm: "Are you sure? This cannot be undone!",
+  trashedInvoices: "Trashed Invoices",
+  noTrashedInvoices: "No trashed invoices",
+  entitySingular: "invoice",
+  entityPlural: "invoices"
+},
+invoiceStatus: {
+  pending: "Pending",
+  completed: "Completed"
+},
   // Permissions Management
   permissions: {
     title: "Permissions Management",

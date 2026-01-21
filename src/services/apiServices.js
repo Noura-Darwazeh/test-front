@@ -918,6 +918,32 @@ async bulkRestoreCollections(collectionIds) {
 async markCollectionsAsPaid(collectionData) {
   return api.patch("/collections", collectionData);
 }
+
+
+// ===== Invoice Services =====
+async getInvoices({ page = 1, perPage = 10 } = {}) {
+  return api.get(`/invoices?page=${page}&per_page=${perPage}`);
+}
+
+async getTrashedInvoices({ page = 1, perPage = 10 } = {}) {
+  return this.getTrashedEntities("invoices", { page, perPage });
+}
+
+async deleteInvoice(invoiceId, force = false) {
+  return this.deleteEntity("invoices", invoiceId, force);
+}
+
+async restoreInvoice(invoiceId) {
+  return this.restoreEntity("invoices", invoiceId);
+}
+
+async bulkDeleteInvoices(invoiceIds, force = false) {
+  return this.bulkDeleteEntities("invoice", "invoices", invoiceIds, force);
+}
+
+async bulkRestoreInvoices(invoiceIds) {
+  return this.bulkRestoreEntities("invoice", "invoices", invoiceIds);
+}
 }
 
 // Create and freeze the singleton instance
