@@ -216,12 +216,31 @@ const workPlans = computed(() => {
 
 const trashedworkPlans = computed(() => workPlansStore.trashedWorkPlans);
 
-// Computed property for order options
+// ✅ Computed property for order options - بيضيف الـ orders الموجودين حاليًا
 const orderOptions = computed(() => {
-    return ordersWithItems.value.map(order => ({
+    const options = ordersWithItems.value.map(order => ({
         value: order.order_code,
         label: order.order_code
     }));
+    
+    // ✅ إذا في edit mode، أضيفي الـ orders الموجودين حاليًا
+    if (isEditMode.value && selectedworkPlan.value.workplanorder) {
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+            
+            // ✅ تأكدي إنه مش موجود مسبقًا
+            if (orderCode && !options.find(opt => opt.value === orderCode)) {
+                options.push({
+                    value: orderCode,
+                    label: orderCode
+                });
+            }
+        });
+    }
+    
+    console.log("📋 Order options:", options);
+    return options;
 });
 
 // Computed property for driver options
@@ -318,36 +337,43 @@ const handleRefresh = async () => {
 
 // ✅ تعديل workPlan Form Fields لدعم التعديل
 const workPlanFields = computed(() => {
-    const currentOrders = ordersWithItems.value;
-    const currentDrivers = driverStore.drivers;
-    
-    // ✅ استخرج order_item_id من workplanorder عند التعديل
     let defaultOrders = [{ order: '', items: [] }];
     
     if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
         console.log("📝 Editing work plan, workplanorder:", selectedworkPlan.value.workplanorder);
         
-        defaultOrders = selectedworkPlan.value.workplanorder.map(wo => {
+        const orderItemsMap = new Map();
+        
+        selectedworkPlan.value.workplanorder.forEach(wo => {
             const orderItemId = wo.order_item?.id || wo.order_item_id;
-            const orderItemName = wo.order_item?.name || `Order Item #${orderItemId}`;
+            const orderItemName = wo.order_item?.name || '';
             
-            // ✅ ابحثي عن order_code من ordersWithItems
-            let orderCode = '';
-            const matchingOrder = ordersWithItems.value.find(o => 
-                o.order_items && o.order_items.some(item => item.order_item_id === orderItemId)
-            );
+            // ✅ استخرجي الـ order_code من الاسم
+            const orderCode = orderItemName.split(' - ')[0].trim();
             
-            if (matchingOrder) {
-                orderCode = matchingOrder.order_code;
+            console.log(`📦 Order Item ID: ${orderItemId}, Name: ${orderItemName}, Code: ${orderCode}`);
+            
+            if (orderItemId && orderCode) {
+                if (!orderItemsMap.has(orderCode)) {
+                    orderItemsMap.set(orderCode, []);
+                }
+                orderItemsMap.get(orderCode).push(orderItemId);
             }
-            
-            console.log(`📦 Order Item ID: ${orderItemId}, Order Code: ${orderCode}`);
-            
-            return {
-                order: orderCode,
-                items: orderItemId ? [orderItemId] : []
-            };
         });
+        
+        console.log("🗺️ Order items map:", orderItemsMap);
+        
+        defaultOrders = [];
+        orderItemsMap.forEach((itemIds, orderCode) => {
+            defaultOrders.push({
+                order: orderCode,
+                items: itemIds
+            });
+        });
+        
+        if (defaultOrders.length === 0) {
+            defaultOrders = [{ order: '', items: [] }];
+        }
         
         console.log("✅ Default orders for edit:", defaultOrders);
     }
@@ -546,17 +572,26 @@ const fetchOrdersWithItems = async () => {
 
 // Get items options for a selected order
 const getItemsOptionsForOrder = (orderCode) => {
-    if (!orderCode) return [];
-    
-    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
-    if (!order || !order.order_items || order.order_items.length === 0) {
+    if (!orderCode) {
+        console.log("⚠️ No order code provided");
         return [];
     }
     
-    return order.order_items.map(item => ({
+    console.log("🔍 Getting items for order:", orderCode);
+    
+    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
+    if (!order || !order.order_items || order.order_items.length === 0) {
+        console.log("⚠️ No items found for order:", orderCode);
+        return [];
+    }
+    
+    const items = order.order_items.map(item => ({
         value: item.order_item_id,
         label: item.orderitemname
     }));
+    
+    console.log("✅ Items options for", orderCode, ":", items);
+    return items;
 };
 
 // Add Modal
@@ -600,8 +635,6 @@ const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
     selectedworkPlan.value = {};
 };
-
-
 
 // ✅ تعديل handleSubmitworkPlan لدعم التعديل بشكل صحيح
 const handleSubmitworkPlan = async (workPlanData) => {
@@ -748,8 +781,6 @@ const cancelBulkAction = () => {
     isBulkConfirmOpen.value = false;
     pendingBulkAction.value = null;
 };
-
-
 </script>
 
 <style scoped>

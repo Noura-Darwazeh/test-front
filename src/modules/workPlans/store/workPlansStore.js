@@ -33,77 +33,81 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     return { id: value ?? null, name: "" };
   };
 
-  const normalizeWorkPlan = (plan, allDrivers = []) => {
-    const companyInfo = extractIdName(plan.company_id ?? plan.company);
-    const companyId = companyInfo.id;
-    const companyName =
-      plan.company_name ||
-      companyInfo.name ||
-      (companyId ? `Company ${companyId}` : "");
+const normalizeWorkPlan = (plan, allDrivers = []) => {
+  const companyInfo = extractIdName(plan.company_id ?? plan.company);
+  const companyId = companyInfo.id;
+  const companyName =
+    plan.company_name ||
+    companyInfo.name ||
+    (companyId ? `Company ${companyId}` : "");
 
-    let date = plan.date || plan.plan_date || "";
-    let driverId = null;
-    let driverName = "";
-    let orders = [];
-    
-    // ✅ معالجة workplanorder بشكل صحيح
-    if (plan.workplanorder && Array.isArray(plan.workplanorder)) {
-      orders = plan.workplanorder.map(workplanOrder => {
-        // استخراج order_item من الكائن
-        const orderItemId = workplanOrder.order_item?.id || workplanOrder.order_item_id;
-        const orderItemName = workplanOrder.order_item?.name || `Order Item #${orderItemId}`;
-        
-        return {
-          id: workplanOrder.id,
-          order_item_id: orderItemId,
-          order: orderItemName, // اسم الـ order item الكامل
-          items: orderItemId // ID لاستخدامه في الفورم والعرض
-        };
-      });
+  let date = plan.date || plan.plan_date || "";
+  let driverId = null;
+  let driverName = "";
+  let orders = [];
+  
+  // ✅ معالجة workplanorder بشكل صحيح
+  if (plan.workplanorder && Array.isArray(plan.workplanorder)) {
+    orders = plan.workplanorder.map(workplanOrder => {
+      const orderItemId = workplanOrder.order_item?.id || workplanOrder.order_item_id;
+      const orderItemName = workplanOrder.order_item?.name || `Order Item #${orderItemId}`;
       
-      // البحث عن أول driver في أي workplanorder
-      for (const workplanOrder of plan.workplanorder) {
-        if (workplanOrder.steps && workplanOrder.steps.length > 0) {
-          const firstStep = workplanOrder.steps[0];
-          date = date || firstStep.date;
-          driverId = firstStep.driver_id;
-          driverName = firstStep.driver_name || "";
-          break;
-        }
-      }
-    }
-
-    // 🔥 إذا ما في driver_name ولكن في driver_id، اجلبيه من قائمة السائقين
-    if (!driverName && driverId && allDrivers.length > 0) {
-      const driver = allDrivers.find(d => d.id === driverId);
-      if (driver) {
-        driverName = driver.name || driver.driver_name || '';
-      }
-    }
-
-    console.log("🔄 Normalized work plan:", {
-      id: plan.id,
-      name: plan.name,
-      orders: orders,
-      driver_id: driverId,
-      driver_name: driverName
+      // ✅ استخرجي الـ order_code من اسم الـ item
+      const orderCode = orderItemName.split(' - ')[0].trim();
+      
+      return {
+        id: workplanOrder.id,
+        order_item_id: orderItemId,
+        order: orderCode, // ✅ الـ order code
+        items: orderItemId // ID لاستخدامه في الفورم والعرض
+      };
     });
+    
+    // البحث عن أول driver في أي workplanorder
+    for (const workplanOrder of plan.workplanorder) {
+      if (workplanOrder.steps && workplanOrder.steps.length > 0) {
+        const firstStep = workplanOrder.steps[0];
+        date = date || firstStep.date;
+        driverId = firstStep.driver_id;
+        driverName = firstStep.driver_name || "";
+        break;
+      }
+    }
+  }
 
-    return {
-      id: plan.id,
-      name: plan.name || "",
-      company_id: companyId,
-      company_name: companyName,
-      date: date,
-      driver_id: driverId,
-      driver_name: driverName,
-      orders: orders.length > 0 ? orders : (plan.orders || plan.order_items || []),
-      created_at: plan.created_at,
-      updated_at: plan.updated_at,
-      deleted_at: plan.deleted_at,
-      workplanorder: plan.workplanorder || [],
-    };
+  // 🔥 إذا ما في driver_name ولكن في driver_id، اجلبيه من قائمة السائقين
+  if (!driverName && driverId && allDrivers.length > 0) {
+    const driver = allDrivers.find(d => d.id === driverId);
+    if (driver) {
+      driverName = driver.name || driver.driver_name || '';
+    }
+  }
+
+  console.log("🔄 Normalized work plan:", {
+    id: plan.id,
+    name: plan.name,
+    orders: orders,
+    driver_id: driverId,
+    driver_name: driverName
+  });
+
+  return {
+    id: plan.id,
+    name: plan.name || "",
+    company_id: companyId,
+    company_name: companyName,
+    date: date,
+    driver_id: driverId,
+    driver_name: driverName,
+    orders: orders.length > 0 ? orders : (plan.orders || plan.order_items || []),
+    created_at: plan.created_at,
+    updated_at: plan.updated_at,
+    deleted_at: plan.deleted_at,
+    workplanorder: plan.workplanorder || [],
   };
+};
+
+
 
   const fetchWorkPlans = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
     loading.value = true;
