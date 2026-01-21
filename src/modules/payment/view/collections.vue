@@ -1,3 +1,5 @@
+<!-- في src/modules/payment/view/collections.vue -->
+
 <template>
   <div class="collections-page-container bg-light">
     <TableHeader 
@@ -46,7 +48,7 @@
             :data="paginatedData" 
             :actionsLabel="$t('collection.actions')"
             v-model="selectedRows" 
-            :disableRowWhen="isCollectionCompleted"
+            :disableRowWhen="hasInvoiceId"
           >
             <template #actions="{ row }">
               <ActionsDropdown 
@@ -269,8 +271,8 @@ watch([searchText, selectedGroups], () => {
 });
 
 // Methods
-const isCollectionCompleted = (row) => {
-  return row.status === 'completed';
+const hasInvoiceId = (row) => {
+  return !!row.invoice_id;
 };
 
 const handleRefresh = async () => {
