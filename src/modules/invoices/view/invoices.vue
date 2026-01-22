@@ -11,17 +11,12 @@
       :columns="invoiceColumns" 
       v-model:visibleColumns="visibleColumns"
       :showAddButton="false" 
-    
       @refresh-click="handleRefresh" 
       @trashed-click="openTrashedModal"
-       @add-click="openAddModal"
-  :disableRowWhen="isInvoiceDisabled"  
-
     />
 
     <div class="card border-0">
       <div class="card-body p-0">
-        <!-- Bulk Actions Bar -->
         <BulkActionsBar 
           :selectedCount="selectedRows.length" 
           entityName="invoice" 
@@ -30,7 +25,6 @@
           @action="handleBulkAction" 
         />
 
-        <!-- Loading State -->
         <div v-if="invoicesStore.loading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">{{ $t('common.loading') }}</span>
@@ -38,13 +32,11 @@
           <p class="mt-2">{{ $t('common.loading') }}</p>
         </div>
 
-        <!-- Error State -->
         <div v-else-if="invoicesStore.error" class="alert alert-danger m-3">
           <i class="fas fa-exclamation-triangle me-2"></i>
           {{ invoicesStore.error }}
         </div>
 
-        <!-- Data Table -->
         <div v-else>
           <DataTable 
             :columns="filteredColumns" 
@@ -60,6 +52,13 @@
                 :showEdit="false"
                 @details="openDetailsModal" 
                 @delete="handleDelete"
+              />
+              <!-- ✅ زر Export PDF -->
+              <PrimaryButton 
+                :text="$t('invoice.exportPDF')" 
+                :iconBefore="exportIcon"
+                bgColor="var(--color-success)"
+                @click="exportInvoicePDF(row)"
               />
             </template>
           </DataTable>
@@ -77,7 +76,6 @@
       </div>
     </div>
 
-    <!-- Details Modal -->
     <DetailsModal 
       :isOpen="isDetailsModalOpen" 
       :title="$t('invoice.details')" 
@@ -86,7 +84,6 @@
       @close="closeDetailsModal" 
     />
 
-    <!-- Trashed Invoices Modal -->
     <TrashedItemsModal
       :isOpen="isTrashedModalOpen"
       :title="$t('invoice.trashedInvoices')"
@@ -106,20 +103,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "@/components/shared/DataTable.vue";
 import Pagination from "@/components/shared/Pagination.vue";
 import ActionsDropdown from "@/components/shared/Actions.vue";
 import DetailsModal from "@/components/shared/DetailsModal.vue";
 import BulkActionsBar from "@/components/shared/BulkActionsBar.vue";
-import TableHeader from "@/components/shared/TableHeader.vue";
 import TrashedItemsModal from "@/components/shared/TrashedItemsModal.vue";
+import PrimaryButton from "@/components/shared/PrimaryButton.vue";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useInvoicesManagementStore } from "../store/invoicesManagement.js";
 import InvoiceHeader from "../components/InvoiceHeader.vue";
+import exportIcon from "@/assets/table/export.svg";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const invoicesStore = useInvoicesManagementStore();
 
 // State
@@ -142,6 +142,7 @@ onMounted(async () => {
 
 // Computed
 const invoices = computed(() => invoicesStore.invoices);
+const isRTL = computed(() => locale.value === "ar");
 
 const invoiceColumns = computed(() => [
   { key: "id", label: t("invoice.id"), sortable: true },
@@ -243,11 +244,86 @@ const trashedBulkActions = computed(() => [
   },
 ]);
 
-// ✅ الدالة صارت برّا وبمكانها الصحيح
 const isInvoiceDisabled = (row) => {
-  // ✅ إذا invoice_id موجود (مش null)، معناها الـ invoice مستخدم ف collection
-  // وبالتالي ما بنقدر نحذفه
   return row.invoice_id !== null && row.invoice_id !== undefined;
+};
+
+// ✅ دالة تصدير PDF
+const exportInvoicePDF = (invoice) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const isArabic = isRTL.value;
+  
+  // ✅ تحميل الخط العربي (اختياري - لو عندك ملف خط)
+  if (isArabic) {
+    // doc.addFont('path/to/arabic-font.ttf', 'ArabicFont', 'normal');
+    // doc.setFont('ArabicFont');
+  }
+
+  // ✅ Header
+  doc.setFontSize(20);
+  doc.setTextColor(40, 40, 40);
+  doc.text(t('invoice.title'), 105, 20, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(t('invoice.invoiceCode') + ': ' + invoice.invoice_code, 105, 30, { align: 'center' });
+
+  // ✅ Invoice Details
+  const details = [
+    [t('invoice.deliveryCompany'), invoice.delivery_company_name],
+    [t('invoice.clientCompany'), invoice.client_company_name],
+    [t('invoice.collectionAmount'), invoice.collection_amount],
+    [t('invoice.dueAmount'), invoice.due_amount],
+    [t('invoice.status'), t(`invoiceStatus.${invoice.status}`)],
+    [t('invoice.periodStart'), invoice.period_start ? new Date(invoice.period_start).toLocaleDateString() : 'N/A'],
+    [t('invoice.periodEnd'), invoice.period_end ? new Date(invoice.period_end).toLocaleDateString() : 'N/A'],
+    [t('invoice.createdAt'), new Date(invoice.created_at).toLocaleString()],
+  ];
+
+  doc.autoTable({
+    startY: 40,
+    head: [[t('invoice.field'), t('invoice.value')]],
+    body: details,
+    theme: 'grid',
+    headStyles: { 
+      fillColor: [66, 139, 202],
+      textColor: 255,
+      fontSize: 12,
+      halign: isArabic ? 'right' : 'left'
+    },
+    bodyStyles: {
+      fontSize: 10,
+      halign: isArabic ? 'right' : 'left'
+    },
+    styles: {
+      font: isArabic ? 'helvetica' : 'helvetica', // استبدلي بـ 'ArabicFont' لو عندك
+      lineWidth: 0.5,
+      lineColor: [200, 200, 200]
+    },
+    margin: { top: 40, right: 15, bottom: 20, left: 15 }
+  });
+
+  // ✅ Footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      t('invoice.page') + ' ' + i + ' ' + t('invoice.of') + ' ' + pageCount,
+      105,
+      285,
+      { align: 'center' }
+    );
+  }
+
+  // ✅ تنزيل الملف
+  doc.save(`Invoice_${invoice.invoice_code}.pdf`);
 };
 
 // Methods

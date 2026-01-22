@@ -1662,6 +1662,7 @@ export default {
 
   // Common Translations
   common: {
+    create: "Create",
     actions: "Actions",
     noDataAvailable: "No data available",
     uploadImage: "Upload Image",
@@ -1744,7 +1745,7 @@ export default {
     companyName: "Company Name",
     date: "Date",
     today: "Today",
-
+    order: "Order",
     tabs: {
       calendar: "Calendar",
       table: "Table",

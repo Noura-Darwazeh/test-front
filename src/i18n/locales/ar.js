@@ -1657,7 +1657,9 @@
   },
   //خطط العمل
   workPlan: {
+   
     // عناوين الصفحة
+  order:"طلب",
     title: "ادارة خطط العمل",
     planDetails: "تفاصيل الخطة",
     orderName: "اسم الطلب",
@@ -1783,6 +1785,8 @@
   },
   // الترجمات المشتركة
   common: {
+    create: "انشاء",
+
     actions: "الإجراءات",
     noDataAvailable: "لا توجد بيانات",
     uploadImage: "رفع صورة",
