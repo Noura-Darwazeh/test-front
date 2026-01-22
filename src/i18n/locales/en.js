@@ -1914,7 +1914,8 @@ export default {
     trashedInvoices: "Trashed Invoices",
     noTrashedInvoices: "No trashed invoices",
     entitySingular: "invoice",
-    entityPlural: "invoices"
+    entityPlural: "invoices",
+    exportPDF:"Export PDF"
   },
   invoiceStatus: {
     pending: "Pending",

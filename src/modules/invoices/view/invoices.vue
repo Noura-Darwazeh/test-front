@@ -115,9 +115,8 @@ import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useInvoicesManagementStore } from "../store/invoicesManagement.js";
 import InvoiceHeader from "../components/InvoiceHeader.vue";
-import exportIcon from "@/assets/table/export.svg";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable"; // ✅ الاسم الصحيح
 
 const { t, locale } = useI18n();
 const invoicesStore = useInvoicesManagementStore();
@@ -244,27 +243,13 @@ const trashedBulkActions = computed(() => [
   },
 ]);
 
-const isInvoiceDisabled = (row) => {
-  return row.invoice_id !== null && row.invoice_id !== undefined;
-};
-
-// ✅ دالة تصدير PDF
+// ✅ دالة تصدير PDF - صحيحة
 const exportInvoicePDF = (invoice) => {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  });
+  const doc = new jsPDF('p', 'mm', 'a4');
 
   const isArabic = isRTL.value;
   
-  // ✅ تحميل الخط العربي (اختياري - لو عندك ملف خط)
-  if (isArabic) {
-    // doc.addFont('path/to/arabic-font.ttf', 'ArabicFont', 'normal');
-    // doc.setFont('ArabicFont');
-  }
-
-  // ✅ Header
+  // Header
   doc.setFontSize(20);
   doc.setTextColor(40, 40, 40);
   doc.text(t('invoice.title'), 105, 20, { align: 'center' });
@@ -273,7 +258,7 @@ const exportInvoicePDF = (invoice) => {
   doc.setTextColor(100);
   doc.text(t('invoice.invoiceCode') + ': ' + invoice.invoice_code, 105, 30, { align: 'center' });
 
-  // ✅ Invoice Details
+  // Invoice Details
   const details = [
     [t('invoice.deliveryCompany'), invoice.delivery_company_name],
     [t('invoice.clientCompany'), invoice.client_company_name],
@@ -285,7 +270,8 @@ const exportInvoicePDF = (invoice) => {
     [t('invoice.createdAt'), new Date(invoice.created_at).toLocaleString()],
   ];
 
-  doc.autoTable({
+  // ✅ استخدمي autoTable المستورد
+  autoTable(doc, {
     startY: 40,
     head: [[t('invoice.field'), t('invoice.value')]],
     body: details,
@@ -301,14 +287,14 @@ const exportInvoicePDF = (invoice) => {
       halign: isArabic ? 'right' : 'left'
     },
     styles: {
-      font: isArabic ? 'helvetica' : 'helvetica', // استبدلي بـ 'ArabicFont' لو عندك
+      font: 'helvetica',
       lineWidth: 0.5,
       lineColor: [200, 200, 200]
     },
     margin: { top: 40, right: 15, bottom: 20, left: 15 }
   });
 
-  // ✅ Footer
+  // Footer
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -322,9 +308,13 @@ const exportInvoicePDF = (invoice) => {
     );
   }
 
-  // ✅ تنزيل الملف
+  // Download
   doc.save(`Invoice_${invoice.invoice_code}.pdf`);
 };
+
+
+
+ 
 
 // Methods
 const handlePageChange = async (page) => {
