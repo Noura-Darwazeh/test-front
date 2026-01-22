@@ -53,12 +53,12 @@
                 @details="openDetailsModal" 
                 @delete="handleDelete"
               />
-              <!-- ✅ زر Export PDF -->
               <PrimaryButton 
                 :text="$t('invoice.exportPDF')" 
                 :iconBefore="exportIcon"
                 bgColor="var(--color-success)"
                 @click="exportInvoicePDF(row)"
+                :loading="exportingInvoiceId === row.id"
               />
             </template>
           </DataTable>
@@ -115,8 +115,7 @@ import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useInvoicesManagementStore } from "../store/invoicesManagement.js";
 import InvoiceHeader from "../components/InvoiceHeader.vue";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; // ✅ الاسم الصحيح
+import html2pdf from "html2pdf.js"; // ✅ استيراد المكتبة
 
 const { t, locale } = useI18n();
 const invoicesStore = useInvoicesManagementStore();
@@ -129,6 +128,7 @@ const selectedInvoice = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isTrashedModalOpen = ref(false);
+const exportingInvoiceId = ref(null); // ✅ لتتبع الفاتورة اللي قيد التصدير
 
 // Mount
 onMounted(async () => {
@@ -243,78 +243,257 @@ const trashedBulkActions = computed(() => [
   },
 ]);
 
-// ✅ دالة تصدير PDF - صحيحة
-const exportInvoicePDF = (invoice) => {
-  const doc = new jsPDF('p', 'mm', 'a4');
+// ✅ ====== دالة تصدير PDF الجديدة باستخدام html2pdf ======
+const exportInvoicePDF = async (invoice) => {
+  exportingInvoiceId.value = invoice.id; // ✅ لتفعيل حالة التحميل
 
-  const isArabic = isRTL.value;
-  
-  // Header
-  doc.setFontSize(20);
-  doc.setTextColor(40, 40, 40);
-  doc.text(t('invoice.title'), 105, 20, { align: 'center' });
+  try {
+    const direction = isRTL.value ? 'rtl' : 'ltr';
+    const textAlign = isRTL.value ? 'right' : 'left';
+    
+    // ✅ تنسيق التواريخ
+    const formatDate = (dateString) => {
+      if (!dateString || dateString === 'null' || dateString === null) return 'N/A';
+      return new Date(dateString).toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US');
+    };
 
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(t('invoice.invoiceCode') + ': ' + invoice.invoice_code, 105, 30, { align: 'center' });
+    // ✅ تنسيق الحالة
+    const formatStatus = (status) => {
+      return t(`invoiceStatus.${status}`);
+    };
 
-  // Invoice Details
-  const details = [
-    [t('invoice.deliveryCompany'), invoice.delivery_company_name],
-    [t('invoice.clientCompany'), invoice.client_company_name],
-    [t('invoice.collectionAmount'), invoice.collection_amount],
-    [t('invoice.dueAmount'), invoice.due_amount],
-    [t('invoice.status'), t(`invoiceStatus.${invoice.status}`)],
-    [t('invoice.periodStart'), invoice.period_start ? new Date(invoice.period_start).toLocaleDateString() : 'N/A'],
-    [t('invoice.periodEnd'), invoice.period_end ? new Date(invoice.period_end).toLocaleDateString() : 'N/A'],
-    [t('invoice.createdAt'), new Date(invoice.created_at).toLocaleString()],
-  ];
+    // ✅ إنشاء HTML للفاتورة
+    const element = document.createElement('div');
+    element.innerHTML = `
+      <div dir="${direction}" style="
+        font-family: 'Arial', 'Tahoma', sans-serif;
+        padding: 30px;
+        max-width: 800px;
+        margin: 0 auto;
+        color: #333;
+        line-height: 1.6;
+      ">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #4A90E2; padding-bottom: 20px;">
+          <h1 style="
+            color: #2C3E50;
+            font-size: 32px;
+            margin: 0 0 10px 0;
+            font-weight: bold;
+          ">${t('invoice.title')}</h1>
+          <p style="
+            color: #7F8C8D;
+            font-size: 14px;
+            margin: 5px 0;
+          ">${t('invoice.invoiceCode')}: <strong>${invoice.invoice_code}</strong></p>
+        </div>
 
-  // ✅ استخدمي autoTable المستورد
-  autoTable(doc, {
-    startY: 40,
-    head: [[t('invoice.field'), t('invoice.value')]],
-    body: details,
-    theme: 'grid',
-    headStyles: { 
-      fillColor: [66, 139, 202],
-      textColor: 255,
-      fontSize: 12,
-      halign: isArabic ? 'right' : 'left'
-    },
-    bodyStyles: {
-      fontSize: 10,
-      halign: isArabic ? 'right' : 'left'
-    },
-    styles: {
-      font: 'helvetica',
-      lineWidth: 0.5,
-      lineColor: [200, 200, 200]
-    },
-    margin: { top: 40, right: 15, bottom: 20, left: 15 }
-  });
+        <!-- Company Information -->
+        <div style="
+          background: #F8F9FA;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+        ">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #E9ECEF;
+                font-weight: bold;
+                color: #495057;
+                width: 40%;
+              ">${t('invoice.deliveryCompany')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #E9ECEF;
+                text-align: ${textAlign};
+              ">${invoice.delivery_company_name}</td>
+            </tr>
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #E9ECEF;
+                font-weight: bold;
+                color: #495057;
+              ">${t('invoice.clientCompany')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #E9ECEF;
+                text-align: ${textAlign};
+              ">${invoice.client_company_name}</td>
+            </tr>
+          </table>
+        </div>
 
-  // Footer
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text(
-      t('invoice.page') + ' ' + i + ' ' + t('invoice.of') + ' ' + pageCount,
-      105,
-      285,
-      { align: 'center' }
-    );
+        <!-- Financial Information -->
+        <div style="
+          background: #E8F4F8;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+        ">
+          <h3 style="
+            color: #2C3E50;
+            font-size: 18px;
+            margin: 0 0 15px 0;
+            border-bottom: 2px solid #4A90E2;
+            padding-bottom: 10px;
+          ">${t('invoice.financialDetails') || 'Financial Details'}</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #D1E7F0;
+                font-weight: bold;
+                color: #495057;
+                width: 40%;
+              ">${t('invoice.collectionAmount')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #D1E7F0;
+                text-align: ${textAlign};
+                color: #27AE60;
+                font-weight: bold;
+              ">${invoice.collection_amount}</td>
+            </tr>
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #D1E7F0;
+                font-weight: bold;
+                color: #495057;
+              ">${t('invoice.dueAmount')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #D1E7F0;
+                text-align: ${textAlign};
+                color: #E74C3C;
+                font-weight: bold;
+              ">${invoice.due_amount}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Period & Status -->
+        <div style="
+          background: #FFF9E6;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+        ">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #FFE5A3;
+                font-weight: bold;
+                color: #495057;
+                width: 40%;
+              ">${t('invoice.periodStart')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #FFE5A3;
+                text-align: ${textAlign};
+              ">${formatDate(invoice.period_start)}</td>
+            </tr>
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #FFE5A3;
+                font-weight: bold;
+                color: #495057;
+              ">${t('invoice.periodEnd')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #FFE5A3;
+                text-align: ${textAlign};
+              ">${formatDate(invoice.period_end)}</td>
+            </tr>
+            <tr>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #FFE5A3;
+                font-weight: bold;
+                color: #495057;
+              ">${t('invoice.status')}</td>
+              <td style="
+                padding: 10px;
+                border-bottom: 1px solid #FFE5A3;
+                text-align: ${textAlign};
+              ">
+                <span style="
+                  background: ${invoice.status === 'completed' ? '#27AE60' : '#F39C12'};
+                  color: white;
+                  padding: 5px 15px;
+                  border-radius: 20px;
+                  font-size: 12px;
+                  font-weight: bold;
+                ">${formatStatus(invoice.status)}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="
+                padding: 10px;
+                font-weight: bold;
+                color: #495057;
+              ">${t('invoice.createdAt')}</td>
+              <td style="
+                padding: 10px;
+                text-align: ${textAlign};
+                color: #7F8C8D;
+                font-size: 13px;
+              ">${formatDate(invoice.created_at)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div style="
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 2px solid #E9ECEF;
+          text-align: center;
+          color: #95A5A6;
+          font-size: 12px;
+        ">
+          <p style="margin: 5px 0;">${t('invoice.generatedOn') || 'Generated on'}: ${new Date().toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US')}</p>
+          <p style="margin: 5px 0;">${t('invoice.companyName') || 'Your Company Name'}</p>
+        </div>
+      </div>
+    `;
+
+    // ✅ إعدادات التصدير
+    const options = {
+      margin: [10, 10, 10, 10],
+      filename: `Invoice_${invoice.invoice_code}_${new Date().getTime()}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    // ✅ تحويل وتنزيل PDF
+    await html2pdf().set(options).from(element).save();
+    
+    console.log(`✅ PDF exported successfully: Invoice_${invoice.invoice_code}`);
+    
+  } catch (error) {
+    console.error("❌ Error exporting PDF:", error);
+    alert(t('invoice.exportError') || "Failed to export PDF. Please try again.");
+  } finally {
+    exportingInvoiceId.value = null; // ✅ إيقاف حالة التحميل
   }
-
-  // Download
-  doc.save(`Invoice_${invoice.invoice_code}.pdf`);
 };
-
-
-
- 
 
 // Methods
 const handlePageChange = async (page) => {
