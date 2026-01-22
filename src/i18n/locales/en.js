@@ -1915,7 +1915,24 @@ export default {
     noTrashedInvoices: "No trashed invoices",
     entitySingular: "invoice",
     entityPlural: "invoices",
-    exportPDF:"Export PDF"
+    exportPDF:"Export PDF",
+
+    logoPlaceholder: "YOUR LOGO",
+    number: "NO.",
+    date: "Date",
+    billedTo: "Billed to",
+    from: "From",
+    item: "Item",
+    quantity: "Quantity",
+    price: "Price",
+    amount: "Amount",
+    total: "Total",
+    paymentMethod: "Payment method",
+    cash: "Cash",
+    note: "Note",
+    thankYou: "Thank you for choosing us!",
+    generatedOn: "Generated on",
+    companyName: "Your Company Name"
   },
   invoiceStatus: {
     pending: "Pending",

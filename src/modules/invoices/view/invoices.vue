@@ -53,6 +53,7 @@
                 @details="openDetailsModal" 
                 @delete="handleDelete"
               />
+              <!-- ✅ زر Export PDF -->
               <PrimaryButton 
                 :text="$t('invoice.exportPDF')" 
                 :iconBefore="exportIcon"
