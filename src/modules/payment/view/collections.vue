@@ -1,5 +1,3 @@
-<!-- في src/modules/payment/view/collections.vue -->
-
 <template>
   <div class="collections-page-container bg-light">
     <TableHeader 
@@ -101,6 +99,18 @@
       @close="closePaymentMethodModal" 
       @submit="handlePaymentMethodSubmit" 
     />
+
+    <!-- ✅ Confirmation Modal for Invoice Creation -->
+    <ConfirmationModal
+      :isOpen="isInvoiceConfirmOpen"
+      :title="t('collection.createInvoiceTitle')"
+      :message="t('collection.createInvoiceConfirm', { count: selectedRows.length })"
+      :confirmText="t('common.create')"
+      :cancelText="t('common.cancel')"
+      confirmColor="var(--primary-color)"
+      @confirm="confirmCreateInvoice"
+      @close="closeInvoiceConfirm"
+    />
   </div>
 </template>
 
@@ -114,6 +124,7 @@ import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import TableHeader from "../../../components/shared/TableHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import PaymentMethodModal from "../components/PaymentMethodModal.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue"; // ✅ أضفنا هاد
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCollectionsManagementStore } from "../store/collectionsManagement.js";
@@ -134,6 +145,7 @@ const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isPaymentMethodModalOpen = ref(false);
 const paymentMethodLoading = ref(false);
+const isInvoiceConfirmOpen = ref(false); // ✅ للـ confirmation modal
 
 // Data
 const drivers = ref([]);
@@ -257,13 +269,34 @@ const paginatedData = computed(() => {
   );
 });
 
-const bulkActions = computed(() => [
-  {
-    id: 'paid',
-    label: t('collection.markAsPaid'),
-    bgColor: 'var(--color-success)',
-  },
-]);
+// ✅ نغيّر الـ bulk actions حسب إذا في invoice ولا لا
+const bulkActions = computed(() => {
+  // ✅ نشوف إذا كل الـ selected rows عندهم invoice_id
+  const allHaveInvoice = selectedRows.value.length > 0 && selectedRows.value.every(id => {
+    const collection = collections.value.find(c => c.id === id);
+    return collection && collection.invoice_id;
+  });
+
+  if (allHaveInvoice) {
+    // ✅ إذا كلهم عندهم invoice، نعرض "Mark as Paid"
+    return [
+      {
+        id: 'paid',
+        label: t('collection.markAsPaid'),
+        bgColor: 'var(--color-success)',
+      },
+    ];
+  } else {
+    // ✅ إذا ما عندهم invoice، نعرض "Make Invoice"
+    return [
+      {
+        id: 'makeInvoice',
+        label: t('collection.makeInvoice'),
+        bgColor: 'var(--primary-color)',
+      },
+    ];
+  }
+});
 
 // Watchers
 watch([searchText, selectedGroups], () => {
@@ -331,9 +364,14 @@ const handleSubmitCollection = async (collectionData) => {
   }
 };
 
+// ✅ نعدّل handleBulkAction عشان يتعامل مع الحالتين
 const handleBulkAction = ({ actionId }) => {
   if (actionId === 'paid') {
+    // ✅ إذا الـ action هو "Mark as Paid"
     isPaymentMethodModalOpen.value = true;
+  } else if (actionId === 'makeInvoice') {
+    // ✅ إذا الـ action هو "Make Invoice"
+    isInvoiceConfirmOpen.value = true;
   }
 };
 
@@ -372,6 +410,38 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
   }
 };
 
+// ✅ دوال جديدة للـ Invoice Creation
+const closeInvoiceConfirm = () => {
+  isInvoiceConfirmOpen.value = false;
+};
+
+const confirmCreateInvoice = async () => {
+  bulkActionLoading.value = true;
+  try {
+    console.log("📤 Creating invoice for collections:", selectedRows.value);
+
+    const response = await apiServices.createInvoiceFromCollections(selectedRows.value);
+
+    console.log("✅ Invoice created successfully:", response.data);
+
+    // ✅ نحدّث الـ collections
+    await collectionsStore.fetchCollections();
+
+    // ✅ ننظف الـ selection
+    selectedRows.value = [];
+
+    // ✅ نسكّر الـ modal
+    closeInvoiceConfirm();
+
+    // ✅ نعرض رسالة نجاح
+    alert(t('collection.invoiceCreatedSuccess'));
+  } catch (error) {
+    console.error("❌ Failed to create invoice:", error);
+    alert(error.response?.data?.message || error.message || "Failed to create invoice. Please try again.");
+  } finally {
+    bulkActionLoading.value = false;
+  }
+};
 </script>
 
 <style scoped>

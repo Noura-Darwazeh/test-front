@@ -1850,34 +1850,40 @@
     createdAt: "تاريخ الإنشاء",
     updatedAt: "تاريخ التحديث"
   },
-invoice: {
-  title: "الفواتير",
-  searchPlaceholder: "ابحث عن فاتورة...",
-  filterByStatus: "فلتر حسب الحالة",
-  id: "رقم الفاتورة",
-  invoiceCode: "رمز الفاتورة",
-  deliveryCompany: "شركة التوصيل",
-  clientCompany: "شركة العميل",
-  collectionAmount: "مبلغ التحصيل",
-  dueAmount: "المبلغ المستحق",
-  periodStart: "بداية الفترة",
-  periodEnd: "نهاية الفترة",
-  status: "الحالة",
-  createdAt: "تاريخ الإنشاء",
-  actions: "الإجراءات",
-  details: "التفاصيل",
-  delete: "حذف",
-  deleteConfirm: "هل أنت متأكد من حذف هذه الفاتورة؟",
-  permanentDeleteConfirm: "هل أنت متأكد من الحذف النهائي؟ لا يمكن التراجع!",
-  trashedInvoices: "الفواتير المحذوفة",
-  noTrashedInvoices: "لا توجد فواتير محذوفة",
-  entitySingular: "فاتورة",
-  entityPlural: "فواتير"
-},
-invoiceStatus: {
-  pending: "قيد الانتظار",
-  completed: "مكتملة"
-},
+  collections: {
+    makeInvoice: 'إنشاء فاتورة',
+    createInvoiceTitle: 'إنشاء فاتورة',
+    createInvoiceConfirm: 'هل أنت متأكد من إنشاء فاتورة لـ {count} تحصيل؟',
+    invoiceCreatedSuccess: 'تم إنشاء الفاتورة بنجاح!',
+  },
+  invoice: {
+    title: "الفواتير",
+    searchPlaceholder: "ابحث عن فاتورة...",
+    filterByStatus: "فلتر حسب الحالة",
+    id: "رقم الفاتورة",
+    invoiceCode: "رمز الفاتورة",
+    deliveryCompany: "شركة التوصيل",
+    clientCompany: "شركة العميل",
+    collectionAmount: "مبلغ التحصيل",
+    dueAmount: "المبلغ المستحق",
+    periodStart: "بداية الفترة",
+    periodEnd: "نهاية الفترة",
+    status: "الحالة",
+    createdAt: "تاريخ الإنشاء",
+    actions: "الإجراءات",
+    details: "التفاصيل",
+    delete: "حذف",
+    deleteConfirm: "هل أنت متأكد من حذف هذه الفاتورة؟",
+    permanentDeleteConfirm: "هل أنت متأكد من الحذف النهائي؟ لا يمكن التراجع!",
+    trashedInvoices: "الفواتير المحذوفة",
+    noTrashedInvoices: "لا توجد فواتير محذوفة",
+    entitySingular: "فاتورة",
+    entityPlural: "فواتير"
+  },
+  invoiceStatus: {
+    pending: "قيد الانتظار",
+    completed: "مكتملة"
+  },
   // إدارة الصلاحيات
   permissions: {
     title: "إدارة الصلاحيات",

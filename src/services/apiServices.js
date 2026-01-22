@@ -944,6 +944,13 @@ async bulkDeleteInvoices(invoiceIds, force = false) {
 async bulkRestoreInvoices(invoiceIds) {
   return this.bulkRestoreEntities("invoice", "invoices", invoiceIds);
 }
+
+// ===== Invoice Creation from Collections =====
+async createInvoiceFromCollections(collectionIds) {
+  return api.post("/invoices", {
+    collection_ids: collectionIds
+  });
+}
 }
 
 // Create and freeze the singleton instance
