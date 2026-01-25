@@ -1748,8 +1748,8 @@
     cases: {
       full: "كامل",
       part: "جزئي",
-      fast:"سريع",
-     
+      fast: "سريع",
+
     },
     // التعديل والتفاصيل
     edit: "تعديل",
@@ -1857,7 +1857,7 @@
       "هل أنت متأكد من الحذف النهائي لـ {count} {entity}؟",
     bulkRestoreConfirm: "هل أنت متأكد من استعادة {count} {entity}؟",
 
-        all: "الكل"
+    all: "الكل"
 
   },
 
@@ -1916,6 +1916,8 @@
     deliveryPrice: "سعر التوصيل",
     poweredBy: "بواسطة",
     noCollections: "لا يوجد تحصيلات",
+    markAsPaid: "مدفوع",
+
     invoiceStatus: {
       pending: "قيد الانتظار",
       completed: "مكتملة"

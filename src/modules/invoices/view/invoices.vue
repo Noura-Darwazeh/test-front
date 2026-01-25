@@ -46,7 +46,6 @@
             :data="paginatedData" 
             :actionsLabel="$t('invoice.actions')"
             v-model="selectedRows"
-            :disableRowWhen="isInvoiceDisabled"
           >
             <template #actions="{ row }">
               <ActionsDropdown 
@@ -231,17 +230,27 @@ const paginatedData = computed(() => {
 });
 
 const bulkActions = computed(() => {
+  const actions = [];
+  
+  // Export action - only for single selection
   if (selectedRows.value.length === 1) {
-    return [
-      {
-        id: 'export',
-        label: t('invoice.exportPDF'),
-        bgColor: 'var(--color-success)',
-      },
-    ];
+    actions.push({
+      id: 'export',
+      label: t('invoice.exportPDF'),
+      bgColor: 'var(--color-success)',
+    });
+  }
+  
+  // Mark as Paid action - for multiple selections
+  if (selectedRows.value.length > 0) {
+    actions.push({
+      id: 'markAsPaid',
+      label: t('invoice.markAsPaid'),
+      bgColor: 'var(--primary-color)',
+    });
   }
 
-  return [];
+  return actions;
 });
 
 const trashedBulkActions = computed(() => [
@@ -264,9 +273,8 @@ watch([searchText, selectedGroups], () => {
 
 // Methods
 const isInvoiceDisabled = (row) => {
-  if (selectedRows.value.length === 0) return false;
-  if (selectedRows.value.includes(row.id)) return false;
-  return selectedRows.value.length >= 1;
+  // Don't disable any rows - allow multiple selections
+  return false;
 };
 
 const handleRefresh = async () => {
@@ -329,6 +337,49 @@ const handlePermanentDelete = async (invoice) => {
 const handleBulkAction = ({ actionId }) => {
   if (actionId === 'export') {
     exportSelectedInvoice();
+  } else if (actionId === 'markAsPaid') {
+    markInvoicesAsPaid();
+  }
+};
+
+const markInvoicesAsPaid = async () => {
+  if (selectedRows.value.length === 0) {
+    alert(t('invoice.selectInvoices') || 'Please select at least one invoice');
+    return;
+  }
+
+  // Confirm action
+  if (!confirm(t('invoice.markAsPaidConfirm', { count: selectedRows.value.length }) || 
+      `Are you sure you want to mark ${selectedRows.value.length} invoice(s) as paid?`)) {
+    return;
+  }
+
+  bulkActionLoading.value = true;
+  
+  try {
+    const response = await api.patch('/invoices', {
+      status: 'completed',
+      invoice_ids: selectedRows.value
+    });
+
+    if (response.data?.success) {
+      console.log("✅ Invoices marked as paid successfully!");
+      
+      // Refresh invoices list
+      await invoicesStore.fetchInvoices();
+      
+      // Clear selection
+      selectedRows.value = [];
+      
+      // Show success message
+      alert(response.data.message || t('invoice.markedAsPaidSuccess'));
+    }
+  } catch (error) {
+    console.error("❌ Failed to mark invoices as paid:", error);
+    alert(error.message || t('invoice.markedAsPaidError') || 
+          "Failed to mark invoices as paid. Please try again.");
+  } finally {
+    bulkActionLoading.value = false;
   }
 };
 
@@ -374,38 +425,12 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
   }
 };
 
-// ✅ دالة مساعدة لتحميل الصورة كـ base64
-const loadImageAsBase64 = async (imageUrl) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous'; // ✅ مهم جدًا
-    
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        
-        const base64 = canvas.toDataURL('image/jpeg', 0.95);
-        resolve(base64);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    img.onerror = () => {
-      reject(new Error('Failed to load image'));
-    };
-    
-    // ✅ أضف timestamp لتجنب الـ cache
-    img.src = imageUrl;
-  });
-};
-
 // ✅ في دالة exportInvoicePDF
+// في src/modules/invoices/view/invoices.vue
+
+// ❌ امسحي دالة loadImageAsBase64 كلها
+
+// ✅ استبدليها بهاي:
 const exportInvoicePDF = async (invoice) => {
   exportingInvoiceId.value = invoice.id;
 
@@ -420,23 +445,9 @@ const exportInvoicePDF = async (invoice) => {
     const textAlign = isRTL.value ? 'right' : 'left';
     const borderSide = isRTL.value ? 'border-right' : 'border-left';
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
-    const baseURL = API_BASE_URL.replace('/api', '');
-    
-    // ✅ حمّل اللوجو كـ base64
-    let companyLogoBase64 = null;
-    if (fullInvoice.delivery_company?.logo) {
-      try {
-        const logoUrl = `${baseURL}${fullInvoice.delivery_company.logo}`;
-        console.log("🖼️ Loading logo from:", logoUrl);
-        
-        companyLogoBase64 = await loadImageAsBase64(logoUrl);
-        console.log("✅ Logo converted to base64");
-      } catch (logoError) {
-        console.error("❌ Error loading logo:", logoError);
-        companyLogoBase64 = null;
-      }
-    }
+    // ✅ استخدمي اللوجو مباشرة لو موجود، وإلا استخدمي اسم الشركة
+    const companyLogoBase64 = fullInvoice.delivery_company?.logo_base64 || null;
+    const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
 
     const formatDate = (dateString) => {
       if (!dateString || dateString === 'null' || dateString === null) return 'N/A';
@@ -450,7 +461,6 @@ const exportInvoicePDF = async (invoice) => {
     };
 
     let collectionsRows = '';
-
     if (fullInvoice.collections && fullInvoice.collections.length > 0) {
       fullInvoice.collections.forEach((collection, index) => {
         const orderPrice = parseFloat(collection.total_price) || 0;
@@ -474,7 +484,10 @@ const exportInvoicePDF = async (invoice) => {
       <div dir="${direction}" style="font-family: 'Arial', 'Tahoma', sans-serif; padding: 40px; max-width: 900px; margin: 0 auto; color: #2C3E50; background: white;">
         <div style="margin-bottom: 40px; border-bottom: 4px solid #4A90E2; padding-bottom: 20px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            ${companyLogoBase64 ? `<img src="${companyLogoBase64}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" />` : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${fullInvoice.delivery_company?.name || 'INVOICE'}</h1>`}
+            ${companyLogoBase64 
+              ? `<img src="${companyLogoBase64}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" />` 
+              : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${companyName}</h1>`
+            }
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
             <div style="text-align: ${textAlign};">
@@ -516,7 +529,7 @@ const exportInvoicePDF = async (invoice) => {
         <div style="margin-top: 50px; padding-top: 20px; border-top: 3px double #4A90E2; text-align: center;">
           <p style="margin: 0 0 10px 0; color: #6C757D; font-size: 13px;"><strong style="color: #495057;">${t('invoice.generatedOn') || 'Generated on'}:</strong> ${new Date().toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           <p style="margin: 10px 0 0 0; font-weight: bold; color: #4A90E2; font-size: 15px;">${t('invoice.thankYou') || 'Thank you for your business!'}</p>
-          <p style="margin: 5px 0 0 0; color: #95A5A6; font-size: 12px; font-style: italic;">${t('invoice.poweredBy') || 'Powered by'} ${fullInvoice.delivery_company?.name || t('invoice.companyName') || 'Your Company'}</p>
+          <p style="margin: 5px 0 0 0; color: #95A5A6; font-size: 12px; font-style: italic;">${t('invoice.poweredBy') || 'Powered by'} ${companyName}</p>
         </div>
       </div>
     `;
