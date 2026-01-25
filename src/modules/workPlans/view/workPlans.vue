@@ -335,9 +335,7 @@ const handleRefresh = async () => {
     }
 };
 
-// في src/modules/workPlans/view/workPlans.vue
 
-// ✅ تعديل workPlan Form Fields لدعم التعديل
 const workPlanFields = computed(() => {
     let defaultOrders = [{ order: '', items: [] }];
     
@@ -369,7 +367,7 @@ const workPlanFields = computed(() => {
         orderItemsMap.forEach((itemIds, orderCode) => {
             defaultOrders.push({
                 order: orderCode,
-                items: itemIds // ✅ هون المشكلة - لازم يكون array
+                items: itemIds 
             });
         });
         
@@ -429,6 +427,40 @@ const workPlanFields = computed(() => {
             locked: true,
             hidden: true
         },
+          {
+            name: 'line_filter',
+            label: t('workPlan.form.filterByLine'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                ...lineOptions.value
+            ],
+            colClass: 'col-md-6',
+            defaultValue: '',
+            onChange: (value, formData) => {
+                selectedLine.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'case_filter',
+            label: t('workPlan.form.filterByCase'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                { value: 'Full', label: t('workPlan.cases.full') },
+                { value: 'Empty', label: t('workPlan.cases.empty') }
+            ],
+            colClass: 'col-md-6',
+            defaultValue: '',
+            onChange: (value, formData) => {
+                selectedCase.value = value;
+                handleFilterOrders();
+            }
+        },
+
         {
             name: 'orders',
             label: t('workPlan.form.orders'),
@@ -577,10 +609,16 @@ watch([searchText, selectedGroups], () => {
 });
 
 // Fetch orders with items from API
-const fetchOrdersWithItems = async () => {
+// ✅ Add filter states
+const selectedLine = ref('');
+const selectedCase = ref('');
+const lineOptions = ref([]);
+
+// ✅ Modified fetchOrdersWithItems to support filters
+const fetchOrdersWithItems = async (filters = {}) => {
     loadingOrders.value = true;
     try {
-        const response = await apiServices.getOrdersWithItems();
+        const response = await apiServices.getOrdersWithItems(filters);
         
         let data = [];
         if (Array.isArray(response.data)) {
@@ -590,13 +628,45 @@ const fetchOrdersWithItems = async () => {
         }
         
         ordersWithItems.value = data;
+        
+        // ✅ Extract unique line names for filter dropdown
+        const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
+        lineOptions.value = uniqueLines.map(line => ({
+            value: line,
+            label: line
+        }));
+        
         console.log("✅ Orders with items loaded:", ordersWithItems.value);
+        console.log("📋 Available lines:", lineOptions.value);
     } catch (error) {
         console.error("❌ Failed to fetch orders with items:", error);
         ordersWithItems.value = [];
     } finally {
         loadingOrders.value = false;
     }
+};
+
+// ✅ Add filter handler
+const handleFilterOrders = async () => {
+    const filters = {};
+    
+    if (selectedLine.value) {
+        filters.line_name = selectedLine.value;
+    }
+    
+    if (selectedCase.value) {
+        filters.case = selectedCase.value;
+    }
+    
+    console.log("🔍 Applying filters:", filters);
+    await fetchOrdersWithItems(filters);
+};
+
+// ✅ Clear filters
+const clearOrderFilters = async () => {
+    selectedLine.value = '';
+    selectedCase.value = '';
+    await fetchOrdersWithItems();
 };
 
 // Get items options for a selected order

@@ -675,9 +675,23 @@ class ApiServices {
     return api.get("/statistics/orders");
   }
 
-  async getOrdersWithItems() {
-    return api.get("/orders_with_items");
+  // ✅ Add new function for filtered orders
+async getOrdersWithItems(filters = {}) {
+  const params = new URLSearchParams();
+  
+  if (filters.line_name) {
+    params.append('line_name', filters.line_name);
   }
+  
+  if (filters.case) {
+    params.append('case', filters.case);
+  }
+  
+  const queryString = params.toString();
+  const url = queryString ? `/orders_with_items?${queryString}` : '/orders_with_items';
+  
+  return api.get(url);
+}
 
   // ===== Line Work Services =====
   async getLineWorks({ page = 1, perPage = 10 } = {}) {

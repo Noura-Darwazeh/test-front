@@ -1728,6 +1728,7 @@ export default {
       "Are you sure you want to permanently delete {count} {entity}?",
     bulkRestoreConfirm:
       "Are you sure you want to restore {count} {entity}?",
+    all: "All"
   },
 
   // Updated English translations for Work Plans
@@ -1798,6 +1799,9 @@ export default {
 
       orderItems: "Order Items",
       orderItemsPlaceholder: "Select Order Items",
+
+       filterByLine: "Filter by Line",
+      filterByCase: "Filter by Case"
     },
 
     // Validation Messages
@@ -1815,7 +1819,10 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
-
+ cases: {
+      full: "Full",
+      empty: "Empty"
+    },
     // Edit / Details Modal
     edit: "Edit",
     details: "Details",

@@ -1725,6 +1725,9 @@
 
       orderItems: "عناصر الطلب",
       orderItemsPlaceholder: "اختر عناصر الطلب",
+
+      filterByLine: "فلترة حسب الخط",
+      filterByCase: "فلترة حسب الحالة"
     },
 
     // رسائل التحقق
@@ -1742,7 +1745,10 @@
       restore: "استعادة",
       delete: "حذف نهائي",
     },
-
+    cases: {
+      full: "ممتلئ",
+      empty: "فارغ"
+    },
     // التعديل والتفاصيل
     edit: "تعديل",
     details: "التفاصيل",
@@ -1848,6 +1854,9 @@
     bulkPermanentDeleteConfirm:
       "هل أنت متأكد من الحذف النهائي لـ {count} {entity}؟",
     bulkRestoreConfirm: "هل أنت متأكد من استعادة {count} {entity}؟",
+
+        all: "الكل"
+
   },
 
   payment: {

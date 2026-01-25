@@ -75,7 +75,9 @@
                 <select v-else-if="field.type === 'select'" :id="field.name" class="form-select"
                   v-model="formData[field.name]" :required="field.required"
                   :disabled="field.disabled || field.locked"
-                  :class="{ 'locked-select': field.locked }">
+                  :class="{ 'locked-select': field.locked }"
+                    @change="handleFieldChange(field, $event)"
+>
                   <option value="" disabled>
                     {{ field.placeholder || field.label }}
                   </option>
@@ -981,6 +983,11 @@ onUnmounted(() => {
     mapInstance.value.removeLayer(mapMarkerLayer);
   }
 });
+const handleFieldChange = (field, event) => {
+  if (field.onChange && typeof field.onChange === 'function') {
+    field.onChange(event.target.value, formData);
+  }
+};
 </script>
 
 <style scoped>
