@@ -1821,7 +1821,8 @@ export default {
     },
  cases: {
       full: "Full",
-      empty: "Empty"
+      part: "Part",
+      fast: "Fast"
     },
     // Edit / Details Modal
     edit: "Edit",

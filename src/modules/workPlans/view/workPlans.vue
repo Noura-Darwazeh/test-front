@@ -3,11 +3,8 @@
         <WorkPlansHeader v-model="searchText" :searchPlaceholder="$t('workPlan.searchPlaceholder')" :data="headerData"
             groupKey="company_name" v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('workPlan.filterByCompany')" translationKey="" :columns="workPlanColumns"
-            v-model:visibleColumns="visibleColumns" 
-            :showAddButton="canAddWorkPlan && activeTab !== 'trashed'"
-            :addButtonText="$t('workPlan.addNew')"
-            :showTrashedButton="false" 
-            @add-click="openAddModal"
+            v-model:visibleColumns="visibleColumns" :showAddButton="canAddWorkPlan && activeTab !== 'trashed'"
+            :addButtonText="$t('workPlan.addNew')" :showTrashedButton="false" @add-click="openAddModal"
             @refresh-click="handleRefresh" />
 
         <!-- Tabs Navigation -->
@@ -21,8 +18,7 @@
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" :class="{ active: activeTab === 'table' }"
-                            @click="switchTab('table')">
+                        <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="switchTab('table')">
                             <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
                         </button>
                     </li>
@@ -48,35 +44,18 @@
             <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
                 <div class="card border-0">
                     <div class="card-body p-0">
-                        <BulkActionsBar
-                            v-if="canAddWorkPlan"
-                            :selectedCount="selectedRows.length"
-                            entityName="workPlan"
-                            :actions="bulkActions"
-                            :loading="bulkActionLoading"
-                            @action="handleBulkAction"
-                        />
+                        <BulkActionsBar v-if="canAddWorkPlan" :selectedCount="selectedRows.length" entityName="workPlan"
+                            :actions="bulkActions" :loading="bulkActionLoading" @action="handleBulkAction" />
                         <DataTable :columns="filteredColumns" :data="paginatedTableData"
                             :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
                             :showCheckbox="canAddWorkPlan">
                             <template #actions="{ row }">
-                            <ActionsDropdown 
-                                v-if="canAddWorkPlan"
-                                :row="row" 
-                                :editLabel="$t('workPlan.edit')"
-                                :detailsLabel="$t('workPlan.details')" 
-                                :deleteLabel="$t('workPlan.delete')"
-                                :confirmDelete="true"
-                                @edit="openEditModal" 
-                                @details="openDetailsModal"
-                                @delete="handleDeleteWorkPlan" />
-                            <PrimaryButton
-                                v-else
-                                :text="$t('workPlan.details')"
-                                bgColor="var(--primary-color)"
-                                class="d-inline-flex align-items-center"
-                                @click="openDetailsModal(row)"
-                            />
+                                <ActionsDropdown v-if="canAddWorkPlan" :row="row" :editLabel="$t('workPlan.edit')"
+                                    :detailsLabel="$t('workPlan.details')" :deleteLabel="$t('workPlan.delete')"
+                                    :confirmDelete="true" @edit="openEditModal" @details="openDetailsModal"
+                                    @delete="handleDeleteWorkPlan" />
+                                <PrimaryButton v-else :text="$t('workPlan.details')" bgColor="var(--primary-color)"
+                                    class="d-inline-flex align-items-center" @click="openDetailsModal(row)" />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -88,38 +67,23 @@
                 </div>
             </div>
 
-            <div v-show="activeTab === 'trashed'" class="tab-pane fade" :class="{ 'show active': activeTab === 'trashed' }">
+            <div v-show="activeTab === 'trashed'" class="tab-pane fade"
+                :class="{ 'show active': activeTab === 'trashed' }">
                 <div class="card border-0">
                     <div class="card-body p-0">
-                        <BulkActionsBar
-                            v-if="canAddWorkPlan"
-                            :selectedCount="selectedRows.length"
-                            entityName="workPlan"
-                            :actions="bulkActions"
-                            :loading="bulkActionLoading"
-                            @action="handleBulkAction"
-                        />
+                        <BulkActionsBar v-if="canAddWorkPlan" :selectedCount="selectedRows.length" entityName="workPlan"
+                            :actions="bulkActions" :loading="bulkActionLoading" @action="handleBulkAction" />
                         <DataTable :columns="filteredColumns" :data="paginatedTableData"
                             :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
                             :showCheckbox="canAddWorkPlan">
                             <template #actions="{ row }">
-                            <ActionsDropdown
-                                v-if="canAddWorkPlan"
-                                :row="row"
-                                :restoreLabel="$t('workPlan.trashed.restore')"
-                                :deleteLabel="$t('workPlan.trashed.delete')"
-                                :showEdit="false"
-                                :showDetails="false"
-                                :showRestore="true"
-                                @restore="handleRestoreworkPlan"
-                                @delete="handlePermanentDeleteWorkPlan" />
-                            <PrimaryButton
-                                v-else
-                                :text="$t('workPlan.details')"
-                                bgColor="var(--primary-color)"
-                                class="d-inline-flex align-items-center"
-                                @click="openDetailsModal(row)"
-                            />
+                                <ActionsDropdown v-if="canAddWorkPlan" :row="row"
+                                    :restoreLabel="$t('workPlan.trashed.restore')"
+                                    :deleteLabel="$t('workPlan.trashed.delete')" :showEdit="false" :showDetails="false"
+                                    :showRestore="true" @restore="handleRestoreworkPlan"
+                                    @delete="handlePermanentDeleteWorkPlan" />
+                                <PrimaryButton v-else :text="$t('workPlan.details')" bgColor="var(--primary-color)"
+                                    class="d-inline-flex align-items-center" @click="openDetailsModal(row)" />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -194,11 +158,11 @@ const canAddWorkPlan = computed(() => isAdmin.value);
 // Get work plans based on user role
 const workPlans = computed(() => {
     const allPlans = workPlansStore.workPlans;
-    
+
     if (isSuperAdmin.value) {
         return allPlans;
     }
-    
+
     if (isAdmin.value) {
         if (companyId.value) {
             const filtered = allPlans.filter(plan => {
@@ -210,26 +174,23 @@ const workPlans = computed(() => {
             return allPlans;
         }
     }
-    
+
     return [];
 });
 
 const trashedworkPlans = computed(() => workPlansStore.trashedWorkPlans);
 
-// ✅ Computed property for order options - بيضيف الـ orders الموجودين حاليًا
 const orderOptions = computed(() => {
     const options = ordersWithItems.value.map(order => ({
         value: order.order_code,
         label: order.order_code
     }));
-    
-    // ✅ إذا في edit mode، أضيفي الـ orders الموجودين حاليًا
+
     if (isEditMode.value && selectedworkPlan.value.workplanorder) {
         selectedworkPlan.value.workplanorder.forEach(wo => {
             const orderItemName = wo.order_item?.name || '';
             const orderCode = orderItemName.split(' - ')[0].trim();
-            
-            // ✅ تأكدي إنه مش موجود مسبقًا
+
             if (orderCode && !options.find(opt => opt.value === orderCode)) {
                 options.push({
                     value: orderCode,
@@ -238,14 +199,14 @@ const orderOptions = computed(() => {
             }
         });
     }
-    
+
     console.log("📋 Order options:", options);
     return options;
 });
 
 // Computed property for driver options
 const driverOptions = computed(() => {
-    const companyDrivers = driverStore.drivers.filter(driver => 
+    const companyDrivers = driverStore.drivers.filter(driver =>
         String(driver.company_id) === String(companyId.value)
     );
     return companyDrivers.map(driver => ({
@@ -338,21 +299,21 @@ const handleRefresh = async () => {
 
 const workPlanFields = computed(() => {
     let defaultOrders = [{ order: '', items: [] }];
-    
+
     if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
         console.log("📝 Editing work plan, workplanorder:", selectedworkPlan.value.workplanorder);
-        
+
         const orderItemsMap = new Map();
-        
+
         selectedworkPlan.value.workplanorder.forEach(wo => {
             const orderItemId = wo.order_item?.id || wo.order_item_id;
             const orderItemName = wo.order_item?.name || '';
-            
+
             // ✅ استخرجي الـ order_code من الاسم
             const orderCode = orderItemName.split(' - ')[0].trim();
-            
+
             console.log(`📦 Order Item ID: ${orderItemId}, Name: ${orderItemName}, Code: ${orderCode}`);
-            
+
             if (orderItemId && orderCode) {
                 if (!orderItemsMap.has(orderCode)) {
                     orderItemsMap.set(orderCode, []);
@@ -360,24 +321,24 @@ const workPlanFields = computed(() => {
                 orderItemsMap.get(orderCode).push(orderItemId);
             }
         });
-        
+
         console.log("🗺️ Order items map:", orderItemsMap);
-        
+
         defaultOrders = [];
         orderItemsMap.forEach((itemIds, orderCode) => {
             defaultOrders.push({
                 order: orderCode,
-                items: itemIds 
+                items: itemIds
             });
         });
-        
+
         if (defaultOrders.length === 0) {
             defaultOrders = [{ order: '', items: [] }];
         }
-        
+
         console.log("✅ Default orders for edit:", defaultOrders);
     }
-    
+
     return [
         {
             name: 'name',
@@ -427,7 +388,7 @@ const workPlanFields = computed(() => {
             locked: true,
             hidden: true
         },
-          {
+        {
             name: 'line_filter',
             label: t('workPlan.form.filterByLine'),
             type: 'select',
@@ -451,7 +412,9 @@ const workPlanFields = computed(() => {
             options: [
                 { value: '', label: t('common.all') },
                 { value: 'Full', label: t('workPlan.cases.full') },
-                { value: 'Empty', label: t('workPlan.cases.empty') }
+                { value: 'Part', label: t('workPlan.cases.part') },
+                { value: 'Fast', label: t('workPlan.cases.fast') }
+
             ],
             colClass: 'col-md-6',
             defaultValue: '',
@@ -470,38 +433,37 @@ const workPlanFields = computed(() => {
             orderLabel: t('workPlan.form.orderName'),
             itemsLabel: t('workPlan.form.orderItems'),
             orderOptions: orderOptions,
-            getItemsOptions: getItemsOptionsForOrder, 
+            getItemsOptions: getItemsOptionsForOrder,
             defaultValue: defaultOrders
         }
     ];
 });
 
-// ✅ تعديل getItemsOptionsForOrder عشان يجيب الـ items الصحيحة
 const getItemsOptionsForOrder = (orderCode) => {
     if (!orderCode) {
         console.log("⚠️ No order code provided");
         return [];
     }
-    
+
     console.log("🔍 Getting items for order:", orderCode);
-    
+
     const order = ordersWithItems.value.find(o => o.order_code === orderCode);
     if (!order || !order.order_items || order.order_items.length === 0) {
         console.log("⚠️ No items found for order:", orderCode);
         return [];
     }
-    
+
     const items = order.order_items.map(item => ({
         value: item.order_item_id,
         label: item.orderitemname
     }));
-    
+
     console.log("✅ Items options for", orderCode, ":", items);
     return items;
 };
-        
-        
-    
+
+
+
 
 // Details Fields
 const detailsFields = computed(() => [
@@ -619,23 +581,23 @@ const fetchOrdersWithItems = async (filters = {}) => {
     loadingOrders.value = true;
     try {
         const response = await apiServices.getOrdersWithItems(filters);
-        
+
         let data = [];
         if (Array.isArray(response.data)) {
             data = response.data;
         } else if (Array.isArray(response.data?.data)) {
             data = response.data.data;
         }
-        
+
         ordersWithItems.value = data;
-        
+
         // ✅ Extract unique line names for filter dropdown
         const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
         lineOptions.value = uniqueLines.map(line => ({
             value: line,
             label: line
         }));
-        
+
         console.log("✅ Orders with items loaded:", ordersWithItems.value);
         console.log("📋 Available lines:", lineOptions.value);
     } catch (error) {
@@ -649,15 +611,15 @@ const fetchOrdersWithItems = async (filters = {}) => {
 // ✅ Add filter handler
 const handleFilterOrders = async () => {
     const filters = {};
-    
+
     if (selectedLine.value) {
         filters.line_name = selectedLine.value;
     }
-    
+
     if (selectedCase.value) {
         filters.case = selectedCase.value;
     }
-    
+
     console.log("🔍 Applying filters:", filters);
     await fetchOrdersWithItems(filters);
 };
@@ -698,21 +660,14 @@ const openEditModal = async (workPlan) => {
     isFormModalOpen.value = true;
 };
 
-// Details Modal
-// const openDetailsModal = (workPlan) => {
-//     selectedworkPlan.value = { ...workPlan };
-//     isDetailsModalOpen.value = true;
-// };
-
-
 const openDetailsModal = (workPlan) => {
     const orderGroups = {};
-    
+
     workPlan.workplanorder?.forEach(wo => {
         const orderItemName = wo.order_item?.name || '';
         const orderCode = orderItemName.split(' - ')[0].trim();
         const itemName = orderItemName.split(' - ')[1]?.trim() || '';
-        
+
         if (!orderGroups[orderCode]) {
             orderGroups[orderCode] = [];
         }
@@ -720,13 +675,12 @@ const openDetailsModal = (workPlan) => {
             orderGroups[orderCode].push(itemName);
         }
     });
-    
-    // تنسيق العرض
+
     const ordersDisplay = Object.entries(orderGroups)
         .map(([code, items]) => `${code}: ${items.join(', ')}`)
         .join('\n') || t('workPlan.noOrders');
 
-    selectedworkPlan.value = { 
+    selectedworkPlan.value = {
         ...workPlan,
         orders: ordersDisplay
     };
@@ -779,7 +733,6 @@ const handleSubmitworkPlan = async (workPlanData) => {
         Orderitems: orderItems.map(id => parseInt(id))
     };
 
-    // ✅ فقط أضيفي company_id للإنشاء، مش للتعديل
     if (!isEditMode.value) {
         payload.company_id = parseInt(companyId.value || workPlanData.company_id);
     }
@@ -798,10 +751,10 @@ const handleSubmitworkPlan = async (workPlanData) => {
         closeFormModal();
     } catch (error) {
         console.error("❌ Failed to save work plan:", error);
-        
+
         if (error.response && error.response.data) {
             console.error("🔴 Server validation errors:", error.response.data);
-            
+
             if (error.response.data.errors) {
                 const errorMessages = Object.values(error.response.data.errors).flat();
                 alert("خطأ في البيانات:\n" + errorMessages.join("\n"));

@@ -33,79 +33,75 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     return { id: value ?? null, name: "" };
   };
 
-const normalizeWorkPlan = (plan, allDrivers = []) => {
-  const companyInfo = extractIdName(plan.company_id ?? plan.company);
-  const companyId = companyInfo.id;
-  const companyName =
-    plan.company_name ||
-    companyInfo.name ||
-    (companyId ? `Company ${companyId}` : "");
+  const normalizeWorkPlan = (plan, allDrivers = []) => {
+    const companyInfo = extractIdName(plan.company_id ?? plan.company);
+    const companyId = companyInfo.id;
+    const companyName =
+      plan.company_name ||
+      companyInfo.name ||
+      (companyId ? `Company ${companyId}` : "");
 
-  let date = plan.date || plan.plan_date || "";
-  let driverId = null;
-  let driverName = "";
-  let orders = [];
-  
-  // ✅ معالجة workplanorder بشكل صحيح
-  if (plan.workplanorder && Array.isArray(plan.workplanorder)) {
-    orders = plan.workplanorder.map(workplanOrder => {
-      const orderItemId = workplanOrder.order_item?.id || workplanOrder.order_item_id;
-      const orderItemName = workplanOrder.order_item?.name || `Order Item #${orderItemId}`;
-      
-      // ✅ استخرجي الـ order_code من اسم الـ item
-      const orderCode = orderItemName.split(' - ')[0].trim();
-      
-      return {
-        id: workplanOrder.id,
-        order_item_id: orderItemId,
-        order: orderCode, // ✅ الـ order code
-        items: orderItemId // ID لاستخدامه في الفورم والعرض
-      };
-    });
-    
-    // البحث عن أول driver في أي workplanorder
-    for (const workplanOrder of plan.workplanorder) {
-      if (workplanOrder.steps && workplanOrder.steps.length > 0) {
-        const firstStep = workplanOrder.steps[0];
-        date = date || firstStep.date;
-        driverId = firstStep.driver_id;
-        driverName = firstStep.driver_name || "";
-        break;
+    let date = plan.date || plan.plan_date || "";
+    let driverId = null;
+    let driverName = "";
+    let orders = [];
+
+    if (plan.workplanorder && Array.isArray(plan.workplanorder)) {
+      orders = plan.workplanorder.map(workplanOrder => {
+        const orderItemId = workplanOrder.order_item?.id || workplanOrder.order_item_id;
+        const orderItemName = workplanOrder.order_item?.name || `Order Item #${orderItemId}`;
+
+        const orderCode = orderItemName.split(' - ')[0].trim();
+
+        return {
+          id: workplanOrder.id,
+          order_item_id: orderItemId,
+          order: orderCode,
+          items: orderItemId
+        };
+      });
+
+      for (const workplanOrder of plan.workplanorder) {
+        if (workplanOrder.steps && workplanOrder.steps.length > 0) {
+          const firstStep = workplanOrder.steps[0];
+          date = date || firstStep.date;
+          driverId = firstStep.driver_id;
+          driverName = firstStep.driver_name || "";
+          break;
+        }
       }
     }
-  }
 
-  // 🔥 إذا ما في driver_name ولكن في driver_id، اجلبيه من قائمة السائقين
-  if (!driverName && driverId && allDrivers.length > 0) {
-    const driver = allDrivers.find(d => d.id === driverId);
-    if (driver) {
-      driverName = driver.name || driver.driver_name || '';
+    if (!driverName && driverId && allDrivers.length > 0) {
+      const driver = allDrivers.find(d => d.id === driverId);
+      if (driver) {
+        driverName = driver.name || driver.driver_name || '';
+      }
     }
-  }
 
-  console.log("🔄 Normalized work plan:", {
-    id: plan.id,
-    name: plan.name,
-    orders: orders,
-    driver_id: driverId,
-    driver_name: driverName
-  });
+    console.log("🔄 Normalized work plan:", {
+      id: plan.id,
+      name: plan.name,
+      orders: orders,
+      driver_id: driverId,
+      driver_name: driverName
+    });
 
-  return {
-    id: plan.id,
-    name: plan.name || "",
-    company_id: companyId,
-    company_name: companyName,
-    date: date,
-    driver_id: driverId,
-    driver_name: driverName,
-    orders: orders.length > 0 ? orders : (plan.orders || plan.order_items || []),
-    created_at: plan.created_at,
-    updated_at: plan.updated_at,
-    deleted_at: plan.deleted_at,
-    workplanorder: plan.workplanorder || [],
+    return {
+      id: plan.id,
+      name: plan.name || "",
+      company_id: companyId,
+      company_name: companyName,
+      date: date,
+      driver_id: driverId,
+      driver_name: driverName,
+      orders: orders.length > 0 ? orders : (plan.orders || plan.order_items || []),
+      created_at: plan.created_at,
+      updated_at: plan.updated_at,
+      deleted_at: plan.deleted_at,
+      workplanorder: plan.workplanorder || [],
+    };
   };
-};
 
 
 
@@ -173,25 +169,25 @@ const normalizeWorkPlan = (plan, allDrivers = []) => {
   const addWorkPlan = async (workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
-    
+
     console.log("🚀 Adding work plan - payload:", workPlanData);
-    
+
     try {
       const response = await apiServices.createWorkPlan(workPlanData);
       const newPlan = normalizeWorkPlan(response.data.data || response.data, drivers);
-      
+
       workPlans.value.push(newPlan);
       console.log("✅ Work plan added:", newPlan);
       return newPlan;
     } catch (err) {
       error.value = err.message || "Failed to add work plan";
       console.error("Error adding work plan:", err);
-      
+
       if (err.response) {
         console.error("📋 Server Response Status:", err.response.status);
         console.error("📋 Server Response Data:", err.response.data);
       }
-      
+
       throw err;
     } finally {
       loading.value = false;
@@ -201,32 +197,32 @@ const normalizeWorkPlan = (plan, allDrivers = []) => {
   const updateWorkPlan = async (planId, workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
-    
+
     console.log("🔄 Updating work plan:", planId);
     console.log("📤 Update payload:", workPlanData);
-    
+
     try {
       const response = await apiServices.updateWorkPlan(planId, workPlanData);
       console.log("✅ Update response from API:", response.data);
-      
+
       const updated = normalizeWorkPlan(response.data.data || response.data, drivers);
-      
+
       const index = workPlans.value.findIndex((p) => p.id === planId);
       if (index > -1) {
         workPlans.value[index] = updated;
         console.log("✅ Work plan updated in store:", workPlans.value[index]);
       }
-      
+
       return workPlans.value[index];
     } catch (err) {
       error.value = err.message || "Failed to update work plan";
       console.error("❌ Error updating work plan:", err);
-      
+
       if (err.response) {
         console.error("📋 Server Response Status:", err.response.status);
         console.error("📋 Server Response Data:", err.response.data);
       }
-      
+
       throw err;
     } finally {
       loading.value = false;

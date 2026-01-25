@@ -151,12 +151,9 @@
                                 <button type="button" class="btn-close" @click="closePlansModal"></button>
                             </div>
                             <div class="modal-body p-3" style="max-height: 60vh; overflow-y: auto;">
-                                <div
-                                    v-for="plan in plansForModal"
-                                    :key="plan.id"
+                                <div v-for="plan in plansForModal" :key="plan.id"
                                     class="plan-option p-3 mb-2 border rounded-3 cursor-pointer"
-                                    @click="selectPlanFromModal(plan)"
-                                >
+                                    @click="selectPlanFromModal(plan)">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <div>
                                             <h6 class="mb-1 fw-semibold">{{ plan.name }}</h6>
@@ -167,7 +164,8 @@
                                         </div>
                                         <div>
                                             <span v-if="plan.orders && plan.orders.length > 0" class="badge bg-primary">
-                                                {{ plan.orders.length }} {{ plan.orders.length === 1 ? $t('workPlan.order') : $t('workPlan.orders') }}
+                                                {{ plan.orders.length }} {{ plan.orders.length === 1 ?
+                                                $t('workPlan.order') : $t('workPlan.orders') }}
                                             </span>
                                         </div>
                                     </div>
@@ -223,7 +221,7 @@ onMounted(() => {
 const calendarEvents = computed(() => {
     // Group plans by date
     const plansByDate = {};
-    
+
     props.workPlans
         .filter(plan => plan.date && plan.date.trim() !== '')
         .forEach(plan => {
@@ -231,29 +229,29 @@ const calendarEvents = computed(() => {
             if (date.includes('T')) {
                 date = date.split('T')[0];
             }
-            
+
             if (!plansByDate[date]) {
                 plansByDate[date] = [];
             }
             plansByDate[date].push(plan);
         });
-    
+
     // Create events
     const events = [];
     Object.entries(plansByDate).forEach(([date, plans]) => {
         const totalPlans = plans.length;
         const firstPlan = plans[0];
         const orderCount = firstPlan.orders && firstPlan.orders.length > 0 ? firstPlan.orders.length : 0;
-        
+
         // Truncate name to first 12 characters for display
         let displayName = firstPlan.name.length > 12 ? firstPlan.name.substring(0, 12) + '...' : firstPlan.name;
-        
+
         // Show order count if any
         let title = displayName;
         if (orderCount > 0) {
             title = `${displayName} (${orderCount})`;
         }
-        
+
         // Add first plan event
         events.push({
             id: firstPlan.id,
@@ -270,11 +268,11 @@ const calendarEvents = computed(() => {
                 plansOnThisDate: totalPlans,
                 allPlansForDate: plans,
                 hasMultiplePlans: totalPlans > 1,
-                 sortOrder: 1,
+                sortOrder: 1,
                 isMainPlan: true
             }
         });
-        
+
         // Add "+N" button if there are more plans
         if (totalPlans > 1) {
             events.push({
@@ -290,18 +288,18 @@ const calendarEvents = computed(() => {
                     allPlansForDate: plans,
                     date: date,
                     totalPlans: totalPlans,
-                     sortOrder: 2,
+                    sortOrder: 2,
                 }
             });
         }
     });
-    
+
     return events;
 });
 
 // Calendar options
 const calendarOptions = ref({
-        eventOrder: 'extendedProps.sortOrder',
+    eventOrder: 'extendedProps.sortOrder',
 
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
@@ -323,27 +321,27 @@ const calendarOptions = ref({
     eventDisplay: 'block',
     displayEventTime: false,
     displayEventEnd: false,
-    eventDidMount: function(info) {
+    eventDidMount: function (info) {
         const props = info.event.extendedProps;
-        
+
         // Skip tooltip for "+N" button
         if (props.isMoreButton) {
             return;
         }
-        
+
         // Add tooltip on hover for main plans
         const tooltip = document.createElement('div');
         tooltip.className = 'event-tooltip';
-        
+
         if (props.hasMultiplePlans) {
             // Show info that there are multiple plans
             tooltip.innerHTML = `
                 <div class="tooltip-content">
                     <strong>${props.fullName}</strong>
                     ${props.driver_name ? `<div class="mt-1 small text-muted"><i class="bi bi-person-badge me-1"></i>${props.driver_name}</div>` : ''}
-                    ${props.orderCount > 0 ? 
-                        `<div class="mt-1 small"><i class="bi bi-box-seam me-1"></i>${props.orderCount} ${props.orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')}</div>` 
-                        : ''}
+                    ${props.orderCount > 0 ?
+                    `<div class="mt-1 small"><i class="bi bi-box-seam me-1"></i>${props.orderCount} ${props.orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')}</div>`
+                    : ''}
                     <div class="mt-2 pt-2" style="border-top: 1px solid rgba(255, 255, 255, 0.2);">
                         <small class="text-muted"><i class="bi bi-calendar-plus me-1"></i>${props.plansOnThisDate} ${t('workPlan.totalPlans')}</small>
                     </div>
@@ -355,19 +353,19 @@ const calendarOptions = ref({
                 <div class="tooltip-content">
                     <strong>${props.fullName}</strong>
                     ${props.driver_name ? `<div class="mt-1 small text-muted"><i class="bi bi-person-badge me-1"></i>${props.driver_name}</div>` : ''}
-                    ${props.orderCount > 0 ? 
-                        `<div class="mt-1 small"><i class="bi bi-box-seam me-1"></i>${props.orderCount} ${props.orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')}</div>` 
-                        : ''}
+                    ${props.orderCount > 0 ?
+                    `<div class="mt-1 small"><i class="bi bi-box-seam me-1"></i>${props.orderCount} ${props.orderCount === 1 ? t('workPlan.order') : t('workPlan.orders')}</div>`
+                    : ''}
                 </div>
             `;
         }
-        
+
         info.el.addEventListener('mouseenter', () => {
             document.body.appendChild(tooltip);
             const rect = info.el.getBoundingClientRect();
             tooltip.style.top = `${rect.top - tooltip.offsetHeight - 8}px`;
             tooltip.style.left = `${rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2)}px`;
-            
+
             // Adjust if tooltip goes off screen
             const tooltipRect = tooltip.getBoundingClientRect();
             if (tooltipRect.left < 10) {
@@ -376,10 +374,10 @@ const calendarOptions = ref({
             if (tooltipRect.right > window.innerWidth - 10) {
                 tooltip.style.left = `${window.innerWidth - tooltipRect.width - 10}px`;
             }
-            
+
             tooltip.classList.add('show');
         });
-        
+
         info.el.addEventListener('mouseleave', () => {
             tooltip.classList.remove('show');
             setTimeout(() => {
@@ -394,14 +392,14 @@ const calendarOptions = ref({
 // Handle event click
 function handleEventClick(info) {
     const props = info.event.extendedProps;
-    
+
     // If it's the "+N" button - show modal with all plans
     if (props.isMoreButton) {
         plansForModal.value = props.allPlansForDate;
         showPlansModal.value = true;
         return;
     }
-    
+
     // If it's a main plan with multiple plans - show details of clicked plan
     if (props.isMainPlan) {
         selectedPlan.value = props;
@@ -549,7 +547,7 @@ watch(calendarEvents, (newEvents) => {
     opacity: 0.9;
     transform: translateY(-1px);
     transition: all 0.2s ease;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
 /* Style for the +N button */
@@ -567,7 +565,7 @@ watch(calendarEvents, (newEvents) => {
 .fc-event.more-plans-button:hover {
     background-color: red !important;
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Style for main work plan events */
@@ -747,6 +745,7 @@ watch(calendarEvents, (newEvents) => {
 
 /* Responsive */
 @media (max-width: 768px) {
+
     .col-md-7,
     .col-md-5 {
         flex: 0 0 100%;
