@@ -113,6 +113,7 @@ import { useInvoicesManagementStore } from "../store/invoicesManagement.js";
 import InvoiceHeader from "../components/InvoiceHeader.vue";
 import html2pdf from "html2pdf.js";
 import apiServices from "@/services/apiServices.js";
+import api from "@/services/api.js";
 
 const { t, locale } = useI18n();
 const invoicesStore = useInvoicesManagementStore();
@@ -229,9 +230,7 @@ const paginatedData = computed(() => {
   );
 });
 
-// ✅ Bulk actions - بس Export (بدون Delete)
 const bulkActions = computed(() => {
-  // إذا في فاتورة واحدة محددة، نعرض Export فقط
   if (selectedRows.value.length === 1) {
     return [
       {
@@ -264,15 +263,9 @@ watch([searchText, selectedGroups], () => {
 });
 
 // Methods
-// ✅ منع التحديد المتعدد - بس فاتورة وحدة
 const isInvoiceDisabled = (row) => {
-  // إذا ما في شي محدد، فعّل الكل
   if (selectedRows.value.length === 0) return false;
-  
-  // إذا هاي الفاتورة هي المحددة، فعّلها (للـ deselection)
   if (selectedRows.value.includes(row.id)) return false;
-  
-  // إذا في فاتورة ثانية محددة، عطّل هاي
   return selectedRows.value.length >= 1;
 };
 
@@ -333,15 +326,12 @@ const handlePermanentDelete = async (invoice) => {
   }
 };
 
-// ✅ Bulk Action Handler - بس Export
 const handleBulkAction = ({ actionId }) => {
   if (actionId === 'export') {
-    // ✅ تصدير مباشر بدون confirmation
     exportSelectedInvoice();
   }
 };
 
-// ✅ Export مباشر
 const exportSelectedInvoice = async () => {
   if (selectedRows.value.length !== 1) {
     alert(t('invoice.selectOneInvoice') || 'Please select exactly one invoice');
@@ -384,7 +374,38 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
   }
 };
 
-// ✅ Export PDF Function
+// ✅ دالة مساعدة لتحميل الصورة كـ base64
+const loadImageAsBase64 = async (imageUrl) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // ✅ مهم جدًا
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        const base64 = canvas.toDataURL('image/jpeg', 0.95);
+        resolve(base64);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    
+    // ✅ أضف timestamp لتجنب الـ cache
+    img.src = imageUrl;
+  });
+};
+
+// ✅ في دالة exportInvoicePDF
 const exportInvoicePDF = async (invoice) => {
   exportingInvoiceId.value = invoice.id;
 
@@ -400,9 +421,22 @@ const exportInvoicePDF = async (invoice) => {
     const borderSide = isRTL.value ? 'border-right' : 'border-left';
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
-    const companyLogo = fullInvoice.delivery_company?.logo
-      ? `${API_BASE_URL}${fullInvoice.delivery_company.logo}`
-      : null;
+    const baseURL = API_BASE_URL.replace('/api', '');
+    
+    // ✅ حمّل اللوجو كـ base64
+    let companyLogoBase64 = null;
+    if (fullInvoice.delivery_company?.logo) {
+      try {
+        const logoUrl = `${baseURL}${fullInvoice.delivery_company.logo}`;
+        console.log("🖼️ Loading logo from:", logoUrl);
+        
+        companyLogoBase64 = await loadImageAsBase64(logoUrl);
+        console.log("✅ Logo converted to base64");
+      } catch (logoError) {
+        console.error("❌ Error loading logo:", logoError);
+        companyLogoBase64 = null;
+      }
+    }
 
     const formatDate = (dateString) => {
       if (!dateString || dateString === 'null' || dateString === null) return 'N/A';
@@ -440,7 +474,7 @@ const exportInvoicePDF = async (invoice) => {
       <div dir="${direction}" style="font-family: 'Arial', 'Tahoma', sans-serif; padding: 40px; max-width: 900px; margin: 0 auto; color: #2C3E50; background: white;">
         <div style="margin-bottom: 40px; border-bottom: 4px solid #4A90E2; padding-bottom: 20px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            ${companyLogo ? `<img src="${companyLogo}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" crossorigin="anonymous" />` : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${fullInvoice.delivery_company?.name || 'INVOICE'}</h1>`}
+            ${companyLogoBase64 ? `<img src="${companyLogoBase64}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" />` : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${fullInvoice.delivery_company?.name || 'INVOICE'}</h1>`}
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
             <div style="text-align: ${textAlign};">
@@ -491,7 +525,7 @@ const exportInvoicePDF = async (invoice) => {
       margin: [10, 10, 10, 10],
       filename: `Invoice_${fullInvoice.invoice_code}_${new Date().getTime()}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true, allowTaint: true },
+      html2canvas: { scale: 2, letterRendering: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };

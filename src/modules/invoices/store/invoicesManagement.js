@@ -13,7 +13,7 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
     // Pagination state
     const invoicesPagination = ref({
         currentPage: 1,
-        perPage: 5,
+        perPage: 10,
         total: 0,
         lastPage: 1,
     });
