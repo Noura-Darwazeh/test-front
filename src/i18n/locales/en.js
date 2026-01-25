@@ -1932,7 +1932,12 @@ export default {
     note: "Note",
     thankYou: "Thank you for choosing us!",
     generatedOn: "Generated on",
-    companyName: "Your Company Name"
+    companyName: "Your Company Name",
+    invoiceDate:"Invoice Data",
+    orderCode: "Order",
+    totalPrice: "Total Price",
+    deliveryPrice: "Delivery Price",
+    poweredBy: "Powered by"
   },
   invoiceStatus: {
     pending: "Pending",

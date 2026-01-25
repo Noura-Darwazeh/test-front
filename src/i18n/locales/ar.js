@@ -1657,9 +1657,9 @@
   },
   //خطط العمل
   workPlan: {
-   
+
     // عناوين الصفحة
-  order:"طلب",
+    order: "طلب",
     title: "ادارة خطط العمل",
     planDetails: "تفاصيل الخطة",
     orderName: "اسم الطلب",
@@ -1898,21 +1898,27 @@
     note: "ملاحظة",
     thankYou: "شكراً لاختياركم لنا!",
     generatedOn: "تم الإنشاء في",
-    companyName: "اسم شركتك"
-  },
-  invoiceStatus: {
-    pending: "قيد الانتظار",
-    completed: "مكتملة"
-  },
-  // إدارة الصلاحيات
-  permissions: {
-    title: "إدارة الصلاحيات",
-    subtitle: "إدارة صلاحيات المستخدمين والتحكم في الوصول",
-    searchUsers: "البحث عن مستخدمين...",
-    availablePermissions: "الصلاحيات المتاحة",
-    noPermissions: "لا توجد صلاحيات متاحة",
-    userPermissions: "صلاحيات المستخدم",
-    noPermissionsAvailable: "لا توجد صلاحيات متاحة",
-    noUsersFound: "لم يتم العثور على مستخدمين",
-  },
-};
+    companyName: "اسم شركتك",
+    invoiceDate: "تاريخ الفاتورة",
+    orderCode: "رمز الطلب",
+    totalPrice: "السعر الإجمالي",
+    deliveryPrice: "سعر التوصيل",
+    poweredBy: "بواسطة",
+    noCollections: "لا يوجد تحصيلات",
+    invoiceStatus: {
+      pending: "قيد الانتظار",
+      completed: "مكتملة"
+    },
+    // إدارة الصلاحيات
+    permissions: {
+      title: "إدارة الصلاحيات",
+      subtitle: "إدارة صلاحيات المستخدمين والتحكم في الوصول",
+      searchUsers: "البحث عن مستخدمين...",
+      availablePermissions: "الصلاحيات المتاحة",
+      noPermissions: "لا توجد صلاحيات متاحة",
+      userPermissions: "صلاحيات المستخدم",
+      noPermissionsAvailable: "لا توجد صلاحيات متاحة",
+      noUsersFound: "لم يتم العثور على مستخدمين",
+    },
+  }
+}
