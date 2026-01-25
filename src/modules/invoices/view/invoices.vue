@@ -116,6 +116,7 @@ import api from "@/services/api.js";
 
 const { t, locale } = useI18n();
 const invoicesStore = useInvoicesManagementStore();
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
 
 // State
 const searchText = ref("");
@@ -425,29 +426,73 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
   }
 };
 
-// ✅ في دالة exportInvoicePDF
-// في src/modules/invoices/view/invoices.vue
 
-// ❌ امسحي دالة loadImageAsBase64 كلها
+    
 
-// ✅ استبدليها بهاي:
+/**
+ * Load image through API proxy to avoid CORS
+ * @param {string} imagePath - Image path from API
+ * @returns {Promise<string|null>} Base64 string or null
+ */
+const loadImageAsBase64 = async (imagePath) => {
+  if (!imagePath) return null;
+  
+  try {
+    console.log("📥 Loading image from:", imagePath);
+    
+    // ✅ اطلبي الصورة من خلال الـ API backend
+    // الباك بيعمل proxy وبيرجعلك الصورة
+    const response = await api.get(imagePath, {
+      responseType: 'blob' // ✅ مهم جداً!
+    });
+    
+    console.log("✅ Image loaded successfully");
+    
+    // ✅ حوّلي الـ blob لـ Base64
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        console.log("✅ Image converted to Base64");
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        console.error("❌ Failed to read image blob");
+        reject(new Error('Failed to read image'));
+      };
+      reader.readAsDataURL(response.data);
+    });
+    
+  } catch (error) {
+    console.error("❌ Failed to load image:", error);
+    console.error("Image path was:", imagePath);
+    return null;
+  }
+};
+
+// ✅ استخدميها في exportInvoicePDF
 const exportInvoicePDF = async (invoice) => {
   exportingInvoiceId.value = invoice.id;
 
   try {
-    console.log("📥 Fetching full invoice data for ID:", invoice.id);
+    console.log("📥 Fetching invoice data...");
     const response = await apiServices.getEntityById('invoices', invoice.id);
     const fullInvoice = response.data.data;
 
-    console.log("✅ Full invoice data:", fullInvoice);
+    // ✅ حمّلي اللوجو من خلال الـ API
+    const companyLogo = fullInvoice.delivery_company?.logo;
+    const companyLogoBase64 = await loadImageAsBase64(companyLogo);
+    
+    const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
+
+    if (companyLogoBase64) {
+      console.log("✅ Logo loaded successfully");
+    } else {
+      console.log("⚠️ No logo, using company name");
+    }
 
     const direction = isRTL.value ? 'rtl' : 'ltr';
     const textAlign = isRTL.value ? 'right' : 'left';
     const borderSide = isRTL.value ? 'border-right' : 'border-left';
-
-    // ✅ استخدمي اللوجو مباشرة لو موجود، وإلا استخدمي اسم الشركة
-    const companyLogoBase64 = fullInvoice.delivery_company?.logo_base64 || null;
-    const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
 
     const formatDate = (dateString) => {
       if (!dateString || dateString === 'null' || dateString === null) return 'N/A';
@@ -543,12 +588,13 @@ const exportInvoicePDF = async (invoice) => {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
+    console.log("📄 Generating PDF...");
     await html2pdf().set(options).from(element).save();
-    console.log(`✅ PDF exported successfully: Invoice_${fullInvoice.invoice_code}`);
+    console.log(`✅ PDF exported successfully`);
 
   } catch (error) {
     console.error("❌ Error exporting PDF:", error);
-    alert(t('invoice.exportError') || "Failed to export PDF. Please try again.");
+    alert(t('invoice.exportError') || "Failed to export PDF");
   } finally {
     exportingInvoiceId.value = null;
   }
