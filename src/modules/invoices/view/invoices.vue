@@ -1,29 +1,15 @@
 <template>
   <div class="invoices-page-container bg-light">
-    <InvoiceHeader 
-      v-model="searchText" 
-      :searchPlaceholder="$t('invoice.searchPlaceholder')" 
-      :data="invoices"
-      groupKey="status" 
-      v-model:groupModelValue="selectedGroups" 
-      :groupLabel="$t('invoice.filterByStatus')"
-      translationKey="invoiceStatus" 
-      :columns="invoiceColumns" 
-      v-model:visibleColumns="visibleColumns"
-      @refresh-click="handleRefresh" 
-      @trashed-click="openTrashedModal"
-    />
+    <InvoiceHeader v-model="searchText" :searchPlaceholder="$t('invoice.searchPlaceholder')" :data="invoices"
+      groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('invoice.filterByStatus')"
+      translationKey="invoiceStatus" :columns="invoiceColumns" v-model:visibleColumns="visibleColumns"
+      @refresh-click="handleRefresh" @trashed-click="openTrashedModal" :showAddButton="false" />
 
     <div class="card border-0">
       <div class="card-body p-0">
         <!-- Bulk Actions Bar -->
-        <BulkActionsBar 
-          :selectedCount="selectedRows.length" 
-          entityName="invoice" 
-          :actions="bulkActions"
-          :loading="bulkActionLoading" 
-          @action="handleBulkAction" 
-        />
+        <BulkActionsBar :selectedCount="selectedRows.length" entityName="invoice" :actions="bulkActions"
+          :loading="bulkActionLoading" @action="handleBulkAction" />
 
         <!-- Loading State -->
         <div v-if="invoicesStore.loading" class="text-center py-5">
@@ -41,60 +27,32 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable 
-            :columns="filteredColumns" 
-            :data="paginatedData" 
-            :actionsLabel="$t('invoice.actions')"
-            v-model="selectedRows"
-          >
+          <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('invoice.actions')"
+            v-model="selectedRows">
             <template #actions="{ row }">
-              <ActionsDropdown 
-                :row="row" 
-                :detailsLabel="$t('invoice.details')" 
-                :showEdit="false"
-                :showDelete="false"
-                @details="openDetailsModal" 
-              />
+              <ActionsDropdown :row="row" :detailsLabel="$t('invoice.details')" :showEdit="false" :showDelete="false"
+                @details="openDetailsModal" />
             </template>
           </DataTable>
 
           <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination 
-              :totalItems="currentFilteredData.length"
-              :itemsPerPage="itemsPerPage"
-              :currentPage="currentPage"
-              @update:currentPage="(page) => (currentPage = page)" 
-            />
+            <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Details Modal -->
-    <DetailsModal 
-      :isOpen="isDetailsModalOpen" 
-      :title="$t('invoice.details')" 
-      :data="selectedInvoice"
-      :fields="detailsFields" 
-      @close="closeDetailsModal" 
-    />
+    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('invoice.details')" :data="selectedInvoice"
+      :fields="detailsFields" @close="closeDetailsModal" />
 
     <!-- Trashed Items Modal -->
-    <TrashedItemsModal 
-      :isOpen="isTrashedModalOpen" 
-      :title="$t('invoice.trashedInvoices')"
-      :emptyMessage="$t('invoice.noTrashedInvoices')" 
-      :columns="trashedColumns"
-      :trashedItems="invoicesStore.trashedInvoices" 
-      :showDeleteButton="true" 
-      entityName="invoice"
-      :bulkActions="trashedBulkActions" 
-      :bulkLoading="bulkActionLoading" 
-      @close="closeTrashedModal"
-      @restore="handleRestore" 
-      @delete="handlePermanentDelete" 
-      @bulk-action="handleTrashedBulkAction" 
-    />
+    <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('invoice.trashedInvoices')"
+      :emptyMessage="$t('invoice.noTrashedInvoices')" :columns="trashedColumns"
+      :trashedItems="invoicesStore.trashedInvoices" :showDeleteButton="true" entityName="invoice"
+      :bulkActions="trashedBulkActions" :bulkLoading="bulkActionLoading" @close="closeTrashedModal"
+      @restore="handleRestore" @delete="handlePermanentDelete" @bulk-action="handleTrashedBulkAction" />
   </div>
 </template>
 
@@ -232,7 +190,7 @@ const paginatedData = computed(() => {
 
 const bulkActions = computed(() => {
   const actions = [];
-  
+
   // Export action - only for single selection
   if (selectedRows.value.length === 1) {
     actions.push({
@@ -241,7 +199,7 @@ const bulkActions = computed(() => {
       bgColor: 'var(--color-success)',
     });
   }
-  
+
   // Mark as Paid action - for multiple selections
   if (selectedRows.value.length > 0) {
     actions.push({
@@ -273,11 +231,6 @@ watch([searchText, selectedGroups], () => {
 });
 
 // Methods
-const isInvoiceDisabled = (row) => {
-  // Don't disable any rows - allow multiple selections
-  return false;
-};
-
 const handleRefresh = async () => {
   selectedRows.value = [];
   try {
@@ -349,14 +302,13 @@ const markInvoicesAsPaid = async () => {
     return;
   }
 
-  // Confirm action
-  if (!confirm(t('invoice.markAsPaidConfirm', { count: selectedRows.value.length }) || 
-      `Are you sure you want to mark ${selectedRows.value.length} invoice(s) as paid?`)) {
+  if (!confirm(t('invoice.markAsPaidConfirm', { count: selectedRows.value.length }) ||
+    `Are you sure you want to mark ${selectedRows.value.length} invoice(s) as paid?`)) {
     return;
   }
 
   bulkActionLoading.value = true;
-  
+
   try {
     const response = await api.patch('/invoices', {
       status: 'completed',
@@ -365,20 +317,14 @@ const markInvoicesAsPaid = async () => {
 
     if (response.data?.success) {
       console.log("✅ Invoices marked as paid successfully!");
-      
-      // Refresh invoices list
       await invoicesStore.fetchInvoices();
-      
-      // Clear selection
       selectedRows.value = [];
-      
-      // Show success message
       alert(response.data.message || t('invoice.markedAsPaidSuccess'));
     }
   } catch (error) {
     console.error("❌ Failed to mark invoices as paid:", error);
-    alert(error.message || t('invoice.markedAsPaidError') || 
-          "Failed to mark invoices as paid. Please try again.");
+    alert(error.message || t('invoice.markedAsPaidError') ||
+      "Failed to mark invoices as paid. Please try again.");
   } finally {
     bulkActionLoading.value = false;
   }
@@ -392,7 +338,7 @@ const exportSelectedInvoice = async () => {
 
   const selectedInvoiceId = selectedRows.value[0];
   const invoice = invoices.value.find(inv => inv.id === selectedInvoiceId);
-  
+
   if (invoice) {
     await exportInvoicePDF(invoice);
   }
@@ -405,9 +351,9 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
       await invoicesStore.bulkRestoreInvoices(selectedIds);
       console.log("✅ Bulk restore successful!");
     } else if (actionId === 'forceDelete') {
-      if (!confirm(t('common.bulkPermanentDeleteConfirm', { 
-        count: selectedIds.length, 
-        entity: t('invoice.entityPlural') 
+      if (!confirm(t('common.bulkPermanentDeleteConfirm', {
+        count: selectedIds.length,
+        entity: t('invoice.entityPlural')
       }))) {
         bulkActionLoading.value = false;
         return;
@@ -426,70 +372,102 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
   }
 };
 
-
-    
-
-/**
- * Load image through API proxy to avoid CORS
- * @param {string} imagePath - Image path from API
- * @returns {Promise<string|null>} Base64 string or null
- */
+// ✅ دالة تحميل الصورة وتحويلها لـ Base64
 const loadImageAsBase64 = async (imagePath) => {
-  if (!imagePath) return null;
-  
+  if (!imagePath || imagePath.trim() === '') {
+    console.log("⚠️ Empty image path provided");
+    return null;
+  }
+
   try {
-    console.log("📥 Loading image from:", imagePath);
-    
-    // ✅ اطلبي الصورة من خلال الـ API backend
-    // الباك بيعمل proxy وبيرجعلك الصورة
-    const response = await api.get(imagePath, {
-      responseType: 'blob' // ✅ مهم جداً!
+    const imageUrl = imagePath.startsWith('http')
+      ? imagePath
+      : `${API_BASE_URL}${imagePath}`;
+
+    console.log("📥 Attempting to fetch image:", imageUrl);
+
+    const response = await fetch(imageUrl, {
+      method: 'GET',
+      mode: 'cors',
+      headers: { 'Accept': 'image/*' }
     });
-    
-    console.log("✅ Image loaded successfully");
-    
-    // ✅ حوّلي الـ blob لـ Base64
-    return new Promise((resolve, reject) => {
+
+    if (!response.ok) {
+      console.warn(`⚠️ Image fetch failed: HTTP ${response.status} ${response.statusText}`);
+      console.warn(`📍 Failed URL: ${imageUrl}`);
+      return null;
+    }
+
+    const blob = await response.blob();
+    console.log(`✅ Image blob loaded: ${blob.size} bytes, type: ${blob.type}`);
+
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        console.log("✅ Image converted to Base64");
+        console.log("✅ Image converted to Base64 successfully");
         resolve(reader.result);
       };
       reader.onerror = () => {
-        console.error("❌ Failed to read image blob");
-        reject(new Error('Failed to read image'));
+        console.error("❌ FileReader failed to convert blob to Base64");
+        resolve(null);
       };
-      reader.readAsDataURL(response.data);
+      reader.readAsDataURL(blob);
     });
-    
+
   } catch (error) {
-    console.error("❌ Failed to load image:", error);
-    console.error("Image path was:", imagePath);
+    console.error("❌ Image loading error:", error.message);
+    console.error("📍 Path was:", imagePath);
     return null;
   }
 };
 
-// ✅ استخدميها في exportInvoicePDF
+// ✅ دالة تصدير الفاتورة كـ PDF
 const exportInvoicePDF = async (invoice) => {
   exportingInvoiceId.value = invoice.id;
 
   try {
     console.log("📥 Fetching invoice data...");
     const response = await apiServices.getEntityById('invoices', invoice.id);
+
+    // ✅ اطبعي الـ response كامل
+    console.log("🔍 RAW Response:", response);
+    console.log("🔍 Response.data:", response.data);
+    console.log("🔍 Response.data.data:", response.data.data);
+    console.log("🔍 Delivery company from data.data:", response.data.data?.delivery_company);
+
     const fullInvoice = response.data.data;
 
-    // ✅ حمّلي اللوجو من خلال الـ API
-    const companyLogo = fullInvoice.delivery_company?.logo;
-    const companyLogoBase64 = await loadImageAsBase64(companyLogo);
-    
-    const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
+    console.log("📦 Full invoice data:", fullInvoice);
+    console.log("🏢 Delivery company:", fullInvoice.delivery_company);
+    console.log("🖼️ Logo path:", fullInvoice.delivery_company?.logo);
 
-    if (companyLogoBase64) {
-      console.log("✅ Logo loaded successfully");
-    } else {
-      console.log("⚠️ No logo, using company name");
+    // ✅ جربي تطبع كل الـ keys
+    if (fullInvoice.delivery_company) {
+      console.log("🔑 Delivery company keys:", Object.keys(fullInvoice.delivery_company));
     }
 
+    const companyLogo = fullInvoice.delivery_company?.logo;
+    const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
+
+    console.log("🎯 Final logo value:", companyLogo);
+    console.log("🎯 Logo type:", typeof companyLogo);
+    console.log("🎯 Is logo null?", companyLogo === null);
+    console.log("🎯 Is logo undefined?", companyLogo === undefined);
+
+    let companyLogoBase64 = null;
+
+    if (companyLogo && companyLogo.trim() !== '') {
+      console.log("🔄 Loading logo from:", companyLogo);
+      companyLogoBase64 = await loadImageAsBase64(companyLogo);
+
+      if (companyLogoBase64) {
+        console.log("✅ Logo loaded successfully");
+      } else {
+        console.log("⚠️ Logo loading failed, will use company name");
+      }
+    } else {
+      console.log("ℹ️ No logo path provided, using company name instead");
+    }
     const direction = isRTL.value ? 'rtl' : 'ltr';
     const textAlign = isRTL.value ? 'right' : 'left';
     const borderSide = isRTL.value ? 'border-right' : 'border-left';
@@ -529,10 +507,10 @@ const exportInvoicePDF = async (invoice) => {
       <div dir="${direction}" style="font-family: 'Arial', 'Tahoma', sans-serif; padding: 40px; max-width: 900px; margin: 0 auto; color: #2C3E50; background: white;">
         <div style="margin-bottom: 40px; border-bottom: 4px solid #4A90E2; padding-bottom: 20px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            ${companyLogoBase64 
-              ? `<img src="${companyLogoBase64}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" />` 
-              : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${companyName}</h1>`
-            }
+            ${companyLogoBase64
+        ? `<img src="${companyLogoBase64}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" />`
+        : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${companyName}</h1>`
+      }
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
             <div style="text-align: ${textAlign};">
