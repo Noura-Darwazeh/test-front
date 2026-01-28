@@ -100,11 +100,11 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
   );
 
   // Actions
-  const fetchUsers = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchUsers = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getUsers({ page, perPage });
+      const response = await apiServices.getUsers({ page, perPage, filters });
 
       const { usersArray, metaSource } = extractUsersPayload(response.data);
       users.value = usersArray.map(normalizeUser);
@@ -125,11 +125,11 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     }
   };
 
-  const fetchTrashedUsers = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedUsers = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedUsers({ page, perPage });
+      const response = await apiServices.getTrashedUsers({ page, perPage, filters });
 
       const { usersArray, metaSource } = extractUsersPayload(response.data);
       trashedUsers.value = usersArray.map(normalizeUser);

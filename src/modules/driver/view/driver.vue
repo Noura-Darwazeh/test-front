@@ -133,6 +133,7 @@
             :imageRequired="false"
             :imageUploadLabel="$t('driver.form.uploadImage')"
             :initialImage="selectedDriverImage"
+            :serverErrors="formErrors"
             @close="closeFormModal" 
             @submit="handleSubmitDriver" 
         />
@@ -174,7 +175,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -182,7 +182,8 @@ import { useDriverStore } from "../stores/driverStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import apiServices from "@/services/apiServices.js";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
-import { useSuccessModal } from "../../../composables/useSuccessModal.js"; // ✅ أضيفي هاي
+import { useSuccessModal } from "../../../composables/useSuccessModal.js"; 
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const driverStore = useDriverStore();
@@ -204,6 +205,7 @@ const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDriver = ref({});
+const formErrors = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
@@ -260,7 +262,7 @@ const fetchBranches = async () => {
 onMounted(async () => {
     try {
         await Promise.all([
-            driverStore.fetchDrivers({ page: 1, perPage: itemsPerPage.value }),
+            fetchDriversPage(1),
             fetchBranches(),
         ]);
         console.log("✅ Drivers loaded successfully");
@@ -276,11 +278,7 @@ watch(currentPage, async (newPage) => {
         return;
     }
     try {
-        if (activeTab.value === "trashed") {
-            await driverStore.fetchTrashedDrivers({ page: newPage, perPage: itemsPerPage.value });
-        } else {
-            await driverStore.fetchDrivers({ page: newPage, perPage: itemsPerPage.value });
-        }
+        await fetchDriversPage(newPage);
     } catch (err) {
         console.error("Failed to load page:", err);
     }
@@ -484,27 +482,58 @@ const currentLoading = computed(() => {
     return activeTab.value === 'active' ? driverStore.loading : driverStore.trashedLoading;
 });
 
-// Filter current data
-const currentFilteredData = computed(() => {
-    let result = currentData.value;
-    if (activeTab.value === 'active') {
-        result = filterByGroups(result, selectedGroups.value, "status");
+const buildDriverFilters = () => {
+    const filters = {};
+    const trimmedSearch = searchText.value.trim();
+    if (trimmedSearch) {
+        filters.search = trimmedSearch;
     }
-    result = filterData(result, searchText.value);
-    return result;
+    if (selectedGroups.value.length > 0) {
+        filters.status =
+            selectedGroups.value.length === 1
+                ? selectedGroups.value[0]
+                : selectedGroups.value.join(",");
+    }
+    return filters;
+};
+
+const fetchDriversPage = async (page = 1) => {
+    const filters = buildDriverFilters();
+    if (activeTab.value === "trashed") {
+        await driverStore.fetchTrashedDrivers({ page, perPage: itemsPerPage.value, filters });
+    } else {
+        await driverStore.fetchDrivers({ page, perPage: itemsPerPage.value, filters });
+    }
+};
+
+// Server already returns paginated data; use store results directly
+const paginatedData = computed(() => currentData.value);
+
+watch([searchText, selectedGroups], async () => {
+    if (currentPage.value !== 1) {
+        skipNextPageWatch.value = true;
+        currentPage.value = 1;
+    }
+    try {
+        await fetchDriversPage(1);
+    } catch (error) {
+        console.error("❌ Failed to apply filters:", error);
+    }
 });
 
-// Server already returns paginated data, apply local filters for search/grouping
-const paginatedData = computed(() => {
-    return currentFilteredData.value;
-});
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
 
-watch([searchText, selectedGroups], () => {
-    currentPage.value = 1;
-});
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedDriver.value = {};
     isFormModalOpen.value = true;
@@ -512,6 +541,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (driver) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedDriver.value = normalizeDriverForEdit(driver);
     isFormModalOpen.value = true;
@@ -527,6 +557,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedDriver.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -540,29 +571,17 @@ const switchTab = async (tab) => {
     skipNextPageWatch.value = true;
     currentPage.value = 1;
     selectedRows.value = [];
-    if (tab === 'trashed') {
-        try {
-            await driverStore.fetchTrashedDrivers({ page: 1, perPage: itemsPerPage.value });
-        } catch (error) {
-            console.error("âŒ Failed to fetch trashed drivers:", error);
-        }
-    } else {
-        try {
-            await driverStore.fetchDrivers({ page: 1, perPage: itemsPerPage.value });
-        } catch (error) {
-            console.error("âŒ Failed to fetch drivers:", error);
-        }
+    try {
+        await fetchDriversPage(1);
+    } catch (error) {
+        console.error("âŒ Failed to fetch drivers:", error);
     }
 };
 
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
-        if (activeTab.value === 'trashed') {
-            await driverStore.fetchTrashedDrivers({ page: currentPage.value, perPage: itemsPerPage.value });
-        } else {
-            await driverStore.fetchDrivers({ page: currentPage.value, perPage: itemsPerPage.value });
-        }
+        await fetchDriversPage(currentPage.value);
     } catch (error) {
         console.error("âŒ Failed to refresh drivers:", error);
     }
@@ -623,22 +642,22 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     bulkActionLoading.value = true;
     isBulkConfirmOpen.value = false;
-
+const count = selectedRows.value.length;
     try {
         if (pendingBulkAction.value === 'delete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, false);
             console.log("âœ… Drivers soft deleted successfully");
-                  showSuccess(t('driver.bulkDeleteSuccess', { count: selectedRows.value.length }));
+                  showSuccess(t('driver.bulkDeleteSuccess', { count}));
 
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, true);
             console.log("âœ… Drivers permanently deleted successfully");
-                  showSuccess(t('driver.bulkDeleteSuccess', { count: selectedRows.value.length }));
+                  showSuccess(t('driver.bulkDeleteSuccess', { count }));
 
         } else if (pendingBulkAction.value === 'restore') {
             await driverStore.bulkRestoreDrivers(selectedRows.value);
             console.log("âœ… Drivers restored successfully");
-                  showSuccess(t('driver.bulkRestoreSuccess', { count: selectedRows.value.length }));
+                  showSuccess(t('driver.bulkRestoreSuccess', { count }));
 
         }
 
@@ -680,8 +699,12 @@ const handleSubmitDriver = async (driverData) => {
         }
         closeFormModal();
     } catch (error) {
-        console.error(' Failed to save driver:', error);
-        
+        console.error('âŒ Failed to save driver:', error);
+
+        if (applyServerErrors(error)) {
+            return;
+        }
+
         // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
             const errorMessage = error.response.data.error;
@@ -746,6 +769,7 @@ const handlePermanentDeleteDriver = async (driver) => {
     try {
         await driverStore.deleteDriver(driver.id, true);
         console.log("Driver permanently deleted successfully!");
+        showSuccess(t('driver.permanentDeleteSuccess')); 
     } catch (error) {
         console.error("Failed to permanently delete driver:", error);
         alert(error.message || t('common.saveFailed'));

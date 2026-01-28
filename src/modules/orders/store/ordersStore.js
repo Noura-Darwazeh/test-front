@@ -19,6 +19,11 @@ export const useOrdersStore = defineStore("orders", () => {
   const statisticsLoading = ref(false);
   const error = ref(null);
 
+  const normalizeOrderStatus = (status) => {
+    if (!status) return status;
+    return status === "in_progress" ? "inprocess" : status;
+  };
+
   // Pagination state for orders
   const ordersPagination = ref({
     currentPage: 1,
@@ -37,31 +42,15 @@ export const useOrdersStore = defineStore("orders", () => {
 
   // Getters
   const ordersByStatus = computed(() => {
-    const grouped = {};
-    orders.value.forEach((order) => {
-      const status = order.status || "unknown";
-      if (!grouped[status]) {
-        grouped[status] = [];
-      }
-      grouped[status].push(order);
-    });
-    return grouped;
+    return groupBy(orders.value, (order) => order.status, "unknown");
   });
 
   const ordersByCustomer = computed(() => {
-    const grouped = {};
-    orders.value.forEach((order) => {
-      const customerName = order.customer?.name || "Unknown";
-      if (!grouped[customerName]) {
-        grouped[customerName] = [];
-      }
-      grouped[customerName].push(order);
-    });
-    return grouped;
+    return groupBy(orders.value, (order) => order.customer_name, "Unknown");
   });
 
   // Helper function to transform order from API format to frontend format
-  const transformOrder = (order) => ({
+  const transformOrderBase = (order) => ({
     id: order.id,
     from_company_id: order.from_company_id,
     is_extra_price_for_customer: order.is_extra_price_for_customer,
@@ -72,6 +61,7 @@ export const useOrdersStore = defineStore("orders", () => {
     company_name: order.company?.name || "",
     price: order.price,
     total_price: order.total_price,
+    delivery_price: order.delivery_price ?? null,
     currency_id: order.currency?.id || null,
     currency_symbol: order.currency?.symbol || "",
     case: order.case,
@@ -85,40 +75,175 @@ export const useOrdersStore = defineStore("orders", () => {
     created_at: order.created_at,
     updated_at: order.updated_at,
     order_code: order.order_code,
-    status: order.status,
+    status: normalizeOrderStatus(order.status),
     order_items: order.order_items || [],
     parent_order_id: order.parent_order_id || null,
   });
 
-  // Actions
-  const fetchOrders = async ({ page = 1, perPage = 10 } = {}) => {
-    loading.value = true;
+  const transformOrder = (order) => {
+    const base = transformOrderBase(order);
+    const childOrders = Array.isArray(order?.child_orders)
+      ? order.child_orders.map(transformOrderBase)
+      : [];
+    return {
+      ...base,
+      child_orders: childOrders,
+    };
+  };
+
+  const extractOrderData = (response) => {
+    return response?.data?.data || response?.data?.order || response?.data;
+  };
+
+  const requireOrderData = (response, fallbackMessage) => {
+    const data = extractOrderData(response);
+    if (!data || typeof data !== "object") {
+      throw new Error(fallbackMessage || response?.data?.message || "Unexpected order response");
+    }
+    return data;
+  };
+
+  const pickDefined = (data) => {
+    return Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined)
+    );
+  };
+
+  const buildCreatePayload = (orderData) => {
+    return pickDefined({
+      from_company_id: orderData.from_company_id,
+      to_id: orderData.to_id,
+      price: orderData.price,
+      currency_id: orderData.currency_id,
+      lineprice_id: orderData.lineprice_id,
+      discount_id: orderData.discount_id ?? null,
+      company_item_price_id: orderData.company_item_price_id,
+      case: orderData.case,
+      type: orderData.type,
+      package: orderData.package,
+      parent_order_id: orderData.parent_order_id || null,
+      company_id: orderData.company_id,
+      order_items: orderData.order_items || [],
+      is_delivery_price_from_customer: orderData.is_delivery_price_from_customer,
+      is_extra_price_for_customer: orderData.is_extra_price_for_customer,
+    });
+  };
+
+  const buildUpdatePayload = (orderData) => {
+    return pickDefined({
+      from_company_id: orderData.from_company_id,
+      customer_id: orderData.customer_id,
+      price: orderData.price,
+      currency_id: orderData.currency_id,
+      lineprice_id: orderData.lineprice_id,
+      discount_id: orderData.discount_id,
+      company_item_price_id: orderData.company_item_price_id,
+      type: orderData.type,
+      package: orderData.package,
+      case: orderData.case,
+      is_extra_price_for_customer: orderData.is_extra_price_for_customer,
+      is_delivery_price_from_customer: orderData.is_delivery_price_from_customer,
+      order_items: orderData.order_items,
+    });
+  };
+
+  const applyPagination = (paginationRef, meta) => {
+    if (!meta) return;
+    paginationRef.value = {
+      currentPage: meta.current_page,
+      perPage: meta.per_page,
+      total: meta.total,
+      lastPage: meta.last_page,
+    };
+  };
+
+  const groupBy = (items, getKey, fallbackKey) => {
+    return items.reduce((grouped, item) => {
+      const key = getKey(item) || fallbackKey;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(item);
+      return grouped;
+    }, {});
+  };
+
+  const mapOrders = (data) => {
+    return (data || []).map(transformOrder);
+  };
+
+  const removeOrdersByIds = (ordersRef, orderIds) => {
+    ordersRef.value = ordersRef.value.filter((order) => !orderIds.includes(order.id));
+  };
+
+  const moveOrdersByIds = (sourceRef, targetRef, orderIds) => {
+    const moved = sourceRef.value.filter((order) => orderIds.includes(order.id));
+    sourceRef.value = sourceRef.value.filter((order) => !orderIds.includes(order.id));
+    targetRef.value = targetRef.value.concat(moved);
+  };
+
+  const replaceOrderById = (ordersRef, updatedOrder) => {
+    const index = ordersRef.value.findIndex((order) => order.id === updatedOrder.id);
+    if (index === -1) return false;
+    ordersRef.value[index] = { ...ordersRef.value[index], ...updatedOrder };
+    return true;
+  };
+
+  const resolveErrorMessage = (err, fallback) => {
+    if (err?.response?.data?.success === false) {
+      return err.response.data.error || err.response.data.message || fallback;
+    }
+    return err?.message || fallback;
+  };
+
+  const handleError = (err, fallback, logMessage, logDetails = false) => {
+    error.value = resolveErrorMessage(err, fallback);
+    console.error(`[ERROR] ${logMessage}:`, error.value);
+    if (logDetails && err?.response?.data) {
+      console.error("[ERROR] Error details:", err.response.data);
+    }
+  };
+
+  const fetchOrderCollection = async ({
+    page = 1,
+    perPage = 10,
+    fetcher,
+    targetRef,
+    paginationRef,
+    loadingRef,
+    logLabel,
+    errorLabel,
+  }) => {
+    loadingRef.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getOrders({ page, perPage });
-
-      // Transform API response to match frontend format
-      orders.value = response.data.data.map(transformOrder);
-
-      // Update pagination metadata from response
-      if (response.data.meta) {
-        ordersPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
-        };
-      }
-
-      console.log(`✅ Successfully loaded ${orders.value.length} orders (page ${page} of ${ordersPagination.value.lastPage})`);
+      const response = await fetcher({ page, perPage });
+      targetRef.value = mapOrders(response.data.data);
+      applyPagination(paginationRef, response.data.meta);
+      console.log(
+        `[OK] Successfully loaded ${targetRef.value.length} ${logLabel} (page ${page} of ${paginationRef.value.lastPage})`
+      );
       return response.data;
     } catch (err) {
-      error.value = err.message || "Failed to fetch orders";
-      console.error("❌ Error fetching orders:", err);
+      handleError(err, errorLabel, `Error fetching ${logLabel}`);
       throw err;
     } finally {
-      loading.value = false;
+      loadingRef.value = false;
     }
+  };
+
+  // Actions
+  const fetchOrders = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
+    return fetchOrderCollection({
+      page,
+      perPage,
+      fetcher: (params) => apiServices.getOrders({ ...params, filters }),
+      targetRef: orders,
+      paginationRef: ordersPagination,
+      loadingRef: loading,
+      logLabel: "orders",
+      errorLabel: "Failed to fetch orders",
+    });
   };
 
   const fetchOrderById = async (orderId) => {
@@ -127,14 +252,13 @@ export const useOrdersStore = defineStore("orders", () => {
     try {
       const response = await apiServices.getOrderById(orderId);
 
-      // Transform single order from API format
-      const transformedOrder = transformOrder(response.data.data);
+      const responseData = requireOrderData(response);
+      const transformedOrder = transformOrder(responseData);
 
-      console.log(`✅ Successfully loaded order ${orderId}`);
+      console.log(`[OK] Successfully loaded order ${orderId}`);
       return transformedOrder;
     } catch (err) {
-      error.value = err.message || "Failed to fetch order";
-      console.error("❌ Error fetching order:", err);
+      handleError(err, "Failed to fetch order", "Error fetching order");
       throw err;
     } finally {
       loading.value = false;
@@ -146,95 +270,26 @@ export const useOrdersStore = defineStore("orders", () => {
     error.value = null;
     try {
       console.log("[orders] addOrder input", JSON.stringify(orderData, null, 2));
-      // Transform frontend data to API format - matching backend requirements
-      const apiData = {
-        from_company_id: orderData.from_company_id,
-        to_id: orderData.to_id,
-        price: orderData.price,
-        currency_id: orderData.currency_id,
-        lineprice_id: orderData.lineprice_id,
-        discount_id: orderData.discount_id || null,
-        company_item_price_id: orderData.company_item_price_id,
-        case: orderData.case,
-        type: orderData.type,
-        package: orderData.package,
-        parent_order_id: orderData.parent_order_id || null,
-        company_id: orderData.company_id,
-        order_items: orderData.order_items || [],
-      };
-
-      if (orderData.is_delivery_price_from_customer !== undefined) {
-        apiData.is_delivery_price_from_customer =
-          orderData.is_delivery_price_from_customer;
-      }
-
-      if (orderData.is_extra_price_for_customer !== undefined) {
-        apiData.is_extra_price_for_customer = orderData.is_extra_price_for_customer;
-      }
+      const apiData = buildCreatePayload(orderData);
 
       console.log("[orders] addOrder payload", JSON.stringify(apiData, null, 2));
 
       const response = await apiServices.createOrder(apiData);
 
-      console.log("�o. API Response:", response.data);
+      console.log("[OK] API Response:", response.data);
 
-      const responseData =
-        response?.data?.data ||
-        response?.data?.order ||
-        response?.data;
-
-      if (!responseData || typeof responseData !== "object") {
-        throw new Error(response?.data?.message || "Unexpected order response");
-      }
+      const responseData = requireOrderData(response);
       if (responseData.id === undefined || responseData.id === null) {
         throw new Error(response?.data?.message || "Order response missing id");
       }
 
-      // Transform response to match frontend format
-      const newOrder = {
-        id: responseData.id,
-        from_company_id: responseData.from_company_id,
-        is_extra_price_for_customer: responseData.is_extra_price_for_customer,
-        is_delivery_price_from_customer:
-          responseData.is_delivery_price_from_customer ?? null,
-        customer_id: responseData.customer?.id || null,
-        customer_name: responseData.customer?.name || "",
-        company_id: responseData.company?.id || null,
-        company_name: responseData.company?.name || "",
-        price: responseData.price,
-        total_price: responseData.total_price,
-        currency_id: responseData.currency?.id || null,
-        currency_symbol: responseData.currency?.symbol || "",
-        case: responseData.case,
-        type: responseData.type,
-        package: responseData.package,
-        lineprice_id: responseData.line_price?.id || null,
-        lineprice_name: responseData.line_price?.name || "",
-        lineprice_price: responseData.line_price?.price || "",
-        discount: responseData.discount,
-        created_by: responseData.created_by,
-        created_at: responseData.created_at,
-        updated_at: responseData.updated_at,
-        order_code: responseData.order_code,
-        status: responseData.status,
-        order_items: responseData.order_items || [],
-        parent_order_id: responseData.parent_order_id || null,
-      };
+      const newOrder = transformOrder(responseData);
 
       orders.value.push(newOrder);
-      console.log("✅ Order added successfully to store");
+      console.log("[OK] Order added successfully to store");
       return newOrder;
     } catch (err) {
-      // Handle validation errors
-      if (err.response?.data?.success === false) {
-        error.value = err.response.data.error || err.response.data.message || "Validation failed";
-        console.error("❌ Validation error:", error.value);
-      } else {
-        error.value = err.message || "Failed to add order";
-        console.error("❌ Error adding order:", error.value);
-      }
-
-      console.error("Error details:", err.response?.data || err);
+      handleError(err, "Failed to add order", "Error adding order", true);
       throw err;
     } finally {
       loading.value = false;
@@ -252,20 +307,10 @@ export const useOrdersStore = defineStore("orders", () => {
         parentOrderId,
         exchangeData
       );
-      console.log("Exchange order created");
+      console.log("[OK] Exchange order created");
       return response.data;
     } catch (err) {
-      if (err.response?.data?.success === false) {
-        error.value =
-          err.response.data.error ||
-          err.response.data.message ||
-          "Validation failed";
-        console.error("Validation error:", error.value);
-      } else {
-        error.value = err.message || "Failed to create exchange order";
-        console.error("Error creating exchange order:", error.value);
-      }
-      console.error("Error details:", err.response?.data || err);
+      handleError(err, "Failed to create exchange order", "Error creating exchange order", true);
       throw err;
     } finally {
       loading.value = false;
@@ -276,79 +321,21 @@ export const useOrdersStore = defineStore("orders", () => {
     loading.value = true;
     error.value = null;
     try {
-      // Transform frontend data to API format - ONLY send provided fields
-      const apiData = {};
+      const apiData = buildUpdatePayload(orderData);
 
-      if (orderData.from_company_id !== undefined) apiData.from_company_id = orderData.from_company_id;
-      if (orderData.customer_id !== undefined) apiData.customer_id = orderData.customer_id;
-      if (orderData.price !== undefined) apiData.price = orderData.price;
-      if (orderData.currency_id !== undefined) apiData.currency_id = orderData.currency_id;
-      if (orderData.lineprice_id !== undefined) apiData.lineprice_id = orderData.lineprice_id;
-      if (orderData.discount_id !== undefined) apiData.discount_id = orderData.discount_id;
-      if (orderData.company_item_price_id !== undefined) {
-        apiData.company_item_price_id = orderData.company_item_price_id;
-      }
-      if (orderData.type !== undefined) apiData.type = orderData.type;
-      if (orderData.package !== undefined) apiData.package = orderData.package;
-      if (orderData.case !== undefined) apiData.case = orderData.case;
-      if (orderData.is_extra_price_for_customer !== undefined) {
-        apiData.is_extra_price_for_customer = orderData.is_extra_price_for_customer;
-      }
-      if (orderData.is_delivery_price_from_customer !== undefined) {
-        apiData.is_delivery_price_from_customer =
-          orderData.is_delivery_price_from_customer;
-      }
-      if (orderData.order_items !== undefined) apiData.order_items = orderData.order_items;
-
-      console.log("📤 Updating order:", apiData);
+      console.log("[SEND] Updating order:", apiData);
 
       const response = await apiServices.updateOrder(orderId, apiData);
 
-      console.log("✅ API Response:", response.data);
+      console.log("[OK] API Response:", response.data);
 
-      // Update local state with response data
-      const index = orders.value.findIndex((o) => o.id === orderId);
-      if (index > -1) {
-        orders.value[index] = {
-          id: response.data.data.id,
-          from_company_id: response.data.data.from_company_id,
-          is_extra_price_for_customer: response.data.data.is_extra_price_for_customer,
-          is_delivery_price_from_customer:
-            response.data.data.is_delivery_price_from_customer ??
-            orders.value[index].is_delivery_price_from_customer,
-          customer_id: response.data.data.customer?.id || orders.value[index].customer_id,
-          customer_name: response.data.data.customer?.name || orders.value[index].customer_name,
-          company_id: response.data.data.company?.id || orders.value[index].company_id,
-          company_name: response.data.data.company?.name || orders.value[index].company_name,
-          price: response.data.data.price,
-          total_price: response.data.data.total_price,
-          currency_id: response.data.data.currency?.id || orders.value[index].currency_id,
-          currency_symbol: response.data.data.currency?.symbol || orders.value[index].currency_symbol,
-          case: response.data.data.case,
-          type: response.data.data.type,
-          package: response.data.data.package,
-          lineprice_id: response.data.data.line_price?.id || orders.value[index].lineprice_id,
-          lineprice_name: response.data.data.line_price?.name || orders.value[index].lineprice_name,
-          lineprice_price: response.data.data.line_price?.price || orders.value[index].lineprice_price,
-          discount: response.data.data.discount,
-          created_by: response.data.data.created_by,
-          created_at: response.data.data.created_at,
-          updated_at: response.data.data.updated_at,
-          order_code: response.data.data.order_code,
-          status: response.data.data.status,
-          order_items: response.data.data.order_items || orders.value[index].order_items,
-          parent_order_id: response.data.data.parent_order_id || orders.value[index].parent_order_id,
-        };
-        console.log("✅ Order updated successfully");
-      }
-      return orders.value[index];
+      const responseOrder = requireOrderData(response);
+      const updatedOrder = transformOrder(responseOrder);
+      replaceOrderById(orders, updatedOrder);
+      console.log("[OK] Order updated successfully");
+      return orders.value.find((order) => order.id === orderId);
     } catch (err) {
-      if (err.response?.data?.success === false) {
-        error.value = err.response.data.error || err.response.data.message || "Validation failed";
-      } else {
-        error.value = err.message || "Failed to update order";
-      }
-      console.error("❌ Error updating order:", err);
+      handleError(err, "Failed to update order", "Error updating order");
       throw err;
     } finally {
       loading.value = false;
@@ -362,54 +349,30 @@ export const useOrdersStore = defineStore("orders", () => {
       await apiServices.deleteOrder(orderId, force);
 
       if (force) {
-        trashedOrders.value = trashedOrders.value.filter(
-          (order) => order.id !== orderId
-        );
+        removeOrdersByIds(trashedOrders, [orderId]);
       } else {
-        const index = orders.value.findIndex((o) => o.id === orderId);
-        if (index > -1) {
-          const order = orders.value.splice(index, 1)[0];
-          trashedOrders.value.push(order);
-        }
+        moveOrdersByIds(orders, trashedOrders, [orderId]);
       }
-      console.log("Order deleted successfully");
+      console.log("[OK] Order deleted successfully");
     } catch (err) {
-      error.value = err.message || "Failed to delete order";
-      console.error("Error deleting order:", err);
+      handleError(err, "Failed to delete order", "Error deleting order");
       throw err;
     } finally {
       loading.value = false;
     }
   };
 
-  const fetchTrashedOrders = async ({ page = 1, perPage = 10 } = {}) => {
-    trashedLoading.value = true;
-    error.value = null;
-    try {
-      const response = await apiServices.getTrashedOrders({ page, perPage });
-
-      // Transform API response to match frontend format
-      trashedOrders.value = response.data.data.map(transformOrder);
-
-      // Update pagination metadata from response
-      if (response.data.meta) {
-        trashedPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
-        };
-      }
-
-      console.log(`✅ Successfully loaded ${trashedOrders.value.length} trashed orders (page ${page} of ${trashedPagination.value.lastPage})`);
-      return response.data;
-    } catch (err) {
-      error.value = err.message || "Failed to fetch trashed orders";
-      console.error("❌ Error fetching trashed orders:", err);
-      throw err;
-    } finally {
-      trashedLoading.value = false;
-    }
+  const fetchTrashedOrders = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
+    return fetchOrderCollection({
+      page,
+      perPage,
+      fetcher: (params) => apiServices.getTrashedOrders({ ...params, filters }),
+      targetRef: trashedOrders,
+      paginationRef: trashedPagination,
+      loadingRef: trashedLoading,
+      logLabel: "trashed orders",
+      errorLabel: "Failed to fetch trashed orders",
+    });
   };
 
   const restoreOrder = async (orderId) => {
@@ -418,15 +381,10 @@ export const useOrdersStore = defineStore("orders", () => {
     try {
       await apiServices.restoreOrder(orderId);
 
-      const index = trashedOrders.value.findIndex((o) => o.id === orderId);
-      if (index > -1) {
-        const order = trashedOrders.value.splice(index, 1)[0];
-        orders.value.push(order);
-      }
-      console.log("✅ Order restored successfully");
+      moveOrdersByIds(trashedOrders, orders, [orderId]);
+      console.log("[OK] Order restored successfully");
     } catch (err) {
-      error.value = err.message || "Failed to restore order";
-      console.error("❌ Error restoring order:", err);
+      handleError(err, "Failed to restore order", "Error restoring order");
       throw err;
     } finally {
       loading.value = false;
@@ -440,25 +398,14 @@ export const useOrdersStore = defineStore("orders", () => {
       await apiServices.bulkDeleteOrders(orderIds, force);
 
       if (force) {
-        // Permanent delete - remove from trashedOrders
-        trashedOrders.value = trashedOrders.value.filter(
-          (order) => !orderIds.includes(order.id)
-        );
+        removeOrdersByIds(trashedOrders, orderIds);
       } else {
-        // Soft delete - move from orders to trashedOrders
-        const deletedOrders = orders.value.filter((order) =>
-          orderIds.includes(order.id)
-        );
-        orders.value = orders.value.filter(
-          (order) => !orderIds.includes(order.id)
-        );
-        trashedOrders.value.push(...deletedOrders);
+        moveOrdersByIds(orders, trashedOrders, orderIds);
       }
 
-      console.log(`✅ Successfully bulk deleted ${orderIds.length} orders`);
+      console.log(`[OK] Successfully bulk deleted ${orderIds.length} orders`);
     } catch (err) {
-      error.value = err.message || "Failed to bulk delete orders";
-      console.error("❌ Error bulk deleting orders:", err);
+      handleError(err, "Failed to bulk delete orders", "Error bulk deleting orders");
       throw err;
     } finally {
       loading.value = false;
@@ -471,19 +418,11 @@ export const useOrdersStore = defineStore("orders", () => {
     try {
       await apiServices.bulkRestoreOrders(orderIds);
 
-      // Move orders from trashedOrders to orders
-      const restoredOrders = trashedOrders.value.filter((order) =>
-        orderIds.includes(order.id)
-      );
-      trashedOrders.value = trashedOrders.value.filter(
-        (order) => !orderIds.includes(order.id)
-      );
-      orders.value.push(...restoredOrders);
+      moveOrdersByIds(trashedOrders, orders, orderIds);
 
-      console.log(`✅ Successfully bulk restored ${orderIds.length} orders`);
+      console.log(`[OK] Successfully bulk restored ${orderIds.length} orders`);
     } catch (err) {
-      error.value = err.message || "Failed to bulk restore orders";
-      console.error("❌ Error bulk restoring orders:", err);
+      handleError(err, "Failed to bulk restore orders", "Error bulk restoring orders");
       throw err;
     } finally {
       loading.value = false;
@@ -505,11 +444,10 @@ export const useOrdersStore = defineStore("orders", () => {
         year: response.data.year || { orders: 0 },
       };
 
-      console.log("✅ Successfully loaded order statistics");
+      console.log("[OK] Successfully loaded order statistics");
       return response.data;
     } catch (err) {
-      error.value = err.message || "Failed to fetch order statistics";
-      console.error("❌ Error fetching order statistics:", err);
+      handleError(err, "Failed to fetch order statistics", "Error fetching order statistics");
       throw err;
     } finally {
       statisticsLoading.value = false;

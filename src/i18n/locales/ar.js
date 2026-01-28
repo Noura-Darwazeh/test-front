@@ -7,7 +7,7 @@
     logout: "تسجيل الخروج",
     signedInAs: "مسجل الدخول كـ",
     confirmLogout: "هل أنت متأكد من تسجيل الخروج؟",
-    switchToUser: "تسجيل الدخول"
+    switchToUser: "تسجيل الدخول",
   },
 
   login: {
@@ -157,6 +157,15 @@
     pageTitle: "إدارة السائقين",
     pageSubtitle: "إدارة سائقي التوصيل وتفاصيلهم",
 
+    addSuccess: "تم اضافة السائق بنجاح!",
+    updateSuccess: "تم تحديث بيانات السائق بنجاح!",
+    deleteSuccess: "تم حذف السائق بنجاح!",
+    restoreSuccess: "تم استعادة السائق بنجاح!",
+    bulkDeleteSuccess: "{count} سائق تم حذفهم بنجاح!",
+    permanentDeleteSuccess: "تم حذف السائق نهائيًا",
+    bulkDeleteSuccess: "تم حذف {count} سائق بنجاح",
+    bulkPermanentDeleteSuccess: "تم حذف {count} سائق نهائيًا",
+    bulkRestoreSuccess: "تم استرجاع {count} سائق بنجاح",
     // الإجراءات
     searchPlaceholder: "البحث عن سائقين...",
     search: "بحث",
@@ -1014,6 +1023,8 @@
       package: "الحزمة",
       case: "الحالة",
       price: "السعر",
+      deliveryPrice: "سعر التوصيل",
+      totalPrice: "السعر الإجمالي",
       currency: "العملة",
       status: "الحالة",
       createdAt: "تاريخ الإنشاء",
@@ -1077,8 +1088,10 @@
       caseFull: "كامل",
       casePart: "جزئي",
       caseFast: "سريع",
-      deliveryPriceFromCustomer: "\u0633\u0639\u0631\u0020\u0627\u0644\u062a\u0648\u0635\u064a\u0644\u0020\u0645\u0646\u0020\u0627\u0644\u0639\u0645\u064a\u0644",
-      priceFromCustomer: "\u0627\u0644\u0633\u0639\u0631\u0020\u0645\u0646\u0020\u0627\u0644\u0639\u0645\u064a\u0644",
+      deliveryPriceFromCustomer:
+        "\u0633\u0639\u0631\u0020\u0627\u0644\u062a\u0648\u0635\u064a\u0644\u0020\u0645\u0646\u0020\u0627\u0644\u0639\u0645\u064a\u0644",
+      priceFromCustomer:
+        "\u0627\u0644\u0633\u0639\u0631\u0020\u0645\u0646\u0020\u0627\u0644\u0639\u0645\u064a\u0644",
       parentOrderId: "الطلب الأصلي",
       noParentOrder: "لا يوجد طلب أصلي",
       companyId: "الشركة",
@@ -1095,7 +1108,8 @@
       modeExchange: "تبديل",
       modeDeliveryDesc: "إنشاء طلب توصيل جديد لإرسال عناصر للعميل",
       modeReturnDesc: "إنشاء طلب إرجاع لاستلام عناصر من العميل",
-      modeExchangeDesc: "تبديل طلب قائم - العميل يُرجع عناصر ويستلم عناصر جديدة",
+      modeExchangeDesc:
+        "تبديل طلب قائم - العميل يُرجع عناصر ويستلم عناصر جديدة",
       // الخطوات
       step1: "المعلومات الأساسية",
       step2: "التسعير والتفاصيل",
@@ -1116,7 +1130,8 @@
       newDeliveryPrice: "سعر التوصيل الجديد",
       originalOrderPrice: "سعر الطلب الأصلي (الإرجاع)",
       exchangeItem: "عنصر التبديل",
-      exchangeItemsInfo: "أضف العناصر التي سيتم توصيلها للعميل والعناصر التي سيتم إرجاعها",
+      exchangeItemsInfo:
+        "أضف العناصر التي سيتم توصيلها للعميل والعناصر التي سيتم إرجاعها",
       noDeliveryItems: "لا توجد عناصر توصيل مضافة",
       noReturnItems: "لا توجد عناصر إرجاع مضافة",
       // العناصر
@@ -1131,7 +1146,8 @@
       noItems: "لم يتم إضافة عناصر بعد. انقر على 'إضافة عنصر' للبدء.",
       noNestedItems: "لا توجد عناصر فرعية مضافة",
       fromParentOrder: "من الطلب الأصلي",
-      returnItemsFromParent: "هذه العناصر من الطلب الأصلي. يمكنك إزالة العناصر أو تعديل الكميات.",
+      returnItemsFromParent:
+        "هذه العناصر من الطلب الأصلي. يمكنك إزالة العناصر أو تعديل الكميات.",
       itemName: "اسم العنصر",
       itemQuantity: "الكمية",
       itemDescription: "الوصف",
@@ -1231,7 +1247,7 @@
   // مفاتيح ترجمة حالة الطلب
   orderStatus: {
     pending: "في الانتظار",
-    in_progress: "قيد التنفيذ",
+    inprocess: "قيد التنفيذ",
     done: "مكتمل",
     failed: "فشل",
   },
@@ -1863,13 +1879,13 @@
 
   payment: {
     createdAt: "تاريخ الإنشاء",
-    updatedAt: "تاريخ التحديث"
+    updatedAt: "تاريخ التحديث",
   },
   collections: {
-    makeInvoice: 'إنشاء فاتورة',
-    createInvoiceTitle: 'إنشاء فاتورة',
-    createInvoiceConfirm: 'هل أنت متأكد من إنشاء فاتورة لـ {count} تحصيل؟',
-    invoiceCreatedSuccess: 'تم إنشاء الفاتورة بنجاح!',
+    makeInvoice: "إنشاء فاتورة",
+    createInvoiceTitle: "إنشاء فاتورة",
+    createInvoiceConfirm: "هل أنت متأكد من إنشاء فاتورة لـ {count} تحصيل؟",
+    invoiceCreatedSuccess: "تم إنشاء الفاتورة بنجاح!",
   },
   invoice: {
     title: "الفواتير",
@@ -1917,7 +1933,7 @@
     poweredBy: "بواسطة",
     noCollections: "لا يوجد تحصيلات",
     markAsPaid: "مدفوع",
-    to:"الى",
+    to: "الى",
 
     invoiceStatus: {
       pending: "قيد الانتظار",

@@ -202,7 +202,8 @@
 
       <!-- Change Password Modal -->
       <FormModal :isOpen="isPasswordModalOpen" :title="$t('profile.changePassword')" :fields="passwordFields"
-        :showImageUpload="false" @close="closePasswordModal" @submit="handleChangePassword" />
+        :showImageUpload="false" :serverErrors="passwordFormErrors" @close="closePasswordModal"
+        @submit="handleChangePassword" />
     </div>
   </div>
 </template>
@@ -218,6 +219,7 @@ import FormLabel from '@/components/shared/FormLabel.vue';
 import TextField from '@/components/shared/TextField.vue';
 import apiServices from '@/services/apiServices.js';
 import { setLocale } from '@/i18n/index';
+import { normalizeServerErrors } from '@/utils/formErrors.js';
 import cameraIcon from '@/assets/profile/camera.svg';
 import settingIcon from '@/assets/profile/setting.svg';
 import userIcon from '@/assets/sidebar/userIcon.svg';
@@ -233,6 +235,7 @@ const authStore = useAuthStore();
 const isLoading = ref(true);
 const userProfile = ref(null);
 const isPasswordModalOpen = ref(false);
+const passwordFormErrors = ref({});
 const isSaving = ref(false);
 const hasChanges = ref(false);
 const fileInput = ref(null);
@@ -682,26 +685,41 @@ const handleCancel = () => {
 
 // Modal handlers
 const openPasswordModal = () => {
+  passwordFormErrors.value = {};
   isPasswordModalOpen.value = true;
 };
 
 const closePasswordModal = () => {
   isPasswordModalOpen.value = false;
+  passwordFormErrors.value = {};
+};
+
+const applyPasswordErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  passwordFormErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
 };
 
 // Handle password change
 const handleChangePassword = async (passwordData) => {
   try {
+    passwordFormErrors.value = {};
+
     // Validate passwords match
     if (passwordData.new_password !== passwordData.confirm_password) {
-      alert(t('profile.passwordMismatch'));
+      passwordFormErrors.value = {
+        confirm_password: t('profile.passwordMismatch'),
+      };
       return;
     }
 
     // Validate password strength
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&#]).{8,}$/;
     if (!passwordRegex.test(passwordData.new_password)) {
-      alert('Password must contain:\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one symbol (@$!%*?&#)\n- Minimum 8 characters');
+      passwordFormErrors.value = {
+        new_password:
+          'Password must include uppercase, lowercase, a symbol (@$!%*?&#), and be at least 8 characters.',
+      };
       return;
     }
 
@@ -724,6 +742,9 @@ const handleChangePassword = async (passwordData) => {
     }
   } catch (error) {
     console.error('❌ Failed to change password:', error);
+    if (applyPasswordErrors(error)) {
+      return;
+    }
     alert(error.message || t('profile.passwordChangeError'));
   }
 };

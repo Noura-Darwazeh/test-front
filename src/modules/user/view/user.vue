@@ -126,6 +126,7 @@
       :showImageUpload="true"
       :imageRequired="false"
       :imageUploadLabel="$t('user.form.uploadImage')"
+      :serverErrors="formErrors"
       @close="closeModal"
       @submit="handleSubmitUser"
     />
@@ -171,7 +172,6 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import usersHeader from "../components/usersHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -180,6 +180,7 @@ import { VALIDATION_LIMITS } from "../constants/userConstants.js";
 import apiServices from "@/services/apiServices.js";
 import { useAuthStore } from "@/stores/auth.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const usersStore = useUsersManagementStore();
@@ -221,6 +222,7 @@ const selectedUser = ref({});
 const userToDelete = ref(null);
 const activeTab = ref("active");
 const selectedRows = ref([]);
+const formErrors = ref({});
 
 // Get the correct pagination metadata based on active tab
 const currentPagination = computed(() => {
@@ -297,30 +299,55 @@ const trashedUsers = computed(() => usersStore.trashedUsers);
 // Fetch dropdown data (regions, currencies, companies)
 const fetchDropdownData = async () => {
   dataLoading.value = true;
+  const shouldFetchCompanies = isSuperAdmin.value;
   try {
-    const [regionsResponse, currenciesResponse, companiesResponse] =
-      await Promise.all([
-        apiServices.getRegions(),
-        apiServices.getCurrencies(),
-        apiServices.getCompanies(),
-      ]);
+    const requests = [
+      apiServices.getRegions(),
+      apiServices.getCurrencies(),
+    ];
 
-    regions.value = regionsResponse.data.data.map((region) => ({
-      value: String(region.id),
-      label: region.name,
-    }));
+    if (shouldFetchCompanies) {
+      requests.push(apiServices.getCompanies());
+    }
 
-    currencies.value = currenciesResponse.data.data.map((currency) => ({
-      value: String(currency.id),
-      label: `${currency.code} (${currency.symbol})`,
-    }));
+    const results = await Promise.allSettled(requests);
+    const [regionsResponse, currenciesResponse, companiesResponse] = results;
 
-    companies.value = companiesResponse.data.data.map((company) => ({
-      value: String(company.id),
-      label: company.name,
-    }));
+    if (regionsResponse.status === "fulfilled") {
+      regions.value = regionsResponse.value.data.data.map((region) => ({
+        value: String(region.id),
+        label: region.name,
+      }));
+    } else {
+      regions.value = [];
+      console.error("❌ Failed to load regions:", regionsResponse.reason);
+    }
 
-    console.log("✅ Regions, currencies, and companies loaded successfully");
+    if (currenciesResponse.status === "fulfilled") {
+      currencies.value = currenciesResponse.value.data.data.map((currency) => ({
+        value: String(currency.id),
+        label: `${currency.code} (${currency.symbol})`,
+      }));
+    } else {
+      currencies.value = [];
+      console.error("❌ Failed to load currencies:", currenciesResponse.reason);
+    }
+
+    if (shouldFetchCompanies) {
+      if (companiesResponse && companiesResponse.status === "fulfilled") {
+        companies.value = companiesResponse.value.data.data.map((company) => ({
+          value: String(company.id),
+          label: company.name,
+        }));
+      } else {
+        companies.value = [];
+        console.error("❌ Failed to load companies:", companiesResponse?.reason);
+      }
+    } else {
+      companies.value = [];
+    }
+
+    console.log("✅ Regions and currencies loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load dropdown data:", error);
   } finally {
@@ -331,10 +358,7 @@ const fetchDropdownData = async () => {
 // Fetch data on component mount
 onMounted(async () => {
   try {
-    await Promise.all([
-      usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value }),
-      fetchDropdownData(),
-    ]);
+    await Promise.all([fetchUsersPage(1), fetchDropdownData()]);
     console.log("✅ All data loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load data:", error);
@@ -348,17 +372,7 @@ watch(currentPage, async (newPage) => {
     return;
   }
   try {
-    if (activeTab.value === "trashed") {
-      await usersStore.fetchTrashedUsers({
-        page: newPage,
-        perPage: itemsPerPage.value,
-      });
-    } else {
-      await usersStore.fetchUsers({
-        page: newPage,
-        perPage: itemsPerPage.value,
-      });
-    }
+    await fetchUsersPage(newPage);
   } catch (err) {
     console.error("Failed to load page:", err);
   }
@@ -545,38 +559,17 @@ const switchTab = async (tab) => {
   skipNextPageWatch.value = true;
   currentPage.value = 1;
   selectedRows.value = [];
-  if (tab === "trashed") {
-    try {
-      await usersStore.fetchTrashedUsers({
-        page: 1,
-        perPage: itemsPerPage.value,
-      });
-    } catch (error) {
-      console.error("❌ Failed to load trashed users:", error);
-    }
-  } else {
-    try {
-      await usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value });
-    } catch (error) {
-      console.error("❌ Failed to load users:", error);
-    }
+  try {
+    await fetchUsersPage(1);
+  } catch (error) {
+    console.error("❌ Failed to load users:", error);
   }
 };
 
 const handleRefresh = async () => {
   selectedRows.value = [];
   try {
-    if (activeTab.value === "trashed") {
-      await usersStore.fetchTrashedUsers({
-        page: currentPage.value,
-        perPage: itemsPerPage.value,
-      });
-    } else {
-      await usersStore.fetchUsers({
-        page: currentPage.value,
-        perPage: itemsPerPage.value,
-      });
-    }
+    await fetchUsersPage(currentPage.value);
   } catch (error) {
     console.error("❌ Failed to refresh users:", error);
   }
@@ -648,27 +641,66 @@ const filteredColumns = computed(() => {
   return columns;
 });
 
-// Filtered data based on active tab
-const currentFilteredData = computed(() => {
-  let result = currentData.value;
-  if (activeTab.value === "active") {
-    result = filterByGroups(result, selectedGroups.value, "role");
+const buildUserFilters = () => {
+  const filters = {};
+  const trimmedSearch = searchText.value.trim();
+  if (trimmedSearch) {
+    filters.search = trimmedSearch;
   }
-  result = filterData(result, searchText.value);
-  return result;
+  if (selectedGroups.value.length > 0) {
+    filters.role =
+      selectedGroups.value.length === 1
+        ? selectedGroups.value[0]
+        : selectedGroups.value.join(",");
+  }
+  return filters;
+};
+
+const fetchUsersPage = async (page = 1) => {
+  const filters = buildUserFilters();
+  if (activeTab.value === "trashed") {
+    await usersStore.fetchTrashedUsers({
+      page,
+      perPage: itemsPerPage.value,
+      filters,
+    });
+  } else {
+    await usersStore.fetchUsers({
+      page,
+      perPage: itemsPerPage.value,
+      filters,
+    });
+  }
+};
+
+// Server already returns paginated data; use store results directly
+const paginatedData = computed(() => currentData.value);
+
+watch([searchText, selectedGroups], async () => {
+  if (currentPage.value !== 1) {
+    skipNextPageWatch.value = true;
+    currentPage.value = 1;
+  }
+  try {
+    await fetchUsersPage(1);
+  } catch (error) {
+    console.error("❌ Failed to apply filters:", error);
+  }
 });
 
-// Server already returns paginated data, apply local filters for search/grouping
-const paginatedData = computed(() => {
-  return currentFilteredData.value;
-});
+const applyServerErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  formErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
+};
 
-watch([searchText, selectedGroups], () => {
-  currentPage.value = 1;
-});
+const clearFormErrors = () => {
+  formErrors.value = {};
+};
 
 // Add Modal
 const openModal = () => {
+  clearFormErrors();
   isEditMode.value = false;
   selectedUser.value = {};
   isModalOpen.value = true;
@@ -676,6 +708,7 @@ const openModal = () => {
 
 // Edit Modal
 const openEditModal = (user) => {
+  clearFormErrors();
   isEditMode.value = true;
   // selectedUser.value = { ...user };
 
@@ -711,6 +744,7 @@ const closeModal = () => {
   isModalOpen.value = false;
   isEditMode.value = false;
   selectedUser.value = {};
+  clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -825,6 +859,9 @@ const handleSubmitUser = async (userData) => {
     }
   } catch (error) {
     console.error("❌ Failed to save user:", error);
+    if (applyServerErrors(error)) {
+      return;
+    }
     alert(error.message || "Failed to save user. Please try again.");
   }
 };

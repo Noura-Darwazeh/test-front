@@ -9,6 +9,11 @@
       :label="groupLabel"
       :translationKey="translationKey" 
     />
+    <TimePeriodFilter
+      v-if="showTimeFilter"
+      v-model="timePeriod"
+      :options="timeOptions"
+    />
   </div>
 </template>
 
@@ -16,6 +21,7 @@
 import { ref, watch } from "vue";
 import SearchFilter from "../base/SearchFilter.vue";
 import GroupFilter from "../base/GroupFilter.vue";
+import TimePeriodFilter from "../base/TimePeriodFilter.vue";
 
 const props = defineProps({
   modelValue: String,
@@ -25,11 +31,22 @@ const props = defineProps({
   groupModelValue: Array,
   groupLabel: String,
   translationKey: String, 
+  timeModelValue: String,
+  timeOptions: Array,
+  showTimeFilter: {
+    type: Boolean,
+    default: false,
+  },
 });
-const emit = defineEmits(["update:modelValue", "update:groupModelValue"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "update:groupModelValue",
+  "update:timeModelValue",
+]);
 
 const searchText = ref(props.modelValue || "");
 const selectedGroups = ref(props.groupModelValue || []);
+const timePeriod = ref(props.timeModelValue || "all");
 
 watch(searchText, (newValue) => {
   emit("update:modelValue", newValue);
@@ -38,6 +55,19 @@ watch(searchText, (newValue) => {
 watch(selectedGroups, (newValue) => {
   emit("update:groupModelValue", newValue);
 });
+
+watch(timePeriod, (newValue) => {
+  emit("update:timeModelValue", newValue);
+});
+
+watch(
+  () => props.timeModelValue,
+  (newValue) => {
+    if (newValue !== undefined) {
+      timePeriod.value = newValue || "all";
+    }
+  }
+);
 </script>
 
 <style scoped>

@@ -14,10 +14,6 @@
             v-model="searchText" 
             :searchPlaceholder="$t('lineWork.searchPlaceholder')" 
             :data="lineWorks"
-            groupKey="company" 
-            v-model:groupModelValue="selectedGroups" 
-            :groupLabel="$t('lineWork.filterByCompany')"
-            translationKey="companyNames" 
             :columns="lineWorkColumns" 
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true" 
@@ -102,14 +98,6 @@
                             />
                         </template>
                     </DataTable>
-                    <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination 
-                            :totalItems="currentFilteredData.length" 
-                            :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage" 
-                            @update:currentPage="(page) => currentPage = page" 
-                        />
-                    </div>
                 </div>
             </div>
         </div>
@@ -117,9 +105,10 @@
         <!-- Dynamic Form Modal for Add/Edit lineWork -->
         <FormModal 
             :isOpen="isFormModalOpen" 
-            :title="isEditMode ? $t('lineWork.edit') : $t('lineWork.addNew')"
+            :title="isEditMode ? $t('lineWork.edit') : $t('lineWork.addNew')" 
             :fields="lineWorkFields" 
             :showImageUpload="false" 
+            :serverErrors="formErrors"
             @close="closeFormModal" 
             @submit="handleSubmitlineWork" 
         />
@@ -146,32 +135,30 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import lineWorkHeader from "../components/lineWorkHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useLineWorkStore } from "../stores/lineworkStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const lineWorkStore = useLineWorkStore();
 const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
-const selectedGroups = ref([]);
-const currentPage = ref(1);
-const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedlineWork = ref({});
+const formErrors = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
@@ -258,19 +245,12 @@ const currentLoading = computed(() => {
 
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    if (activeTab.value === 'active') {
-        result = filterByGroups(result, selectedGroups.value, "company");
-    }
     result = filterData(result, searchText.value);
     return result;
 });
 
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
 });
 
 const bulkActions = computed(() => {
@@ -315,12 +295,20 @@ const bulkConfirmMessage = computed(() => {
     return '';
 });
 
-watch([searchText, selectedGroups], () => {
-    currentPage.value = 1;
-});
+
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedlineWork.value = {};
     isFormModalOpen.value = true;
@@ -328,6 +316,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (lineWork) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedlineWork.value = { ...lineWork };
     isFormModalOpen.value = true;
@@ -343,6 +332,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedlineWork.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -352,7 +342,6 @@ const closeDetailsModal = () => {
 
 const switchTab = async (tab) => {
     activeTab.value = tab;
-    currentPage.value = 1;
     selectedRows.value = [];
 
     if (tab === 'trashed') {
@@ -409,6 +398,10 @@ const handleSubmitlineWork = async (lineWorkData) => {
         closeFormModal();
     } catch (error) {
         console.error('❌ Failed to save line work:', error);
+
+        if (applyServerErrors(error)) {
+            return;
+        }
         
         // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {

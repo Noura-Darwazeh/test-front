@@ -83,7 +83,9 @@
                   <select
                     v-model="formData.to_id"
                     class="form-select"
+                    :class="{ 'is-invalid': getFieldError('to_id') }"
                     required
+                    @change="clearFieldError('to_id')"
                   >
                     <option value="">
                       {{ $t("orders.form.selectCustomer") }}
@@ -96,6 +98,9 @@
                       {{ getCustomerLabel(customer) }}
                     </option>
                   </select>
+                  <div v-if="getFieldError('to_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("to_id") }}
+                  </div>
                 </div>
 
                 <div class="col-md-6">
@@ -106,6 +111,7 @@
                   <select
                     v-model="formData.case"
                     class="form-select"
+                    :class="{ 'is-invalid': getFieldError('case') }"
                     required
                     @change="handleCaseChange"
                   >
@@ -119,6 +125,9 @@
                       {{ $t("orders.form.caseFast") }}
                     </option>
                   </select>
+                  <div v-if="getFieldError('case')" class="invalid-feedback d-block">
+                    {{ getFieldError("case") }}
+                  </div>
                 </div>
 
                 <div class="col-md-6">
@@ -129,8 +138,10 @@
                   <select
                     v-model="formData.package"
                     class="form-select"
+                    :class="{ 'is-invalid': getFieldError('package') }"
                     required
                     :disabled="isPackageDisabled"
+                    @change="clearFieldError('package')"
                   >
                     <option value="one">
                       {{ $t("orders.form.packageOne") }}
@@ -139,6 +150,9 @@
                       {{ $t("orders.form.packageMulti") }}
                     </option>
                   </select>
+                  <div v-if="getFieldError('package')" class="invalid-feedback d-block">
+                    {{ getFieldError("package") }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -157,7 +171,9 @@
                     <select
                       v-model="formData.to_id"
                       class="form-select"
+                      :class="{ 'is-invalid': getFieldError('to_id') }"
                       :disabled="!!formData.parent_order_id"
+                      @change="clearFieldError('to_id')"
                     >
                       <option value="">
                         {{ $t("orders.form.selectCustomer") }}
@@ -170,6 +186,9 @@
                         {{ getCustomerLabel(customer) }}
                       </option>
                     </select>
+                    <div v-if="getFieldError('to_id')" class="invalid-feedback d-block">
+                      {{ getFieldError("to_id") }}
+                    </div>
                   </div>
 
                   <div class="col-md-6">
@@ -180,7 +199,9 @@
                     <select
                       v-model="formData.parent_order_id"
                       class="form-select form-select-lg"
+                      :class="{ 'is-invalid': getFieldError('parent_order_id') }"
                       required
+                      @change="clearFieldError('parent_order_id')"
                     >
                       <option value="">
                         {{ $t("orders.form.selectParentOrder") }}
@@ -193,6 +214,9 @@
                         {{ order.order_code }} - {{ order.customer_name }}
                       </option>
                     </select>
+                    <div v-if="getFieldError('parent_order_id')" class="invalid-feedback d-block">
+                      {{ getFieldError("parent_order_id") }}
+                    </div>
                   </div>
                 </div>
 
@@ -234,11 +258,20 @@
                     >{{ $t("orders.form.case") }}
                     <span class="text-danger">*</span></label
                   >
-                  <select v-model="formData.case" class="form-select" required>
+                  <select
+                    v-model="formData.case"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('case') }"
+                    required
+                    @change="clearFieldError('case')"
+                  >
                     <option value="Full">{{ $t("orders.form.caseFull") }}</option>
                     <option value="Part">{{ $t("orders.form.casePart") }}</option>
                     <option value="Fast">{{ $t("orders.form.caseFast") }}</option>
                   </select>
+                  <div v-if="getFieldError('case')" class="invalid-feedback d-block">
+                    {{ getFieldError("case") }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -258,7 +291,9 @@
                     <select
                       v-model="formData.to_id"
                       class="form-select"
+                      :class="{ 'is-invalid': getFieldError('to_id') }"
                       :disabled="!!formData.parent_order_id"
+                      @change="clearFieldError('to_id')"
                     >
                       <option value="">
                         {{ $t("orders.form.selectCustomer") }}
@@ -271,6 +306,9 @@
                         {{ getCustomerLabel(customer) }}
                       </option>
                     </select>
+                    <div v-if="getFieldError('to_id')" class="invalid-feedback d-block">
+                      {{ getFieldError("to_id") }}
+                    </div>
                   </div>
 
                   <div class="col-md-6">
@@ -281,7 +319,9 @@
                     <select
                       v-model="formData.parent_order_id"
                       class="form-select form-select-lg"
+                      :class="{ 'is-invalid': getFieldError('parent_order_id') }"
                       required
+                      @change="clearFieldError('parent_order_id')"
                     >
                       <option value="">
                         {{ $t("orders.form.selectParentOrder") }}
@@ -294,6 +334,9 @@
                         {{ order.order_code }} - {{ order.customer_name }}
                       </option>
                     </select>
+                    <div v-if="getFieldError('parent_order_id')" class="invalid-feedback d-block">
+                      {{ getFieldError("parent_order_id") }}
+                    </div>
                   </div>
                 </div>
 
@@ -335,22 +378,40 @@
                     >{{ $t("orders.wizard.caseDelivery") }}
                     <span class="text-danger">*</span></label
                   >
-                  <select v-model="formData.case" class="form-select" required>
+                  <select
+                    v-model="formData.case"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('case') }"
+                    required
+                    @change="clearFieldError('case')"
+                  >
                     <option value="Full">{{ $t("orders.form.caseFull") }}</option>
                     <option value="Part">{{ $t("orders.form.casePart") }}</option>
                     <option value="Fast">{{ $t("orders.form.caseFast") }}</option>
                   </select>
+                  <div v-if="getFieldError('case')" class="invalid-feedback d-block">
+                    {{ getFieldError("case") }}
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label"
                     >{{ $t("orders.wizard.caseReturn") }}
                     <span class="text-danger">*</span></label
                   >
-                  <select v-model="formData.case_return" class="form-select" required>
+                  <select
+                    v-model="formData.case_return"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('case_return') }"
+                    required
+                    @change="clearFieldError('case_return')"
+                  >
                     <option value="Full">{{ $t("orders.form.caseFull") }}</option>
                     <option value="Part">{{ $t("orders.form.casePart") }}</option>
                     <option value="Fast">{{ $t("orders.form.caseFast") }}</option>
                   </select>
+                  <div v-if="getFieldError('case_return')" class="invalid-feedback d-block">
+                    {{ getFieldError("case_return") }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -374,9 +435,14 @@
                             v-model="formData.price"
                             type="number"
                             class="form-control form-control-lg"
+                            :class="{ 'is-invalid': getFieldError('price') }"
                             step="0.01"
                             required
+                            @input="clearFieldError('price')"
                           />
+                          <div v-if="getFieldError('price')" class="invalid-feedback d-block">
+                            {{ getFieldError("price") }}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -406,9 +472,14 @@
                     v-model="formData.price"
                     type="number"
                     class="form-control"
+                    :class="{ 'is-invalid': getFieldError('price') }"
                     step="0.01"
                     required
+                    @input="clearFieldError('price')"
                   />
+                  <div v-if="getFieldError('price')" class="invalid-feedback d-block">
+                    {{ getFieldError("price") }}
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label"
@@ -418,7 +489,9 @@
                   <select
                     v-model="formData.currency_id"
                     class="form-select"
+                    :class="{ 'is-invalid': getFieldError('currency_id') }"
                     required
+                    @change="clearFieldError('currency_id')"
                   >
                     <option value="">
                       {{ $t("orders.form.selectCurrency") }}
@@ -431,6 +504,9 @@
                       {{ getCurrencyLabel(currency) }}
                     </option>
                   </select>
+                  <div v-if="getFieldError('currency_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("currency_id") }}
+                  </div>
                 </div>
               </div>
 
@@ -443,7 +519,9 @@
                   <select
                     v-model="formData.lineprice_id"
                     class="form-select"
+                    :class="{ 'is-invalid': getFieldError('lineprice_id') }"
                     required
+                    @change="clearFieldError('lineprice_id')"
                   >
                     <option value="">
                       {{ $t("orders.form.selectLinePrice") }}
@@ -456,6 +534,9 @@
                       {{ getLinePriceLabel(linePrice) }}
                     </option>
                   </select>
+                  <div v-if="getFieldError('lineprice_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("lineprice_id") }}
+                  </div>
                 </div>
 
                 <div class="col-md-6">
@@ -466,7 +547,9 @@
                   <select
                     v-model="formData.company_item_price_id"
                     class="form-select"
+                    :class="{ 'is-invalid': getFieldError('company_item_price_id') }"
                     required
+                    @change="clearFieldError('company_item_price_id')"
                   >
                     <option value="">
                       {{ $t("orders.form.selectCompanyPrice") }}
@@ -479,6 +562,9 @@
                       {{ getCompanyPriceLabel(price) }}
                     </option>
                   </select>
+                  <div v-if="getFieldError('company_item_price_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("company_item_price_id") }}
+                  </div>
                 </div>
 
                 <div v-if="wizardMode !== 'exchange'" class="col-md-6">
@@ -539,6 +625,9 @@
             <!-- Step 3: Order Items Creation -->
             <div v-show="currentStep === 2" class="step-content">
               <h6 class="mb-3">{{ $t("orders.wizard.orderItems") }}</h6>
+              <div v-if="getFieldError('order_items')" class="text-danger small mb-2">
+                {{ getFieldError("order_items") }}
+              </div>
 
               <!-- Order Items List -->
               <div class="mb-4">
@@ -612,7 +701,9 @@
                           <select
                             v-model="item.branch_customer_company_id"
                             class="form-select"
+                            :class="{ 'is-invalid': getItemError(index, 'branch_customer_company_id') }"
                             required
+                            @change="handleBranchChange(index)"
                           >
                             <option value="">
                               {{ $t("orders.form.selectBranch") }}
@@ -625,6 +716,12 @@
                               {{ getBranchLabel(branch) }}
                             </option>
                           </select>
+                          <div
+                            v-if="getItemError(index, 'branch_customer_company_id')"
+                            class="invalid-feedback d-block"
+                          >
+                            {{ getItemError(index, "branch_customer_company_id") }}
+                          </div>
                         </div>
 
                         <!-- Branch Delivery Company -->
@@ -636,7 +733,9 @@
                           <select
                             v-model="item.branch_delivery_company_id"
                             class="form-select"
+                            :class="{ 'is-invalid': getItemError(index, 'branch_delivery_company_id') }"
                             required
+                            @change="handleBranchChange(index)"
                           >
                             <option value="">
                               {{ $t("orders.form.selectBranch") }}
@@ -649,6 +748,12 @@
                               {{ getBranchLabel(branch) }}
                             </option>
                           </select>
+                          <div
+                            v-if="getItemError(index, 'branch_delivery_company_id')"
+                            class="invalid-feedback d-block"
+                          >
+                            {{ getItemError(index, "branch_delivery_company_id") }}
+                          </div>
                         </div>
 
                         <!-- Nested Items (Delivery/Return Orders) -->
@@ -899,12 +1004,55 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
 const { companyId, currencyId } = useAuthDefaults();
+
+const fieldErrors = reactive({});
+const itemErrors = ref([]);
+
+const getFieldError = (key) => fieldErrors[key] || "";
+const setFieldError = (key, message) => {
+  if (!fieldErrors[key]) {
+    fieldErrors[key] = message;
+  }
+};
+const clearFieldError = (key) => {
+  if (fieldErrors[key]) {
+    delete fieldErrors[key];
+  }
+};
+
+const getItemError = (index, key) => itemErrors.value[index]?.[key] || "";
+const setItemError = (index, key, message) => {
+  if (!itemErrors.value[index]) {
+    itemErrors.value[index] = {};
+  }
+  if (!itemErrors.value[index][key]) {
+    itemErrors.value[index][key] = message;
+  }
+};
+const clearItemError = (index, key) => {
+  if (itemErrors.value[index] && itemErrors.value[index][key]) {
+    delete itemErrors.value[index][key];
+  }
+};
+
+const clearAllErrors = () => {
+  Object.keys(fieldErrors).forEach((key) => {
+    delete fieldErrors[key];
+  });
+  itemErrors.value = [];
+};
+
+const isEmptyValue = (value) =>
+  value === "" || value === null || value === undefined;
+
+const requiredFieldMessage = (label) =>
+  t("common.validation.requiredField", { field: label });
 
 // Simple price formatter
 const formatPrice = (value, symbol = "$") => {
@@ -965,6 +1113,25 @@ const getBranchOptions = (item, mode) => {
     const branchId = normalizeId(getBranchValue(branch));
     return !otherId || branchId !== otherId;
   });
+};
+
+const handleBranchChange = (index) => {
+  clearItemError(index, "branch_customer_company_id");
+  clearItemError(index, "branch_delivery_company_id");
+  const item = orderItems.value[index];
+  if (!item) return;
+  if (
+    !isEmptyValue(item.branch_customer_company_id) &&
+    !isEmptyValue(item.branch_delivery_company_id) &&
+    normalizeId(item.branch_customer_company_id) ===
+      normalizeId(item.branch_delivery_company_id)
+  ) {
+    setItemError(
+      index,
+      "branch_delivery_company_id",
+      t("orders.validation.sameBranchNotAllowed", { index: index + 1 })
+    );
+  }
 };
 
 const getOrderCustomerId = (order) => {
@@ -1205,6 +1372,7 @@ const switchMode = (mode) => {
   } else {
     formData.value.type = "delivery";
   }
+  clearAllErrors();
 };
 
 const isExchange = computed(() => wizardMode.value === "exchange");
@@ -1278,6 +1446,8 @@ const handleCaseChange = () => {
   if (formData.value.case === "Part" || formData.value.case === "Fast") {
     formData.value.package = "one";
   }
+  clearFieldError("case");
+  clearFieldError("package");
 };
 
 const addOrderItem = () => {
@@ -1288,10 +1458,12 @@ const addOrderItem = () => {
     itemsDelivery: [],
     itemsReturn: [],
   });
+  clearFieldError("order_items");
 };
 
 const removeOrderItem = (index) => {
   orderItems.value.splice(index, 1);
+  itemErrors.value.splice(index, 1);
 };
 
 const getNestedItemsList = (item, listKey) => {
@@ -1314,10 +1486,143 @@ const removeNestedItem = (itemIndex, nestedIndex, listKey = "items") => {
   list.splice(nestedIndex, 1);
 };
 
-const nextStep = () => {
-  if (currentStep.value < steps.value.length - 1) {
-    currentStep.value++;
+const validateStepBasics = () => {
+  let isValid = true;
+  if (isEmptyValue(formData.value.to_id)) {
+    setFieldError(
+      "to_id",
+      requiredFieldMessage(t("orders.form.customerId"))
+    );
+    isValid = false;
   }
+
+  if (requiresParentOrder.value) {
+    if (isEmptyValue(formData.value.parent_order_id)) {
+      setFieldError(
+        "parent_order_id",
+        requiredFieldMessage(t("orders.wizard.originalOrder"))
+      );
+      isValid = false;
+    } else if (isExchange.value && parentOrderPriceValue.value === "") {
+      setFieldError("parent_order_id", t("orders.validation.parentOrderPriceMissing"));
+      isValid = false;
+    }
+  }
+
+  if (isEmptyValue(formData.value.case)) {
+    setFieldError("case", requiredFieldMessage(t("orders.form.case")));
+    isValid = false;
+  }
+
+  if (isExchange.value && isEmptyValue(formData.value.case_return)) {
+    setFieldError(
+      "case_return",
+      requiredFieldMessage(t("orders.wizard.caseReturn"))
+    );
+    isValid = false;
+  }
+
+  if (isEmptyValue(formData.value.package)) {
+    setFieldError("package", requiredFieldMessage(t("orders.form.package")));
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const validateStepPricing = () => {
+  let isValid = true;
+
+  if (isEmptyValue(formData.value.price)) {
+    setFieldError("price", requiredFieldMessage(t("orders.form.price")));
+    isValid = false;
+  }
+
+  if (
+    !isExchange.value &&
+    isEmptyValue(formData.value.currency_id) &&
+    isEmptyValue(currencyId.value)
+  ) {
+    setFieldError("currency_id", requiredFieldMessage(t("orders.form.currencyId")));
+    isValid = false;
+  }
+
+  if (isEmptyValue(formData.value.lineprice_id)) {
+    setFieldError(
+      "lineprice_id",
+      requiredFieldMessage(t("orders.form.linepriceId"))
+    );
+    isValid = false;
+  }
+
+  if (isEmptyValue(formData.value.company_item_price_id)) {
+    setFieldError(
+      "company_item_price_id",
+      requiredFieldMessage(t("orders.form.companyItemPriceId"))
+    );
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const validateOrderItems = () => {
+  let isValid = true;
+
+  if (orderItems.value.length === 0) {
+    setFieldError("order_items", t("orders.validation.noOrderItems"));
+    return false;
+  }
+
+  orderItems.value.forEach((item, index) => {
+    if (isEmptyValue(item.branch_customer_company_id)) {
+      setItemError(
+        index,
+        "branch_customer_company_id",
+        requiredFieldMessage(t("orders.form.branchCustomerCompanyId"))
+      );
+      isValid = false;
+    }
+
+    if (isEmptyValue(item.branch_delivery_company_id)) {
+      setItemError(
+        index,
+        "branch_delivery_company_id",
+        requiredFieldMessage(t("orders.form.branchDeliveryCompanyId"))
+      );
+      isValid = false;
+    }
+
+    if (
+      !isEmptyValue(item.branch_customer_company_id) &&
+      !isEmptyValue(item.branch_delivery_company_id) &&
+      normalizeId(item.branch_customer_company_id) ===
+        normalizeId(item.branch_delivery_company_id)
+    ) {
+      setItemError(
+        index,
+        "branch_delivery_company_id",
+        t("orders.validation.sameBranchNotAllowed", { index: index + 1 })
+      );
+      isValid = false;
+    }
+  });
+
+  return isValid;
+};
+
+const validateStep = (step) => {
+  if (step === 0) return validateStepBasics();
+  if (step === 1) return validateStepPricing();
+  if (step === 2) return validateOrderItems();
+  return true;
+};
+
+const nextStep = () => {
+  if (currentStep.value >= steps.value.length - 1) return;
+  clearAllErrors();
+  if (!validateStep(currentStep.value)) return;
+  currentStep.value++;
 };
 
 const previousStep = () => {
@@ -1326,45 +1631,32 @@ const previousStep = () => {
   }
 };
 
-const closeWizard = () => {
+const resetWizardState = () => {
   currentStep.value = 0;
   wizardMode.value = "delivery";
   formData.value = buildDefaultFormData();
   orderItems.value = [];
+  clearAllErrors();
+};
+
+const closeWizard = () => {
+  resetWizardState();
   emit("close");
 };
 
 const submitOrder = () => {
-  // Validation
-  if (requiresParentOrder.value && !formData.value.parent_order_id) {
-    alert(t("orders.validation.returnRequiresParentOrder"));
+  clearAllErrors();
+  if (!validateStepBasics()) {
+    currentStep.value = 0;
     return;
   }
-  if (isExchange.value && parentOrderPriceValue.value === "") {
-    alert(t("orders.validation.parentOrderPriceMissing"));
+  if (!validateStepPricing()) {
+    currentStep.value = 1;
     return;
   }
-
-  // Order items validation
-  if (orderItems.value.length === 0) {
-    alert(t("orders.validation.noOrderItems"));
+  if (!validateOrderItems()) {
+    currentStep.value = 2;
     return;
-  }
-
-  // Validate each order item
-  for (let i = 0; i < orderItems.value.length; i++) {
-    const item = orderItems.value[i];
-    if (!item.branch_customer_company_id || !item.branch_delivery_company_id) {
-      alert(t("orders.validation.incompleteOrderItem", { index: i + 1 }));
-      return;
-    }
-    if (
-      normalizeId(item.branch_customer_company_id) ===
-      normalizeId(item.branch_delivery_company_id)
-    ) {
-      alert(t("orders.validation.sameBranchNotAllowed", { index: i + 1 }));
-      return;
-    }
   }
 
   const buildNestedItems = (items) => {
@@ -1397,11 +1689,13 @@ const submitOrder = () => {
   // Build order data matching API format
   const resolvedCompanyId =
     toNumericId(companyId.value) ?? toNumericId(formData.value.company_id);
-  const resolvedCurrencyId =
-    toNumericId(formData.value.currency_id) ?? toNumericId(currencyId.value);
+  const resolvedCurrencyId = isExchange.value
+    ? null
+    : toNumericId(formData.value.currency_id) ?? toNumericId(currencyId.value);
 
-  if (!resolvedCurrencyId) {
-    alert(t("common.validationError"));
+  if (!isExchange.value && !resolvedCurrencyId) {
+    setFieldError("currency_id", requiredFieldMessage(t("orders.form.currencyId")));
+    currentStep.value = 1;
     return;
   }
 
@@ -1458,7 +1752,6 @@ const submitOrder = () => {
       parentOrderId: parseInt(formData.value.parent_order_id),
       payload: exchangePayload,
     });
-    closeWizard();
     return;
   }
 
@@ -1467,12 +1760,21 @@ const submitOrder = () => {
     baseOrderData.is_extra_price_for_customer = 0; // Default to 0, can be made configurable later
   }
   emit("submit", baseOrderData);
-  closeWizard();
 };
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (!isOpen) {
+      resetWizardState();
+    }
+  }
+);
 
 watch(
   () => formData.value.parent_order_id,
   (newValue) => {
+    clearFieldError("parent_order_id");
     if (!requiresParentOrder.value || !newValue) return;
     const selected = props.existingOrders.find(
       (order) => String(order.id) === String(newValue)
@@ -1481,6 +1783,7 @@ watch(
     const customerId = getOrderCustomerId(selected);
     if (customerId !== "" && customerId !== null && customerId !== undefined) {
       formData.value.to_id = String(customerId);
+      clearFieldError("to_id");
     }
 
     // Pre-populate return items from parent order
@@ -1535,6 +1838,7 @@ watch(
 watch(
   () => formData.value.to_id,
   (newValue) => {
+    clearFieldError("to_id");
     if (!requiresParentOrder.value || !formData.value.parent_order_id) return;
     const selected = props.existingOrders.find(
       (order) => String(order.id) === String(formData.value.parent_order_id)

@@ -110,6 +110,7 @@
       :title="isEditMode ? $t('discount.edit') : $t('discount.addNew')"
       :fields="discountFieldsWithDefaults"
       :showImageUpload="false"
+      :serverErrors="formErrors"
       @close="closeModal"
       @submit="handleAddDiscount"
     />
@@ -154,6 +155,7 @@ import { useDiscountStore } from "../store/discountStore.js";
 import { useCustomerStore } from "@/modules/customer/stores/customerStore.js";
 import { useRegionsManagementStore } from "@/modules/regions/store/regionsManagement.js";
 import { useLinesStore } from "@/modules/lines/stores/linesStore.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const { companyId } = useAuthDefaults();
@@ -222,6 +224,7 @@ const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDiscount = ref({});
+const formErrors = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -398,8 +401,19 @@ const bulkConfirmMessage = computed(() => {
   return "";
 });
 
+const applyServerErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  formErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+  formErrors.value = {};
+};
+
 // Action methods
 const openModal = () => {
+  clearFormErrors();
   isEditMode.value = false;
   selectedDiscount.value = {};
   isModalOpen.value = true;
@@ -409,6 +423,7 @@ const closeModal = () => {
   isModalOpen.value = false;
   isEditMode.value = false;
   selectedDiscount.value = {};
+  clearFormErrors();
 };
 
 const switchTab = async (tab) => {
@@ -489,6 +504,9 @@ const handleAddDiscount = async (discountData) => {
     closeModal();
   } catch (error) {
     console.error("Failed to submit discount:", error);
+    if (applyServerErrors(error)) {
+      return;
+    }
   }
 };
 

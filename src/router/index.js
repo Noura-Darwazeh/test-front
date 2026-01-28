@@ -1,6 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth.js";
+import apiServices from "../services/apiServices.js";
 
 // Import views
 import user from "../modules/user/view/user.vue";
@@ -26,6 +27,7 @@ import Profile from "../modules/profile/view/profile.vue";
 import collections from "../modules/payment/view/collections.vue";
 import invoices from "../modules/invoices/view/invoices.vue";
 import permissions from "../modules/permissions/view/permissions.vue";
+import statistics from "../modules/statistics/view/statistics.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,7 +37,7 @@ const router = createRouter({
       redirect: (to) => {
         // Redirect to user's default page or /user
         const authStore = useAuthStore();
-    const defaultPage = authStore.user?.default_page || '/user';
+        const defaultPage = authStore.user?.default_page || "/user";
         if (authStore.isAuthenticated && defaultPage) {
           return defaultPage;
         }
@@ -89,6 +91,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/userIcon.svg",
+        order: 1,
         roles: ["SuperAdmin", "Admin"],
       },
     },
@@ -101,6 +104,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/driverIcon.svg",
+        order: 2,
       },
     },
     {
@@ -112,6 +116,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/customerIcon.svg",
+        order: 4,
       },
     },
     {
@@ -123,6 +128,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/companyIcon.svg",
+        order: 3,
         roles: ["SuperAdmin"],
       },
     },
@@ -135,6 +141,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/branchIcon.svg",
+        order: 16,
       },
     },
     {
@@ -146,6 +153,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/linesIcon.svg",
+        order: 12,
       },
     },
     {
@@ -157,6 +165,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/linesIcon.svg",
+        order: 11,
       },
     },
     {
@@ -168,6 +177,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/priceIcon.svg",
+        order: 13,
       },
     },
     {
@@ -179,6 +189,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/regionsIcon.svg",
+        order: 17,
       },
     },
     {
@@ -190,6 +201,19 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/order/order.svg",
+        order: 5,
+      },
+    },
+    {
+      path: "/statistics",
+      name: "Statistics",
+      component: statistics,
+      meta: {
+        titleKey: "statistics.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/statistics.svg",
+        order: 6,
       },
     },
     {
@@ -201,6 +225,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/discount/discount.svg",
+        order: 15,
       },
     },
     {
@@ -212,6 +237,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/currency/currency.svg",
+        order: 18,
       },
     },
     {
@@ -223,7 +249,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/itemprice/price.svg",
-        
+        order: 14,
       },
     },
     {
@@ -235,6 +261,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/driverline/driverline.svg",
+        order: 10,
       },
     },
     {
@@ -246,6 +273,7 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/map/mapGlobe.svg",
+        order: 19,
       },
     },
     {
@@ -257,65 +285,69 @@ const router = createRouter({
         requireAuth: true,
         showInSidebar: true,
         icon: "/src/assets/sidebar/planIcon.svg",
+        order: 7,
       },
     },
     {
       path: "/:pathMatch(.*)*",
       redirect: (to) => {
         const authStore = useAuthStore();
-        const defaultPage = authStore.user?.default_page || authStore.user?.landing_page;
+        const defaultPage =
+          authStore.user?.default_page || authStore.user?.landing_page;
         if (authStore.isAuthenticated && defaultPage) {
           return defaultPage;
         }
         return "/user";
       },
     },
-    
-{
-  path: "/collections",
-  name: "Collections",
-  component: collections,
-  meta: {
-    titleKey: "collection.title",
-    requireAuth: true,
-    showInSidebar: true,
-    icon: "/src/assets/sidebar/priceIcon.svg",
-    roles: ["Admin", "Driver"]
-  },
-},
 
-{
-  path: "/invoices",
-  name: "Invoices",
-  component: invoices,
-  meta: {
-    titleKey: "invoice.title",
-    requireAuth: true,
-    showInSidebar: true,
-    icon: "/src/assets/sidebar/invoiceIcon.svg",   
-  },
-},
-{
-  path: "/permissions",
-  name: "Permissions",
-  component: permissions,
-  meta: {
-    titleKey: "permissions.title",
-    requireAuth: true,
-    showInSidebar: true,
-    icon: "/src/assets/sidebar/permission.svg",
-    roles: ["SuperAdmin", "Admin"],
-  },
-},
+    {
+      path: "/collections",
+      name: "Collections",
+      component: collections,
+      meta: {
+        titleKey: "collection.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/priceIcon.svg",
+        order: 8,
+        roles: ["Admin", "Driver"],
+      },
+    },
 
-
-
+    {
+      path: "/invoices",
+      name: "Invoices",
+      component: invoices,
+      meta: {
+        titleKey: "invoice.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/invoiceIcon.svg",
+        order: 9,
+      },
+    },
+    {
+      path: "/permissions",
+      name: "Permissions",
+      component: permissions,
+      meta: {
+        titleKey: "permissions.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: "/src/assets/sidebar/permission.svg",
+        order: 20,
+        roles: ["SuperAdmin", "Admin"],
+      },
+    },
   ],
 });
 
 // ===== Navigation Guards =====
 
 router.beforeEach((to, from, next) => {
+  apiServices.cancelAllRequests();
+
   const authStore = useAuthStore();
   const isAuthenticated = authStore.isAuthenticated;
   const userRole = authStore.userRole;
@@ -333,7 +365,8 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresGuest && isAuthenticated) {
     console.log("✅ Already authenticated, redirecting to default page");
     // Redirect to user's default page
-    const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || "/user";
+    const defaultPage =
+      authStore.user?.default_page || authStore.user?.landing_page || "/user";
     return next(defaultPage);
   }
 
@@ -341,11 +374,14 @@ router.beforeEach((to, from, next) => {
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!authStore.hasAnyRole(to.meta.roles)) {
       console.log("❌ Insufficient permissions for this route");
-      const defaultPage = authStore.user?.default_page || authStore.user?.landing_page;
+      const defaultPage =
+        authStore.user?.default_page || authStore.user?.landing_page;
 
       // Prevent infinite redirect if default page is the restricted page
       if (defaultPage === to.path) {
-        console.warn("⚠️ Default page has role restrictions, redirecting to /driver");
+        console.warn(
+          "⚠️ Default page has role restrictions, redirecting to /driver",
+        );
         return next("/driver");
       }
 

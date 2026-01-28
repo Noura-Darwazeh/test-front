@@ -50,19 +50,85 @@ class ApiServices {
       return ApiServices.instance;
     }
     ApiServices.instance = this;
+    this.pendingRequests = new Map();
+  }
+
+  _buildCancelKey(method, url, cancelKey) {
+    if (cancelKey) return cancelKey;
+    const baseUrl = url.split("?")[0];
+    return `${String(method).toUpperCase()}:${baseUrl}`;
+  }
+
+  _cancelPendingRequest(cancelKey) {
+    const controller = this.pendingRequests.get(cancelKey);
+    if (!controller) return;
+    controller.abort();
+    this.pendingRequests.delete(cancelKey);
+  }
+
+  async request(method, url, config = {}) {
+    const { cancelKey, ...axiosConfig } = config || {};
+    const requestKey = this._buildCancelKey(method, url, cancelKey);
+    this._cancelPendingRequest(requestKey);
+
+    const controller = new AbortController();
+    this.pendingRequests.set(requestKey, controller);
+
+    try {
+      return await api.request({
+        method,
+        url,
+        ...axiosConfig,
+        signal: controller.signal,
+      });
+    } finally {
+      const current = this.pendingRequests.get(requestKey);
+      if (current === controller) {
+        this.pendingRequests.delete(requestKey);
+      }
+    }
+  }
+
+  cancelAllRequests() {
+    this.pendingRequests.forEach((controller) => {
+      controller.abort();
+    });
+    this.pendingRequests.clear();
+  }
+
+  get(url, config) {
+    return this.request("get", url, config);
+  }
+
+  post(url, data, config) {
+    return this.request("post", url, { ...config, data });
+  }
+
+  patch(url, data, config) {
+    return this.request("patch", url, { ...config, data });
+  }
+
+  delete(url, config) {
+    return this.request("delete", url, config);
   }
 
   // ===== Dynamic CRUD Methods =====
-  async getEntities(entityPlural, { page = 1, perPage = 10 } = {}) {
-    return api.get(`/${entityPlural}?page=${page}&per_page=${perPage}`);
+  async getEntities(entityPlural, { page = 1, perPage = 10, cancelKey } = {}) {
+    return this.get(`/${entityPlural}`, {
+      params: { page, per_page: perPage },
+      cancelKey: cancelKey ?? `${entityPlural}:list`,
+    });
   }
 
   async getEntityById(entityPlural, id) {
-    return api.get(`/${entityPlural}/${id}`);
+    return this.get(`/${entityPlural}/${id}`);
   }
 
-  async getTrashedEntities(entityPlural, { page = 1, perPage = 10 } = {}) {
-    return api.get(`/trashed/${entityPlural}?page=${page}&per_page=${perPage}`);
+  async getTrashedEntities(entityPlural, { page = 1, perPage = 10, cancelKey } = {}) {
+    return this.get(`/trashed/${entityPlural}`, {
+      params: { page, per_page: perPage },
+      cancelKey: cancelKey ?? `${entityPlural}:list`,
+    });
   }
 
   async createEntity(entityPlural, data) {
@@ -73,7 +139,7 @@ class ApiServices {
       data = toFormData(data);
     }
 
-    return api.post(`/${entityPlural}`, data, {
+    return this.post(`/${entityPlural}`, data, {
       headers:
         hasFile || data instanceof FormData
           ? { "Content-Type": "multipart/form-data" }
@@ -90,7 +156,7 @@ class ApiServices {
     }
 
     if (hasFile || isFormData) {
-      return api.post(`/${entityPlural}/${id}`, data, {
+      return this.post(`/${entityPlural}/${id}`, data, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
           "Content-Type": "multipart/form-data",
@@ -98,41 +164,41 @@ class ApiServices {
       });
     }
 
-    return api.patch(`/${entityPlural}/${id}`, data);
+    return this.patch(`/${entityPlural}/${id}`, data);
   }
 
   async deleteEntity(entityPlural, id, force = false) {
     const endpoint = `/${entityPlural}/${id}?force=${force ? 1 : 0}`;
-    return api.delete(endpoint);
+    return this.delete(endpoint);
   }
 
   async restoreEntity(entityPlural, id) {
-    return api.post(`/restore/${entityPlural}/${id}`);
+    return this.post(`/restore/${entityPlural}/${id}`);
   }
 
   async bulkDeleteEntities(entitySingular, entityPlural, ids, force = false) {
     const endpoint = `/bulk-delete/${entitySingular}/${entityPlural}?force=${force ? 1 : 0
       }`;
-    return api.delete(endpoint, {
+    return this.delete(endpoint, {
       data: { ids },
     });
   }
 
   async bulkRestoreEntities(entitySingular, entityPlural, ids) {
-    return api.post(`/bulk-restore/${entitySingular}/${entityPlural}`, { ids });
+    return this.post(`/bulk-restore/${entitySingular}/${entityPlural}`, { ids });
   }
 
   // ===== Authentication Services =====
   async login(credentials) {
-    return api.post("/login", credentials);
+    return this.post("/login", credentials);
   }
 
   async forgotPassword(email) {
-    return api.post("/forgot_password", { email });
+    return this.post("/forgot_password", { email });
   }
 
   async resetPassword(data) {
-    return api.post("/reset_password", data, {
+    return this.post("/reset_password", data, {
       params: {
         token: data.token,
         email: data.email,
@@ -141,20 +207,26 @@ class ApiServices {
   }
 
   async getUserProfile(userId) {
-    return api.get(`/users/${userId}`);
+    return this.get(`/users/${userId}`);
   }
 
   async changePassword(passwordData) {
-    return api.patch("/change_password", passwordData);
+    return this.patch("/change_password", passwordData);
   }
 
   // ===== User Services =====
-  async getUsers({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("users", { page, perPage });
+  async getUsers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/users", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "users:list",
+    });
   }
 
-  async getTrashedUsers({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("users", { page, perPage });
+  async getTrashedUsers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/users", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "users:list",
+    });
   }
 
   async createUser(userData) {
@@ -182,12 +254,18 @@ class ApiServices {
   }
 
   // ===== Driver Services =====
-  async getDrivers({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("drivers", { page, perPage });
+  async getDrivers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/drivers", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "drivers:list",
+    });
   }
 
-  async getTrashedDrivers({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("drivers", { page, perPage });
+  async getTrashedDrivers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/drivers", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "drivers:list",
+    });
   }
 
   async createDriver(driverData) {
@@ -231,7 +309,7 @@ class ApiServices {
     try {
       console.log('🔄 Updating currency:', currencyId, currencyData);
 
-      return api.patch(`/currencies/${currencyId}`, currencyData, {
+      return this.patch(`/currencies/${currencyId}`, currencyData, {
         headers: {
           'Content-Type': 'application/json',
         }
@@ -297,12 +375,18 @@ class ApiServices {
   }
 
   // ===== Customer Services =====
-  async getCustomers({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("customers", { page, perPage });
+  async getCustomers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/customers", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "customers:list",
+    });
   }
 
-  async getTrashedCustomers({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("customers", { page, perPage });
+  async getTrashedCustomers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/customers", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "customers:list",
+    });
   }
 
   async createCustomer(customerData) {
@@ -356,7 +440,7 @@ class ApiServices {
         }
       });
 
-      return api.post("/companies", formData, {
+      return this.post("/companies", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
     }
@@ -382,7 +466,7 @@ class ApiServices {
         }
       });
 
-      return api.post(`/companies/${companyId}`, formData, {
+      return this.post(`/companies/${companyId}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           "X-HTTP-Method-Override": "PATCH",
@@ -482,7 +566,7 @@ class ApiServices {
 
   // ===== Regions Services =====
   async getRegions({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/regions?page=${page}&per_page=${perPage}`);
+    return this.get(`/regions?page=${page}&per_page=${perPage}`);
   }
 
   async getTrashedRegions({ page = 1, perPage = 10 } = {}) {
@@ -490,7 +574,7 @@ class ApiServices {
   }
 
   async createRegion(regionData) {
-    return api.post("/regions", regionData);
+    return this.post("/regions", regionData);
   }
 
   async updateRegion(regionId, regionData) {
@@ -515,7 +599,7 @@ class ApiServices {
 
   // ===== Company Price Services =====
   async getCompanyPrices({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/company_item_prices?page=${page}&per_page=${perPage}`);
+    return this.get(`/company_item_prices?page=${page}&per_page=${perPage}`);
   }
 
   async getTrashedCompanyPrices({ page = 1, perPage = 10 } = {}) {
@@ -557,7 +641,7 @@ class ApiServices {
 
   // ===== Discount Services =====
   async getDiscounts({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/discounts?page=${page}&per_page=${perPage}`);
+    return this.get(`/discounts?page=${page}&per_page=${perPage}`);
   }
 
   async getTrashedDiscounts({ page = 1, perPage = 10 } = {}) {
@@ -631,16 +715,22 @@ class ApiServices {
   }
 
   // ===== Orders Services =====
-  async getOrders({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/orders?page=${page}&per_page=${perPage}`);
+  async getOrders({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/orders", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "orders:list",
+    });
   }
 
   async getOrderById(orderId) {
     return this.getEntityById("orders", orderId);
   }
 
-  async getTrashedOrders({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/trashed/orders?page=${page}&per_page=${perPage}`);
+  async getTrashedOrders({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/orders", {
+      params: { page, per_page: perPage, ...filters },
+      cancelKey: cancelKey ?? "orders:list",
+    });
   }
 
   async createOrder(orderData) {
@@ -648,7 +738,7 @@ class ApiServices {
   }
 
   async createOrderExchange(orderId, exchangeData) {
-    return api.post(`/orders/exchange/${orderId}`, exchangeData);
+    return this.post(`/orders/exchange/${orderId}`, exchangeData);
   }
 
   async updateOrder(orderId, orderData) {
@@ -672,7 +762,23 @@ class ApiServices {
   }
 
   async getOrderStatistics() {
-    return api.get("/statistics/orders");
+    return this.get("/statistics/orders");
+  }
+
+  async getDriverStatistics() {
+    return this.get("/statistics/drivers");
+  }
+
+  async getCustomerStatistics() {
+    return this.get("/statistics/clients");
+  }
+
+  async getLineWorkStatistics() {
+    return this.get("/statistics/line_works");
+  }
+
+  async getLineStatistics() {
+    return this.get("/statistics/lines");
   }
 
   // ✅ Add new function for filtered orders
@@ -751,7 +857,7 @@ async getOrdersWithItems(filters = {}) {
       {},
     );
 
-    return api.post("/work_plans", cleanData);
+    return this.post("/work_plans", cleanData);
   }
 
   async updateWorkPlan(workPlanId, workPlanData) {
@@ -770,7 +876,7 @@ async getOrdersWithItems(filters = {}) {
 
     console.log("🧹 Cleaned data:", cleanData);
 
-    return api.patch(`/work_plans/${workPlanId}`, cleanData, {
+    return this.patch(`/work_plans/${workPlanId}`, cleanData, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -793,7 +899,7 @@ async getOrdersWithItems(filters = {}) {
         paymentData,
       );
 
-      return api.post(`/payments/${paymentId}`, paymentData, {
+      return this.post(`/payments/${paymentId}`, paymentData, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
           "Content-Type": "application/json",
@@ -823,7 +929,7 @@ async getOrdersWithItems(filters = {}) {
 
   // Mark payments as paid
   async markPaymentsAsPaid(paymentData) {
-    return api.patch("/payments", paymentData);
+    return this.patch("/payments", paymentData);
   }
 
   async deleteWorkPlan(workPlanId, force = false) {
@@ -849,40 +955,40 @@ async getOrdersWithItems(filters = {}) {
 
   // ===== Permissions Services =====
   async getPermissions({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/permissions?page=${page}&per_page=${perPage}`);
+    return this.get(`/permissions?page=${page}&per_page=${perPage}`);
   }
 
   async getUsersWithPermissions({ page = 1, perPage = 10 } = {}) {
-    return api.get(`/user_permissions?page=${page}&per_page=${perPage}`);
+    return this.get(`/user_permissions?page=${page}&per_page=${perPage}`);
   }
 
   async assignPermissionToUser(userId, permissionId) {
-    return api.post("/user_permissions", {
+    return this.post("/user_permissions", {
       user_id: userId,
       permission_id: permissionId,
     });
   }
 
   async removePermissionFromUser(userId, permissionId) {
-    return api.delete(`/user_permissions/${userId}/${permissionId}`);
+    return this.delete(`/user_permissions/${userId}/${permissionId}`);
   }
 
   // ===== Switch User Service (SuperAdmin only) =====
   async switchToUser(userId) {
-    return api.post(`/login_as/${userId}`);
+    return this.post(`/login_as/${userId}`);
   }
 
 
   async returnToOriginalUser() {
-    return api.post("/return_login");
+    return this.post("/return_login");
   }
   // ===== Map Services =====
   async getMapData() {
-    return api.get("/map-data");
+    return this.get("/map-data");
   }
 
   async markPaymentsAsPaid(paymentData) {
-    return api.patch("/payments", paymentData);
+    return this.patch("/payments", paymentData);
   }
 
   // في src/services/apiServices.js
@@ -890,7 +996,7 @@ async getOrdersWithItems(filters = {}) {
 
 // ===== Collections Services =====
 async getCollections({ page = 1, perPage = 10 } = {}) {
-  return api.get(`/collections?page=${page}&per_page=${perPage}`);
+  return this.get(`/collections?page=${page}&per_page=${perPage}`);
 }
 
 async getTrashedCollections({ page = 1, perPage = 10 } = {}) {
@@ -901,7 +1007,7 @@ async updateCollection(collectionId, collectionData) {
   try {
     console.log("🔄 Updating collection:", collectionId, collectionData);
 
-    return api.post(`/collections/${collectionId}`, collectionData, {
+    return this.post(`/collections/${collectionId}`, collectionData, {
       headers: {
         "X-HTTP-Method-Override": "PATCH",
         "Content-Type": "application/json",
@@ -930,13 +1036,13 @@ async bulkRestoreCollections(collectionIds) {
 }
 
 async markCollectionsAsPaid(collectionData) {
-  return api.patch("/collections", collectionData);
+  return this.patch("/collections", collectionData);
 }
 
 
 // ===== Invoice Services =====
 async getInvoices({ page = 1, perPage = 10 } = {}) {
-  return api.get(`/invoices?page=${page}&per_page=${perPage}`);
+  return this.get(`/invoices?page=${page}&per_page=${perPage}`);
 }
 
 async getTrashedInvoices({ page = 1, perPage = 10 } = {}) {
@@ -961,7 +1067,7 @@ async bulkRestoreInvoices(invoiceIds) {
 
 // ===== Invoice Creation from Collections =====
 async createInvoiceFromCollections(collectionIds) {
-  return api.post("/invoices", {
+  return this.post("/invoices", {
     collection_ids: collectionIds
   });
 }

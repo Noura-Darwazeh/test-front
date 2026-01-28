@@ -80,7 +80,7 @@
 
         <!-- Dynamic Form Modal for Add/Edit company -->
         <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('company.edit') : $t('company.addNew')"
-            :fields="companyFields" :showImageUpload="false"
+            :fields="companyFields" :showImageUpload="false" :serverErrors="formErrors"
             @close="closeFormModal" @submit="handleSubmitcompany" />
 
         <!-- Details Modal with Branches and Lines -->
@@ -226,6 +226,7 @@ import CompanyHeader from "../components/companyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useCompanyManagementStore } from "../store/companyManagement.js";
 import apiServices from "@/services/apiServices.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const companyStore = useCompanyManagementStore();
@@ -251,6 +252,7 @@ const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedcompany = ref({});
+const formErrors = ref({});
 
 // Selection and Bulk Actions
 const selectedRows = ref([]);
@@ -508,8 +510,19 @@ watch(activeTab, async (newTab) => {
     }
 });
 
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
+
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedcompany.value = {};
     isFormModalOpen.value = true;
@@ -517,6 +530,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (company) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedcompany.value = { ...company };
     isFormModalOpen.value = true;
@@ -532,6 +546,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedcompany.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -568,6 +583,9 @@ const handleSubmitcompany = async (companyData) => {
         closeFormModal();
     } catch (error) {
         console.error('❌ Failed to submit company:', error);
+        if (applyServerErrors(error)) {
+            return;
+        }
         alert(error.message || 'Failed to save company');
     }
 };

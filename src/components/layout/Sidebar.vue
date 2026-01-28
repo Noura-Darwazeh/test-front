@@ -55,13 +55,13 @@ const authStore = useAuthStore();
 const isRTL = computed(() => locale.value === "ar");
 
 const menuItems = computed(() => {
-  return router
+  const routes = router
     .getRoutes()
     .filter((r) => {
       // Check if route should show in sidebar
       if (!r.meta?.showInSidebar) return false;
 
-      // ✅ Check if route has role restrictions
+      // ? Check if route has role restrictions
       if (r.meta.roles && r.meta.roles.length > 0) {
         // Check if user has required role
         return authStore.hasAnyRole(r.meta.roles);
@@ -69,11 +69,17 @@ const menuItems = computed(() => {
       // If no role restrictions, show to everyone
       return true;
     })
-    .map((r) => ({
-      path: r.path,
-      label: r.meta.titleKey ? t(r.meta.titleKey) : "Dashboard",
-      icon: r.meta.icon,
-    }));
+    .sort((a, b) => {
+      const orderA = a.meta?.order ?? 999;
+      const orderB = b.meta?.order ?? 999;
+      return orderA - orderB;
+    });
+
+  return routes.map((r) => ({
+    path: r.path,
+    label: r.meta.titleKey ? t(r.meta.titleKey) : "Dashboard",
+    icon: r.meta.icon,
+  }));
 });
 
 const toggleSidebar = () => {

@@ -100,7 +100,7 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getLinePrices();
+      const response = await apiServices.getLinePrices({ page: 1, perPage: 1000 });
 
       // Transform API response to match frontend format
       linePrices.value = response.data.data.map((price) =>
@@ -287,7 +287,7 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedLinePrices();
+      const response = await apiServices.getTrashedLinePrices({ page: 1, perPage: 1000 });
 
       // Transform API response to match frontend format
       trashedLinePrices.value = response.data.data.map((price) =>

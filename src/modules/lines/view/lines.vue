@@ -14,10 +14,6 @@
             v-model="searchText"
             :searchPlaceholder="$t('lines.searchPlaceholder')"
             :data="lines"
-            groupKey="region"
-            v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('lines.filterByRegion')"
-            translationKey="regions"
             :columns="linesColumns"
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true"
@@ -111,14 +107,6 @@
                             />
                         </template>
                     </DataTable>
-                    <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination
-                            :totalItems="currentFilteredData.length"
-                            :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage"
-                            @update:currentPage="(page) => currentPage = page"
-                        />
-                    </div>
                 </div>
             </div>
         </div>
@@ -129,6 +117,7 @@
             :title="isEditMode ? $t('lines.edit') : $t('lines.addNew')"
             :fields="linesFields" 
             :showImageUpload="false" 
+            :serverErrors="formErrors"
             @close="closeFormModal" 
             @submit="handleSubmitLines" 
         />
@@ -156,20 +145,20 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useLinesStore } from "../stores/linesStore.js";
 import { useRegionsManagementStore } from "@/modules/regions/store/regionsManagement.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const linesStore = useLinesStore();
@@ -177,13 +166,11 @@ const regionsStore = useRegionsManagementStore();
 const { companyId, companyOption } = useAuthDefaults();
 
 const searchText = ref("");
-const selectedGroups = ref([]);
-const currentPage = ref(1);
-const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedLine = ref({});
+const formErrors = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
@@ -307,27 +294,28 @@ const currentLoading = computed(() => {
 // Filter current data
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    if (activeTab.value === 'active') {
-        result = filterByGroups(result, selectedGroups.value, "region");
-    }
     result = filterData(result, searchText.value);
     return result;
 });
 
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
 });
 
-watch([searchText, selectedGroups], () => {
-    currentPage.value = 1;
-});
+
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedLine.value = {};
     isFormModalOpen.value = true;
@@ -335,6 +323,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (line) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedLine.value = { ...line };
     isFormModalOpen.value = true;
@@ -350,6 +339,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedLine.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -360,7 +350,6 @@ const closeDetailsModal = () => {
 // Tab switching function
 const switchTab = async (tab) => {
     activeTab.value = tab;
-    currentPage.value = 1;
     selectedRows.value = [];
     if (tab === 'trashed') {
         try {
@@ -493,6 +482,10 @@ const handleSubmitLines = async (lineData) => {
         closeFormModal();
     } catch (error) {
         console.error('❌ Failed to save line:', error);
+
+        if (applyServerErrors(error)) {
+            return;
+        }
         
         // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {

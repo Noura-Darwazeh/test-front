@@ -99,15 +99,6 @@
               />
             </template>
           </DataTable>
-          <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination
-              :totalItems="currentPagination.total"
-              :itemsPerPage="itemsPerPage"
-              :currentPage="currentPage"
-              :totalPages="currentPagination.lastPage"
-              @update:currentPage="(page) => (currentPage = page)"
-            />
-          </div>
         </div>
       </div>
     </div>
@@ -118,6 +109,7 @@
       :title="isEditMode ? $t('currency.edit') : $t('currency.addNew')"
       :fields="currencyFields"
       :showImageUpload="false"
+      :serverErrors="formErrors"
       @close="closeFormModal"
       @submit="handleSubmitCurrency"
     />
@@ -145,9 +137,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import CurrencyHeader from "../components/currencyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
@@ -159,6 +150,7 @@ import { useI18n } from "vue-i18n";
 import { useCurrencyFormFields } from "../components/currencyFormFields.js";
 import { useCurrenciesManagementStore } from "../store/currenciesManagement.js";
 import { useAuthStore } from "@/stores/auth.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t, locale } = useI18n();
 const currenciesStore = useCurrenciesManagementStore();
@@ -171,13 +163,12 @@ const canEdit = computed(() => isSuperAdmin.value);
 const canDelete = computed(() => isSuperAdmin.value);
 
 const searchText = ref("");
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
-const skipNextPageWatch = ref(false);
+const itemsPerPage = 1000;
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedCurrency = ref({});
+const formErrors = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -194,29 +185,16 @@ const { currencyFields } = useCurrencyFormFields(isEditMode, selectedCurrency);
 // Fetch currencies on component mount
 onMounted(async () => {
   try {
-    await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage.value });
+    await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
     console.log("✅ Currencies loaded successfully");
   } catch (error) {
+    if (applyServerErrors(error)) {
+      return;
+    }
     console.error("❌ Failed to load currencies:", error);
   }
 });
 
-// Watch for page changes to fetch new data from server
-watch(currentPage, async (newPage) => {
-  if (skipNextPageWatch.value) {
-    skipNextPageWatch.value = false;
-    return;
-  }
-  try {
-    if (activeTab.value === "trashed") {
-      await currenciesStore.fetchTrashedCurrencies({ page: newPage, perPage: itemsPerPage.value });
-    } else {
-      await currenciesStore.fetchCurrencies({ page: newPage, perPage: itemsPerPage.value });
-    }
-  } catch (err) {
-    console.error("Failed to load page:", err);
-  }
-});
 
 // Table columns
 const currencyColumns = computed(() => [
@@ -298,12 +276,6 @@ const paginatedData = computed(() => {
   return currentFilteredData.value;
 });
 
-// Get the correct pagination metadata based on active tab
-const currentPagination = computed(() => {
-  return activeTab.value === "active"
-    ? currenciesStore.currenciesPagination
-    : currenciesStore.trashedPagination;
-});
 
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
@@ -349,14 +321,26 @@ const bulkConfirmMessage = computed(() => {
   return "";
 });
 
+const applyServerErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  formErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+  formErrors.value = {};
+};
+
 // Action methods
 const openAddModal = () => {
+  clearFormErrors();
   isEditMode.value = false;
   selectedCurrency.value = {};
   isFormModalOpen.value = true;
 };
 
 const openEditModal = (currency) => {
+  clearFormErrors();
   isEditMode.value = true;
   selectedCurrency.value = { ...currency };
   isFormModalOpen.value = true;
@@ -371,6 +355,7 @@ const closeFormModal = () => {
   isFormModalOpen.value = false;
   isEditMode.value = false;
   selectedCurrency.value = {};
+  clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -380,19 +365,17 @@ const closeDetailsModal = () => {
 
 const switchTab = async (tab) => {
   activeTab.value = tab;
-  skipNextPageWatch.value = true;
-  currentPage.value = 1;
   selectedRows.value = [];
 
   if (tab === "trashed") {
     try {
-      await currenciesStore.fetchTrashedCurrencies({ page: 1, perPage: itemsPerPage.value });
+      await currenciesStore.fetchTrashedCurrencies({ page: 1, perPage: itemsPerPage });
     } catch (error) {
       console.error("Failed to load trashed currencies:", error);
     }
   } else {
     try {
-      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage.value });
+      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
     } catch (error) {
       console.error("Failed to load currencies:", error);
     }
@@ -403,9 +386,9 @@ const handleRefresh = async () => {
   selectedRows.value = [];
   try {
     if (activeTab.value === "trashed") {
-      await currenciesStore.fetchTrashedCurrencies({ page: currentPage.value, perPage: itemsPerPage.value });
+      await currenciesStore.fetchTrashedCurrencies({ page: 1, perPage: itemsPerPage });
     } else {
-      await currenciesStore.fetchCurrencies({ page: currentPage.value, perPage: itemsPerPage.value });
+      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
     }
   } catch (error) {
     console.error("Failed to refresh currencies:", error);
@@ -544,9 +527,6 @@ const cancelBulkAction = () => {
   pendingBulkAction.value = null;
 };
 
-watch([searchText], () => {
-  currentPage.value = 1;
-});
 </script>
 
 <style scoped>

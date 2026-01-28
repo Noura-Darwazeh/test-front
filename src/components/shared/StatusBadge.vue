@@ -76,6 +76,7 @@ const getBadgeClass = () => {
 
     // Info states
     in_progress: "bg-info",
+    inprocess: "bg-info",
 
     // Secondary states
     draft: "bg-secondary",

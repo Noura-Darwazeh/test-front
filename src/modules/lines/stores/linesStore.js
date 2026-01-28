@@ -91,7 +91,7 @@ export const useLinesStore = defineStore("lines", () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getLines();
+      const response = await apiServices.getLines({ page: 1, perPage: 1000 });
 
       // Transform API response to match frontend format
       lines.value = response.data.data.map(normalizeLine);
@@ -253,7 +253,7 @@ export const useLinesStore = defineStore("lines", () => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedLines();
+      const response = await apiServices.getTrashedLines({ page: 1, perPage: 1000 });
 
       // Transform API response to match frontend format
       trashedLines.value = response.data.data.map(normalizeLine);

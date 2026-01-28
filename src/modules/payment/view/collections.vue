@@ -77,6 +77,7 @@
       :title="$t('collection.edit')" 
       :fields="collectionFields" 
       :showImageUpload="false"
+      :serverErrors="formErrors"
       @close="closeModal" 
       @submit="handleSubmitCollection" 
     />
@@ -129,6 +130,7 @@ import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCollectionsManagementStore } from "../store/collectionsManagement.js";
 import apiServices from "@/services/apiServices.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const collectionsStore = useCollectionsManagementStore();
@@ -141,6 +143,7 @@ const itemsPerPage = ref(10);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const selectedCollection = ref({});
+const formErrors = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isPaymentMethodModalOpen = ref(false);
@@ -168,6 +171,9 @@ const fetchDrivers = async () => {
 
     console.log('✅ Drivers loaded:', drivers.value);
   } catch (error) {
+    if (applyServerErrors(error)) {
+      return;
+    }
     console.error("❌ Failed to load drivers:", error);
   }
 };
@@ -317,7 +323,18 @@ const handleRefresh = async () => {
   }
 };
 
+const applyServerErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  formErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+  formErrors.value = {};
+};
+
 const openEditModal = (collection) => {
+  clearFormErrors();
   selectedCollection.value = { ...collection };
   isModalOpen.value = true;
 };
@@ -330,6 +347,7 @@ const openDetailsModal = (collection) => {
 const closeModal = () => {
   isModalOpen.value = false;
   selectedCollection.value = {};
+  clearFormErrors();
 };
 
 const closeDetailsModal = () => {

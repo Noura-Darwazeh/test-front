@@ -137,6 +137,7 @@
       :title="isEditMode ? $t('driverLine.edit') : $t('driverLine.addNew')"
       :fields="driverLineFieldsWithDefaults"
       :showImageUpload="false"
+      :serverErrors="formErrors"
       @close="closeModal"
       @submit="handleSubmitDriverLine"
     />
@@ -179,6 +180,7 @@ import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
 import { useDriverLineStore } from "../stores/driverLineStore.js";
 import { useDriverStore } from "@/modules/driver/stores/driverStore.js";
 import { useLineWorkStore } from "@/modules/lineWork/stores/lineworkStore.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -201,6 +203,7 @@ const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedDriverLine = ref({});
+const formErrors = ref({});
 const validationError = ref(null);
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
@@ -374,8 +377,19 @@ const bulkConfirmMessage = computed(() => {
   return "";
 });
 
+const applyServerErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  formErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+  formErrors.value = {};
+};
+
 // Action methods
 const openModal = () => {
+  clearFormErrors();
   isEditMode.value = false;
   selectedDriverLine.value = {};
   isModalOpen.value = true;
@@ -385,6 +399,7 @@ const closeModal = () => {
   isModalOpen.value = false;
   isEditMode.value = false;
   selectedDriverLine.value = {};
+  clearFormErrors();
 };
 
 const switchTab = async (tab) => {
@@ -437,6 +452,10 @@ const handleSubmitDriverLine = async (driverLineData) => {
     closeModal();
   } catch (error) {
     console.error('❌ Failed to save driver line:', error);
+
+    if (applyServerErrors(error)) {
+      return;
+    }
     
     // Check for specific validation errors
     if (error.response?.data?.success === false && error.response?.data?.error) {

@@ -95,11 +95,11 @@ export const useCustomerStore = defineStore("customer", () => {
   });
 
   // Actions
-  const fetchCustomers = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchCustomers = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCustomers({ page, perPage });
+      const response = await apiServices.getCustomers({ page, perPage, filters });
 
       // Transform API response to match frontend format
       customers.value = response.data.data.map(normalizeCustomer);
@@ -253,11 +253,11 @@ export const useCustomerStore = defineStore("customer", () => {
     }
   };
 
-  const fetchTrashedCustomers = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedCustomers = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCustomers({ page, perPage });
+      const response = await apiServices.getTrashedCustomers({ page, perPage, filters });
 
       // Transform API response to match frontend format
       trashedCustomers.value = response.data.data.map(normalizeCustomer);

@@ -105,11 +105,11 @@ export const useDriverStore = defineStore("driver", () => {
   );
 
   // Actions
-  const fetchDrivers = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchDrivers = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getDrivers({ page, perPage });
+      const response = await apiServices.getDrivers({ page, perPage, filters });
 
       // Transform API response to match frontend format
       drivers.value = response.data.data.map(normalizeDriver);
@@ -310,11 +310,11 @@ export const useDriverStore = defineStore("driver", () => {
     }
   };
 
-  const fetchTrashedDrivers = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedDrivers = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedDrivers({ page, perPage });
+      const response = await apiServices.getTrashedDrivers({ page, perPage, filters });
 
       // Transform API response to match frontend format
       trashedDrivers.value = response.data.data.map(normalizeDriver);

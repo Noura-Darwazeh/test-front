@@ -102,11 +102,6 @@
                             />
                         </template>
                     </DataTable>
-                    <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage" :totalPages="currentPagination.lastPage"
-                            @update:currentPage="(page) => currentPage = page" />
-                    </div>
                 </div>
             </div>
         </div>
@@ -118,6 +113,7 @@
             :title="isEditMode ? $t('regions.edit') : $t('regions.addNew')"
             :fields="regionsFields" 
             :showImageUpload="false" 
+            :serverErrors="formErrors"
             @close="closeFormModal" 
             @submit="handleSubmitregions" 
         />
@@ -146,9 +142,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
@@ -159,6 +154,7 @@ import RegionsHeader from "../components/regionsHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useRegionsManagementStore } from "../store/regionsManagement.js";
 import { useAuthStore } from "@/stores/auth.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t, locale } = useI18n();
 const regionsStore = useRegionsManagementStore();
@@ -168,13 +164,12 @@ const authStore = useAuthStore();
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
-const skipNextPageWatch = ref(false);
+const itemsPerPage = 1000;
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedregions = ref({});
+const formErrors = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -188,29 +183,13 @@ const trashedregions = computed(() => regionsStore.trashedRegions);
 // Fetch regions on component mount
 onMounted(async () => {
   try {
-    await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage.value });
+    await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
     console.log("✅ Regions loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load regions:", error);
   }
 });
 
-// Watch for page changes to fetch new data from server
-watch(currentPage, async (newPage) => {
-    if (skipNextPageWatch.value) {
-        skipNextPageWatch.value = false;
-        return;
-    }
-    try {
-        if (activeTab.value === "trashed") {
-            await regionsStore.fetchTrashedRegions({ page: newPage, perPage: itemsPerPage.value });
-        } else {
-            await regionsStore.fetchRegions({ page: newPage, perPage: itemsPerPage.value });
-        }
-    } catch (err) {
-        console.error("Failed to load page:", err);
-    }
-});
 
 // regions Form Fields
 const regionsFields = computed(() => [
@@ -346,12 +325,6 @@ const paginatedData = computed(() => {
     return currentFilteredData.value;
 });
 
-// Get the correct pagination metadata based on active tab
-const currentPagination = computed(() => {
-    return activeTab.value === "active"
-        ? regionsStore.regionsPagination
-        : regionsStore.trashedPagination;
-});
 
 const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
@@ -396,16 +369,24 @@ const bulkConfirmMessage = computed(() => {
     return '';
 });
 
-watch([searchText], () => {
-    currentPage.value = 1;
-});
 
 // Add Modal - فقط للسوبر أدمن
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
+
 const openAddModal = () => {
     if (!isSuperAdmin.value) {
         console.warn('⚠️ Admin users cannot add regions');
         return;
     }
+    clearFormErrors();
     isEditMode.value = false;
     selectedregions.value = {};
     isFormModalOpen.value = true;
@@ -417,6 +398,7 @@ const openEditModal = (regions) => {
         console.warn('⚠️ Admin users cannot edit regions');
         return;
     }
+    clearFormErrors();
     isEditMode.value = true;
     selectedregions.value = { ...regions };
     isFormModalOpen.value = true;
@@ -432,6 +414,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedregions.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -446,19 +429,17 @@ const switchTab = async (tab) => {
     }
     
     activeTab.value = tab;
-    skipNextPageWatch.value = true;
-    currentPage.value = 1;
     selectedRows.value = [];
 
     if (tab === 'trashed') {
         try {
-            await regionsStore.fetchTrashedRegions({ page: 1, perPage: itemsPerPage.value });
+            await regionsStore.fetchTrashedRegions({ page: 1, perPage: itemsPerPage });
         } catch (error) {
             console.error("Failed to load trashed regions:", error);
         }
     } else {
         try {
-            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage.value });
+            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
         } catch (error) {
             console.error("Failed to load regions:", error);
         }
@@ -469,9 +450,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await regionsStore.fetchTrashedRegions({ page: currentPage.value, perPage: itemsPerPage.value });
+            await regionsStore.fetchTrashedRegions({ page: 1, perPage: itemsPerPage });
         } else {
-            await regionsStore.fetchRegions({ page: currentPage.value, perPage: itemsPerPage.value });
+            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
         }
     } catch (error) {
         console.error("Failed to refresh regions:", error);
@@ -503,6 +484,9 @@ const handleSubmitregions = async (regionsData) => {
         closeFormModal();
     } catch (error) {
         console.error("Failed to save region:", error);
+        if (applyServerErrors(error)) {
+            return;
+        }
         alert(error.message || "Failed to save region");
     }
 };

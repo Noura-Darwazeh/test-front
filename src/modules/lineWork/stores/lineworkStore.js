@@ -56,7 +56,7 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getLineWorks();
+      const response = await apiServices.getLineWorks({ page: 1, perPage: 1000 });
       const rawData = Array.isArray(response.data.data)
         ? response.data.data
         : [];
@@ -76,7 +76,7 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedLineWorks();
+      const response = await apiServices.getTrashedLineWorks({ page: 1, perPage: 1000 });
       const rawData = Array.isArray(response.data.data)
         ? response.data.data
         : [];

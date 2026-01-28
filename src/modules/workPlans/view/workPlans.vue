@@ -98,7 +98,8 @@
 
         <!-- Dynamic Form Modal for Add/Edit workPlan -->
         <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
-            :fields="workPlanFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitworkPlan" />
+            :fields="workPlanFields" :showImageUpload="false" :serverErrors="formErrors"
+            @close="closeFormModal" @submit="handleSubmitworkPlan" />
 
         <!-- Details Modal -->
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('workPlan.details')" :data="selectedworkPlan"
@@ -128,6 +129,7 @@ import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../store/workPlansStore.js";
 import { useDriverStore } from "../../driver/stores/driverStore.js";
 import apiServices from "@/services/apiServices.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
@@ -142,6 +144,7 @@ const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedworkPlan = ref({});
+const formErrors = ref({});
 const activeTab = ref('calendar');
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
@@ -636,11 +639,21 @@ const clearOrderFilters = async () => {
 
 
 // Add Modal
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 const openAddModal = async () => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to add work plans");
         return;
     }
+    clearFormErrors();
     isEditMode.value = false;
     selectedworkPlan.value = {};
     await fetchOrdersWithItems();
@@ -653,6 +666,7 @@ const openEditModal = async (workPlan) => {
         console.warn("⚠️ User doesn't have permission to edit work plans");
         return;
     }
+    clearFormErrors();
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
     console.log("📝 Opening edit modal for work plan:", selectedworkPlan.value);
@@ -690,6 +704,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedworkPlan.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {

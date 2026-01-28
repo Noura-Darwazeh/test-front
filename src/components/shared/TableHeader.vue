@@ -2,10 +2,21 @@
   <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <!-- search and group filter components -->
     <div class="d-flex gap-2 flex-grow-1">
-      <MainFilters :modelValue="modelValue" @update:modelValue="$emit('update:modelValue', $event)"
-        :placeholder="searchPlaceholder" :data="data" :groupKey="groupKey" :groupModelValue="groupModelValue"
-        @update:groupModelValue="$emit('update:groupModelValue', $event)" :groupLabel="groupLabel"
-        :translationKey="translationKey" />
+      <MainFilters
+        :modelValue="modelValue"
+        @update:modelValue="$emit('update:modelValue', $event)"
+        :placeholder="searchPlaceholder"
+        :data="data"
+        :groupKey="groupKey"
+        :groupModelValue="groupModelValue"
+        @update:groupModelValue="$emit('update:groupModelValue', $event)"
+        :groupLabel="groupLabel"
+        :translationKey="translationKey"
+        :showTimeFilter="showTimeFilter"
+        :timeModelValue="timeModelValue"
+        :timeOptions="timeOptions"
+        @update:timeModelValue="$emit('update:timeModelValue', $event)"
+      />
 
       <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" />
     </div>
@@ -35,6 +46,12 @@ defineProps({
   groupModelValue: Array,
   groupLabel: String,
   translationKey: String,
+  showTimeFilter: {
+    type: Boolean,
+    default: false,
+  },
+  timeModelValue: String,
+  timeOptions: Array,
   columns: Array,
   visibleColumns: Array,
   showAddButton: {
@@ -54,6 +71,7 @@ defineProps({
 const emit = defineEmits([
   "update:modelValue",
   "update:groupModelValue",
+  "update:timeModelValue",
   "update:visibleColumns",
   "add-click",
   "trashed-click",

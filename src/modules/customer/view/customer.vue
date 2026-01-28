@@ -127,11 +127,12 @@
         <!-- Dynamic Form Modal for Add/Edit customer -->
         <FormModal 
             :isOpen="isFormModalOpen" 
-            :title="isEditMode ? $t('customer.edit') : $t('customer.addNew')"
-            :fields="customerFields" 
-            :showImageUpload="false"  
+            :title="isEditMode ? $t('customer.edit') : $t('customer.addNew')" 
+            :fields="customerFields"
+            :showImageUpload="false"
+            :serverErrors="formErrors"
             @close="closeFormModal"
-            @submit="handleSubmitCustomer" 
+            @submit="handleSubmitCustomer"
         />
 
         <!-- Details Modal -->
@@ -164,12 +165,12 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import CustomerHeader from "../components/customerHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useCustomerStore } from "../stores/customerStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const customerStore = useCustomerStore();
@@ -187,6 +188,7 @@ const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedCustomer = ref({});
+const formErrors = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
@@ -203,9 +205,12 @@ const trashedCustomers = computed(() => customerStore.trashedCustomers);
 // Fetch data on component mount
 onMounted(async () => {
     try {
-        await customerStore.fetchCustomers({ page: 1, perPage: itemsPerPage.value });
+        await fetchCustomersPage(1);
         console.log("✅ Customers loaded successfully");
     } catch (error) {
+        if (applyServerErrors(error)) {
+            return;
+        }
         console.error("❌ Failed to load customers:", error);
     }
 });
@@ -217,11 +222,7 @@ watch(currentPage, async (newPage) => {
         return;
     }
     try {
-        if (activeTab.value === "trashed") {
-            await customerStore.fetchTrashedCustomers({ page: newPage, perPage: itemsPerPage.value });
-        } else {
-            await customerStore.fetchCustomers({ page: newPage, perPage: itemsPerPage.value });
-        }
+        await fetchCustomersPage(newPage);
     } catch (err) {
         console.error("Failed to load page:", err);
     }
@@ -411,30 +412,58 @@ const currentLoading = computed(() => {
     return activeTab.value === 'active' ? customerStore.loading : customerStore.trashedLoading;
 });
 
-// ✅ Filter current data - only apply group filter for SuperAdmin
-const currentFilteredData = computed(() => {
-    let result = currentData.value;
-    
-    // Only apply company filter for SuperAdmin
-    if (activeTab.value === 'active' && isSuperAdmin.value) {
-        result = filterByGroups(result, selectedGroups.value, "company_name");
+const buildCustomerFilters = () => {
+    const filters = {};
+    const trimmedSearch = searchText.value.trim();
+    if (trimmedSearch) {
+        filters.search = trimmedSearch;
     }
-    
-    result = filterData(result, searchText.value);
-    return result;
+    if (isSuperAdmin.value && selectedGroups.value.length > 0) {
+        filters.company =
+            selectedGroups.value.length === 1
+                ? selectedGroups.value[0]
+                : selectedGroups.value.join(",");
+    }
+    return filters;
+};
+
+const fetchCustomersPage = async (page = 1) => {
+    const filters = buildCustomerFilters();
+    if (activeTab.value === "trashed") {
+        await customerStore.fetchTrashedCustomers({ page, perPage: itemsPerPage.value, filters });
+    } else {
+        await customerStore.fetchCustomers({ page, perPage: itemsPerPage.value, filters });
+    }
+};
+
+// Server already returns paginated data; use store results directly
+const paginatedData = computed(() => currentData.value);
+
+watch([searchText, selectedGroups], async () => {
+    if (currentPage.value !== 1) {
+        skipNextPageWatch.value = true;
+        currentPage.value = 1;
+    }
+    try {
+        await fetchCustomersPage(1);
+    } catch (error) {
+        console.error("❌ Failed to apply filters:", error);
+    }
 });
 
-// Server already returns paginated data, apply local filters for search/grouping
-const paginatedData = computed(() => {
-    return currentFilteredData.value;
-});
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
 
-watch([searchText, selectedGroups], () => {
-    currentPage.value = 1;
-});
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedCustomer.value = {};
     isFormModalOpen.value = true;
@@ -442,6 +471,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (customer) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedCustomer.value = { ...customer };
     isFormModalOpen.value = true;
@@ -457,6 +487,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedCustomer.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -470,29 +501,17 @@ const switchTab = async (tab) => {
     skipNextPageWatch.value = true;
     currentPage.value = 1;
     selectedRows.value = [];
-    if (tab === 'trashed') {
-        try {
-            await customerStore.fetchTrashedCustomers({ page: 1, perPage: itemsPerPage.value });
-        } catch (error) {
-            console.error("❌ Failed to fetch trashed customers:", error);
-        }
-    } else {
-        try {
-            await customerStore.fetchCustomers({ page: 1, perPage: itemsPerPage.value });
-        } catch (error) {
-            console.error("❌ Failed to fetch customers:", error);
-        }
+    try {
+        await fetchCustomersPage(1);
+    } catch (error) {
+        console.error("❌ Failed to fetch customers:", error);
     }
 };
 
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
-        if (activeTab.value === 'trashed') {
-            await customerStore.fetchTrashedCustomers({ page: currentPage.value, perPage: itemsPerPage.value });
-        } else {
-            await customerStore.fetchCustomers({ page: currentPage.value, perPage: itemsPerPage.value });
-        }
+        await fetchCustomersPage(currentPage.value);
     } catch (error) {
         console.error("❌ Failed to refresh customers:", error);
     }

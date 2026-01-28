@@ -59,7 +59,7 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCompanyPrices();
+      const response = await apiServices.getCompanyPrices({ page: 1, perPage: 1000 });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
@@ -78,7 +78,7 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCompanyPrices();
+      const response = await apiServices.getTrashedCompanyPrices({ page: 1, perPage: 1000 });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];

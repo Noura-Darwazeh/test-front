@@ -107,14 +107,6 @@
                             />
                         </template>
                     </DataTable>
-                    <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination
-                            :totalItems="currentFilteredData.length"
-                            :itemsPerPage="itemsPerPage"
-                            :currentPage="currentPage"
-                            @update:currentPage="(page) => currentPage = page"
-                        />
-                    </div>
                 </div>
             </div>
         </div>
@@ -125,6 +117,7 @@
             :title="isEditMode ? $t('linePrice.edit') : $t('linePrice.addNew')"
             :fields="linePriceFields" 
             :showImageUpload="false" 
+            :serverErrors="formErrors"
             @close="closeFormModal" 
             @submit="handleSubmitLinePrice" 
         />
@@ -152,32 +145,31 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, paginateData } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useLinePriceStore } from "../stores/linespriceStore.js";
 import apiServices from "@/services/apiServices.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const linePriceStore = useLinePriceStore();
 const { companyId, companyOption, currencyId } = useAuthDefaults();
 
 const searchText = ref("");
-const currentPage = ref(1);
-const itemsPerPage = ref(5);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedLinePrice = ref({});
+const formErrors = ref({});
 const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
@@ -209,8 +201,8 @@ onMounted(async () => {
 const fetchDropdownData = async () => {
     try {
         const [linesResponse, currenciesResponse] = await Promise.all([
-            apiServices.getLines(),
-            apiServices.getCurrencies()
+            apiServices.getLines({ page: 1, perPage: 1000 }),
+            apiServices.getCurrencies({ page: 1, perPage: 1000 })
         ]);
 
         lineOptions.value = (linesResponse.data.data || []).map((line) => ({
@@ -371,19 +363,23 @@ const currentFilteredData = computed(() => {
 });
 
 const paginatedData = computed(() => {
-    return paginateData(
-        currentFilteredData.value,
-        currentPage.value,
-        itemsPerPage.value
-    );
+    return currentFilteredData.value;
 });
 
-watch([searchText], () => {
-    currentPage.value = 1;
-});
+
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedLinePrice.value = {};
     isFormModalOpen.value = true;
@@ -391,6 +387,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (linePrice) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedLinePrice.value = { ...linePrice };
     isFormModalOpen.value = true;
@@ -406,6 +403,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedLinePrice.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -416,7 +414,6 @@ const closeDetailsModal = () => {
 // Tab switching function
 const switchTab = async (tab) => {
     activeTab.value = tab;
-    currentPage.value = 1;
     selectedRows.value = [];
     if (tab === 'trashed') {
         try {
@@ -549,6 +546,10 @@ const handleSubmitLinePrice = async (priceData) => {
         closeFormModal();
     } catch (error) {
         console.error('❌ Failed to save line price:', error);
+
+        if (applyServerErrors(error)) {
+            return;
+        }
         
         // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {

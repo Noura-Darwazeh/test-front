@@ -6,7 +6,7 @@
       <div v-if="selectedGroups.length > 0" class="chips-container d-flex flex-column gap-2 w-100">
         <span v-for="group in selectedGroups" :key="group"
           class="chip d-inline-flex align-items-center gap-2 bg-primary text-white px-2 py-1 rounded">
-          {{ group }}
+          {{ formatGroupLabel(group) }}
           <button @click.stop="removeGroup(group)" class="chip-remove" type="button">
             ×
           </button>
@@ -24,7 +24,7 @@
         <input type="checkbox" :id="`group-${group}`" :value="group" @change="addGroup(group)"
           class="form-check-input" />
         <label :for="`group-${group}`" class="form-check-label ms-2 user-select-none flex-fill">
-          {{ group }}
+          {{ formatGroupLabel(group) }}
         </label>
       </div>
 
@@ -43,14 +43,18 @@
 <script setup>
 import PrimaryButton from "@/components/shared/PrimaryButton.vue";
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 // ---------------------- Props and Emits ----------------
 const props = defineProps({
   data: Array,
   groupKey: String,
   modelValue: Array,
   label: String,
+  translationKey: String,
 });
 const emit = defineEmits(["update:modelValue"]);
+
+const { t } = useI18n();
 
 // ----------------------- Refs ---------------------
 const dropdownRef = ref(null);
@@ -84,6 +88,19 @@ const displayLabel = computed(() => {
 });
 
 // --------------- Methods --------------------
+const formatGroupLabel = (group) => {
+  if (group === null || group === undefined) return "";
+  if (typeof group === "object") {
+    const name = group.name || group.label || group.value;
+    return name ? String(name) : JSON.stringify(group);
+  }
+  if (props.translationKey) {
+    const key = `${props.translationKey}.${group}`;
+    const translated = t(key);
+    if (translated !== key) return translated;
+  }
+  return String(group);
+};
 
 const addGroup = (group) => {
   selectedGroups.value.push(group);

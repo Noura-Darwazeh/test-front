@@ -69,7 +69,9 @@
                   :id="field.name" :type="field.type" class="form-control" v-model="formData[field.name]"
                   :placeholder="field.placeholder || field.label" :required="field.required"
                   :minlength="field.minlength" :step="field.step" :min="field.min" :max="field.max"
-                  :disabled="field.disabled" :readonly="field.readonly" />
+                  :disabled="field.disabled" :readonly="field.readonly"
+                  @input="handleFieldInput(field)"
+                  @blur="handleFieldBlur(field)" />
 
                 <!-- Select Dropdown -->
                 <select v-else-if="field.type === 'select'" :id="field.name" class="form-select"
@@ -77,7 +79,8 @@
                   :disabled="field.disabled || field.locked"
                   :class="{ 'locked-select': field.locked }"
                     @change="handleFieldChange(field, $event)"
->
+
+                  @blur="handleFieldBlur(field)">
                   <option value="" disabled>
                     {{ field.placeholder || field.label }}
                   </option>
@@ -109,6 +112,7 @@
                         :value="option.value"
                         v-model="formData[field.name]"
                         class="form-check-input me-2"
+                        @change="handleFieldInput(field)"
                       />
                       <span class="option-label flex-grow-1">{{ option.label }}</span>
                       <i v-if="(formData[field.name] || []).includes(option.value)" 
@@ -127,6 +131,7 @@
                     :true-value="field.trueValue ?? 1"
                     :false-value="field.falseValue ?? 0"
                     :disabled="field.disabled"
+                    @change="handleFieldInput(field)"
                   />
                 </div>
 
@@ -150,7 +155,12 @@
                       <label class="form-label">
                         {{ field.orderLabel || t('common.order') }}
                       </label>
-                      <select class="form-select" v-model="formData[field.name][index].order" @change="formData[field.name][index].items = []">
+                      <select
+                        class="form-select"
+                        v-model="formData[field.name][index].order"
+                        @change="handleOrderRowChange(field, index)"
+                        @blur="handleFieldBlur(field)"
+                      >
                         <option value="" disabled>{{ t('common.selectOrder') }}</option>
                         <option v-for="option in getOrderOptionsForField(field)" :key="option.value" :value="option.value">
                           {{ option.label }}
@@ -179,6 +189,7 @@
                             :value="option.value"
                             v-model="formData[field.name][index].items"
                             class="form-check-input me-2"
+                            @change="handleFieldInput(field)"
                           />
                           <span>{{ option.label }}</span>
                         </label>
@@ -218,6 +229,8 @@
                         class="form-control"
                         v-model="formData[field.name][index].name"
                         :placeholder="field.branchLabel || t('company.form.branchName')"
+                        @input="handleFieldInput(field)"
+                        @blur="handleFieldBlur(field)"
                       />
                       <small
                         v-if="formData[field.name][index].latitude && formData[field.name][index].longitude"
@@ -255,8 +268,8 @@
                 </div>
 
                 <!-- Error Message -->
-                <small v-if="errors[field.name]" class="text-danger">
-                  {{ errors[field.name] }}
+                <small v-if="getFieldError(field)" class="text-danger">
+                  {{ getFieldError(field) }}
                 </small>
                 </template>
               </div>
@@ -326,6 +339,7 @@ const props = defineProps({
   imageUploadLabel: { type: String, default: "" },
   imageRequired: { type: Boolean, default: false },
   initialImage: { type: String, default: "" },
+  serverErrors: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(["close", "submit"]);
@@ -334,6 +348,7 @@ const { t } = useI18n();
 
 const formData = reactive({});
 const errors = reactive({});
+const serverFieldErrors = reactive({});
 const isSubmitting = ref(false);
 const imagePreview = ref(null);
 const imageFile = ref(null);
@@ -418,6 +433,26 @@ let mapMarkerSource = null;
 let mapMarkerFeature = null;
 let mapListenersAttached = false;
 
+const getValidationConfig = (field) => {
+  if (!field || !field.validation || typeof field.validation !== "object") {
+    return {};
+  }
+  return field.validation;
+};
+
+const isEmptyValue = (field, value) => {
+  if (field?.type === "multiselect") {
+    return !Array.isArray(value) || value.length === 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "number") return Number.isNaN(value);
+  return false;
+};
+
 const normalizeSelectValue = (value) => {
   if (Array.isArray(value)) {
     const first = value[0];
@@ -481,7 +516,54 @@ const resolveFieldConfig = (field) => {
   const resolvedColClass = resolveFieldProp(field, "colClass");
   if (resolvedColClass !== undefined) resolved.colClass = resolvedColClass;
 
+  const resolvedValidation = resolveFieldProp(field, "validation");
+  if (resolvedValidation !== undefined) resolved.validation = resolvedValidation;
+
   return resolved;
+};
+
+const setServerErrors = (payload) => {
+  Object.keys(serverFieldErrors).forEach((key) => {
+    delete serverFieldErrors[key];
+  });
+
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+
+  Object.entries(payload).forEach(([field, message]) => {
+    if (!message) return;
+    if (Array.isArray(message)) {
+      const firstMessage = message.find((entry) => entry);
+      if (firstMessage) {
+        serverFieldErrors[field] = String(firstMessage);
+      }
+      return;
+    }
+    serverFieldErrors[field] = String(message);
+  });
+};
+
+const clearServerError = (fieldName) => {
+  if (!fieldName) return;
+  if (serverFieldErrors[fieldName]) {
+    delete serverFieldErrors[fieldName];
+  }
+};
+
+const getFieldError = (field) => {
+  if (!field || !field.name) return "";
+  return errors[field.name] || serverFieldErrors[field.name] || "";
+};
+
+const clearAllErrors = () => {
+  Object.keys(errors).forEach((key) => {
+    errors[key] = "";
+  });
+  Object.keys(serverFieldErrors).forEach((key) => {
+    delete serverFieldErrors[key];
+  });
+  imageError.value = "";
 };
 
 const renderFields = computed(() =>
@@ -496,6 +578,8 @@ const renderFields = computed(() =>
 // Initialize form
 const initializeForm = () => {
   if (!props.fields || props.fields.length === 0) return;
+
+  clearAllErrors();
 
   props.fields.forEach((field) => {
     if (field && field.name) {
@@ -577,7 +661,7 @@ const resetForm = () => {
 
   imagePreview.value = null;
   imageFile.value = null;
-  imageError.value = "";
+  clearAllErrors();
   if (fileInput.value) {
     fileInput.value.value = "";
   }
@@ -816,16 +900,125 @@ const triggerFileInput = () => {
   }
 };
 
+const validateField = (field) => {
+  if (!field || !field.name) return true;
+  const value = formData[field.name];
+  const validation = getValidationConfig(field);
+
+  errors[field.name] = "";
+
+  if (field.hidden) {
+    return true;
+  }
+
+  if (field.type === "orderRows" && Array.isArray(value)) {
+    const isRequired = field.required || validation.required;
+    if (isRequired) {
+      const hasInvalid = value.some(
+        (row) =>
+          !row.order ||
+          !row.items ||
+          (Array.isArray(row.items) && row.items.length === 0)
+      );
+      if (hasInvalid) {
+        errors[field.name] = t("common.validation.orderRowRequired");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (field.type === "branchRows" && Array.isArray(value)) {
+    const isRequired = field.required || validation.required;
+    if (isRequired) {
+      const hasEmptyBranch = value.some(
+        (row) => !row.name || row.name.trim() === ""
+      );
+      if (hasEmptyBranch) {
+        errors[field.name] = t("common.validation.branchNameRequired");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const isRequired = field.required || validation.required;
+  if (isRequired && isEmptyValue(field, value)) {
+    errors[field.name] = validation.message
+      ? validation.message
+      : t("common.validation.requiredField", { field: field.label });
+    return false;
+  }
+
+  if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    errors[field.name] = t("common.validation.invalidEmail");
+    return false;
+  }
+
+  const minLength = validation.minLength ?? field.minlength;
+  if (minLength && value && value.length < minLength) {
+    errors[field.name] = t("common.validation.minLength", { min: minLength });
+    return false;
+  }
+
+  if (validation.min !== undefined || validation.max !== undefined) {
+    const numericValue =
+      value === "" || value === null || value === undefined
+        ? Number.NaN
+        : Number(value);
+    if (Number.isFinite(numericValue)) {
+      if (validation.min !== undefined && numericValue < validation.min) {
+        errors[field.name] = validation.message
+          ? validation.message
+          : t("common.validation.requiredField", { field: field.label });
+        return false;
+      }
+      if (validation.max !== undefined && numericValue > validation.max) {
+        errors[field.name] = validation.message
+          ? validation.message
+          : t("common.validation.requiredField", { field: field.label });
+        return false;
+      }
+    }
+  }
+
+  if (field.validate && typeof field.validate === "function") {
+    const validationError = field.validate(value, formData);
+    if (validationError) {
+      errors[field.name] = validationError;
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const handleFieldBlur = (field) => {
+  if (!field || !field.name) return;
+  validateField(field);
+};
+
+const handleFieldInput = (field) => {
+  if (!field || !field.name) return;
+  clearServerError(field.name);
+  if (errors[field.name]) {
+    validateField(field);
+  }
+};
+
+const handleOrderRowChange = (field, index) => {
+  if (!field || !field.name) return;
+  if (!Array.isArray(formData[field.name])) return;
+  if (formData[field.name][index]) {
+    formData[field.name][index].items = [];
+  }
+  handleFieldInput(field);
+};
+
 // Validate form
 const validateForm = () => {
   let isValid = true;
   if (!props.fields || props.fields.length === 0) return false;
-
-  renderFields.value.forEach((field) => {
-    if (field && field.name) {
-      errors[field.name] = "";
-    }
-  });
 
   if (props.showImageUpload && props.imageRequired && !imageFile.value && !imagePreview.value) {
     imageError.value = t("common.validation.imageRequired");
@@ -833,69 +1026,8 @@ const validateForm = () => {
   }
 
   renderFields.value.forEach((field) => {
-    if (!field || !field.name) return;
-    const value = formData[field.name];
-
-    if (field.hidden) {
-      return;
-    }
-
-    if (field.type === "orderRows" && Array.isArray(value)) {
-      if (field.required) {
-        value.forEach((row) => {
-          if (!row.order || !row.items || (Array.isArray(row.items) && row.items.length === 0)) {
-            errors[field.name] = t("common.validation.orderRowRequired");
-            isValid = false;
-          }
-        });
-      }
-      return;
-    }
-
-    if (field.type === "branchRows" && Array.isArray(value)) {
-      if (field.required) {
-        const hasEmptyBranch = value.some(row => !row.name || row.name.trim() === "");
-        if (hasEmptyBranch) {
-          errors[field.name] = t("common.validation.branchNameRequired");
-          isValid = false;
-        }
-      }
-      return;
-    }
-
-    if (field.required) {
-      // For multiselect, check if array is empty
-      if (field.type === 'multiselect' && (!value || value.length === 0)) {
-        errors[field.name] = t("common.validation.requiredField", { field: field.label });
-        isValid = false;
-        return;
-      }
-      // For other fields, check if value is falsy
-      if (field.type !== 'multiselect' && !value) {
-        errors[field.name] = t("common.validation.requiredField", { field: field.label });
-        isValid = false;
-        return;
-      }
-    }
-
-    if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      errors[field.name] = t("common.validation.invalidEmail");
+    if (!validateField(field)) {
       isValid = false;
-      return;
-    }
-
-    if (field.minlength && value && value.length < field.minlength) {
-      errors[field.name] = t("common.validation.minLength", { min: field.minlength });
-      isValid = false;
-      return;
-    }
-
-    if (field.validate && typeof field.validate === "function") {
-      const validationError = field.validate(value, formData);
-      if (validationError) {
-        errors[field.name] = validationError;
-        isValid = false;
-      }
     }
   });
 
@@ -918,9 +1050,6 @@ const handleSubmit = async () => {
     }
 
     emit("submit", submitData);
-
-    resetForm();
-    closeModal();
   } catch (error) {
     console.error("Error submitting form:", error);
   } finally {
@@ -956,7 +1085,7 @@ watch(
         }
       });
     } else {
-      closeMapPicker();
+      resetForm();
       // Remove styles in one operation
       requestAnimationFrame(() => {
         document.body.style.overflow = "";
@@ -973,6 +1102,14 @@ watch(
     if (props.isOpen) {
       initializeForm();
     }
+  },
+  { deep: true }
+);
+
+watch(
+  () => props.serverErrors,
+  (newErrors) => {
+    setServerErrors(newErrors);
   },
   { deep: true }
 );

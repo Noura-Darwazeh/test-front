@@ -10,7 +10,7 @@ export default {
     signedInAs: "Signed in as",
     confirmLogout: "Are you sure you want to logout?",
     switchToUser: "Log in",
-    returnToAdmin: "Return"
+    returnToAdmin: "Return",
   },
 
   login: {
@@ -167,6 +167,10 @@ export default {
     restoreSuccess: "Driver restored successfully!",
     bulkDeleteSuccess: "{count} drivers deleted successfully!",
     bulkRestoreSuccess: "{count} drivers restored successfully!",
+    permanentDeleteSuccess: "Driver permanently deleted",
+    bulkDeleteSuccess: "{count} driver(s) deleted successfully",
+    bulkPermanentDeleteSuccess: "{count} driver(s) permanently deleted",
+    bulkRestoreSuccess: "{count} driver(s) restored successfully",
     // Actions
     searchPlaceholder: "Search drivers...",
     search: "Search",
@@ -262,9 +266,10 @@ export default {
       imageRequired: "Profile picture is required",
       imageSize: "Image size must not exceed 200 KB",
       imageFormat: "Image must be in JPEG, JPG, or PNG format",
-      usernameAlreadyTaken: "This username has already been taken. Please choose another username.",
-      phoneAlreadyInCompany: "This user is already registered as a driver in this company."
-
+      usernameAlreadyTaken:
+        "This username has already been taken. Please choose another username.",
+      phoneAlreadyInCompany:
+        "This user is already registered as a driver in this company.",
     },
 
     // Trashed Items
@@ -1009,6 +1014,8 @@ export default {
       package: "Package",
       case: "Case",
       price: "Price",
+      deliveryPrice: "Delivery Price",
+      totalPrice: "Total Price",
       currency: "Currency",
       status: "Status",
       createdAt: "Created At",
@@ -1092,9 +1099,11 @@ export default {
       modeDelivery: "Delivery",
       modeReturn: "Return",
       modeExchange: "Exchange",
-      modeDeliveryDesc: "Create a new delivery order to send items to a customer",
+      modeDeliveryDesc:
+        "Create a new delivery order to send items to a customer",
       modeReturnDesc: "Create a return order to collect items from a customer",
-      modeExchangeDesc: "Exchange an existing order - customer returns items and receives new ones",
+      modeExchangeDesc:
+        "Exchange an existing order - customer returns items and receives new ones",
       // Steps
       step1: "Basic Info",
       step2: "Pricing & Details",
@@ -1115,7 +1124,8 @@ export default {
       newDeliveryPrice: "New Delivery Price",
       originalOrderPrice: "Original Order Price (Return)",
       exchangeItem: "Exchange Item",
-      exchangeItemsInfo: "Add items that will be delivered to the customer and items that will be returned",
+      exchangeItemsInfo:
+        "Add items that will be delivered to the customer and items that will be returned",
       noDeliveryItems: "No delivery items added",
       noReturnItems: "No return items added",
       // Items
@@ -1130,7 +1140,8 @@ export default {
       noItems: "No items added yet. Click 'Add Item' to start.",
       noNestedItems: "No nested items added",
       fromParentOrder: "From Parent",
-      returnItemsFromParent: "These items are from the parent order. You can remove items or adjust quantities.",
+      returnItemsFromParent:
+        "These items are from the parent order. You can remove items or adjust quantities.",
       itemName: "Item Name",
       itemQuantity: "Quantity",
       itemDescription: "Description",
@@ -1163,8 +1174,10 @@ export default {
       sameBranchNotAllowed:
         "Order item {index} must use different customer and delivery branches.",
       multiGroupIdRequired: "Multi-package item {index} requires a group ID.",
-      fromCompanyRequired: "Order item {index} requires a from company for Fast case.",
-      toCompanyRequired: "Order item {index} requires a to company for Part case.",
+      fromCompanyRequired:
+        "Order item {index} requires a from company for Fast case.",
+      toCompanyRequired:
+        "Order item {index} requires a to company for Part case.",
     },
 
     // Trashed Items
@@ -1224,10 +1237,42 @@ export default {
     },
   },
 
+  statistics: {
+    title: "Statistics",
+    goToOrder: "Go to Order",
+    tabs: {
+      orders: "Orders",
+      drivers: "Drivers",
+      customers: "Customers",
+      lineWork: "Line Work",
+      lines: "Lines",
+    },
+    labels: {
+      totalCustomers: "Total Customers",
+      bestCustomers: "Best Customers",
+      totalLineWorks: "Total Line Works",
+      lineWorkDrivers: "Line Work Drivers",
+      lineWorkName: "Line Work",
+      driversCount: "Drivers",
+      totalLines: "Total Lines",
+      mostUsedLines: "Most Used Lines",
+      linesByRegion: "Lines by Region",
+      regionName: "Region",
+      linesCount: "Lines",
+      totalDrivers: "Total Drivers",
+      availableDrivers: "Available Drivers",
+      busyDrivers: "Busy Drivers",
+      holidayDrivers: "In Holiday",
+      deliveryTime: "Delivery Time",
+      minimumHours: "Minimum Hours",
+      maximumHours: "Maximum Hours",
+    },
+  },
+
   // Order Status Translation Keys
   orderStatus: {
     pending: "Pending",
-    in_progress: "In Progress",
+    inprocess: "In Progress",
     done: "Completed",
     failed: "Failed",
   },
@@ -1629,7 +1674,7 @@ export default {
       nameEnglish: "Name (English)",
       nameArabic: "Name (Arabic)",
       symbol: "Symbol",
-      status: "Status"
+      status: "Status",
     },
     // Validation Messages
     validation: {
@@ -1645,7 +1690,6 @@ export default {
       edit: "Edit",
       delete: "Delete",
       details: "Details",
-
     },
 
     // Bulk Actions
@@ -1706,7 +1750,8 @@ export default {
     expand: "Expand",
     collapse: "Collapse",
     saveChanges: "Save Changes",
-    confirmCancel: "Are you sure you want to cancel? All unsaved changes will be lost.",
+    confirmCancel:
+      "Are you sure you want to cancel? All unsaved changes will be lost.",
     deleteConfirmMessage: "Are you sure you want to delete this item?",
     ok: "OK",
     success: "Success!",
@@ -1719,8 +1764,7 @@ export default {
       invalidImageFile: "Please select a valid image file",
       imageMaxSize: "Image size should not exceed {size}MB",
       orderRowRequired: "Order and items are required",
-      branchNameRequired: "Branch name is required"
-
+      branchNameRequired: "Branch name is required",
     },
 
     // Bulk action confirmation messages
@@ -1730,8 +1774,7 @@ export default {
     bulkRestoreConfirmTitle: "Confirm Bulk Restore",
     bulkRestoreConfirmMessage:
       "Are you sure you want to restore {count} {entity}?",
-    bulkDeleteConfirm:
-      "Are you sure you want to delete {count} {entity}?",
+    bulkDeleteConfirm: "Are you sure you want to delete {count} {entity}?",
     bulkPermanentDeleteConfirm:
       "Are you sure you want to permanently delete {count} {entity}?",
     bulkRestoreConfirm:
@@ -1882,23 +1925,24 @@ export default {
     markAsPaid: "Mark as Paid",
     createdAt: "Created At",
     updatedAt: "Updated At",
-    makeInvoice: 'Make Invoice',
-    createInvoiceTitle: 'Create Invoice',
-    createInvoiceConfirm: 'Are you sure you want to create an invoice for {count} collections?',
-    invoiceCreatedSuccess: 'Invoice created successfully!',
+    makeInvoice: "Make Invoice",
+    createInvoiceTitle: "Create Invoice",
+    createInvoiceConfirm:
+      "Are you sure you want to create an invoice for {count} collections?",
+    invoiceCreatedSuccess: "Invoice created successfully!",
 
     form: {
       status: "Status",
       note: "Note",
-      notePlaceholder: "Enter note..."
+      notePlaceholder: "Enter note...",
     },
     entitySingular: "collection",
-    entityPlural: "collections"
+    entityPlural: "collections",
   },
   collectionStatus: {
     pending: "Pending",
     completed: "Completed",
-    failed: "Failed"
+    failed: "Failed",
   },
 
   roles: {
@@ -1959,7 +2003,7 @@ export default {
   },
   invoiceStatus: {
     pending: "Pending",
-    completed: "Completed"
+    completed: "Completed",
   },
   // Permissions Management
   permissions: {

@@ -1,8 +1,7 @@
 <template>
     <div class="user-page-container bg-light">
         <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches"
-            :groupKey="isSuperAdmin ? 'company_name' : null" v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('branch.filterByCompany')" translationKey="" :columns="displayColumns"
+            :columns="displayColumns"
             v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('branch.addNew')"
             @add-click="openAddModal" @refresh-click="handleRefresh" />
 
@@ -61,17 +60,14 @@
                                 @delete="handlePermanentDeleteBranch" />
                         </template>
                     </DataTable>
-                    <div class="px-3 pt-1 pb-2 bg-light">
-                        <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage" :totalPages="currentPagination.lastPage"
-                            :currentPage="currentPage" @update:currentPage="(page) => currentPage = page" />
-                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit branch -->
         <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('branch.edit') : $t('branch.addNew')"
-            :fields="branchFields" :showImageUpload="false" @close="closeFormModal" @submit="handleSubmitbranch" />
+            :fields="branchFields" :showImageUpload="false" :serverErrors="formErrors"
+            @close="closeFormModal" @submit="handleSubmitbranch" />
 
         <!-- Details Modal -->
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('branch.details')" :data="selectedbranch"
@@ -87,17 +83,17 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
-import { filterData, filterByGroups } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useBranchesManagementStore } from "../stores/branchesStore";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const branchesStore = useBranchesManagementStore();
@@ -107,18 +103,12 @@ const { companyId, companyOption, authStore } = useAuthDefaults();
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
-const selectedGroups = ref([]);
-const currentPage = ref(1);
-const currentPagination = computed(() => {
-    return activeTab.value === 'active'
-        ? branchesStore.branchesPagination
-        : branchesStore.trashedPagination;
-});
-const itemsPerPage = computed(() => currentPagination.value.perPage || 10);
+const itemsPerPage = 1000;
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedbranch = ref({});
+const formErrors = ref({});
 const activeTab = ref('active');
 const selectedRows = ref([]);
 
@@ -134,24 +124,13 @@ const trashedbranches = computed(() => branchesStore.trashedBranches);
 // Load branches on component mount
 onMounted(async () => {
     try {
-        await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage.value });
+        await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage });
     } catch (error) {
         console.error("Failed to load data:", error);
     }
 });
 
 
-watch(currentPage, async (newPage) => {
-    try {
-        if (activeTab.value === 'trashed') {
-            await branchesStore.fetchTrashedBranches({ page: newPage, perPage: itemsPerPage.value });
-        } else {
-            await branchesStore.fetchBranches({ page: newPage, perPage: itemsPerPage.value });
-        }
-    } catch (error) {
-        console.error("Failed to load page:", error);
-    }
-});
 // Branch Form Fields 
 const branchFields = computed(() => [
     {
@@ -296,15 +275,9 @@ const currentLoading = computed(() => {
     return activeTab.value === 'active' ? branchesStore.loading : branchesStore.trashedLoading;
 });
 
-// ✅ Filter current data - only apply group filter for SuperAdmin
+// ✅ Filter current data
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-
-    // Only apply company filter for SuperAdmin
-    if (activeTab.value === 'active' && isSuperAdmin.value) {
-        result = filterByGroups(result, selectedGroups.value, "company_name");
-    }
-
     result = filterData(result, searchText.value);
     return result;
 });
@@ -313,12 +286,20 @@ const paginatedData = computed(() => {
     return currentFilteredData.value;
 });
 
-watch([searchText, selectedGroups], () => {
-    currentPage.value = 1;
-});
+
+const applyServerErrors = (error) => {
+    const normalized = normalizeServerErrors(error);
+    formErrors.value = normalized;
+    return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+    formErrors.value = {};
+};
 
 // Add Modal
 const openAddModal = () => {
+    clearFormErrors();
     isEditMode.value = false;
     selectedbranch.value = {};
     isFormModalOpen.value = true;
@@ -326,6 +307,7 @@ const openAddModal = () => {
 
 // Edit Modal
 const openEditModal = (branch) => {
+    clearFormErrors();
     isEditMode.value = true;
     selectedbranch.value = { ...branch };
     isFormModalOpen.value = true;
@@ -341,6 +323,7 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedbranch.value = {};
+    clearFormErrors();
 };
 
 const closeDetailsModal = () => {
@@ -351,17 +334,16 @@ const closeDetailsModal = () => {
 // Tab switching function
 const switchTab = async (tab) => {
     activeTab.value = tab;
-    currentPage.value = 1;
     selectedRows.value = [];
     if (tab === 'trashed') {
         try {
-            await branchesStore.fetchTrashedBranches({ page: 1, perPage: itemsPerPage.value });
+            await branchesStore.fetchTrashedBranches({ page: 1, perPage: itemsPerPage });
         } catch (error) {
             console.error("❌ Failed to fetch trashed branches:", error);
         }
     } else {
         try {
-            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage.value });
+            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage });
         } catch (error) {
             console.error("❌ Failed to fetch branches:", error);
         }
@@ -372,9 +354,9 @@ const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         if (activeTab.value === 'trashed') {
-            await branchesStore.fetchTrashedBranches({ page: currentPage.value, perPage: itemsPerPage.value });
+            await branchesStore.fetchTrashedBranches({ page: 1, perPage: itemsPerPage });
         } else {
-            await branchesStore.fetchBranches({ page: currentPage.value, perPage: itemsPerPage.value });
+            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage });
         }
     } catch (error) {
         console.error("❌ Failed to refresh branches:", error);
@@ -484,6 +466,9 @@ const handleSubmitbranch = async (branchData) => {
         closeFormModal();
     } catch (error) {
         console.error('❌ Error submitting branch:', error);
+        if (applyServerErrors(error)) {
+            return;
+        }
         alert(error.message || 'Failed to save branch');
     }
 };

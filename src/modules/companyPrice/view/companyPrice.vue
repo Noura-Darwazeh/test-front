@@ -5,10 +5,6 @@
       v-model="searchText"
       :searchPlaceholder="$t('companyPrice.searchPlaceholder')"
       :data="companyPrices"
-      :groupKey="'itemType'"
-      v-model:groupModelValue="selectedGroups"
-      :groupLabel="$t('companyPrice.filterByItemType')"
-      :translationKey="'companyPriceItemTypes'"
       :columns="companyPriceColumns"
       v-model:visibleColumns="visibleColumns"
       :showAddButton="true"
@@ -91,14 +87,6 @@
               />
             </template>
           </DataTable>
-          <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination
-              :totalItems="currentFilteredData.length"
-              :itemsPerPage="itemsPerPage"
-              :currentPage="currentPage"
-              @update:currentPage="(page) => (currentPage = page)"
-            />
-          </div>
         </div>
       </div>
     </div>
@@ -109,6 +97,7 @@
       :title="isEditMode ? $t('companyPrice.edit') : $t('companyPrice.addNew')"
       :fields="companyPriceFieldsWithDefaults"
       :showImageUpload="false"
+      :serverErrors="formErrors"
       @close="closeModal"
       @submit="handleAddCompanyPrice"
     />
@@ -135,20 +124,20 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
-import Pagination from "../../../components/shared/Pagination.vue";
 import CompanyPriceHeader from "../components/companyPriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
-import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
+import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useCompanyPriceStore } from "../store/companyPriceStore.js";
+import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
@@ -162,13 +151,11 @@ const formatPrice = (value, symbol = "$") => {
 };
 
 const searchText = ref("");
-const selectedGroups = ref([]);
-const currentPage = ref(1);
-const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
 const selectedPrice = ref({});
+const formErrors = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
@@ -276,19 +263,12 @@ const currentLoading = computed(() => {
 
 const currentFilteredData = computed(() => {
   let result = currentData.value;
-  if (activeTab.value === "active") {
-    result = filterByGroups(result, selectedGroups.value, "itemType");
-  }
   result = filterData(result, searchText.value);
   return result;
 });
 
 const paginatedData = computed(() => {
-  return paginateData(
-    currentFilteredData.value,
-    currentPage.value,
-    itemsPerPage.value
-  );
+  return currentFilteredData.value;
 });
 
 const bulkActions = computed(() => {
@@ -337,8 +317,19 @@ const bulkConfirmMessage = computed(() => {
   return "";
 });
 
+const applyServerErrors = (error) => {
+  const normalized = normalizeServerErrors(error);
+  formErrors.value = normalized;
+  return Object.keys(normalized).length > 0;
+};
+
+const clearFormErrors = () => {
+  formErrors.value = {};
+};
+
 // Action methods
 const openModal = () => {
+  clearFormErrors();
   isEditMode.value = false;
   selectedPrice.value = {};
   isModalOpen.value = true;
@@ -348,11 +339,11 @@ const closeModal = () => {
   isModalOpen.value = false;
   isEditMode.value = false;
   selectedPrice.value = {};
+  clearFormErrors();
 };
 
 const switchTab = async (tab) => {
   activeTab.value = tab;
-  currentPage.value = 1;
   selectedRows.value = [];
 
   if (tab === "trashed") {
@@ -416,6 +407,9 @@ const handleAddCompanyPrice = async (priceData) => {
     closeModal();
   } catch (error) {
     console.error("Failed to submit company price:", error);
+    if (applyServerErrors(error)) {
+      return;
+    }
   }
 };
 
@@ -531,9 +525,6 @@ const detailsFields = computed(() => [
   },
 ]);
 
-watch([searchText, selectedGroups], () => {
-  currentPage.value = 1;
-});
 </script>
 
 <style scoped>
