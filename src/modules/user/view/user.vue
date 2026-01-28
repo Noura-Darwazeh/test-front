@@ -98,10 +98,11 @@
                 :deleteLabel="$t('user.trashed.delete')"
                 :showEdit="false"
                 :showDetails="false"
+                :showDelete="false"
                 :showRestore="true"
                 :confirmDelete="true"
                 @restore="handleRestoreUser"
-                @delete="handlePermanentDeleteUser"
+                
               />
             </template>
           </DataTable>
@@ -601,11 +602,7 @@ const bulkActions = computed(() => {
       label: t("user.bulkRestore"),
       bgColor: "var(--color-success)",
     },
-    {
-      id: "permanentDelete",
-      label: t("common.permanentDelete"),
-      bgColor: "var(--color-danger)",
-    },
+ 
   ];
 });
 
@@ -892,17 +889,6 @@ const handleDeleteUser = (user) => {
   isDeleteModalOpen.value = true;
 };
 
-const handlePermanentDeleteUser = async (user) => {
-  try {
-    await usersStore.deleteUser(user.id, true);
-    console.log("User permanently deleted successfully!");
-    showSuccess(t('user.permanentDeleteSuccess'));
-  } catch (error) {
-    console.error("Failed to permanently delete user:", error);
-    alert(error.message || t("common.saveFailed"));
-  }
-};
-
 const confirmDelete = async () => {
   try {
     if (userToDelete.value) {
@@ -945,18 +931,7 @@ const executeBulkAction = async () => {
       await nextTick();
       showSuccess(t('user.bulkDeleteSuccess', { count }));
       
-    } else if (pendingBulkAction.value === "permanentDelete") {
-      await usersStore.bulkDeleteUsers(selectedRows.value, true);
-      console.log(`✅ ${count} users permanently deleted successfully!`);
-      
-      isBulkConfirmOpen.value = false;
-      pendingBulkAction.value = null;
-      selectedRows.value = [];
-      
-      await nextTick();
-      showSuccess(t('user.bulkDeleteSuccess', { count }));
-      
-    } else if (pendingBulkAction.value === "restore") {
+    }  else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
       console.log(`✅ ${count} users restored successfully!`);
       
