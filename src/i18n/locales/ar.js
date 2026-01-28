@@ -1917,6 +1917,7 @@
     poweredBy: "بواسطة",
     noCollections: "لا يوجد تحصيلات",
     markAsPaid: "مدفوع",
+    to:"الى",
 
     invoiceStatus: {
       pending: "قيد الانتظار",

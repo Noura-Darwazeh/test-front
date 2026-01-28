@@ -1946,7 +1946,8 @@ export default {
     totalPrice: "Total Price",
     deliveryPrice: "Delivery Price",
     poweredBy: "Powered by",
-    markAsPaid: "Paid"
+    markAsPaid: "Paid",
+    to:"To"
   },
   invoiceStatus: {
     pending: "Pending",

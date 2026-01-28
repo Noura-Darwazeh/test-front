@@ -372,102 +372,33 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
   }
 };
 
-// ✅ دالة تحميل الصورة وتحويلها لـ Base64
-const loadImageAsBase64 = async (imagePath) => {
-  if (!imagePath || imagePath.trim() === '') {
-    console.log("⚠️ Empty image path provided");
-    return null;
-  }
-
-  try {
-    const imageUrl = imagePath.startsWith('http')
-      ? imagePath
-      : `${API_BASE_URL}${imagePath}`;
-
-    console.log("📥 Attempting to fetch image:", imageUrl);
-
-    const response = await fetch(imageUrl, {
-      method: 'GET',
-      mode: 'cors',
-      headers: { 'Accept': 'image/*' }
-    });
-
-    if (!response.ok) {
-      console.warn(`⚠️ Image fetch failed: HTTP ${response.status} ${response.statusText}`);
-      console.warn(`📍 Failed URL: ${imageUrl}`);
-      return null;
-    }
-
-    const blob = await response.blob();
-    console.log(`✅ Image blob loaded: ${blob.size} bytes, type: ${blob.type}`);
-
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        console.log("✅ Image converted to Base64 successfully");
-        resolve(reader.result);
-      };
-      reader.onerror = () => {
-        console.error("❌ FileReader failed to convert blob to Base64");
-        resolve(null);
-      };
-      reader.readAsDataURL(blob);
-    });
-
-  } catch (error) {
-    console.error("❌ Image loading error:", error.message);
-    console.error("📍 Path was:", imagePath);
-    return null;
-  }
-};
-
-// ✅ دالة تصدير الفاتورة كـ PDF
 const exportInvoicePDF = async (invoice) => {
   exportingInvoiceId.value = invoice.id;
 
   try {
     console.log("📥 Fetching invoice data...");
     const response = await apiServices.getEntityById('invoices', invoice.id);
-
-    // ✅ اطبعي الـ response كامل
-    console.log("🔍 RAW Response:", response);
-    console.log("🔍 Response.data:", response.data);
-    console.log("🔍 Response.data.data:", response.data.data);
-    console.log("🔍 Delivery company from data.data:", response.data.data?.delivery_company);
-
+    
     const fullInvoice = response.data.data;
 
-    console.log("📦 Full invoice data:", fullInvoice);
-    console.log("🏢 Delivery company:", fullInvoice.delivery_company);
-    console.log("🖼️ Logo path:", fullInvoice.delivery_company?.logo);
+    // ✅ جلب الـ Logos
+    const deliveryLogo = fullInvoice.delivery_company?.logo;
+    const clientLogo = fullInvoice.client_company?.logo;
 
-    // ✅ جربي تطبع كل الـ keys
-    if (fullInvoice.delivery_company) {
-      console.log("🔑 Delivery company keys:", Object.keys(fullInvoice.delivery_company));
+    let deliveryLogoBase64 = null;
+    if (deliveryLogo && deliveryLogo.trim() !== '' && deliveryLogo !== 'data:image/jpg;base64,') {
+      deliveryLogoBase64 = deliveryLogo;
+      console.log("✅ Delivery logo loaded");
     }
 
-    const companyLogo = fullInvoice.delivery_company?.logo;
+    let clientLogoBase64 = null;
+    if (clientLogo && clientLogo.trim() !== '' && clientLogo !== 'data:image/jpg;base64,') {
+      clientLogoBase64 = clientLogo;
+      console.log("✅ Client logo loaded");
+    }
+
     const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
-
-    console.log("🎯 Final logo value:", companyLogo);
-    console.log("🎯 Logo type:", typeof companyLogo);
-    console.log("🎯 Is logo null?", companyLogo === null);
-    console.log("🎯 Is logo undefined?", companyLogo === undefined);
-
-    let companyLogoBase64 = null;
-
-    if (companyLogo && companyLogo.trim() !== '') {
-      console.log("🔄 Loading logo from:", companyLogo);
-      companyLogoBase64 = await loadImageAsBase64(companyLogo);
-
-      if (companyLogoBase64) {
-        console.log("✅ Logo loaded successfully");
-      } else {
-        console.log("⚠️ Logo loading failed, will use company name");
-      }
-    } else {
-      console.log("ℹ️ No logo path provided, using company name instead");
-    }
+    const clientName = fullInvoice.client_company?.name || 'Client';
     const direction = isRTL.value ? 'rtl' : 'ltr';
     const textAlign = isRTL.value ? 'right' : 'left';
     const borderSide = isRTL.value ? 'border-right' : 'border-left';
@@ -491,68 +422,91 @@ const exportInvoicePDF = async (invoice) => {
 
         collectionsRows += `
           <tr style="border-bottom: 1px solid #DEE2E6;">
-            <td style="padding: 14px; text-align: center; background: #F8F9FA; font-weight: 600; color: #495057;">${index + 1}</td>
-            <td style="padding: 14px; text-align: ${textAlign}; font-weight: 500; color: #2C3E50;">${collection.order_code || 'N/A'}</td>
-            <td style="padding: 14px; text-align: ${textAlign}; font-weight: 600; color: #27AE60;">${collection.currency || '₪'} ${orderPrice.toFixed(2)}</td>
-            <td style="padding: 14px; text-align: ${textAlign}; font-weight: 600; color: #E74C3C;">${collection.currency || '₪'} ${deliveryPrice.toFixed(2)}</td>
+            <td style="padding: 10px; text-align: center; background: #F8F9FA; font-weight: 600; color: #495057; font-size: 12px;">${index + 1}</td>
+            <td style="padding: 10px; text-align: ${textAlign}; font-weight: 500; color: #2C3E50; font-size: 12px;">${collection.order_code || 'N/A'}</td>
+            <td style="padding: 10px; text-align: ${textAlign}; font-weight: 600; color: #27AE60; font-size: 12px;">${collection.currency || '₪'} ${orderPrice.toFixed(2)}</td>
+            <td style="padding: 10px; text-align: ${textAlign}; font-weight: 600; color: #E74C3C; font-size: 12px;">${collection.currency || '₪'} ${deliveryPrice.toFixed(2)}</td>
           </tr>
         `;
       });
     } else {
-      collectionsRows = `<tr><td colspan="4" style="padding: 30px; text-align: center; color: #95A5A6; font-style: italic;">${t('invoice.noCollections') || 'No collections available'}</td></tr>`;
+      collectionsRows = `<tr><td colspan="4" style="padding: 25px; text-align: center; color: #95A5A6; font-style: italic; font-size: 12px;">${t('invoice.noCollections') || 'No collections available'}</td></tr>`;
     }
 
     const element = document.createElement('div');
     element.innerHTML = `
-      <div dir="${direction}" style="font-family: 'Arial', 'Tahoma', sans-serif; padding: 40px; max-width: 900px; margin: 0 auto; color: #2C3E50; background: white;">
-        <div style="margin-bottom: 40px; border-bottom: 4px solid #4A90E2; padding-bottom: 20px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            ${companyLogoBase64
-        ? `<img src="${companyLogoBase64}" alt="Company Logo" style="max-width: 180px; max-height: 100px; object-fit: contain;" />`
-        : `<h1 style="color: #4A90E2; font-size: 42px; margin: 0; font-weight: bold; text-transform: uppercase; letter-spacing: 3px;">${companyName}</h1>`
-      }
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px;">
-            <div style="text-align: ${textAlign};">
-              <h2 style="color: #2C3E50; font-size: 24px; margin: 0 0 10px 0; font-weight: bold; text-transform: uppercase;">${t('invoice.title') || 'INVOICE'}</h2>
-              <p style="margin: 5px 0; font-size: 15px; color: #495057;"><strong style="color: #2C3E50;">${t('invoice.invoiceCode') || 'Invoice Code'}:</strong> <span style="color: #E74C3C; font-weight: bold; font-size: 16px;">${fullInvoice.invoice_code}</span></p>
-              <p style="margin: 5px 0; font-size: 14px; color: #6C757D;"><strong>${t('invoice.invoiceDate') || 'Date'}:</strong> ${formatDate(fullInvoice.created_at)}</p>
+      <div dir="${direction}" style="font-family: 'Arial', 'Tahoma', sans-serif; padding: 25px; max-width: 900px; margin: 0 auto; color: #2C3E50; background: white;">
+        
+        <!-- 🎨 BALANCED HEADER WITH TWO LOGOS -->
+        <div style="margin-bottom: 20px; border-bottom: 3px solid #4A90E2; padding-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            
+            <!-- 🏢 Delivery Company Logo -->
+            <div style="flex: 1; text-align: ${textAlign};">
+              ${deliveryLogoBase64
+                ? `<img src="${deliveryLogoBase64}" alt="Delivery Company" style="max-width: 120px; max-height: 60px; object-fit: contain;" />`
+                : `<div style="padding: 8px 12px; background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); border-radius: 6px; display: inline-block;">
+                     <h3 style="color: white; margin: 0; font-size: 15px; font-weight: bold;">${companyName}</h3>
+                   </div>`
+              }
+              <p style="margin: 4px 0 0 0; font-size: 10px; color: #6C757D; font-weight: 600;">${t('invoice.from') || 'FROM'}</p>
             </div>
+
+            <!-- 🏢 Client Company Logo -->
+            <div style="flex: 1; text-align: ${isRTL.value ? 'left' : 'right'};">
+              ${clientLogoBase64
+                ? `<img src="${clientLogoBase64}" alt="Client Company" style="max-width: 120px; max-height: 60px; object-fit: contain;" />`
+                : `<div style="padding: 8px 12px; background: linear-gradient(135deg, #27AE60 0%, #229954 100%); border-radius: 6px; display: inline-block;">
+                     <h3 style="color: white; margin: 0; font-size: 15px; font-weight: bold;">${clientName}</h3>
+                   </div>`
+              }
+              <p style="margin: 4px 0 0 0; font-size: 10px; color: #6C757D; font-weight: 600;">${t('invoice.to') || 'TO'}</p>
+            </div>
+          </div>
+
+          <!-- Invoice Title & Code -->
+          <div style="text-align: center; padding: 12px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px;">
+            <h1 style="color: white; font-size: 26px; margin: 0 0 6px 0; font-weight: bold; text-transform: uppercase;">${t('invoice.title') || 'INVOICE'}</h1>
+            <p style="margin: 0; font-size: 14px; color: #E8E8E8;"><strong>${t('invoice.invoiceCode') || '#'}:</strong> <span style="color: #FFD700; font-weight: bold; font-size: 15px;">${fullInvoice.invoice_code}</span></p>
+            <p style="margin: 3px 0 0 0; font-size: 12px; color: #E8E8E8;">${formatDate(fullInvoice.created_at)}</p>
           </div>
         </div>
 
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+        <!-- Collections Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
           <thead>
             <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-              <th style="padding: 16px; text-align: center; font-size: 14px; text-transform: uppercase; width: 10%;">#</th>
-              <th style="padding: 16px; text-align: ${textAlign}; font-size: 14px; text-transform: uppercase; width: 30%;">${t('invoice.orderCode') || 'Order Code'}</th>
-              <th style="padding: 16px; text-align: ${textAlign}; font-size: 14px; text-transform: uppercase; width: 30%;">${t('invoice.totalPrice') || 'Total Price'}</th>
-              <th style="padding: 16px; text-align: ${textAlign}; font-size: 14px; text-transform: uppercase; width: 30%;">${t('invoice.deliveryPrice') || 'Delivery Price'}</th>
+              <th style="padding: 12px; text-align: center; font-size: 12px; text-transform: uppercase; width: 8%;">#</th>
+              <th style="padding: 12px; text-align: ${textAlign}; font-size: 12px; text-transform: uppercase; width: 32%;">${t('invoice.orderCode') || 'Order Code'}</th>
+              <th style="padding: 12px; text-align: ${textAlign}; font-size: 12px; text-transform: uppercase; width: 30%;">${t('invoice.totalPrice') || 'Total Price'}</th>
+              <th style="padding: 12px; text-align: ${textAlign}; font-size: 12px; text-transform: uppercase; width: 30%;">${t('invoice.deliveryPrice') || 'Delivery Price'}</th>
             </tr>
           </thead>
           <tbody>${collectionsRows}</tbody>
         </table>
 
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
+        <!-- Invoice Details Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">
           <thead>
             <tr style="background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); color: white;">
-              <th style="padding: 16px; text-align: ${textAlign}; font-size: 16px; text-transform: uppercase;" colspan="2">${t('invoice.details') || 'Invoice Details'}</th>
+              <th style="padding: 12px; text-align: ${textAlign}; font-size: 13px; text-transform: uppercase;" colspan="2">${t('invoice.details') || 'Invoice Details'}</th>
             </tr>
           </thead>
           <tbody>
-            <tr style="border-bottom: 1px solid #DEE2E6; background: #F8F9FA;"><td style="padding: 14px 20px; font-weight: 600; color: #495057; width: 35%; ${borderSide}: 4px solid #4A90E2;">${t('invoice.deliveryCompany') || 'Delivery Company'}</td><td style="padding: 14px 20px; color: #2C3E50; font-weight: 500;">${fullInvoice.delivery_company?.name || 'N/A'}</td></tr>
-            <tr style="border-bottom: 1px solid #DEE2E6;"><td style="padding: 14px 20px; font-weight: 600; color: #495057; ${borderSide}: 4px solid #27AE60;">${t('invoice.clientCompany') || 'Client Company'}</td><td style="padding: 14px 20px; color: #2C3E50; font-weight: 500;">${fullInvoice.client_company?.name || 'N/A'}</td></tr>
-            <tr style="border-bottom: 1px solid #DEE2E6; background: #F8F9FA;"><td style="padding: 14px 20px; font-weight: 600; color: #495057; ${borderSide}: 4px solid #F39C12;">${t('invoice.periodStart') || 'Period Start'}</td><td style="padding: 14px 20px; color: #2C3E50; font-weight: 500;">${formatDate(fullInvoice.period_start)}</td></tr>
-            <tr style="border-bottom: 1px solid #DEE2E6;"><td style="padding: 14px 20px; font-weight: 600; color: #495057; ${borderSide}: 4px solid #F39C12;">${t('invoice.periodEnd') || 'Period End'}</td><td style="padding: 14px 20px; color: #2C3E50; font-weight: 500;">${formatDate(fullInvoice.period_end)}</td></tr>
-            <tr style="border-bottom: 1px solid #DEE2E6; background: #F8F9FA;"><td style="padding: 14px 20px; font-weight: 600; color: #495057; ${borderSide}: 4px solid #27AE60;">${t('invoice.collectionAmount') || 'Collection Amount'}</td><td style="padding: 14px 20px; color: #27AE60; font-weight: bold; font-size: 16px;">${fullInvoice.collection_amount}</td></tr>
-            <tr style="border-bottom: 1px solid #DEE2E6;"><td style="padding: 14px 20px; font-weight: 600; color: #495057; ${borderSide}: 4px solid #E74C3C;">${t('invoice.dueAmount') || 'Due Amount'}</td><td style="padding: 14px 20px; color: #E74C3C; font-weight: bold; font-size: 16px;">${fullInvoice.due_amount}</td></tr>
+            <tr style="border-bottom: 1px solid #DEE2E6; background: #F8F9FA;"><td style="padding: 10px 15px; font-weight: 600; color: #495057; width: 35%; ${borderSide}: 3px solid #4A90E2; font-size: 12px;">${t('invoice.deliveryCompany') || 'Delivery Company'}</td><td style="padding: 10px 15px; color: #2C3E50; font-weight: 500; font-size: 12px;">${fullInvoice.delivery_company?.name || 'N/A'}</td></tr>
+            <tr style="border-bottom: 1px solid #DEE2E6;"><td style="padding: 10px 15px; font-weight: 600; color: #495057; ${borderSide}: 3px solid #27AE60; font-size: 12px;">${t('invoice.clientCompany') || 'Client Company'}</td><td style="padding: 10px 15px; color: #2C3E50; font-weight: 500; font-size: 12px;">${fullInvoice.client_company?.name || 'N/A'}</td></tr>
+            <tr style="border-bottom: 1px solid #DEE2E6; background: #F8F9FA;"><td style="padding: 10px 15px; font-weight: 600; color: #495057; ${borderSide}: 3px solid #F39C12; font-size: 12px;">${t('invoice.periodStart') || 'Period Start'}</td><td style="padding: 10px 15px; color: #2C3E50; font-weight: 500; font-size: 12px;">${formatDate(fullInvoice.period_start)}</td></tr>
+            <tr style="border-bottom: 1px solid #DEE2E6;"><td style="padding: 10px 15px; font-weight: 600; color: #495057; ${borderSide}: 3px solid #F39C12; font-size: 12px;">${t('invoice.periodEnd') || 'Period End'}</td><td style="padding: 10px 15px; color: #2C3E50; font-weight: 500; font-size: 12px;">${formatDate(fullInvoice.period_end)}</td></tr>
+            <tr style="border-bottom: 1px solid #DEE2E6; background: #F8F9FA;"><td style="padding: 10px 15px; font-weight: 600; color: #495057; ${borderSide}: 3px solid #27AE60; font-size: 12px;">${t('invoice.collectionAmount') || 'Collection Amount'}</td><td style="padding: 10px 15px; color: #27AE60; font-weight: bold; font-size: 14px;">${fullInvoice.collection_amount}</td></tr>
+            <tr style="border-bottom: 1px solid #DEE2E6;"><td style="padding: 10px 15px; font-weight: 600; color: #495057; ${borderSide}: 3px solid #E74C3C; font-size: 12px;">${t('invoice.dueAmount') || 'Due Amount'}</td><td style="padding: 10px 15px; color: #E74C3C; font-weight: bold; font-size: 14px;">${fullInvoice.due_amount}</td></tr>
           </tbody>
         </table>
 
-        <div style="margin-top: 50px; padding-top: 20px; border-top: 3px double #4A90E2; text-align: center;">
-          <p style="margin: 0 0 10px 0; color: #6C757D; font-size: 13px;"><strong style="color: #495057;">${t('invoice.generatedOn') || 'Generated on'}:</strong> ${new Date().toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-          <p style="margin: 10px 0 0 0; font-weight: bold; color: #4A90E2; font-size: 15px;">${t('invoice.thankYou') || 'Thank you for your business!'}</p>
-          <p style="margin: 5px 0 0 0; color: #95A5A6; font-size: 12px; font-style: italic;">${t('invoice.poweredBy') || 'Powered by'} ${companyName}</p>
+        <!-- Footer -->
+        <div style="margin-top: 20px; padding-top: 12px; border-top: 2px double #4A90E2; text-align: center;">
+          <p style="margin: 0 0 6px 0; color: #6C757D; font-size: 11px;"><strong style="color: #495057;">${t('invoice.generatedOn') || 'Generated on'}:</strong> ${new Date().toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p style="margin: 6px 0 0 0; font-weight: bold; color: #4A90E2; font-size: 13px;">${t('invoice.thankYou') || 'Thank you for your business!'}</p>
+          <p style="margin: 4px 0 0 0; color: #95A5A6; font-size: 10px; font-style: italic;">${t('invoice.poweredBy') || 'Powered by'} ${companyName}</p>
         </div>
       </div>
     `;
