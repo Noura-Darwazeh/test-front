@@ -161,7 +161,12 @@ export default {
     title: "Driver Table",
     pageTitle: "Drivers Management",
     pageSubtitle: "Manage delivery drivers and their details",
-
+    addSuccess: "Driver added successfully!",
+    updateSuccess: "Driver updated successfully!",
+    deleteSuccess: "Driver deleted successfully!",
+    restoreSuccess: "Driver restored successfully!",
+    bulkDeleteSuccess: "{count} drivers deleted successfully!",
+    bulkRestoreSuccess: "{count} drivers restored successfully!",
     // Actions
     searchPlaceholder: "Search drivers...",
     search: "Search",
@@ -1703,6 +1708,9 @@ export default {
     saveChanges: "Save Changes",
     confirmCancel: "Are you sure you want to cancel? All unsaved changes will be lost.",
     deleteConfirmMessage: "Are you sure you want to delete this item?",
+    ok: "OK",
+    success: "Success!",
+    operationSuccess: "Operation completed successfully",
     validation: {
       requiredField: "{field} is required",
       invalidEmail: "Invalid email format",
@@ -1800,7 +1808,7 @@ export default {
       orderItems: "Order Items",
       orderItemsPlaceholder: "Select Order Items",
 
-       filterByLine: "Filter by Line",
+      filterByLine: "Filter by Line",
       filterByCase: "Filter by Case"
     },
 
@@ -1819,7 +1827,7 @@ export default {
       restore: "Restore",
       delete: "Delete Permanently",
     },
- cases: {
+    cases: {
       full: "Full",
       part: "Part",
       fast: "Fast"
@@ -1923,7 +1931,7 @@ export default {
     noTrashedInvoices: "No trashed invoices",
     entitySingular: "invoice",
     entityPlural: "invoices",
-    exportPDF:"Export PDF",
+    exportPDF: "Export PDF",
 
     logoPlaceholder: "YOUR LOGO",
     number: "NO.",
@@ -1941,13 +1949,13 @@ export default {
     thankYou: "Thank you for choosing us!",
     generatedOn: "Generated on",
     companyName: "Your Company Name",
-    invoiceDate:"Invoice Data",
+    invoiceDate: "Invoice Data",
     orderCode: "Order",
     totalPrice: "Total Price",
     deliveryPrice: "Delivery Price",
     poweredBy: "Powered by",
     markAsPaid: "Paid",
-    to:"To"
+    to: "To"
   },
   invoiceStatus: {
     pending: "Pending",

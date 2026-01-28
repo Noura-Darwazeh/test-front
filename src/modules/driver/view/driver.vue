@@ -182,12 +182,12 @@ import { useDriverStore } from "../stores/driverStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import apiServices from "@/services/apiServices.js";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
-import { useSuccessModal } from "@/composables/useSuccessModal.js";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js"; // ✅ أضيفي هاي
 
 const { t } = useI18n();
 const driverStore = useDriverStore();
 const { companyId, companyOption } = useAuthDefaults();
-
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35").replace(/\/api\/?$/, "");
 const getFullImageUrl = (imagePath) => {
     if (!imagePath || imagePath === "path/test") return null;

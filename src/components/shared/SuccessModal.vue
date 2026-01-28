@@ -13,10 +13,8 @@
           <div class="modal-body p-5 text-center">
             <div class="success-icon-container mb-4">
               <div class="success-checkmark">
-                <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                  <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-                  <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-                </svg>
+                    <img :src="successIcon" alt="success" class="checkmark" />
+
               </div>
             </div>
             
@@ -38,6 +36,7 @@
 <script setup>
 import { watch } from 'vue';
 import PrimaryButton from './PrimaryButton.vue';
+import successIcon  from '../../assets/modal/successIcon.svg';
 
 const props = defineProps({
   isOpen: {
@@ -172,8 +171,8 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .success-checkmark {
-  width: 80px;
-  height: 80px;
+  width: 50px;
+  height: 50px;
   margin: 0 auto;
 }
 
@@ -184,20 +183,12 @@ watch(() => props.isOpen, (newVal) => {
   display: block;
   stroke-width: 3;
   stroke: #28a745;
-  stroke-miterlimit: 10;
+  stroke-miterlimit: 5;
   box-shadow: inset 0px 0px 0px #28a745;
   animation: fill 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
 }
 
-.checkmark-circle {
-  stroke-dasharray: 166;
-  stroke-dashoffset: 166;
-  stroke-width: 3;
-  stroke-miterlimit: 10;
-  stroke: #28a745;
-  fill: none;
-  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
-}
+
 
 .checkmark-check {
   transform-origin: 50% 50%;
