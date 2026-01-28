@@ -67,6 +67,7 @@
                 </div>
             </div>
 
+            <!-- Trashed Tab -->
             <div v-show="activeTab === 'trashed'" class="tab-pane fade"
                 :class="{ 'show active': activeTab === 'trashed' }">
                 <div class="card border-0">
@@ -80,7 +81,7 @@
                                 <ActionsDropdown v-if="canAddWorkPlan" :row="row"
                                     :restoreLabel="$t('workPlan.trashed.restore')"
                                     :deleteLabel="$t('workPlan.trashed.delete')" :showEdit="false" :showDetails="false"
-                                    :showRestore="true" @restore="handleRestoreworkPlan"
+                                    :showRestore="true" :confirmDelete="true" @restore="handleRestoreworkPlan"
                                     @delete="handlePermanentDeleteWorkPlan" />
                                 <PrimaryButton v-else :text="$t('workPlan.details')" bgColor="var(--primary-color)"
                                     class="d-inline-flex align-items-center" @click="openDetailsModal(row)" />
@@ -105,9 +106,18 @@
         <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('workPlan.details')" :data="selectedworkPlan"
             :fields="detailsFields" @close="closeDetailsModal" />
 
+        <!-- Bulk Action Confirmation Modal -->
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
             :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
             @confirm="executeBulkAction" @close="cancelBulkAction" />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -119,6 +129,8 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import WorkPlansHeader from "../components/workPlansHeader.vue";
@@ -135,6 +147,8 @@ const { t } = useI18n();
 const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
 const workPlansStore = useWorkPlansStore();
 const driverStore = useDriverStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -759,9 +773,11 @@ const handleSubmitworkPlan = async (workPlanData) => {
         if (isEditMode.value) {
             await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
             console.log("✅ Work plan updated successfully!");
+            showSuccess(t('workPlan.updateSuccess'));
         } else {
             await workPlansStore.addWorkPlan(payload, driverStore.drivers);
             console.log("✅ Work plan added successfully!");
+            showSuccess(t('workPlan.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
@@ -787,9 +803,11 @@ const handleRestoreworkPlan = async (workPlan) => {
     }
     try {
         await workPlansStore.restoreWorkPlan(workPlan.id);
-        console.log("Work plan restored successfully!");
+        console.log("✅ Work plan restored successfully!");
+        showSuccess(t('workPlan.restoreSuccess'));
     } catch (error) {
-        console.error("Failed to restore work plan:", error);
+        console.error("❌ Failed to restore work plan:", error);
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
@@ -800,9 +818,11 @@ const handleDeleteWorkPlan = async (workPlan) => {
     }
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id);
-        console.log("Work plan deleted successfully!");
+        console.log("✅ Work plan deleted successfully!");
+        showSuccess(t('workPlan.deleteSuccess'));
     } catch (error) {
-        console.error("Failed to delete work plan:", error);
+        console.error("❌ Failed to delete work plan:", error);
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
@@ -813,9 +833,11 @@ const handlePermanentDeleteWorkPlan = async (workPlan) => {
     }
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id, true);
-        console.log("Work plan permanently deleted successfully!");
+        console.log("✅ Work plan permanently deleted successfully!");
+        showSuccess(t('workPlan.permanentDeleteSuccess'));
     } catch (error) {
-        console.error("Failed to permanently delete work plan:", error);
+        console.error("❌ Failed to permanently delete work plan:", error);
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
@@ -831,23 +853,30 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
     bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
 
     try {
         if (pendingBulkAction.value === "delete") {
             await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, false);
+            console.log("✅ Work plans soft deleted successfully");
+            showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === "restore") {
             await workPlansStore.bulkRestoreWorkPlans(selectedRows.value);
+            console.log("✅ Work plans restored successfully");
+            showSuccess(t('workPlan.bulkRestoreSuccess', { count }));
         } else if (pendingBulkAction.value === "permanentDelete") {
             await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, true);
+            console.log("✅ Work plans permanently deleted successfully");
+            showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
         }
         selectedRows.value = [];
+        pendingBulkAction.value = null;
         await handleRefresh();
     } catch (error) {
-        console.error("Failed to bulk delete work plans:", error);
+        console.error("❌ Bulk action failed:", error);
     } finally {
         bulkActionLoading.value = false;
-        isBulkConfirmOpen.value = false;
-        pendingBulkAction.value = null;
     }
 };
 

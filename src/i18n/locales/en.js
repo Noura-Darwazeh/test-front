@@ -292,7 +292,13 @@ export default {
   customer: {
     // Page Headers
     title: "Customer Table",
-
+  addSuccess: "Customer added successfully!",
+  updateSuccess: "Customer updated successfully!",
+  deleteSuccess: "Customer deleted successfully!",
+  restoreSuccess: "Customer restored successfully!",
+  permanentDeleteSuccess: "Customer permanently deleted!",
+  bulkDeleteSuccess: "{count} customer(s) deleted successfully!",
+  bulkRestoreSuccess: "{count} customer(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search customers...",
     search: "Search",
@@ -1792,6 +1798,13 @@ export default {
   workPlan: {
     // Page Headers
     title: "Work Plan Management",
+    addSuccess: "Work plan added successfully!",
+    updateSuccess: "Work plan updated successfully!",
+    deleteSuccess: "Work plan deleted successfully!",
+    restoreSuccess: "Work plan restored successfully!",
+    permanentDeleteSuccess: "Work plan permanently deleted!",
+    bulkDeleteSuccess: "{count} work plan(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} work plan(s) restored successfully!",
     planDetails: "Plan Details",
     orderName: "Order Name",
     orderType: "Order Type",

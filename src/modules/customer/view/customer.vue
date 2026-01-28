@@ -154,6 +154,13 @@
             @confirm="executeBulkAction"
             @close="cancelBulkAction"
         />
+
+            <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -171,7 +178,10 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import { useCustomerStore } from "../stores/customerStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const { t } = useI18n();
 const customerStore = useCustomerStore();
 const { companyId, companyOption, authStore } = useAuthDefaults();
@@ -572,17 +582,20 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     bulkActionLoading.value = true;
     isBulkConfirmOpen.value = false;
-
+  const count = selectedRows.value.length;
     try {
         if (pendingBulkAction.value === 'delete') {
             await customerStore.bulkDeleteCustomers(selectedRows.value, false);
             console.log("✅ Customers soft deleted successfully");
+            showSuccess(t('customer.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await customerStore.bulkDeleteCustomers(selectedRows.value, true);
             console.log("✅ Customers permanently deleted successfully");
+            showSuccess(t('customer.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await customerStore.bulkRestoreCustomers(selectedRows.value);
             console.log("✅ Customers restored successfully");
+            showSuccess(t('customer.bulkRestoreSuccess', { count }));
         }
 
         selectedRows.value = [];
@@ -610,9 +623,11 @@ const handleSubmitCustomer = async (customerData) => {
         if (isEditMode.value) {
             await customerStore.updateCustomer(selectedCustomer.value.id, payload);
             console.log('✅ Customer updated successfully!');
+            showSuccess(t('customer.updateSuccess'));
         } else {
             await customerStore.addCustomer(payload);
             console.log('✅ Customer added successfully!');
+            showSuccess(t('customer.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
@@ -639,6 +654,7 @@ const handleRestoreCustomer = async (customer) => {
     try {
         await customerStore.restoreCustomer(customer.id);
         console.log("✅ Customer restored successfully!");
+        showSuccess(t('customer.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore customer:", error);
         alert(error.message || 'Failed to restore customer');
@@ -649,6 +665,7 @@ const handleDeleteCustomer = async (customer) => {
     try {
         await customerStore.deleteCustomer(customer.id);
         console.log("✅ Customer deleted successfully!");
+        showSuccess(t('customer.deleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to delete customer:", error);
         alert(error.message || t('common.saveFailed'));
@@ -659,6 +676,7 @@ const handlePermanentDeleteCustomer = async (customer) => {
     try {
         await customerStore.deleteCustomer(customer.id, true);
         console.log("Customer permanently deleted successfully!");
+        showSuccess(t('customer.permanentDeleteSuccess')); 
     } catch (error) {
         console.error("Failed to permanently delete customer:", error);
         alert(error.message || t('common.saveFailed'));

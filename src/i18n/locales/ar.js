@@ -299,7 +299,13 @@
     title: "جدول العملاء",
     pageTitle: "إدارة العملاء",
     pageSubtitle: "إدارة العملاء وتفاصيلهم",
-
+    addSuccess: "تمت إضافة العميل بنجاح!",
+    updateSuccess: "تم تحديث العميل بنجاح!",
+    deleteSuccess: "تم حذف العميل بنجاح!",
+    restoreSuccess: "تمت استعادة العميل بنجاح!",
+    permanentDeleteSuccess: "تم حذف العميل نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} عميل بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} عميل بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث عن عملاء...",
     search: "بحث",
@@ -1683,6 +1689,13 @@
     // عناوين الصفحة
     order: "طلب",
     title: "ادارة خطط العمل",
+    addSuccess: "تمت إضافة خطة العمل بنجاح!",
+    updateSuccess: "تم تحديث خطة العمل بنجاح!",
+    deleteSuccess: "تم حذف خطة العمل بنجاح!",
+    restoreSuccess: "تمت استعادة خطة العمل بنجاح!",
+    permanentDeleteSuccess: "تم حذف خطة العمل نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} خطة عمل بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} خطة عمل بنجاح!",
     planDetails: "تفاصيل الخطة",
     orderName: "اسم الطلب",
     orderType: "نوع الطلب",
