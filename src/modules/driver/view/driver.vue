@@ -156,6 +156,13 @@
             @confirm="executeBulkAction"
             @close="cancelBulkAction"
         />
+
+            <SuccessModal 
+      :isOpen="isSuccessModalOpen" 
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal" 
+    />
     </div>
 </template>
 
@@ -174,6 +181,8 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import { useDriverStore } from "../stores/driverStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import apiServices from "@/services/apiServices.js";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "@/composables/useSuccessModal.js";
 
 const { t } = useI18n();
 const driverStore = useDriverStore();
@@ -619,12 +628,18 @@ const executeBulkAction = async () => {
         if (pendingBulkAction.value === 'delete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, false);
             console.log("âœ… Drivers soft deleted successfully");
+                  showSuccess(t('driver.bulkDeleteSuccess', { count: selectedRows.value.length }));
+
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, true);
             console.log("âœ… Drivers permanently deleted successfully");
+                  showSuccess(t('driver.bulkDeleteSuccess', { count: selectedRows.value.length }));
+
         } else if (pendingBulkAction.value === 'restore') {
             await driverStore.bulkRestoreDrivers(selectedRows.value);
             console.log("âœ… Drivers restored successfully");
+                  showSuccess(t('driver.bulkRestoreSuccess', { count: selectedRows.value.length }));
+
         }
 
         selectedRows.value = [];
@@ -653,15 +668,19 @@ const handleSubmitDriver = async (driverData) => {
         if (isEditMode.value) {
             // Update existing driver
             await driverStore.updateDriver(selectedDriver.value.id, payload);
-            console.log('âœ… Driver updated successfully!');
+            console.log(' Driver updated successfully!');
+                  showSuccess(t('driver.updateSuccess'));
+
         } else {
             // Add new driver
             await driverStore.addDriver(payload);
-            console.log('âœ… Driver added successfully!');
+            console.log(' Driver added successfully!');
+      showSuccess(t('driver.addSuccess'));
+
         }
         closeFormModal();
     } catch (error) {
-        console.error('âŒ Failed to save driver:', error);
+        console.error(' Failed to save driver:', error);
         
         // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
@@ -703,6 +722,8 @@ const handleRestoreDriver = async (driver) => {
     try {
         await driverStore.restoreDriver(driver.id);
         console.log("âœ… Driver restored successfully!");
+            showSuccess(t('driver.restoreSuccess'));
+
     } catch (error) {
         console.error("âŒ Failed to restore driver:", error);
         alert(error.message || 'Failed to restore driver');
@@ -713,6 +734,8 @@ const handleDeleteDriver = async (driver) => {
     try {
         await driverStore.deleteDriver(driver.id);
         console.log("?o. Driver deleted successfully!");
+            showSuccess(t('driver.deleteSuccess'));
+
     } catch (error) {
         console.error("??O Failed to delete driver:", error);
         alert(error.message || t('common.saveFailed'));
