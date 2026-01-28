@@ -41,7 +41,13 @@
     title: "جدول المستخدمين",
     pageTitle: "إدارة المستخدمين",
     pageSubtitle: "إدارة مستخدمي النظام وصلاحياتهم",
-
+    addSuccess: "تمت إضافة المستخدم بنجاح!",
+    updateSuccess: "تم تحديث المستخدم بنجاح!",
+    deleteSuccess: "تم حذف المستخدم بنجاح!",
+    restoreSuccess: "تم استعادة المستخدم بنجاح!",
+    permanentDeleteSuccess: "تم حذف المستخدم بشكل دائم!",
+    bulkDeleteSuccess: "{count} مستخدم تم حذفهم بنجاح!",
+    bulkRestoreSuccess: "{count} مستخدم تم استعادتهم بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث عن المستخدمين...",
     search: "بحث",

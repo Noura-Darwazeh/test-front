@@ -45,7 +45,13 @@ export default {
     title: "User Table",
     pageTitle: "Users Management",
     pageSubtitle: "Manage system users and their permissions",
-
+    addSuccess: "User added successfully!",
+    updateSuccess: "User updated successfully!",
+    deleteSuccess: "User deleted successfully!",
+    restoreSuccess: "User restored successfully!",
+    permanentDeleteSuccess: "User permanently deleted!",
+    bulkDeleteSuccess: "{count} users deleted successfully!",
+    bulkRestoreSuccess: "{count} users restored successfully!",
     // Actions
     searchPlaceholder: "Search users...",
     search: "Search",

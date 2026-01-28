@@ -161,6 +161,13 @@
       @confirm="executeBulkAction"
       @close="cancelBulkAction"
     />
+
+        <SuccessModal 
+      :isOpen="isSuccessModalOpen" 
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal" 
+    />
   </div>
 </template>
 
@@ -181,10 +188,12 @@ import apiServices from "@/services/apiServices.js";
 import { useAuthStore } from "@/stores/auth.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
-
+import SuccessModal from "../../../components/shared/SuccessModal.vue"; 
+import { useSuccessModal } from "../../../composables/useSuccessModal.js"; 
 const { t } = useI18n();
 const usersStore = useUsersManagementStore();
 const authStore = useAuthStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal(); // ✅
 
 // ✅ API Base URL
 const API_BASE_URL =
@@ -467,7 +476,7 @@ const userFields = computed(() => [
     //     ? selectedUser.value.role[0]
     //     : selectedUser.value.role
     //   : "",
-      defaultValue: isEditMode.value ? selectedUser.value.role : "", // ✅ هسا string
+      defaultValue: isEditMode.value ? selectedUser.value.role : "", 
 
   },
   {
@@ -720,7 +729,6 @@ const openEditModal = (user) => {
   
   selectedUser.value = normalizedUser;
 
-  // ✅ إضافة المسار الكامل للصورة
   if (selectedUser.value.image) {
     selectedUser.value.imagePreview = getFullImageUrl(selectedUser.value.image);
   }
@@ -732,7 +740,6 @@ const openEditModal = (user) => {
 const openDetailsModal = (user) => {
   selectedUser.value = { ...user };
 
-  // ✅ إضافة المسار الكامل للصورة
   if (selectedUser.value.image) {
     selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
   }
@@ -831,6 +838,8 @@ const handleSubmitUser = async (userData) => {
 
       await usersStore.updateUser(selectedUser.value.id, updatedData);
       console.log("✅ User updated successfully!");
+      showSuccess(t('user.updateSuccess'));
+
       closeModal();
     } else {
       // Add new user
@@ -855,6 +864,7 @@ const handleSubmitUser = async (userData) => {
 
       await usersStore.addUser(newUser);
       console.log("✅ User added successfully!");
+      showSuccess(t('user.addSuccess'));
       closeModal();
     }
   } catch (error) {
@@ -870,6 +880,7 @@ const handleRestoreUser = async (user) => {
   try {
     await usersStore.restoreUser(user.id);
     console.log("✅ User restored successfully!");
+    showSuccess(t('user.restoreSuccess'));
     await usersStore.fetchTrashedUsers();
   } catch (error) {
     console.error("❌ Failed to restore user:", error);
@@ -885,6 +896,7 @@ const handlePermanentDeleteUser = async (user) => {
   try {
     await usersStore.deleteUser(user.id, true);
     console.log("User permanently deleted successfully!");
+    showSuccess(t('user.permanentDeleteSuccess'));
   } catch (error) {
     console.error("Failed to permanently delete user:", error);
     alert(error.message || t("common.saveFailed"));
@@ -896,6 +908,7 @@ const confirmDelete = async () => {
     if (userToDelete.value) {
       await usersStore.deleteUser(userToDelete.value.id);
       console.log("✅ User deleted successfully!");
+      showSuccess(t('user.deleteSuccess'));
       userToDelete.value = null;
     }
   } catch (error) {
@@ -914,38 +927,55 @@ const handleBulkAction = ({ actionId }) => {
   }
 };
 
+import { nextTick } from "vue"; 
+
 const executeBulkAction = async () => {
   bulkActionLoading.value = true;
+  const count = selectedRows.value.length;
 
   try {
     if (pendingBulkAction.value === "delete") {
       await usersStore.bulkDeleteUsers(selectedRows.value, false);
-      console.log(
-        `✅ ${selectedRows.value.length} users deleted successfully!`,
-      );
+      console.log(`✅ ${count} users deleted successfully!`);
+      
+      isBulkConfirmOpen.value = false;
+      pendingBulkAction.value = null;
+      selectedRows.value = [];
+      
+      await nextTick();
+      showSuccess(t('user.bulkDeleteSuccess', { count }));
+      
     } else if (pendingBulkAction.value === "permanentDelete") {
       await usersStore.bulkDeleteUsers(selectedRows.value, true);
-      console.log(
-        `✅ ${selectedRows.value.length} users permanently deleted successfully!`,
-      );
+      console.log(`✅ ${count} users permanently deleted successfully!`);
+      
+      isBulkConfirmOpen.value = false;
+      pendingBulkAction.value = null;
+      selectedRows.value = [];
+      
+      await nextTick();
+      showSuccess(t('user.bulkDeleteSuccess', { count }));
+      
     } else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
-      console.log(
-        `✅ ${selectedRows.value.length} users restored successfully!`,
-      );
+      console.log(`✅ ${count} users restored successfully!`);
+      
+      isBulkConfirmOpen.value = false;
+      pendingBulkAction.value = null;
+      selectedRows.value = [];
+      
+      await nextTick();
+      showSuccess(t('user.bulkRestoreSuccess', { count }));
+      
       await usersStore.fetchTrashedUsers();
     }
 
-    selectedRows.value = [];
   } catch (error) {
-    console.error(
-      `❌ Failed to execute bulk ${pendingBulkAction.value}:`,
-      error,
-    );
-  } finally {
-    bulkActionLoading.value = false;
+    console.error(`❌ Bulk action failed:`, error);
     isBulkConfirmOpen.value = false;
     pendingBulkAction.value = null;
+  } finally {
+    bulkActionLoading.value = false;
   }
 };
 
@@ -954,15 +984,10 @@ const cancelBulkAction = () => {
   pendingBulkAction.value = null;
 };
 
-
-
-
-// ✅ دالة للتحقق من إمكانية تعديل المستخدم
 const canEditUser = (user) => {
-  // SuperAdmin يقدر يعدل على أي حد
+
   if (isSuperAdmin.value) return true;
   
-  // Admin يقدر يعدل فقط على المستخدمين التابعين لشركته
   if (isAdmin.value) {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;
@@ -971,12 +996,9 @@ const canEditUser = (user) => {
   return false;
 };
 
-// ✅ دالة للتحقق من إمكانية حذف المستخدم
 const canDeleteUser = (user) => {
-  // SuperAdmin يقدر يحذف أي حد
   if (isSuperAdmin.value) return true;
   
-  // Admin يقدر يحذف فقط المستخدمين التابعين لشركته
   if (isAdmin.value) {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;
