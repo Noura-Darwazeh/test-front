@@ -117,6 +117,18 @@
 
   <!-- Switch User Modal -->
   <SwitchUserModal :isOpen="isSwitchUserModalOpen" @close="closeSwitchUserModal" />
+
+  <!-- Logout Confirmation Modal -->
+  <ConfirmationModal
+    :isOpen="isLogoutModalOpen"
+    :title="$t('navbar.confirmLogoutTitle')"
+    :message="$t('navbar.confirmLogout')"
+    :confirmText="$t('navbar.logout')"
+    :cancelText="$t('common.cancel')"
+    :confirmColor="'var(--color-danger)'"
+    @confirm="confirmLogout"
+    @close="closeLogoutModal"
+  />
 </template>
 
 <script setup>
@@ -127,6 +139,7 @@ import { setLocale } from "@/i18n/index";
 import { useAuthStore } from "@/stores/auth.js";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
 import SwitchUserModal from "@/components/shared/SwitchUserModal.vue";
+import ConfirmationModal from "@/components/shared/ConfirmationModal.vue";
 
 const props = defineProps({
   pageTitle: {
@@ -156,6 +169,7 @@ const userAvatar = computed(() => {
 });
 
 const isSwitchUserModalOpen = ref(false);
+const isLogoutModalOpen = ref(false);
 
 const switchLanguage = async (lang) => {
   const langLower = lang.toLowerCase();
@@ -196,12 +210,9 @@ const closeSwitchUserModal = () => {
   isSwitchUserModalOpen.value = false;
 };
 
-// في Navbar.vue (سطر 135-149)
-// في src/components/layout/Navbar.vue - عدّلي دالة returnToAdmin
-
 const returnToAdmin = async () => {
   try {
-    const success = await authStore.returnToAdmin(); // لاحظي await
+    const success = await authStore.returnToAdmin();
     
     if (success) {
       console.log("✅ Returned to admin account");
@@ -220,22 +231,24 @@ const returnToAdmin = async () => {
   }
 };
 
-const handleLogout = async (close) => {
+const handleLogout = (close) => {
   close();
+  isLogoutModalOpen.value = true;
+};
 
-  // Confirm logout
-  if (confirm(t("navbar.confirmLogout") || "Are you sure you want to logout?")) {
-    try {
-      await authStore.logout();
-      console.log("✅ Logout successful");
-
-      // Redirect to login
-      router.push({ name: "Login" });
-    } catch (error) {
-      console.error("❌ Logout error:", error);
-      alert("Logout failed. Please try again.");
-    }
+const confirmLogout = async () => {
+  try {
+    await authStore.logout();
+    console.log("✅ Logout successful");
+    router.push({ name: "Login" });
+  } catch (error) {
+    console.error("❌ Logout error:", error);
+    alert("Logout failed. Please try again.");
   }
+};
+
+const closeLogoutModal = () => {
+  isLogoutModalOpen.value = false;
 };
 </script>
 

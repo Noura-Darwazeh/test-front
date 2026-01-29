@@ -8,6 +8,10 @@
     signedInAs: "مسجل الدخول كـ",
     confirmLogout: "هل أنت متأكد من تسجيل الخروج؟",
     switchToUser: "تسجيل الدخول",
+
+    confirmLogoutTitle: "تأكيد تسجيل الخروج",
+    confirmLogout: "هل أنت متأكد من تسجيل الخروج؟",
+    logout: "تسجيل الخروج",
   },
 
   login: {

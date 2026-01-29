@@ -11,6 +11,10 @@ export default {
     confirmLogout: "Are you sure you want to logout?",
     switchToUser: "Log in",
     returnToAdmin: "Return",
+
+    confirmLogoutTitle: "Confirm Logout",
+    confirmLogout: "Are you sure you want to logout?",
+    logout: "Logout",
   },
 
   login: {
