@@ -313,6 +313,17 @@ const handleRefresh = async () => {
     }
 };
 
+// ✅ Filter states مع reactive state
+const selectedLine = ref('');
+const selectedCase = ref('');
+const lineOptions = ref([]);
+
+// ✅ متغير لحفظ بيانات الفورم الأساسية
+const formData = ref({
+    name: '',
+    driver_id: '',
+    date: ''
+});
 
 const workPlanFields = computed(() => {
     let defaultOrders = [{ order: '', items: [] }];
@@ -325,8 +336,6 @@ const workPlanFields = computed(() => {
         selectedworkPlan.value.workplanorder.forEach(wo => {
             const orderItemId = wo.order_item?.id || wo.order_item_id;
             const orderItemName = wo.order_item?.name || '';
-
-            // ✅ استخرجي الـ order_code من الاسم
             const orderCode = orderItemName.split(' - ')[0].trim();
 
             console.log(`📦 Order Item ID: ${orderItemId}, Name: ${orderItemName}, Code: ${orderCode}`);
@@ -364,7 +373,7 @@ const workPlanFields = computed(() => {
             required: true,
             placeholder: t('workPlan.form.namePlaceholder'),
             colClass: 'col-md-6',
-            defaultValue: selectedworkPlan.value.name || '',
+            defaultValue: formData.value.name || selectedworkPlan.value.name || '',
             validate: (value) => {
                 if (!value || value.trim().length === 0) {
                     return t('workPlan.validation.nameRequired');
@@ -382,7 +391,7 @@ const workPlanFields = computed(() => {
             required: true,
             options: driverOptions,
             colClass: 'col-md-6',
-            defaultValue: selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
+            defaultValue: formData.value.driver_id || selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
         },
         {
             name: 'date',
@@ -390,7 +399,7 @@ const workPlanFields = computed(() => {
             type: 'date',
             required: false,
             colClass: 'col-md-6',
-            defaultValue: selectedworkPlan.value.date || '',
+            defaultValue: formData.value.date || selectedworkPlan.value.date || '',
         },
         {
             name: 'company_id',
@@ -415,8 +424,15 @@ const workPlanFields = computed(() => {
                 ...lineOptions.value
             ],
             colClass: 'col-md-6',
-            defaultValue: '',
-            onChange: (value, formData) => {
+            defaultValue: selectedLine.value,
+            onChange: (value, formDataFromModal) => {
+                // ✅ احفظي البيانات الحالية قبل الفلتر
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
                 selectedLine.value = value;
                 handleFilterOrders();
             }
@@ -431,16 +447,21 @@ const workPlanFields = computed(() => {
                 { value: 'Full', label: t('workPlan.cases.full') },
                 { value: 'Part', label: t('workPlan.cases.part') },
                 { value: 'Fast', label: t('workPlan.cases.fast') }
-
             ],
             colClass: 'col-md-6',
-            defaultValue: '',
-            onChange: (value, formData) => {
+            defaultValue: selectedCase.value,
+            onChange: (value, formDataFromModal) => {
+                // ✅ احفظي البيانات الحالية قبل الفلتر
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
                 selectedCase.value = value;
                 handleFilterOrders();
             }
         },
-
         {
             name: 'orders',
             label: t('workPlan.form.orders'),
@@ -478,9 +499,6 @@ const getItemsOptionsForOrder = (orderCode) => {
     console.log("✅ Items options for", orderCode, ":", items);
     return items;
 };
-
-
-
 
 // Details Fields
 const detailsFields = computed(() => [
@@ -531,12 +549,10 @@ const filteredTableData = computed(() => {
     return result;
 });
 
-// Server already returns paginated data
 const paginatedTableData = computed(() => {
     return filteredTableData.value;
 });
 
-// Get pagination metadata from store
 const currentPagination = computed(() =>
     activeTab.value === "trashed"
         ? workPlansStore.trashedPagination
@@ -567,7 +583,6 @@ const bulkActions = computed(() => {
     ];
 });
 
-
 const bulkConfirmMessage = computed(() => {
     if (!pendingBulkAction.value) return '';
 
@@ -588,12 +603,6 @@ watch([searchText, selectedGroups], () => {
 });
 
 // Fetch orders with items from API
-// ✅ Add filter states
-const selectedLine = ref('');
-const selectedCase = ref('');
-const lineOptions = ref([]);
-
-// ✅ Modified fetchOrdersWithItems to support filters
 const fetchOrdersWithItems = async (filters = {}) => {
     loadingOrders.value = true;
     try {
@@ -625,7 +634,7 @@ const fetchOrdersWithItems = async (filters = {}) => {
     }
 };
 
-// ✅ Add filter handler
+// ✅ Filter handler - محدث
 const handleFilterOrders = async () => {
     const filters = {};
 
@@ -638,21 +647,17 @@ const handleFilterOrders = async () => {
     }
 
     console.log("🔍 Applying filters:", filters);
+    console.log("💾 Saved form data:", formData.value);
+    
     await fetchOrdersWithItems(filters);
 };
 
-// ✅ Clear filters
 const clearOrderFilters = async () => {
     selectedLine.value = '';
     selectedCase.value = '';
     await fetchOrdersWithItems();
 };
 
-// Get items options for a selected order
-
-
-
-// Add Modal
 const applyServerErrors = (error) => {
     const normalized = normalizeServerErrors(error);
     formErrors.value = normalized;
@@ -662,6 +667,7 @@ const applyServerErrors = (error) => {
 const clearFormErrors = () => {
     formErrors.value = {};
 };
+
 const openAddModal = async () => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to add work plans");
@@ -670,11 +676,20 @@ const openAddModal = async () => {
     clearFormErrors();
     isEditMode.value = false;
     selectedworkPlan.value = {};
+    
+    // ✅ امسحي الفلاتر وال form data
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
     await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
 
-// Edit Modal
 const openEditModal = async (workPlan) => {
     if (!canAddWorkPlan.value) {
         console.warn("⚠️ User doesn't have permission to edit work plans");
@@ -683,6 +698,18 @@ const openEditModal = async (workPlan) => {
     clearFormErrors();
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
+    
+    // ✅ احفظي البيانات الحالية
+    formData.value = {
+        name: workPlan.name,
+        driver_id: workPlan.driver_id,
+        date: workPlan.date
+    };
+    
+    // ✅ امسحي الفلاتر
+    selectedLine.value = '';
+    selectedCase.value = '';
+    
     console.log("📝 Opening edit modal for work plan:", selectedworkPlan.value);
     await fetchOrdersWithItems();
     isFormModalOpen.value = true;
@@ -714,10 +741,21 @@ const openDetailsModal = (workPlan) => {
     };
     isDetailsModalOpen.value = true;
 };
+
 const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedworkPlan.value = {};
+    
+    // ✅ امسحي الفلاتر وال form data
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
     clearFormErrors();
 };
 
@@ -735,7 +773,6 @@ const handleSubmitworkPlan = async (workPlanData) => {
     console.log("📤 Form data received:", workPlanData);
     console.log("🔧 Edit mode:", isEditMode.value);
 
-    // Collect all selected item IDs from all orders
     const orderItems = [];
     if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
         workPlanData.orders.forEach(row => {
