@@ -77,6 +77,14 @@
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
             :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
             @confirm="executeBulkAction" @close="cancelBulkAction" />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -87,6 +95,8 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
@@ -98,6 +108,7 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 const { t } = useI18n();
 const branchesStore = useBranchesManagementStore();
 const { companyId, companyOption, authStore } = useAuthDefaults();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 // ✅ Check if user is SuperAdmin
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
@@ -125,8 +136,9 @@ const trashedbranches = computed(() => branchesStore.trashedBranches);
 onMounted(async () => {
     try {
         await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage });
+        console.log("✅ Branches loaded successfully");
     } catch (error) {
-        console.error("Failed to load data:", error);
+        console.error("❌ Failed to load data:", error);
     }
 });
 
@@ -418,17 +430,21 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     bulkActionLoading.value = true;
     isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
 
     try {
         if (pendingBulkAction.value === 'delete') {
             await branchesStore.bulkDeleteBranches(selectedRows.value, false);
             console.log("✅ Branches soft deleted successfully");
+            showSuccess(t('branch.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await branchesStore.bulkDeleteBranches(selectedRows.value, true);
             console.log("✅ Branches permanently deleted successfully");
+            showSuccess(t('branch.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await branchesStore.bulkRestoreBranches(selectedRows.value);
             console.log("✅ Branches restored successfully");
+            showSuccess(t('branch.bulkRestoreSuccess', { count }));
         }
 
         selectedRows.value = [];
@@ -459,9 +475,11 @@ const handleSubmitbranch = async (branchData) => {
         if (isEditMode.value) {
             await branchesStore.updateBranch(selectedbranch.value.id, formattedData);
             console.log('✅ Branch updated successfully!');
+            showSuccess(t('branch.updateSuccess'));
         } else {
             await branchesStore.addBranch(formattedData);
             console.log('✅ Branch added successfully!');
+            showSuccess(t('branch.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
@@ -477,8 +495,10 @@ const handleRestorebranch = async (branch) => {
     try {
         await branchesStore.restoreBranch(branch.id);
         console.log("✅ Branch restored successfully!");
+        showSuccess(t('branch.restoreSuccess'));
     } catch (error) {
         console.error('❌ Error restoring branch:', error);
+        alert(error.message || 'Failed to restore branch');
     }
 };
 
@@ -486,6 +506,7 @@ const handleDeleteBranch = async (branch) => {
     try {
         await branchesStore.deleteBranch(branch.id);
         console.log("✅ Branch deleted successfully!");
+        showSuccess(t('branch.deleteSuccess'));
     } catch (error) {
         console.error("❌ Error deleting branch:", error);
         alert(error.message || t('common.saveFailed'));
@@ -495,9 +516,10 @@ const handleDeleteBranch = async (branch) => {
 const handlePermanentDeleteBranch = async (branch) => {
     try {
         await branchesStore.deleteBranch(branch.id, true);
-        console.log("Branch permanently deleted successfully!");
+        console.log("✅ Branch permanently deleted successfully!");
+        showSuccess(t('branch.permanentDeleteSuccess'));
     } catch (error) {
-        console.error("Failed to permanently delete branch:", error);
+        console.error("❌ Failed to permanently delete branch:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

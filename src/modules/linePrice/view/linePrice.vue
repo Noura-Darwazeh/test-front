@@ -141,6 +141,14 @@
             @confirm="executeBulkAction"
             @close="cancelBulkAction"
         />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -151,6 +159,8 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
@@ -163,6 +173,7 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 const { t } = useI18n();
 const linePriceStore = useLinePriceStore();
 const { companyId, companyOption, currencyId } = useAuthDefaults();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const searchText = ref("");
 const isFormModalOpen = ref(false);
@@ -224,7 +235,7 @@ const fetchDropdownData = async () => {
             };
         });
     } catch (error) {
-        console.error("??O Failed to load line price dropdown data:", error);
+        console.error("❌ Failed to load line price dropdown data:", error);
     }
 };
 
@@ -498,17 +509,21 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     bulkActionLoading.value = true;
     isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
 
     try {
         if (pendingBulkAction.value === 'delete') {
             await linePriceStore.bulkDeleteLinePrices(selectedRows.value, false);
             console.log("✅ Line prices soft deleted successfully");
+            showSuccess(t('linePrice.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await linePriceStore.bulkDeleteLinePrices(selectedRows.value, true);
             console.log("✅ Line prices permanently deleted successfully");
+            showSuccess(t('linePrice.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await linePriceStore.bulkRestoreLinePrices(selectedRows.value);
             console.log("✅ Line prices restored successfully");
+            showSuccess(t('linePrice.bulkRestoreSuccess', { count }));
         }
 
         selectedRows.value = [];
@@ -526,7 +541,6 @@ const cancelBulkAction = () => {
 };
 
 const handleSubmitLinePrice = async (priceData) => {
-    // Clear previous validation error
     validationError.value = null;
     
     try {
@@ -535,13 +549,13 @@ const handleSubmitLinePrice = async (priceData) => {
             company_id: companyId.value || priceData.company_id,
         };
         if (isEditMode.value) {
-            // Update existing line price
             await linePriceStore.updateLinePrice(selectedLinePrice.value.id, payload);
             console.log('✅ Line price updated successfully!');
+            showSuccess(t('linePrice.updateSuccess'));
         } else {
-            // Add new line price
             await linePriceStore.addLinePrice(payload);
             console.log('✅ Line price added successfully!');
+            showSuccess(t('linePrice.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
@@ -551,18 +565,15 @@ const handleSubmitLinePrice = async (priceData) => {
             return;
         }
         
-        // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
             validationError.value = error.response.data.error;
             
-            // Auto-dismiss after 5 seconds
             setTimeout(() => {
                 validationError.value = null;
             }, 5000);
-            return; // Keep form open for correction
+            return;
         }
         
-        // For other errors, show generic alert
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -575,6 +586,7 @@ const handleRestoreLinePrice = async (linePrice) => {
     try {
         await linePriceStore.restoreLinePrice(linePrice.id);
         console.log("✅ Line price restored successfully!");
+        showSuccess(t('linePrice.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore line price:", error);
         alert(error.message || 'Failed to restore line price');
@@ -584,9 +596,10 @@ const handleRestoreLinePrice = async (linePrice) => {
 const handleDeleteLinePrice = async (linePrice) => {
     try {
         await linePriceStore.deleteLinePrice(linePrice.id);
-        console.log("?o. Line price deleted successfully!");
+        console.log("✅ Line price deleted successfully!");
+        showSuccess(t('linePrice.deleteSuccess'));
     } catch (error) {
-        console.error("??O Failed to delete line price:", error);
+        console.error("❌ Failed to delete line price:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -594,9 +607,10 @@ const handleDeleteLinePrice = async (linePrice) => {
 const handlePermanentDeleteLinePrice = async (linePrice) => {
     try {
         await linePriceStore.deleteLinePrice(linePrice.id, true);
-        console.log("Line price permanently deleted successfully!");
+        console.log("✅ Line price permanently deleted successfully!");
+        showSuccess(t('linePrice.permanentDeleteSuccess'));
     } catch (error) {
-        console.error("Failed to permanently delete line price:", error);
+        console.error("❌ Failed to permanently delete line price:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

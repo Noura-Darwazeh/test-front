@@ -138,6 +138,14 @@
             @confirm="executeBulkAction" 
             @close="cancelBulkAction" 
         />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -148,6 +156,8 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import RegionsHeader from "../components/regionsHeader.vue";
@@ -159,6 +169,7 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 const { t, locale } = useI18n();
 const regionsStore = useRegionsManagementStore();
 const authStore = useAuthStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 // ✅ التحقق من صلاحيات السوبر أدمن
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
@@ -435,13 +446,13 @@ const switchTab = async (tab) => {
         try {
             await regionsStore.fetchTrashedRegions({ page: 1, perPage: itemsPerPage });
         } catch (error) {
-            console.error("Failed to load trashed regions:", error);
+            console.error("❌ Failed to load trashed regions:", error);
         }
     } else {
         try {
             await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
         } catch (error) {
-            console.error("Failed to load regions:", error);
+            console.error("❌ Failed to load regions:", error);
         }
     }
 };
@@ -455,7 +466,7 @@ const handleRefresh = async () => {
             await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
         }
     } catch (error) {
-        console.error("Failed to refresh regions:", error);
+        console.error("❌ Failed to refresh regions:", error);
     }
 };
 
@@ -476,14 +487,16 @@ const handleSubmitregions = async (regionsData) => {
 
         if (isEditMode.value) {
             await regionsStore.updateRegion(selectedregions.value.id, payload);
-            console.log("Region updated successfully!");
+            console.log("✅ Region updated successfully!");
+            showSuccess(t('regions.updateSuccess'));
         } else {
             await regionsStore.addRegion(payload);
-            console.log("Region added successfully!");
+            console.log("✅ Region added successfully!");
+            showSuccess(t('regions.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
-        console.error("Failed to save region:", error);
+        console.error("❌ Failed to save region:", error);
         if (applyServerErrors(error)) {
             return;
         }
@@ -499,9 +512,10 @@ const handleRestoreregions = async (region) => {
     
     try {
         await regionsStore.restoreRegion(region.id);
-        console.log("Region restored successfully!");
+        console.log("✅ Region restored successfully!");
+        showSuccess(t('regions.restoreSuccess'));
     } catch (error) {
-        console.error("Failed to restore region:", error);
+        console.error("❌ Failed to restore region:", error);
         alert(error.message || "Failed to restore region");
     }
 };
@@ -514,9 +528,10 @@ const handleDeleteRegion = async (region) => {
     
     try {
         await regionsStore.deleteRegion(region.id);
-        console.log("Region deleted successfully!");
+        console.log("✅ Region deleted successfully!");
+        showSuccess(t('regions.deleteSuccess'));
     } catch (error) {
-        console.error("Failed to delete region:", error);
+        console.error("❌ Failed to delete region:", error);
         alert(error.message || "Failed to delete region");
     }
 };
@@ -529,9 +544,10 @@ const handlePermanentDeleteRegion = async (region) => {
     
     try {
         await regionsStore.deleteRegion(region.id, true);
-        console.log("Region permanently deleted successfully!");
+        console.log("✅ Region permanently deleted successfully!");
+        showSuccess(t('regions.permanentDeleteSuccess'));
     } catch (error) {
-        console.error("Failed to permanently delete region:", error);
+        console.error("❌ Failed to permanently delete region:", error);
         alert(error.message || "Failed to delete region");
     }
 };
@@ -550,22 +566,29 @@ const executeBulkAction = async () => {
     if (!isSuperAdmin.value || !pendingBulkAction.value) return;
     
     bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
 
     try {
         if (pendingBulkAction.value === 'delete') {
             await regionsStore.bulkDeleteRegions(selectedRows.value, false);
+            console.log("✅ Regions soft deleted successfully");
+            showSuccess(t('regions.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await regionsStore.bulkDeleteRegions(selectedRows.value, true);
+            console.log("✅ Regions permanently deleted successfully");
+            showSuccess(t('regions.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await regionsStore.bulkRestoreRegions(selectedRows.value);
+            console.log("✅ Regions restored successfully");
+            showSuccess(t('regions.bulkRestoreSuccess', { count }));
         }
         selectedRows.value = [];
+        pendingBulkAction.value = null;
     } catch (error) {
-        console.error("Failed to bulk delete regions:", error);
+        console.error("❌ Failed to bulk delete regions:", error);
     } finally {
         bulkActionLoading.value = false;
-        isBulkConfirmOpen.value = false;
-        pendingBulkAction.value = null;
     }
 };
 

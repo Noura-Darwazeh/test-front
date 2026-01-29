@@ -133,6 +133,14 @@
       @confirm="executeBulkAction"
       @close="cancelBulkAction"
     />
+
+    <!-- Success Modal -->
+    <SuccessModal 
+      :isOpen="isSuccessModalOpen" 
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal" 
+    />
   </div>
 </template>
 
@@ -145,6 +153,8 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCurrencyFormFields } from "../components/currencyFormFields.js";
@@ -155,6 +165,7 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 const { t, locale } = useI18n();
 const currenciesStore = useCurrenciesManagementStore();
 const authStore = useAuthStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 // Permissions
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
@@ -371,13 +382,13 @@ const switchTab = async (tab) => {
     try {
       await currenciesStore.fetchTrashedCurrencies({ page: 1, perPage: itemsPerPage });
     } catch (error) {
-      console.error("Failed to load trashed currencies:", error);
+      console.error("❌ Failed to load trashed currencies:", error);
     }
   } else {
     try {
       await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
     } catch (error) {
-      console.error("Failed to load currencies:", error);
+      console.error("❌ Failed to load currencies:", error);
     }
   }
 };
@@ -391,20 +402,18 @@ const handleRefresh = async () => {
       await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
     }
   } catch (error) {
-    console.error("Failed to refresh currencies:", error);
+    console.error("❌ Failed to refresh currencies:", error);
   }
 };
 
 const handleSubmitCurrency = async (currencyData) => {
   try {
     if (isEditMode.value) {
-      // Update existing currency
       console.log('📝 Component: Editing currency:', selectedCurrency.value.id);
       console.log('📦 Component: Form data:', currencyData);
 
       const updateData = {};
       
-      // Check each field and add only if modified
       if (currencyData.key && currencyData.key !== selectedCurrency.value.key) {
         updateData.key = currencyData.key.toUpperCase();
       }
@@ -421,7 +430,6 @@ const handleSubmitCurrency = async (currencyData) => {
         updateData.symbol = currencyData.symbol;
       }
 
-      // Check if there are changes to update
       if (Object.keys(updateData).length === 0) {
         console.log('⚠️ Component: No changes detected');
         closeFormModal();
@@ -432,12 +440,11 @@ const handleSubmitCurrency = async (currencyData) => {
 
       await currenciesStore.updateCurrency(selectedCurrency.value.id, updateData);
       console.log("✅ Component: Currency updated successfully!");
+      showSuccess(t('currency.updateSuccess'));
       
     } else {
-      // Add new currency
       console.log('📝 Component: Adding new currency');
       
-      // Check for unique key validation
       const existingCurrency = currencies.value.find(
         (c) => c.key && c.key.toLowerCase() === currencyData.key.toLowerCase()
       );
@@ -457,6 +464,7 @@ const handleSubmitCurrency = async (currencyData) => {
 
       await currenciesStore.addCurrency(newCurrency);
       console.log("✅ Component: Currency added successfully!");
+      showSuccess(t('currency.addSuccess'));
     }
     closeFormModal();
   } catch (error) {
@@ -468,9 +476,10 @@ const handleSubmitCurrency = async (currencyData) => {
 const handleRestoreCurrency = async (currency) => {
   try {
     await currenciesStore.restoreCurrency(currency.id);
-    console.log("Currency restored successfully!");
+    console.log("✅ Currency restored successfully!");
+    showSuccess(t('currency.restoreSuccess'));
   } catch (error) {
-    console.error("Failed to restore currency:", error);
+    console.error("❌ Failed to restore currency:", error);
     alert(error.message || "Failed to restore currency");
   }
 };
@@ -478,9 +487,10 @@ const handleRestoreCurrency = async (currency) => {
 const handleDeleteCurrency = async (currency) => {
   try {
     await currenciesStore.deleteCurrency(currency.id);
-    console.log("Currency deleted successfully!");
+    console.log("✅ Currency deleted successfully!");
+    showSuccess(t('currency.deleteSuccess'));
   } catch (error) {
-    console.error("Failed to delete currency:", error);
+    console.error("❌ Failed to delete currency:", error);
     alert(error.message || "Failed to delete currency");
   }
 };
@@ -488,9 +498,10 @@ const handleDeleteCurrency = async (currency) => {
 const handlePermanentDeleteCurrency = async (currency) => {
   try {
     await currenciesStore.deleteCurrency(currency.id, true);
-    console.log("Currency permanently deleted successfully!");
+    console.log("✅ Currency permanently deleted successfully!");
+    showSuccess(t('currency.permanentDeleteSuccess'));
   } catch (error) {
-    console.error("Failed to permanently delete currency:", error);
+    console.error("❌ Failed to permanently delete currency:", error);
     alert(error.message || "Failed to delete currency");
   }
 };
@@ -503,22 +514,29 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
   if (!pendingBulkAction.value) return;
   bulkActionLoading.value = true;
+  isBulkConfirmOpen.value = false;
+  const count = selectedRows.value.length;
 
   try {
     if (pendingBulkAction.value === "delete") {
       await currenciesStore.bulkDeleteCurrencies(selectedRows.value, false);
+      console.log("✅ Currencies soft deleted successfully");
+      showSuccess(t('currency.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "permanentDelete") {
       await currenciesStore.bulkDeleteCurrencies(selectedRows.value, true);
+      console.log("✅ Currencies permanently deleted successfully");
+      showSuccess(t('currency.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "restore") {
       await currenciesStore.bulkRestoreCurrencies(selectedRows.value);
+      console.log("✅ Currencies restored successfully");
+      showSuccess(t('currency.bulkRestoreSuccess', { count }));
     }
     selectedRows.value = [];
+    pendingBulkAction.value = null;
   } catch (error) {
-    console.error("Failed to bulk action currencies:", error);
+    console.error("❌ Failed to bulk action currencies:", error);
   } finally {
     bulkActionLoading.value = false;
-    isBulkConfirmOpen.value = false;
-    pendingBulkAction.value = null;
   }
 };
 

@@ -551,7 +551,13 @@
   branch: {
     // Page Headers
     title: "جدول الفروع ",
-
+    addSuccess: "تمت إضافة الفرع بنجاح!",
+    updateSuccess: "تم تحديث الفرع بنجاح!",
+    deleteSuccess: "تم حذف الفرع بنجاح!",
+    restoreSuccess: "تمت استعادة الفرع بنجاح!",
+    permanentDeleteSuccess: "تم حذف الفرع نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} فرع بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} فرع بنجاح!",
     searchPlaceholder: "البحث عن فروع...",
     search: "بحث",
     columns: "الأعمدة",
@@ -626,7 +632,13 @@
   lines: {
     // Page Headers
     title: "جدول الخطوط",
-
+    addSuccess: "تمت إضافة الخط بنجاح!",
+    updateSuccess: "تم تحديث الخط بنجاح!",
+    deleteSuccess: "تم حذف الخط بنجاح!",
+    restoreSuccess: "تمت استعادة الخط بنجاح!",
+    permanentDeleteSuccess: "تم حذف الخط نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} خط بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} خط بنجاح!",
     searchPlaceholder: "البحث عن خطوط...",
     search: "بحث",
     columns: "الأعمدة",
@@ -700,7 +712,13 @@
   linePrice: {
     // عناوين الصفحة
     title: "جدول أسعار الخطوط",
-
+    addSuccess: "تمت إضافة سعر الخط بنجاح!",
+    updateSuccess: "تم تحديث سعر الخط بنجاح!",
+    deleteSuccess: "تم حذف سعر الخط بنجاح!",
+    restoreSuccess: "تمت استعادة سعر الخط بنجاح!",
+    permanentDeleteSuccess: "تم حذف سعر الخط نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} سعر خط بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} سعر خط بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث عن أسعار الخطوط...",
     search: "بحث",
@@ -803,7 +821,13 @@
     title: "جدول خطوط العمل",
     pageTitle: "إدارة خطوط العمل",
     pageSubtitle: "إدارة خطوط العمل وتفاصيلها",
-
+    addSuccess: "تمت إضافة عمل الخط بنجاح!",
+    updateSuccess: "تم تحديث عمل الخط بنجاح!",
+    deleteSuccess: "تم حذف عمل الخط بنجاح!",
+    restoreSuccess: "تمت استعادة عمل الخط بنجاح!",
+    permanentDeleteSuccess: "تم حذف عمل الخط نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} عمل خط بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} عمل خط بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث عن خطوط العمل...",
     search: "بحث",
@@ -900,7 +924,13 @@
   regions: {
     // عناوين الصفحة
     title: "جدول المناطق",
-
+    addSuccess: "تمت إضافة المنطقة بنجاح!",
+    updateSuccess: "تم تحديث المنطقة بنجاح!",
+    deleteSuccess: "تم حذف المنطقة بنجاح!",
+    restoreSuccess: "تمت استعادة المنطقة بنجاح!",
+    permanentDeleteSuccess: "تم حذف المنطقة نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} منطقة بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} منطقة بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث عن مناطق...",
     search: "بحث",
@@ -994,7 +1024,13 @@
     title: "إدارة الطلبات",
     pageTitle: "إدارة الطلبات",
     pageSubtitle: "إدارة طلبات التوصيل وتتبع حالتها",
-
+    addSuccess: "تمت إضافة الطلب بنجاح!",
+    updateSuccess: "تم تحديث الطلب بنجاح!",
+    deleteSuccess: "تم حذف الطلب بنجاح!",
+    restoreSuccess: "تمت استعادة الطلب بنجاح!",
+    permanentDeleteSuccess: "تم حذف الطلب نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} طلب بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} طلب بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث في الطلبات...",
     search: "بحث",
@@ -1299,7 +1335,13 @@
     title: "إدارة الخصومات",
     pageTitle: "إدارة الخصومات",
     pageSubtitle: "إدارة قواعد الخصم واستراتيجيات التسعير",
-
+    addSuccess: "تمت إضافة الخصم بنجاح!",
+    updateSuccess: "تم تحديث الخصم بنجاح!",
+    deleteSuccess: "تم حذف الخصم بنجاح!",
+    restoreSuccess: "تمت استعادة الخصم بنجاح!",
+    permanentDeleteSuccess: "تم حذف الخصم نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} خصم بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} خصم بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث في الخصومات...",
     search: "بحث",
@@ -1411,7 +1453,13 @@
     title: "إدارة خطوط السائقين",
     pageTitle: "تعيينات خطوط السائقين",
     pageSubtitle: "إدارة تعيين السائقين لخطوط العمل",
-
+    addSuccess: "تمت إضافة خط السائق بنجاح!",
+    updateSuccess: "تم تحديث خط السائق بنجاح!",
+    deleteSuccess: "تم حذف خط السائق بنجاح!",
+    restoreSuccess: "تمت استعادة خط السائق بنجاح!",
+    permanentDeleteSuccess: "تم حذف خط السائق نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} خط سائق بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} خط سائق بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث في تعيينات خطوط السائقين...",
     search: "بحث",
@@ -1520,7 +1568,13 @@
     title: "إدارة أسعار الشركات",
     pageTitle: "إدارة أسعار الشركات",
     pageSubtitle: "إدارة التسعير لأنواع العناصر المختلفة حسب الشركة",
-
+    addSuccess: "تمت إضافة سعر الشركة بنجاح!",
+    updateSuccess: "تم تحديث سعر الشركة بنجاح!",
+    deleteSuccess: "تم حذف سعر الشركة بنجاح!",
+    restoreSuccess: "تمت استعادة سعر الشركة بنجاح!",
+    permanentDeleteSuccess: "تم حذف سعر الشركة نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} سعر شركة بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} سعر شركة بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث في أسعار الشركات...",
     search: "بحث",
@@ -1620,7 +1674,13 @@
     title: "إدارة العملات",
     pageTitle: "إدارة العملات",
     pageSubtitle: "إدارة عملات النظام",
-
+    addSuccess: "تمت إضافة العملة بنجاح!",
+    updateSuccess: "تم تحديث العملة بنجاح!",
+    deleteSuccess: "تم حذف العملة بنجاح!",
+    restoreSuccess: "تمت استعادة العملة بنجاح!",
+    permanentDeleteSuccess: "تم حذف العملة نهائياً!",
+    bulkDeleteSuccess: "تم حذف {count} عملة بنجاح!",
+    bulkRestoreSuccess: "تمت استعادة {count} عملة بنجاح!",
     // الإجراءات
     searchPlaceholder: "البحث في العملات...",
     search: "بحث",

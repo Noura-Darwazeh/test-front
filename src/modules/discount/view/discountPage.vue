@@ -124,6 +124,7 @@
       @close="closeDetailsModal"
     />
 
+    <!-- Bulk Action Confirmation Modal -->
     <ConfirmationModal
       :isOpen="isBulkConfirmOpen"
       :title="$t('common.bulkDeleteConfirmTitle')"
@@ -132,6 +133,14 @@
       :cancelText="$t('common.cancel')"
       @confirm="executeBulkAction"
       @close="cancelBulkAction"
+    />
+
+    <!-- Success Modal -->
+    <SuccessModal 
+      :isOpen="isSuccessModalOpen" 
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal" 
     />
   </div>
 </template>
@@ -146,6 +155,8 @@ import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
@@ -163,6 +174,7 @@ const discountStore = useDiscountStore();
 const customerStore = useCustomerStore();
 const regionsStore = useRegionsManagementStore();
 const linesStore = useLinesStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const customers = computed(() => customerStore.customers);
 const regions = computed(() => regionsStore.regions);
@@ -243,8 +255,9 @@ onMounted(async () => {
       regions.value.length ? Promise.resolve() : regionsStore.fetchRegions(),
       lines.value.length ? Promise.resolve() : linesStore.fetchLines(),
     ]);
+    console.log("✅ Discounts loaded successfully");
   } catch (error) {
-    console.error("Failed to load discounts:", error);
+    console.error("❌ Failed to load discounts:", error);
   }
 });
 
@@ -436,13 +449,13 @@ const switchTab = async (tab) => {
     try {
       await discountStore.fetchTrashedDiscounts({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
-      console.error("Failed to load trashed discounts:", error);
+      console.error("❌ Failed to load trashed discounts:", error);
     }
   } else {
     try {
       await discountStore.fetchDiscounts({ page: 1, perPage: itemsPerPage.value });
     } catch (error) {
-      console.error("Failed to load discounts:", error);
+      console.error("❌ Failed to load discounts:", error);
     }
   }
 };
@@ -456,7 +469,7 @@ const handleRefresh = async () => {
       await discountStore.fetchDiscounts({ page: currentPage.value, perPage: itemsPerPage.value });
     }
   } catch (error) {
-    console.error("Failed to refresh discounts:", error);
+    console.error("❌ Failed to refresh discounts:", error);
   }
 };
 
@@ -496,44 +509,53 @@ const handleAddDiscount = async (discountData) => {
   try {
     if (isEditMode.value) {
       await discountStore.updateDiscount(selectedDiscount.value.id, payload);
-      console.log("Discount updated successfully!");
+      console.log("✅ Discount updated successfully!");
+      showSuccess(t('discount.updateSuccess'));
     } else {
       await discountStore.addDiscount(payload);
-      console.log("Discount added successfully!");
+      console.log("✅ Discount added successfully!");
+      showSuccess(t('discount.addSuccess'));
     }
     closeModal();
   } catch (error) {
-    console.error("Failed to submit discount:", error);
+    console.error("❌ Failed to submit discount:", error);
     if (applyServerErrors(error)) {
       return;
     }
+    alert(error.message || t('common.saveFailed'));
   }
 };
 
 const handleRestoreDiscount = async (discount) => {
   try {
     await discountStore.restoreDiscount(discount.id);
-    console.log("Discount restored successfully!");
+    console.log("✅ Discount restored successfully!");
+    showSuccess(t('discount.restoreSuccess'));
   } catch (error) {
-    console.error("Failed to restore discount:", error);
+    console.error("❌ Failed to restore discount:", error);
+    alert(error.message || 'Failed to restore discount');
   }
 };
 
 const handleDeleteDiscount = async (discount) => {
   try {
     await discountStore.deleteDiscount(discount.id);
-    console.log("Discount deleted successfully!");
+    console.log("✅ Discount deleted successfully!");
+    showSuccess(t('discount.deleteSuccess'));
   } catch (error) {
-    console.error("Failed to delete discount:", error);
+    console.error("❌ Failed to delete discount:", error);
+    alert(error.message || t('common.saveFailed'));
   }
 };
 
 const handlePermanentDeleteDiscount = async (discount) => {
   try {
     await discountStore.deleteDiscount(discount.id, true);
-    console.log("Discount permanently deleted successfully!");
+    console.log("✅ Discount permanently deleted successfully!");
+    showSuccess(t('discount.permanentDeleteSuccess'));
   } catch (error) {
-    console.error("Failed to permanently delete discount:", error);
+    console.error("❌ Failed to permanently delete discount:", error);
+    alert(error.message || t('common.saveFailed'));
   }
 };
 
@@ -545,22 +567,29 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
   if (!pendingBulkAction.value) return;
   bulkActionLoading.value = true;
+  isBulkConfirmOpen.value = false;
+  const count = selectedRows.value.length;
 
   try {
     if (pendingBulkAction.value === "delete") {
       await discountStore.bulkDeleteDiscounts(selectedRows.value, false);
+      console.log("✅ Discounts soft deleted successfully");
+      showSuccess(t('discount.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "permanentDelete") {
       await discountStore.bulkDeleteDiscounts(selectedRows.value, true);
+      console.log("✅ Discounts permanently deleted successfully");
+      showSuccess(t('discount.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "restore") {
       await discountStore.bulkRestoreDiscounts(selectedRows.value);
+      console.log("✅ Discounts restored successfully");
+      showSuccess(t('discount.bulkRestoreSuccess', { count }));
     }
     selectedRows.value = [];
+    pendingBulkAction.value = null;
   } catch (error) {
-    console.error("Failed to bulk delete discounts:", error);
+    console.error("❌ Failed to bulk delete discounts:", error);
   } finally {
     bulkActionLoading.value = false;
-    isBulkConfirmOpen.value = false;
-    pendingBulkAction.value = null;
   }
 };
 
@@ -570,6 +599,7 @@ const cancelBulkAction = () => {
 };
 
 const handleEdit = (discount) => {
+  clearFormErrors();
   isEditMode.value = true;
   selectedDiscount.value = { ...discount };
   isModalOpen.value = true;
@@ -632,5 +662,3 @@ watch([searchText, selectedGroups], () => {
   max-width: 100%;
 }
 </style>
-
-

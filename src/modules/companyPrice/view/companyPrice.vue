@@ -111,6 +111,7 @@
       @close="closeDetailsModal"
     />
 
+    <!-- Bulk Action Confirmation Modal -->
     <ConfirmationModal
       :isOpen="isBulkConfirmOpen"
       :title="$t('common.bulkDeleteConfirmTitle')"
@@ -119,6 +120,14 @@
       :cancelText="$t('common.cancel')"
       @confirm="executeBulkAction"
       @close="cancelBulkAction"
+    />
+
+    <!-- Success Modal -->
+    <SuccessModal 
+      :isOpen="isSuccessModalOpen" 
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal" 
     />
   </div>
 </template>
@@ -132,6 +141,8 @@ import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
@@ -143,6 +154,7 @@ const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
 const { companyId, currencyId, currencyName } = useAuthDefaults();
 const companyPriceStore = useCompanyPriceStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 // Simple price formatter
 const formatPrice = (value, symbol = "$") => {
@@ -169,8 +181,9 @@ const trashedCompanyPrices = computed(() => companyPriceStore.trashedCompanyPric
 onMounted(async () => {
   try {
     await companyPriceStore.fetchCompanyPrices();
+    console.log("✅ Company prices loaded successfully");
   } catch (error) {
-    console.error("Failed to load company prices:", error);
+    console.error("❌ Failed to load company prices:", error);
   }
 });
 
@@ -350,13 +363,13 @@ const switchTab = async (tab) => {
     try {
       await companyPriceStore.fetchTrashedCompanyPrices();
     } catch (error) {
-      console.error("Failed to load trashed company prices:", error);
+      console.error("❌ Failed to load trashed company prices:", error);
     }
   } else {
     try {
       await companyPriceStore.fetchCompanyPrices();
     } catch (error) {
-      console.error("Failed to load company prices:", error);
+      console.error("❌ Failed to load company prices:", error);
     }
   }
 };
@@ -370,7 +383,7 @@ const handleRefresh = async () => {
       await companyPriceStore.fetchCompanyPrices();
     }
   } catch (error) {
-    console.error("Failed to refresh company prices:", error);
+    console.error("❌ Failed to refresh company prices:", error);
   }
 };
 
@@ -398,45 +411,54 @@ const handleAddCompanyPrice = async (priceData) => {
 
     if (isEditMode.value) {
       await companyPriceStore.updateCompanyPrice(selectedPrice.value.id, payload);
-      console.log("Company price updated successfully!");
+      console.log("✅ Company price updated successfully!");
+      showSuccess(t('companyPrice.updateSuccess'));
     } else {
       await companyPriceStore.addCompanyPrice(payload);
-      console.log("Company price added successfully!");
+      console.log("✅ Company price added successfully!");
+      showSuccess(t('companyPrice.addSuccess'));
     }
 
     closeModal();
   } catch (error) {
-    console.error("Failed to submit company price:", error);
+    console.error("❌ Failed to submit company price:", error);
     if (applyServerErrors(error)) {
       return;
     }
+    alert(error.message || t('common.saveFailed'));
   }
 };
 
 const handleRestoreCompanyPrice = async (price) => {
   try {
     await companyPriceStore.restoreCompanyPrice(price.id);
-    console.log("Company price restored successfully!");
+    console.log("✅ Company price restored successfully!");
+    showSuccess(t('companyPrice.restoreSuccess'));
   } catch (error) {
-    console.error("Failed to restore company price:", error);
+    console.error("❌ Failed to restore company price:", error);
+    alert(error.message || 'Failed to restore company price');
   }
 };
 
 const handleDeleteCompanyPrice = async (price) => {
   try {
     await companyPriceStore.deleteCompanyPrice(price.id);
-    console.log("Company price deleted successfully!");
+    console.log("✅ Company price deleted successfully!");
+    showSuccess(t('companyPrice.deleteSuccess'));
   } catch (error) {
-    console.error("Failed to delete company price:", error);
+    console.error("❌ Failed to delete company price:", error);
+    alert(error.message || t('common.saveFailed'));
   }
 };
 
 const handlePermanentDeleteCompanyPrice = async (price) => {
   try {
     await companyPriceStore.deleteCompanyPrice(price.id, true);
-    console.log("Company price permanently deleted successfully!");
+    console.log("✅ Company price permanently deleted successfully!");
+    showSuccess(t('companyPrice.permanentDeleteSuccess'));
   } catch (error) {
-    console.error("Failed to permanently delete company price:", error);
+    console.error("❌ Failed to permanently delete company price:", error);
+    alert(error.message || t('common.saveFailed'));
   }
 };
 
@@ -448,22 +470,29 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
   if (!pendingBulkAction.value) return;
   bulkActionLoading.value = true;
+  isBulkConfirmOpen.value = false;
+  const count = selectedRows.value.length;
 
   try {
     if (pendingBulkAction.value === "delete") {
       await companyPriceStore.bulkDeleteCompanyPrices(selectedRows.value, false);
+      console.log("✅ Company prices soft deleted successfully");
+      showSuccess(t('companyPrice.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "permanentDelete") {
       await companyPriceStore.bulkDeleteCompanyPrices(selectedRows.value, true);
+      console.log("✅ Company prices permanently deleted successfully");
+      showSuccess(t('companyPrice.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "restore") {
       await companyPriceStore.bulkRestoreCompanyPrices(selectedRows.value);
+      console.log("✅ Company prices restored successfully");
+      showSuccess(t('companyPrice.bulkRestoreSuccess', { count }));
     }
     selectedRows.value = [];
+    pendingBulkAction.value = null;
   } catch (error) {
-    console.error("Failed to bulk delete company prices:", error);
+    console.error("❌ Failed to bulk delete company prices:", error);
   } finally {
     bulkActionLoading.value = false;
-    isBulkConfirmOpen.value = false;
-    pendingBulkAction.value = null;
   }
 };
 
@@ -473,6 +502,7 @@ const cancelBulkAction = () => {
 };
 
 const handleEdit = (price) => {
+  clearFormErrors();
   isEditMode.value = true;
   // Use original price data, not the computed version
   const originalPrice = companyPrices.value.find((p) => p.id === price.id);
@@ -532,5 +562,3 @@ const detailsFields = computed(() => [
   max-width: 100%;
 }
 </style>
-
-

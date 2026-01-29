@@ -151,6 +151,7 @@
       @close="closeDetailsModal"
     />
 
+    <!-- Bulk Action Confirmation Modal -->
     <ConfirmationModal
       :isOpen="isBulkConfirmOpen"
       :title="$t('common.bulkDeleteConfirmTitle')"
@@ -159,6 +160,14 @@
       :cancelText="$t('common.cancel')"
       @confirm="executeBulkAction"
       @close="cancelBulkAction"
+    />
+
+    <!-- Success Modal -->
+    <SuccessModal 
+      :isOpen="isSuccessModalOpen" 
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal" 
     />
   </div>
 </template>
@@ -174,6 +183,8 @@ import Actions from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
@@ -187,6 +198,7 @@ const router = useRouter();
 const driverLineStore = useDriverLineStore();
 const driverStore = useDriverStore();
 const lineWorkStore = useLineWorkStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const drivers = computed(() => driverStore.drivers);
 const lineWorks = computed(() => lineWorkStore.lineWorks);
@@ -411,13 +423,13 @@ const switchTab = async (tab) => {
     try {
       await driverLineStore.fetchTrashedDriverLines();
     } catch (error) {
-      console.error("Failed to load trashed driver lines:", error);
+      console.error("❌ Failed to load trashed driver lines:", error);
     }
   } else {
     try {
       await driverLineStore.fetchDriverLines();
     } catch (error) {
-      console.error("Failed to load driver lines:", error);
+      console.error("❌ Failed to load driver lines:", error);
     }
   }
 };
@@ -431,23 +443,22 @@ const handleRefresh = async () => {
       await driverLineStore.fetchDriverLines();
     }
   } catch (error) {
-    console.error("Failed to refresh driver lines:", error);
+    console.error("❌ Failed to refresh driver lines:", error);
   }
 };
 
 const handleSubmitDriverLine = async (driverLineData) => {
-  // Clear previous validation error
   validationError.value = null;
   
   try {
     if (isEditMode.value) {
-      // Update existing driver line
       await driverLineStore.updateDriverLine(selectedDriverLine.value.id, driverLineData);
       console.log('✅ Driver line updated successfully!');
+      showSuccess(t('driverLine.updateSuccess'));
     } else {
-      // Add new driver line
       await driverLineStore.addDriverLine(driverLineData);
       console.log('✅ Driver line added successfully!');
+      showSuccess(t('driverLine.addSuccess'));
     }
     closeModal();
   } catch (error) {
@@ -457,23 +468,19 @@ const handleSubmitDriverLine = async (driverLineData) => {
       return;
     }
     
-    // Check for specific validation errors
     if (error.response?.data?.success === false && error.response?.data?.error) {
       const errorMessage = error.response.data.error;
       
-      // Check for duplicate assignment error
       if (errorMessage.includes('already assigned') || errorMessage.includes('duplicate')) {
         validationError.value = t('driverLine.validation.duplicateAssignment');
         
-        // Auto-dismiss after 5 seconds
         setTimeout(() => {
           validationError.value = null;
         }, 5000);
-        return; // Keep form open for correction
+        return;
       }
     }
     
-    // For other errors, show generic alert
     alert(error.message || t('common.saveFailed'));
   }
 };
@@ -485,9 +492,10 @@ const clearValidationError = () => {
 const handleRestoreDriverLine = async (driverLine) => {
   try {
     await driverLineStore.restoreDriverLine(driverLine.id);
-    console.log("Driver line restored successfully!");
+    console.log("✅ Driver line restored successfully!");
+    showSuccess(t('driverLine.restoreSuccess'));
   } catch (error) {
-    console.error("Failed to restore driver line:", error);
+    console.error("❌ Failed to restore driver line:", error);
     alert(error.message || "Failed to restore driver line");
   }
 };
@@ -495,9 +503,10 @@ const handleRestoreDriverLine = async (driverLine) => {
 const handlePermanentDeleteDriverLine = async (driverLine) => {
   try {
     await driverLineStore.deleteDriverLine(driverLine.id, true);
-    console.log("Driver line permanently deleted successfully!");
+    console.log("✅ Driver line permanently deleted successfully!");
+    showSuccess(t('driverLine.permanentDeleteSuccess'));
   } catch (error) {
-    console.error("Failed to permanently delete driver line:", error);
+    console.error("❌ Failed to permanently delete driver line:", error);
     alert(error.message || t("common.saveFailed"));
   }
 };
@@ -510,22 +519,29 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
   if (!pendingBulkAction.value) return;
   bulkActionLoading.value = true;
+  isBulkConfirmOpen.value = false;
+  const count = selectedRows.value.length;
 
   try {
     if (pendingBulkAction.value === "delete") {
       await driverLineStore.bulkDeleteDriverLines(selectedRows.value, false);
+      console.log("✅ Driver lines soft deleted successfully");
+      showSuccess(t('driverLine.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "permanentDelete") {
       await driverLineStore.bulkDeleteDriverLines(selectedRows.value, true);
+      console.log("✅ Driver lines permanently deleted successfully");
+      showSuccess(t('driverLine.bulkDeleteSuccess', { count }));
     } else if (pendingBulkAction.value === "restore") {
       await driverLineStore.bulkRestoreDriverLines(selectedRows.value);
+      console.log("✅ Driver lines restored successfully");
+      showSuccess(t('driverLine.bulkRestoreSuccess', { count }));
     }
     selectedRows.value = [];
+    pendingBulkAction.value = null;
   } catch (error) {
-    console.error("Failed to bulk delete driver lines:", error);
+    console.error("❌ Failed to bulk delete driver lines:", error);
   } finally {
     bulkActionLoading.value = false;
-    isBulkConfirmOpen.value = false;
-    pendingBulkAction.value = null;
   }
 };
 
@@ -535,6 +551,7 @@ const cancelBulkAction = () => {
 };
 
 const handleEdit = (driverLine) => {
+  clearFormErrors();
   isEditMode.value = true;
   selectedDriverLine.value = { ...driverLine };
   isModalOpen.value = true;
@@ -587,9 +604,10 @@ watch([searchText, selectedGroups], () => {
 const handleDeleteDriverLine = async (driverLine) => {
   try {
     await driverLineStore.deleteDriverLine(driverLine.id);
-    console.log("?o. Driver line deleted successfully!");
+    console.log("✅ Driver line deleted successfully!");
+    showSuccess(t('driverLine.deleteSuccess'));
   } catch (error) {
-    console.error("??O Failed to delete driver line:", error);
+    console.error("❌ Failed to delete driver line:", error);
     alert(error.message || t('common.saveFailed'));
   }
 };
@@ -601,4 +619,3 @@ const handleDeleteDriverLine = async (driverLine) => {
   max-width: 100%;
 }
 </style>
-

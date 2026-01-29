@@ -141,6 +141,14 @@
             @confirm="executeBulkAction"
             @close="cancelBulkAction"
         />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -151,6 +159,8 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
@@ -164,6 +174,7 @@ const { t } = useI18n();
 const linesStore = useLinesStore();
 const regionsStore = useRegionsManagementStore();
 const { companyId, companyOption } = useAuthDefaults();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const searchText = ref("");
 const isFormModalOpen = ref(false);
@@ -434,17 +445,21 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     bulkActionLoading.value = true;
     isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
 
     try {
         if (pendingBulkAction.value === 'delete') {
             await linesStore.bulkDeleteLines(selectedRows.value, false);
             console.log("✅ Lines soft deleted successfully");
+            showSuccess(t('lines.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await linesStore.bulkDeleteLines(selectedRows.value, true);
             console.log("✅ Lines permanently deleted successfully");
+            showSuccess(t('lines.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await linesStore.bulkRestoreLines(selectedRows.value);
             console.log("✅ Lines restored successfully");
+            showSuccess(t('lines.bulkRestoreSuccess', { count }));
         }
 
         selectedRows.value = [];
@@ -462,7 +477,6 @@ const cancelBulkAction = () => {
 };
 
 const handleSubmitLines = async (lineData) => {
-    // Clear previous validation error
     validationError.value = null;
     
     try {
@@ -471,13 +485,13 @@ const handleSubmitLines = async (lineData) => {
             company: companyId.value || lineData.company,
         };
         if (isEditMode.value) {
-            // Update existing line
             await linesStore.updateLine(selectedLine.value.id, payload);
             console.log('✅ Line updated successfully!');
+            showSuccess(t('lines.updateSuccess'));
         } else {
-            // Add new line
             await linesStore.addLine(payload);
             console.log('✅ Line added successfully!');
+            showSuccess(t('lines.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
@@ -487,18 +501,15 @@ const handleSubmitLines = async (lineData) => {
             return;
         }
         
-        // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
             validationError.value = error.response.data.error;
             
-            // Auto-dismiss after 5 seconds
             setTimeout(() => {
                 validationError.value = null;
             }, 5000);
-            return; // Keep form open for correction
+            return;
         }
         
-        // For other errors, show generic alert
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -511,6 +522,7 @@ const handleRestoreLine = async (line) => {
     try {
         await linesStore.restoreLine(line.id);
         console.log("✅ Line restored successfully!");
+        showSuccess(t('lines.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore line:", error);
         alert(error.message || 'Failed to restore line');
@@ -520,9 +532,10 @@ const handleRestoreLine = async (line) => {
 const handleDeleteLine = async (line) => {
     try {
         await linesStore.deleteLine(line.id);
-        console.log("?o. Line deleted successfully!");
+        console.log("✅ Line deleted successfully!");
+        showSuccess(t('lines.deleteSuccess'));
     } catch (error) {
-        console.error("??O Failed to delete line:", error);
+        console.error("❌ Failed to delete line:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -530,9 +543,10 @@ const handleDeleteLine = async (line) => {
 const handlePermanentDeleteLine = async (line) => {
     try {
         await linesStore.deleteLine(line.id, true);
-        console.log("Line permanently deleted successfully!");
+        console.log("✅ Line permanently deleted successfully!");
+        showSuccess(t('lines.permanentDeleteSuccess'));
     } catch (error) {
-        console.error("Failed to permanently delete line:", error);
+        console.error("❌ Failed to permanently delete line:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };

@@ -122,6 +122,7 @@
             @close="closeDetailsModal" 
         />
 
+        <!-- Bulk Action Confirmation Modal -->
         <ConfirmationModal
             :isOpen="isBulkConfirmOpen"
             :title="$t('common.bulkDeleteConfirmTitle')"
@@ -130,6 +131,14 @@
             :cancelText="$t('common.cancel')"
             @confirm="executeBulkAction"
             @close="cancelBulkAction"
+        />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
         />
     </div>
 </template>
@@ -141,6 +150,8 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import lineWorkHeader from "../components/lineWorkHeader.vue";
@@ -152,6 +163,7 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 const { t } = useI18n();
 const lineWorkStore = useLineWorkStore();
 const { companyId, companyOption } = useAuthDefaults();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const searchText = ref("");
 const isFormModalOpen = ref(false);
@@ -348,13 +360,13 @@ const switchTab = async (tab) => {
         try {
             await lineWorkStore.fetchTrashedLineWorks();
         } catch (error) {
-            console.error("Failed to load trashed line works:", error);
+            console.error("❌ Failed to load trashed line works:", error);
         }
     } else {
         try {
             await lineWorkStore.fetchLineWorks();
         } catch (error) {
-            console.error("Failed to load line works:", error);
+            console.error("❌ Failed to load line works:", error);
         }
     }
 };
@@ -368,12 +380,11 @@ const handleRefresh = async () => {
             await lineWorkStore.fetchLineWorks();
         }
     } catch (error) {
-        console.error("Failed to refresh line works:", error);
+        console.error("❌ Failed to refresh line works:", error);
     }
 };
 
 const handleSubmitlineWork = async (lineWorkData) => {
-    // Clear previous validation error
     validationError.value = null;
     
     try {
@@ -387,13 +398,13 @@ const handleSubmitlineWork = async (lineWorkData) => {
             company: resolvedCompany,
         };
         if (isEditMode.value) {
-            // Update existing lineWork
             await lineWorkStore.updateLineWork(selectedlineWork.value.id, payload);
             console.log('✅ Line work updated successfully!');
+            showSuccess(t('lineWork.updateSuccess'));
         } else {
-            // Add new lineWork
             await lineWorkStore.addLineWork(payload);
             console.log('✅ Line work added successfully!');
+            showSuccess(t('lineWork.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
@@ -403,18 +414,15 @@ const handleSubmitlineWork = async (lineWorkData) => {
             return;
         }
         
-        // Check for specific validation errors
         if (error.response?.data?.success === false && error.response?.data?.error) {
             validationError.value = error.response.data.error;
             
-            // Auto-dismiss after 5 seconds
             setTimeout(() => {
                 validationError.value = null;
             }, 5000);
-            return; // Keep form open for correction
+            return;
         }
         
-        // For other errors, show generic alert
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -426,9 +434,10 @@ const clearValidationError = () => {
 const handleRestorelineWork = async (lineWork) => {
     try {
         await lineWorkStore.restoreLineWork(lineWork.id);
-        console.log("Line work restored successfully!");
+        console.log("✅ Line work restored successfully!");
+        showSuccess(t('lineWork.restoreSuccess'));
     } catch (error) {
-        console.error("Failed to restore line work:", error);
+        console.error("❌ Failed to restore line work:", error);
         alert(error.message || "Failed to restore line work");
     }
 };
@@ -436,9 +445,10 @@ const handleRestorelineWork = async (lineWork) => {
 const handlePermanentDeleteLineWork = async (lineWork) => {
     try {
         await lineWorkStore.deleteLineWork(lineWork.id, true);
-        console.log("Line work permanently deleted successfully!");
+        console.log("✅ Line work permanently deleted successfully!");
+        showSuccess(t('lineWork.permanentDeleteSuccess'));
     } catch (error) {
-        console.error("Failed to permanently delete line work:", error);
+        console.error("❌ Failed to permanently delete line work:", error);
         alert(error.message || t("common.saveFailed"));
     }
 };
@@ -451,22 +461,29 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     if (!pendingBulkAction.value) return;
     bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
 
     try {
         if (pendingBulkAction.value === 'delete') {
             await lineWorkStore.bulkDeleteLineWorks(selectedRows.value, false);
+            console.log("✅ Line works soft deleted successfully");
+            showSuccess(t('lineWork.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await lineWorkStore.bulkDeleteLineWorks(selectedRows.value, true);
+            console.log("✅ Line works permanently deleted successfully");
+            showSuccess(t('lineWork.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await lineWorkStore.bulkRestoreLineWorks(selectedRows.value);
+            console.log("✅ Line works restored successfully");
+            showSuccess(t('lineWork.bulkRestoreSuccess', { count }));
         }
         selectedRows.value = [];
+        pendingBulkAction.value = null;
     } catch (error) {
-        console.error("Failed to perform bulk action on line works:", error);
+        console.error("❌ Failed to perform bulk action on line works:", error);
     } finally {
         bulkActionLoading.value = false;
-        isBulkConfirmOpen.value = false;
-        pendingBulkAction.value = null;
     }
 };
 
@@ -478,9 +495,10 @@ const cancelBulkAction = () => {
 const handleDeleteLineWork = async (lineWork) => {
     try {
         await lineWorkStore.deleteLineWork(lineWork.id);
-        console.log("?o. Line work deleted successfully!");
+        console.log("✅ Line work deleted successfully!");
+        showSuccess(t('lineWork.deleteSuccess'));
     } catch (error) {
-        console.error("??O Failed to delete line work:", error);
+        console.error("❌ Failed to delete line work:", error);
         alert(error.message || t('common.saveFailed'));
     }
 };
@@ -492,4 +510,3 @@ const handleDeleteLineWork = async (lineWork) => {
     max-width: 100%;
 }
 </style>
-

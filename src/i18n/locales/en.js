@@ -292,13 +292,13 @@ export default {
   customer: {
     // Page Headers
     title: "Customer Table",
-  addSuccess: "Customer added successfully!",
-  updateSuccess: "Customer updated successfully!",
-  deleteSuccess: "Customer deleted successfully!",
-  restoreSuccess: "Customer restored successfully!",
-  permanentDeleteSuccess: "Customer permanently deleted!",
-  bulkDeleteSuccess: "{count} customer(s) deleted successfully!",
-  bulkRestoreSuccess: "{count} customer(s) restored successfully!",
+    addSuccess: "Customer added successfully!",
+    updateSuccess: "Customer updated successfully!",
+    deleteSuccess: "Customer deleted successfully!",
+    restoreSuccess: "Customer restored successfully!",
+    permanentDeleteSuccess: "Customer permanently deleted!",
+    bulkDeleteSuccess: "{count} customer(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} customer(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search customers...",
     search: "Search",
@@ -536,7 +536,13 @@ export default {
   branch: {
     // Page Headers
     title: "Branches Table",
-
+    addSuccess: "Branch added successfully!",
+    updateSuccess: "Branch updated successfully!",
+    deleteSuccess: "Branch deleted successfully!",
+    restoreSuccess: "Branch restored successfully!",
+    permanentDeleteSuccess: "Branch permanently deleted!",
+    bulkDeleteSuccess: "{count} branch(es) deleted successfully!",
+    bulkRestoreSuccess: "{count} branch(es) restored successfully!",
     // Actions
     searchPlaceholder: "Search branches...",
     search: "Search",
@@ -615,7 +621,13 @@ export default {
   lines: {
     // Page Headers
     title: "Lines Table",
-
+    addSuccess: "Line added successfully!",
+    updateSuccess: "Line updated successfully!",
+    deleteSuccess: "Line deleted successfully!",
+    restoreSuccess: "Line restored successfully!",
+    permanentDeleteSuccess: "Line permanently deleted!",
+    bulkDeleteSuccess: "{count} line(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} line(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search Lines...",
     search: "Search",
@@ -688,13 +700,16 @@ export default {
     details: "Details",
   },
   //linePrice
-
-  // إضافة هذا الجزء إلى ملف src/i18n/locales/en.js
-
   linePrice: {
     // Page Headers
     title: "Line Price Table",
-
+    addSuccess: "Line price added successfully!",
+    updateSuccess: "Line price updated successfully!",
+    deleteSuccess: "Line price deleted successfully!",
+    restoreSuccess: "Line price restored successfully!",
+    permanentDeleteSuccess: "Line price permanently deleted!",
+    bulkDeleteSuccess: "{count} line price(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} line price(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search line prices...",
     search: "Search",
@@ -798,7 +813,13 @@ export default {
     title: "Line Work Table",
     pageTitle: "Line Work Management",
     pageSubtitle: "Manage line work and their details",
-
+    addSuccess: "Line work added successfully!",
+    updateSuccess: "Line work updated successfully!",
+    deleteSuccess: "Line work deleted successfully!",
+    restoreSuccess: "Line work restored successfully!",
+    permanentDeleteSuccess: "Line work permanently deleted!",
+    bulkDeleteSuccess: "{count} line work(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} line work(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search line work...",
     search: "Search",
@@ -893,6 +914,14 @@ export default {
   regions: {
     // Page Headers
     title: "Regions Table",
+
+    addSuccess: "Region added successfully!",
+    updateSuccess: "Region updated successfully!",
+    deleteSuccess: "Region deleted successfully!",
+    restoreSuccess: "Region restored successfully!",
+    permanentDeleteSuccess: "Region permanently deleted!",
+    bulkDeleteSuccess: "{count} region(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} region(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search Regions...",
     search: "Search",
@@ -985,7 +1014,13 @@ export default {
     title: "Orders Management",
     pageTitle: "Orders Management",
     pageSubtitle: "Manage delivery orders and track their status",
-
+    addSuccess: "Order added successfully!",
+    updateSuccess: "Order updated successfully!",
+    deleteSuccess: "Order deleted successfully!",
+    restoreSuccess: "Order restored successfully!",
+    permanentDeleteSuccess: "Order permanently deleted!",
+    bulkDeleteSuccess: "{count} order(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} order(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search orders...",
     search: "Search",
@@ -1324,7 +1359,13 @@ export default {
     title: "Discount Management",
     pageTitle: "Discount Management",
     pageSubtitle: "Manage discount rules and pricing strategies",
-
+    addSuccess: "Discount added successfully!",
+    updateSuccess: "Discount updated successfully!",
+    deleteSuccess: "Discount deleted successfully!",
+    restoreSuccess: "Discount restored successfully!",
+    permanentDeleteSuccess: "Discount permanently deleted!",
+    bulkDeleteSuccess: "{count} discount(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} discount(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search discounts...",
     search: "Search",
@@ -1437,7 +1478,13 @@ export default {
     title: "Driver Line Management",
     pageTitle: "Driver Line Assignments",
     pageSubtitle: "Manage driver assignments to work lines",
-
+    addSuccess: "Driver line added successfully!",
+    updateSuccess: "Driver line updated successfully!",
+    deleteSuccess: "Driver line deleted successfully!",
+    restoreSuccess: "Driver line restored successfully!",
+    permanentDeleteSuccess: "Driver line permanently deleted!",
+    bulkDeleteSuccess: "{count} driver line(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} driver line(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search driver line assignments...",
     search: "Search",
@@ -1548,7 +1595,13 @@ export default {
     title: "Company Price Management",
     pageTitle: "Company Price Management",
     pageSubtitle: "Manage pricing for different item types by company",
-
+    addSuccess: "Company price added successfully!",
+    updateSuccess: "Company price updated successfully!",
+    deleteSuccess: "Company price deleted successfully!",
+    restoreSuccess: "Company price restored successfully!",
+    permanentDeleteSuccess: "Company price permanently deleted!",
+    bulkDeleteSuccess: "{count} company price(s) deleted successfully!",
+    bulkRestoreSuccess: "{count} company price(s) restored successfully!",
     // Actions
     searchPlaceholder: "Search company prices...",
     search: "Search",
@@ -1649,7 +1702,13 @@ export default {
     title: "Currency Management",
     pageTitle: "Currency Management",
     pageSubtitle: "Manage system currencies",
-
+    addSuccess: "Currency added successfully!",
+    updateSuccess: "Currency updated successfully!",
+    deleteSuccess: "Currency deleted successfully!",
+    restoreSuccess: "Currency restored successfully!",
+    permanentDeleteSuccess: "Currency permanently deleted!",
+    bulkDeleteSuccess: "{count} currency(ies) deleted successfully!",
+    bulkRestoreSuccess: "{count} currency(ies) restored successfully!",
     // Actions
     searchPlaceholder: "Search currencies...",
     search: "Search",
