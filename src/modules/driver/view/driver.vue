@@ -783,39 +783,49 @@ const handleDeleteDriver = async (driver) => {
         // Check if driver has work plans
         const response = await apiServices.getDriverWorkPlans(driver.id);
         
-        console.log('📋 Work plans response:', response.data);
+        console.log('📋 Full API response:', response);
+        console.log('📋 Response data:', response.data);
         
-        if (response.data.success === false) {
-            // Driver has non-pending steps - cannot delete
+        // ✅ تحقق من الـ response بشكل أفضل
+        const workplans = response.data?.workplans || response.data?.data || [];
+        const success = response.data?.success;
+        
+        console.log('📦 Workplans found:', workplans);
+        console.log('✅ Success status:', success);
+        
+        // إذا في error أو success = false
+        if (success === false) {
             canDeleteDriver.value = false;
             driverToDelete.value = driver;
-            driverWorkPlans.value = response.data.workplans || [];
+            driverWorkPlans.value = workplans;
             isReassignModalOpen.value = true;
             return;
         }
         
-        if (response.data.workplans && response.data.workplans.length > 0) {
-            // Driver has work plans - need reassignment
+        // إذا في work plans
+        if (Array.isArray(workplans) && workplans.length > 0) {
             canDeleteDriver.value = true;
             driverToDelete.value = driver;
-            driverWorkPlans.value = response.data.workplans;
+            driverWorkPlans.value = workplans;
             isReassignModalOpen.value = true;
+            console.log('🔔 Opening reassign modal with', workplans.length, 'plans');
             return;
         }
         
-        // No work plans - proceed with normal deletion
+        // ✅ ما في work plans - احذفي عادي
+        console.log('✅ No work plans found, deleting driver...');
         await driverStore.deleteDriver(driver.id);
-        console.log("✅ Driver deleted successfully!");
         showSuccess(t('driver.deleteSuccess'));
         
     } catch (error) {
-        console.error("❌ Failed to check/delete driver:", error);
+        console.error("❌ Error checking/deleting driver:", error);
+        console.error("❌ Error response:", error.response?.data);
         
-        // If API returns 404 or error, assume no work plans and proceed
-        if (error.response?.status === 404) {
+        // ✅ حتى لو في error، حاولي تحذفي
+        if (error.response?.status === 404 || error.response?.status === 500) {
+            console.log('⚠️ API error, attempting delete anyway...');
             try {
                 await driverStore.deleteDriver(driver.id);
-                console.log("✅ Driver deleted successfully!");
                 showSuccess(t('driver.deleteSuccess'));
             } catch (deleteError) {
                 console.error("❌ Failed to delete driver:", deleteError);
@@ -826,6 +836,8 @@ const handleDeleteDriver = async (driver) => {
         }
     }
 };
+
+
 
 // ✅ NEW: Handle work plans reassignment
 const handleReassignWorkPlans = async ({ workPlanIds, oldDriverId, newDriverId }) => {
