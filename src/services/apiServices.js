@@ -854,14 +854,14 @@ async getOrdersWithItems(filters = {}) {
     return this.get(`/work_plan/driver/${driverId}`);
   }
 
-  // ✅ NEW: Reassign work plans to another driver
-  async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
-    return this.post("/work_plan/reassign_driver", {
-      workplan: workplanIds,
-      driver_id_old: oldDriverId,
-      driver_id_new: newDriverId
-    });
-  }
+// ✅ FIXED: استخدمي patch بدل post
+async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
+  return this.patch("/work_plan/reassign_driver", {
+    workplan: workplanIds,
+    driver_id_old: oldDriverId,
+    driver_id_new: newDriverId
+  });
+}
 
   async createWorkPlan(workPlanData) {
     const cleanData = Object.entries(workPlanData).reduce(
