@@ -18,13 +18,13 @@
             v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('driver.filterByStatus')"
             translationKey="statuses"
-        :columns="driverColumns"
-        v-model:visibleColumns="visibleColumns"
-        :showAddButton="true"
-        :addButtonText="$t('driver.addNew')"
-        @add-click="openAddModal"
-        @refresh-click="handleRefresh"
-    />
+            :columns="driverColumns"
+            v-model:visibleColumns="visibleColumns"
+            :showAddButton="true"
+            :addButtonText="$t('driver.addNew')"
+            @add-click="openAddModal"
+            @refresh-click="handleRefresh"
+        />
 
         <div class="card border-0">
             <!-- Tabs -->
@@ -147,6 +147,17 @@
             @close="closeDetailsModal" 
         />
 
+        <!-- ✅ NEW: Driver Reassign Modal -->
+        <DriverReassignModal
+            :isOpen="isReassignModalOpen"
+            :driver="driverToDelete"
+            :workPlans="driverWorkPlans"
+            :availableDrivers="otherDrivers"
+            :canDelete="canDeleteDriver"
+            @close="closeReassignModal"
+            @reassign="handleReassignWorkPlans"
+        />
+
         <!-- Bulk Action Confirmation Modal -->
         <ConfirmationModal
             :isOpen="isBulkConfirmOpen"
@@ -158,12 +169,12 @@
             @close="cancelBulkAction"
         />
 
-            <SuccessModal 
-      :isOpen="isSuccessModalOpen" 
-      :title="$t('common.success')"
-      :message="successMessage"
-      @close="closeSuccessModal" 
-    />
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
 </template>
 
@@ -175,6 +186,7 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import DriverReassignModal from "../../../components/shared/DriverReassignModal.vue"; // ✅ NEW
 import { useI18n } from "vue-i18n";
 import DriversHeader from "../components/driversHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -210,6 +222,12 @@ const validationError = ref(null);
 const activeTab = ref('active');
 const selectedRows = ref([]);
 
+// ✅ NEW: Reassignment Modal State
+const isReassignModalOpen = ref(false);
+const driverToDelete = ref(null);
+const driverWorkPlans = ref([]);
+const canDeleteDriver = ref(true);
+
 const selectedDriverImage = computed(() =>
     getFullImageUrl(selectedDriver.value?.image)
 );
@@ -223,6 +241,16 @@ const pendingBulkAction = ref(null);
 const drivers = computed(() => driverStore.drivers);
 const trashedDrivers = computed(() => driverStore.trashedDrivers);
 const branches = ref([]);
+
+// ✅ NEW: Computed for other drivers
+const otherDrivers = computed(() => {
+  if (!driverToDelete.value) return [];
+  
+  return driverStore.drivers.filter(driver => 
+    driver.id !== driverToDelete.value.id &&
+    driver.status !== 'offline'
+  );
+});
 
 const branchOptions = computed(() =>
     branches.value.map((branch) => ({
@@ -254,7 +282,7 @@ const fetchBranches = async () => {
         const response = await apiServices.getBranches();
         branches.value = response.data.data || [];
     } catch (error) {
-        console.error("Æ’?O Failed to load branches:", error);
+        console.error("❌ Failed to load branches:", error);
     }
 };
 
@@ -291,7 +319,7 @@ const currentPagination = computed(() => {
         : driverStore.trashedPagination;
 });
 
-// Driver Form Fields - FIXED STATUS OPTIONS
+// Driver Form Fields
 const driverFields = computed(() => [
     {
         name: 'name',
@@ -574,7 +602,7 @@ const switchTab = async (tab) => {
     try {
         await fetchDriversPage(1);
     } catch (error) {
-        console.error("âŒ Failed to fetch drivers:", error);
+        console.error("❌ Failed to fetch drivers:", error);
     }
 };
 
@@ -583,7 +611,7 @@ const handleRefresh = async () => {
     try {
         await fetchDriversPage(currentPage.value);
     } catch (error) {
-        console.error("âŒ Failed to refresh drivers:", error);
+        console.error("❌ Failed to refresh drivers:", error);
     }
 };
 
@@ -642,29 +670,26 @@ const handleBulkAction = ({ actionId }) => {
 const executeBulkAction = async () => {
     bulkActionLoading.value = true;
     isBulkConfirmOpen.value = false;
-const count = selectedRows.value.length;
+    const count = selectedRows.value.length;
     try {
         if (pendingBulkAction.value === 'delete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, false);
-            console.log("âœ… Drivers soft deleted successfully");
-                  showSuccess(t('driver.bulkDeleteSuccess', { count}));
-
+            console.log("✅ Drivers soft deleted successfully");
+            showSuccess(t('driver.bulkDeleteSuccess', { count}));
         } else if (pendingBulkAction.value === 'permanentDelete') {
             await driverStore.bulkDeleteDrivers(selectedRows.value, true);
-            console.log("âœ… Drivers permanently deleted successfully");
-                  showSuccess(t('driver.bulkDeleteSuccess', { count }));
-
+            console.log("✅ Drivers permanently deleted successfully");
+            showSuccess(t('driver.bulkDeleteSuccess', { count }));
         } else if (pendingBulkAction.value === 'restore') {
             await driverStore.bulkRestoreDrivers(selectedRows.value);
-            console.log("âœ… Drivers restored successfully");
-                  showSuccess(t('driver.bulkRestoreSuccess', { count }));
-
+            console.log("✅ Drivers restored successfully");
+            showSuccess(t('driver.bulkRestoreSuccess', { count }));
         }
 
         selectedRows.value = [];
         pendingBulkAction.value = null;
     } catch (error) {
-        console.error("âŒ Bulk action failed:", error);
+        console.error("❌ Bulk action failed:", error);
     } finally {
         bulkActionLoading.value = false;
     }
@@ -687,19 +712,17 @@ const handleSubmitDriver = async (driverData) => {
         if (isEditMode.value) {
             // Update existing driver
             await driverStore.updateDriver(selectedDriver.value.id, payload);
-            console.log(' Driver updated successfully!');
-                  showSuccess(t('driver.updateSuccess'));
-
+            console.log('✅ Driver updated successfully!');
+            showSuccess(t('driver.updateSuccess'));
         } else {
             // Add new driver
             await driverStore.addDriver(payload);
-            console.log(' Driver added successfully!');
-      showSuccess(t('driver.addSuccess'));
-
+            console.log('✅ Driver added successfully!');
+            showSuccess(t('driver.addSuccess'));
         }
         closeFormModal();
     } catch (error) {
-        console.error('âŒ Failed to save driver:', error);
+        console.error('❌ Failed to save driver:', error);
 
         if (applyServerErrors(error)) {
             return;
@@ -744,25 +767,103 @@ const clearValidationError = () => {
 const handleRestoreDriver = async (driver) => {
     try {
         await driverStore.restoreDriver(driver.id);
-        console.log("âœ… Driver restored successfully!");
-            showSuccess(t('driver.restoreSuccess'));
-
+        console.log("✅ Driver restored successfully!");
+        showSuccess(t('driver.restoreSuccess'));
     } catch (error) {
-        console.error("âŒ Failed to restore driver:", error);
+        console.error("❌ Failed to restore driver:", error);
         alert(error.message || 'Failed to restore driver');
     }
 };
 
+// ✅ MODIFIED: handleDeleteDriver function
 const handleDeleteDriver = async (driver) => {
     try {
+        console.log('🔍 Checking work plans for driver:', driver.id);
+        
+        // Check if driver has work plans
+        const response = await apiServices.getDriverWorkPlans(driver.id);
+        
+        console.log('📋 Work plans response:', response.data);
+        
+        if (response.data.success === false) {
+            // Driver has non-pending steps - cannot delete
+            canDeleteDriver.value = false;
+            driverToDelete.value = driver;
+            driverWorkPlans.value = response.data.workplans || [];
+            isReassignModalOpen.value = true;
+            return;
+        }
+        
+        if (response.data.workplans && response.data.workplans.length > 0) {
+            // Driver has work plans - need reassignment
+            canDeleteDriver.value = true;
+            driverToDelete.value = driver;
+            driverWorkPlans.value = response.data.workplans;
+            isReassignModalOpen.value = true;
+            return;
+        }
+        
+        // No work plans - proceed with normal deletion
         await driverStore.deleteDriver(driver.id);
-        console.log("?o. Driver deleted successfully!");
-            showSuccess(t('driver.deleteSuccess'));
-
+        console.log("✅ Driver deleted successfully!");
+        showSuccess(t('driver.deleteSuccess'));
+        
     } catch (error) {
-        console.error("??O Failed to delete driver:", error);
-        alert(error.message || t('common.saveFailed'));
+        console.error("❌ Failed to check/delete driver:", error);
+        
+        // If API returns 404 or error, assume no work plans and proceed
+        if (error.response?.status === 404) {
+            try {
+                await driverStore.deleteDriver(driver.id);
+                console.log("✅ Driver deleted successfully!");
+                showSuccess(t('driver.deleteSuccess'));
+            } catch (deleteError) {
+                console.error("❌ Failed to delete driver:", deleteError);
+                alert(deleteError.message || t('common.saveFailed'));
+            }
+        } else {
+            alert(error.message || t('common.saveFailed'));
+        }
     }
+};
+
+// ✅ NEW: Handle work plans reassignment
+const handleReassignWorkPlans = async ({ workPlanIds, oldDriverId, newDriverId }) => {
+    try {
+        console.log('🔄 Reassigning work plans:', {
+            workPlanIds,
+            oldDriverId,
+            newDriverId
+        });
+        
+        // Call reassign API
+        await apiServices.reassignDriverWorkPlans(workPlanIds, oldDriverId, newDriverId);
+        
+        console.log('✅ Work plans reassigned successfully');
+        showSuccess(t('driver.reassignSuccess'));
+        
+        // Now delete the driver
+        await driverStore.deleteDriver(oldDriverId);
+        
+        console.log('✅ Driver deleted successfully');
+        showSuccess(t('driver.deleteSuccess'));
+        
+        // Close modal and refresh
+        closeReassignModal();
+        await handleRefresh();
+        
+    } catch (error) {
+        console.error('❌ Failed to reassign/delete:', error);
+        alert(error.message || t('driver.reassignFailed'));
+    }
+};
+
+// ✅ NEW: Close reassign modal
+const closeReassignModal = () => {
+    isReassignModalOpen.value = false;
+    driverToDelete.value = null;
+    driverWorkPlans.value = [];
+    canDeleteDriver.value = true;
 };
 
 const handlePermanentDeleteDriver = async (driver) => {
@@ -783,4 +884,3 @@ const handlePermanentDeleteDriver = async (driver) => {
     max-width: 100%;
 }
 </style>
-

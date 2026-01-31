@@ -838,12 +838,29 @@ async getOrdersWithItems(filters = {}) {
   }
 
   // ===== Work Plans Services =====
+// إضافة هذه الدوال في قسم Work Plans Services في ملف src/services/apiServices.js
+
+  // ===== Work Plans Services =====
   async getWorkPlans({ page = 1, perPage = 10 } = {}) {
     return this.getEntities("work_plans", { page, perPage });
   }
 
   async getTrashedWorkPlans({ page = 1, perPage = 10 } = {}) {
     return this.getTrashedEntities("work_plans", { page, perPage });
+  }
+
+  // ✅ NEW: Check driver's work plans before deletion
+  async getDriverWorkPlans(driverId) {
+    return this.get(`/work_plan/driver/${driverId}`);
+  }
+
+  // ✅ NEW: Reassign work plans to another driver
+  async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
+    return this.post("/work_plan/reassign_driver", {
+      workplan: workplanIds,
+      driver_id_old: oldDriverId,
+      driver_id_new: newDriverId
+    });
   }
 
   async createWorkPlan(workPlanData) {
@@ -881,6 +898,27 @@ async getOrdersWithItems(filters = {}) {
         "Content-Type": "application/json",
       },
     });
+  }
+
+  async deleteWorkPlan(workPlanId, force = false) {
+    return this.deleteEntity("work_plans", workPlanId, force);
+  }
+
+  async restoreWorkPlan(workPlanId) {
+    return this.restoreEntity("work_plans", workPlanId);
+  }
+
+  async bulkDeleteWorkPlans(workPlanIds, force = false) {
+    return this.bulkDeleteEntities(
+      "work_plan",
+      "work_plans",
+      workPlanIds,
+      force,
+    );
+  }
+
+  async bulkRestoreWorkPlans(workPlanIds) {
+    return this.bulkRestoreEntities("work_plan", "work_plans", workPlanIds);
   }
   // ===== Payment Services =====
   async getPayments({ page = 1, perPage = 10 } = {}) {
