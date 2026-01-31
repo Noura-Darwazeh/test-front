@@ -1868,6 +1868,8 @@ export default {
     permanentDeleteSuccess: "Work plan permanently deleted!",
     bulkDeleteSuccess: "{count} work plan(s) deleted successfully!",
     bulkRestoreSuccess: "{count} work plan(s) restored successfully!",
+    bulkRestore: "Restore Selected",
+    bulkDelete: "Delete Selected",
     planDetails: "Plan Details",
     orderName: "Order Name",
     orderType: "Order Type",
