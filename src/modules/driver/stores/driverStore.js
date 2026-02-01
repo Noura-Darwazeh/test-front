@@ -176,11 +176,6 @@ export const useDriverStore = defineStore("driver", () => {
         apiData.email = emailValue;
       }
 
-      console.log("[driver] create payload", {
-        ...apiData,
-        password: "***",
-      });
-
       const response = await apiServices.createDriver(apiData);
 
 
@@ -245,11 +240,6 @@ export const useDriverStore = defineStore("driver", () => {
     if (driverData.image && driverData.image instanceof File) {
       apiData.image = driverData.image;
     }
-
-    console.log("[driver] update payload", {
-      ...apiData,
-      password: apiData.password ? "***" : undefined,
-    });
 
     const response = await apiServices.updateDriver(driverId, apiData);
 

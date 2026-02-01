@@ -502,7 +502,7 @@ const handleAddDiscount = async (discountData) => {
       ? discountData.value
       : discountData.target_id ?? discountData.value;
 
-  const payload = {
+const payload = {
     type: discountData.type,
     discount_percentage: parseFloat(discountData.discount_percentage),
     start_date: formatDateTime(discountData.start_date),
@@ -510,6 +510,8 @@ const handleAddDiscount = async (discountData) => {
     company_id: resolvedCompanyId,
     value: normalizeValue(rawValue, discountData.type),
   };
+
+  console.log("[discount] submit payload", payload);
 
   try {
     if (isEditMode.value) {
@@ -615,6 +617,27 @@ const handleDetails = (discount) => {
   isDetailsModalOpen.value = true;
 };
 
+const toDateTimeLocal = (value) => {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (trimmed.includes("T")) {
+      return trimmed.slice(0, 16);
+    }
+    const simpleMatch = trimmed.match(
+      /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/
+    );
+    if (simpleMatch) {
+      return `${simpleMatch[1]}-${simpleMatch[2]}-${simpleMatch[3]}T${simpleMatch[4]}:${simpleMatch[5]}`;
+    }
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const pad = (num) => String(num).padStart(2, "0");
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+};
+
 const closeDetailsModal = () => {
   isDetailsModalOpen.value = false;
   selectedDiscount.value = {};
@@ -625,7 +648,9 @@ const discountFieldsWithDefaults = computed(() => {
   return discountFields.value.map((field) => {
     let defaultValue = field.defaultValue ?? "";
     if (isEditMode.value) {
-      if (field.name === "target_id") {
+      if (field.name === "start_date" || field.name === "end_date") {
+        defaultValue = toDateTimeLocal(selectedDiscount.value[field.name]);
+      } else if (field.name === "target_id") {
         defaultValue = selectedDiscount.value.value;
       } else if (field.name === "value") {
         defaultValue = selectedDiscount.value.value;

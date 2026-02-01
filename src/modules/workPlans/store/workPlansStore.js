@@ -79,14 +79,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       }
     }
 
-    console.log("🔄 Normalized work plan:", {
-      id: plan.id,
-      name: plan.name,
-      orders: orders,
-      driver_id: driverId,
-      driver_name: driverName
-    });
-
     return {
       id: plan.id,
       name: plan.name || "",
@@ -125,7 +117,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
         };
       }
 
-      console.log("✅ Fetched work plans:", workPlans.value);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch work plans";
@@ -170,14 +161,11 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     loading.value = true;
     error.value = null;
 
-    console.log("🚀 Adding work plan - payload:", workPlanData);
-
     try {
       const response = await apiServices.createWorkPlan(workPlanData);
       const newPlan = normalizeWorkPlan(response.data.data || response.data, drivers);
 
       workPlans.value.push(newPlan);
-      console.log("✅ Work plan added:", newPlan);
       return newPlan;
     } catch (err) {
       error.value = err.message || "Failed to add work plan";
@@ -198,19 +186,14 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     loading.value = true;
     error.value = null;
 
-    console.log("🔄 Updating work plan:", planId);
-    console.log("📤 Update payload:", workPlanData);
-
     try {
       const response = await apiServices.updateWorkPlan(planId, workPlanData);
-      console.log("✅ Update response from API:", response.data);
 
       const updated = normalizeWorkPlan(response.data.data || response.data, drivers);
 
       const index = workPlans.value.findIndex((p) => p.id === planId);
       if (index > -1) {
         workPlans.value[index] = updated;
-        console.log("✅ Work plan updated in store:", workPlans.value[index]);
       }
 
       return workPlans.value[index];
