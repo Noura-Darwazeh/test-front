@@ -71,12 +71,13 @@ const props = defineProps({
 
 const isExpanded = ref(false);
 
-// ✅ Step definitions in order
+// ✅ Step definitions in order - INCLUDING FAILED
 const stepDefinitions = [
   { status: 'pending' },
   { status: 'start' },
   { status: 'pickup' },
-  { status: 'done' }
+  { status: 'done' },
+  { status: 'failed' }
 ];
 
 // ✅ Sort steps by created_at to get chronological order
@@ -113,14 +114,10 @@ const getStepByStatus = (status) => {
 // ✅ Get step class based on status history
 const getStepClass = (status) => {
   const stepExists = hasStep(status);
-  const step = getStepByStatus(status);
   
-  // If failed status exists and this is the failed step or any step after it
+  // ✅ CRITICAL: If failed status exists, show it as current
   const failedStep = getStepByStatus('failed');
   if (failedStep) {
-    const failedIndex = stepDefinitions.findIndex(def => def.status === 'failed');
-    const currentIndex = stepDefinitions.findIndex(def => def.status === status);
-    
     if (status === 'failed') return 'failed current';
     if (stepExists) return 'completed';
     return 'pending';
@@ -142,7 +139,7 @@ const getLineClass = (index) => {
   const currentStepStatus = stepDefinitions[index].status;
   const nextStepStatus = stepDefinitions[index + 1]?.status;
   
-  // If failed exists, show red lines after failed
+  // ✅ If failed exists, show red lines after failed
   const failedStep = getStepByStatus('failed');
   if (failedStep) {
     const failedIndex = stepDefinitions.findIndex(def => def.status === 'failed');
@@ -160,18 +157,6 @@ const getLineClass = (index) => {
   }
   
   return 'line-pending';
-};
-
-// ✅ Get history item class
-const getHistoryItemClass = (status) => {
-  const classes = {
-    'pending': 'history-pending',
-    'start': 'history-start',
-    'pickup': 'history-pickup',
-    'done': 'history-done',
-    'failed': 'history-failed'
-  };
-  return classes[status] || '';
 };
 
 const toggleExpanded = () => {
@@ -252,18 +237,6 @@ const getStepIcon = (status) => {
 
 .order-item-header:hover {
   background: #f8f9fa;
-}
-
-.order-item-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, #667eea 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.5rem;
 }
 
 .cursor-pointer {
@@ -371,11 +344,14 @@ const getStepIcon = (status) => {
   }
 }
 
-/* Failed State */
+/* ✅ FAILED STATE - RED STYLING */
 .stepper-item.failed .stepper-circle {
   border-color: #dc3545;
   background: #dc3545;
   color: white;
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+  animation: pulse-failed 2s ease-in-out infinite;
 }
 
 .stepper-item.failed .stepper-label {
@@ -385,6 +361,15 @@ const getStepIcon = (status) => {
 
 .stepper-item.failed .stepper-date {
   color: #dc3545;
+}
+
+@keyframes pulse-failed {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6);
+  }
 }
 
 /* Line States */
@@ -398,117 +383,6 @@ const getStepIcon = (status) => {
 
 .stepper-line.line-pending {
   background: #e0e0e0;
-}
-
-/* Steps History */
-.steps-history {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.history-timeline {
-  position: relative;
-  padding-left: 2rem;
-}
-
-.history-timeline::before {
-  content: '';
-  position: absolute;
-  left: 0.5rem;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #e0e0e0;
-}
-
-.history-item {
-  position: relative;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  background: white;
-  border-radius: 8px;
-  border-left: 3px solid #e0e0e0;
-  transition: all 0.2s ease;
-}
-
-.history-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.history-item:last-child {
-  margin-bottom: 0;
-}
-
-.history-marker {
-  position: absolute;
-  left: -2.5rem;
-  top: 0.75rem;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border: 2px solid #e0e0e0;
-  font-size: 0.875rem;
-  z-index: 2;
-}
-
-.history-pending {
-  border-left-color: #ffc107;
-}
-
-.history-pending .history-marker {
-  border-color: #ffc107;
-  color: #ffc107;
-  background: #fff8e1;
-}
-
-.history-start {
-  border-left-color: #17a2b8;
-}
-
-.history-start .history-marker {
-  border-color: #17a2b8;
-  color: #17a2b8;
-  background: #e0f7fa;
-}
-
-.history-pickup {
-  border-left-color: #0d6efd;
-}
-
-.history-pickup .history-marker {
-  border-color: #0d6efd;
-  color: #0d6efd;
-  background: #e7f1ff;
-}
-
-.history-done {
-  border-left-color: #28a745;
-}
-
-.history-done .history-marker {
-  border-color: #28a745;
-  color: #28a745;
-  background: #e8f5e9;
-}
-
-.history-failed {
-  border-left-color: #dc3545;
-}
-
-.history-failed .history-marker {
-  border-color: #dc3545;
-  color: #dc3545;
-  background: #ffebee;
-}
-
-.history-status {
-  font-size: 0.875rem;
 }
 
 /* Slide Down Animation */
@@ -568,16 +442,6 @@ const getStepIcon = (status) => {
 
   .stepper-label {
     max-width: none;
-  }
-
-  .history-timeline {
-    padding-left: 1.5rem;
-  }
-
-  .history-marker {
-    left: -2rem;
-    width: 28px;
-    height: 28px;
   }
 }
 </style>
