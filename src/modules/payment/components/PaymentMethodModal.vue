@@ -150,7 +150,6 @@ const handleSubmit = () => {
 
     if (paymentMethod.value === 'driver') {
         data.paid_by_driver_id = parseInt(selectedDriver.value);
-        console.log('✅ Sending driver ID:', data.paid_by_driver_id);
     }
 
     emit('submit', data);
@@ -162,9 +161,6 @@ watch(() => props.isOpen, (newVal) => {
         paymentMethod.value = '';
         selectedDriver.value = '';
         showError.value = false;
-
-        // ✅ Log drivers for debugging
-        console.log('📋 Available drivers:', props.drivers);
 
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.overflow = 'hidden';

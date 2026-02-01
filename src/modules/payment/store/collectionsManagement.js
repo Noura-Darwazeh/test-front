@@ -11,7 +11,6 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
     const error = ref(null);
 
     const normalizeCollection = (collection) => {
-    console.log("🔍 Raw collection:", JSON.stringify(collection, null, 2));
 
     // ✅ الـ API بيرجع received_by_driver مش driver
     const driver = collection.received_by_driver;
@@ -36,7 +35,6 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
         updated_at: collection.updated_at,
     };
 
-    console.log("✅ Normalized collection:", JSON.stringify(normalized, null, 2));
     return normalized;
 };
 
@@ -44,7 +42,6 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
         loading.value = true;
         error.value = null;
         try {
-            console.log("🔄 Updating collection:", collectionId, collectionData);
 
             const data = {
                 collection_ids: [collectionId],
@@ -55,11 +52,9 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
                 data.note = collectionData.note;
             }
 
-            console.log("📤 Sending to API:", data);
 
             const response = await apiServices.markCollectionsAsPaid(data);
 
-            console.log("📥 Update response:", response.data);
 
             await fetchCollections();
 
@@ -89,7 +84,6 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
         try {
             const response = await apiServices.getCollections();
             collections.value = response.data.data.map(normalizeCollection);
-            console.log("✅ Normalized Collections:", collections.value);
             return response.data;
         } catch (err) {
             error.value = err.message || "Failed to fetch collections";

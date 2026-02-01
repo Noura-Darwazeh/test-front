@@ -77,12 +77,9 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     loading.value = true;
     error.value = null;
     try {
-      console.log('🔄 Store: Updating currency:', currencyId);
-      console.log('📤 Store: Payload:', currencyData);
 
       const response = await apiServices.updateCurrency(currencyId, currencyData);
 
-      console.log('✅ Store: API response:', response.data);
 
       // Update local state directly with backend response
       const index = currencies.value.findIndex((c) => c.id === currencyId);

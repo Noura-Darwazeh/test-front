@@ -69,7 +69,7 @@
           </tr>
         </thead>
         <tbody>
-          <template v-for="row in sortedData" :key="row.id">
+          <template v-for="(row, rowIndex) in sortedData" :key="row.id">
             <tr
               :class="{ 'expanded-row': isExpanded(row.id), 'expandable-row': isRowExpandable(row) }"
               @click="isRowExpandable(row) && toggleExpand(row.id)"
@@ -103,7 +103,15 @@
                   :status="row[col.key]"
                   v-bind="col.componentProps || {}"
                 />
-                <span v-else>{{ col.formatter ? col.formatter(row[col.key], row) : row[col.key] }}</span>
+                <span v-else>
+                  {{
+                    col.key === "__index" || col.isIndex
+                      ? rowIndex + 1
+                      : col.formatter
+                        ? col.formatter(row[col.key], row, rowIndex)
+                        : row[col.key]
+                  }}
+                </span>
               </td>
 
               <!-- Actions Slot -->
@@ -128,7 +136,7 @@
     <!-- Mobile Cards View -->
     <div class="d-md-none bg-light">
       <div
-        v-for="row in sortedData"
+        v-for="(row, rowIndex) in sortedData"
         :key="row.id"
         class="card mb-3 border shadow-sm"
         :class="{ 'expandable-card': isRowExpandable(row) }"
@@ -178,7 +186,13 @@
                 v-bind="col.componentProps || {}"
               />
               <span v-else class="text-dark fw-medium d-block">
-                {{ col.formatter ? col.formatter(row[col.key], row) : row[col.key] }}
+                {{
+                  col.key === "__index" || col.isIndex
+                    ? rowIndex + 1
+                    : col.formatter
+                      ? col.formatter(row[col.key], row, rowIndex)
+                      : row[col.key]
+                }}
               </span>
             </div>
           </div>

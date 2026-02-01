@@ -281,7 +281,6 @@ onMounted(async () => {
       driverStore.fetchDrivers(),
       lineWorkStore.fetchLineWorks(),
     ]);
-    console.log("✅ Driver lines loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load driver lines:", error);
   }
@@ -289,7 +288,7 @@ onMounted(async () => {
 
 // Table columns
 const driverLineColumns = computed(() => [
-  { key: "id", label: t("driverLine.table.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "driver_name", label: t("driverLine.table.driver"), sortable: true },
   {
     key: "line_work_name",
@@ -300,7 +299,7 @@ const driverLineColumns = computed(() => [
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("driverLine.table.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "driver_name", label: t("driverLine.table.driver") },
   { key: "line_work_name", label: t("driverLine.table.lineWork") },
 ]);

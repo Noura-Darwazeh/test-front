@@ -96,7 +96,6 @@ export const useLinesStore = defineStore("lines", () => {
       // Transform API response to match frontend format
       lines.value = response.data.data.map(normalizeLine);
 
-      console.log(`✅ Successfully loaded ${lines.value.length} lines`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch lines";
@@ -152,17 +151,14 @@ export const useLinesStore = defineStore("lines", () => {
         company_id: lineData.company, // company select value is the ID
       };
 
-      console.log("📤 Sending line data to API:", apiData);
 
       const response = await apiServices.createLine(apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
       const newLine = normalizeLine(response.data.data);
 
       lines.value.push(newLine);
-      console.log("✅ Line added successfully to store");
       return newLine;
     } catch (err) {
       // Handle validation errors
@@ -192,11 +188,9 @@ export const useLinesStore = defineStore("lines", () => {
       if (lineData.region) apiData.region_id = lineData.region;
       if (lineData.company) apiData.company_id = lineData.company;
 
-      console.log("📤 Updating line:", apiData);
 
       const response = await apiServices.updateLine(lineId, apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Update local state with response data
       const index = lines.value.findIndex((l) => l.id === lineId);
@@ -205,7 +199,6 @@ export const useLinesStore = defineStore("lines", () => {
           ...lines.value[index],
           ...response.data.data,
         });
-        console.log("✅ Line updated successfully");
       }
       return lines.value[index];
     } catch (err) {
@@ -239,7 +232,6 @@ export const useLinesStore = defineStore("lines", () => {
           trashedLines.value.push(line);
         }
       }
-      console.log("? Line deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete line";
       console.error("? Error deleting line:", err);
@@ -258,7 +250,6 @@ export const useLinesStore = defineStore("lines", () => {
       // Transform API response to match frontend format
       trashedLines.value = response.data.data.map(normalizeLine);
 
-      console.log(`✅ Successfully loaded ${trashedLines.value.length} trashed lines`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed lines";
@@ -280,7 +271,6 @@ export const useLinesStore = defineStore("lines", () => {
         const line = trashedLines.value.splice(index, 1)[0];
         lines.value.push(line);
       }
-      console.log("✅ Line restored successfully");
     } catch (err) {
       error.value = err.message || "Failed to restore line";
       console.error("❌ Error restoring line:", err);
@@ -312,7 +302,6 @@ export const useLinesStore = defineStore("lines", () => {
         trashedLines.value.push(...deletedLines);
       }
 
-      console.log(`✅ Successfully bulk deleted ${lineIds.length} lines`);
     } catch (err) {
       error.value = err.message || "Failed to bulk delete lines";
       console.error("❌ Error bulk deleting lines:", err);
@@ -337,7 +326,6 @@ export const useLinesStore = defineStore("lines", () => {
       );
       lines.value.push(...restoredLines);
 
-      console.log(`✅ Successfully bulk restored ${lineIds.length} lines`);
     } catch (err) {
       error.value = err.message || "Failed to bulk restore lines";
       console.error("❌ Error bulk restoring lines:", err);

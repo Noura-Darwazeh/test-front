@@ -114,7 +114,6 @@ export const useCustomerStore = defineStore("customer", () => {
         };
       }
 
-      console.log(`✅ Successfully loaded ${customers.value.length} customers`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch customers";
@@ -150,17 +149,14 @@ export const useCustomerStore = defineStore("customer", () => {
         longitude: customerData.longitude || 32.2654,
       };
 
-      console.log("📤 Sending customer data to API:", apiData);
 
       const response = await apiServices.createCustomer(apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
       const newCustomer = normalizeCustomer(response.data.data);
 
       customers.value.push(newCustomer);
-      console.log("✅ Customer added successfully to store");
       return newCustomer;
     } catch (err) {
       // Handle validation errors
@@ -196,11 +192,9 @@ export const useCustomerStore = defineStore("customer", () => {
       if (customerData.latitude !== undefined) apiData.latitude = customerData.latitude;
       if (customerData.longitude !== undefined) apiData.longitude = customerData.longitude;
 
-      console.log("📤 Updating customer:", apiData);
 
       const response = await apiServices.updateCustomer(customerId, apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Update local state with response data
       const index = customers.value.findIndex((c) => c.id === customerId);
@@ -209,7 +203,6 @@ export const useCustomerStore = defineStore("customer", () => {
           ...customers.value[index],
           ...response.data.data,
         });
-        console.log("✅ Customer updated successfully");
       }
       return customers.value[index];
     } catch (err) {
@@ -243,7 +236,6 @@ export const useCustomerStore = defineStore("customer", () => {
           trashedCustomers.value.push(customer);
         }
       }
-      console.log("? Customer deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete customer";
       console.error("? Error deleting customer:", err);
@@ -272,7 +264,6 @@ export const useCustomerStore = defineStore("customer", () => {
         };
       }
 
-      console.log(`✅ Successfully loaded ${trashedCustomers.value.length} trashed customers`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed customers";
@@ -294,7 +285,6 @@ export const useCustomerStore = defineStore("customer", () => {
         const customer = trashedCustomers.value.splice(index, 1)[0];
         customers.value.push(customer);
       }
-      console.log("✅ Customer restored successfully");
     } catch (err) {
       error.value = err.message || "Failed to restore customer";
       console.error("❌ Error restoring customer:", err);
@@ -326,7 +316,6 @@ export const useCustomerStore = defineStore("customer", () => {
         trashedCustomers.value.push(...deletedCustomers);
       }
 
-      console.log(`✅ Successfully bulk deleted ${customerIds.length} customers`);
     } catch (err) {
       error.value = err.message || "Failed to bulk delete customers";
       console.error("❌ Error bulk deleting customers:", err);
@@ -351,7 +340,6 @@ export const useCustomerStore = defineStore("customer", () => {
       );
       customers.value.push(...restoredCustomers);
 
-      console.log(`✅ Successfully bulk restored ${customerIds.length} customers`);
     } catch (err) {
       error.value = err.message || "Failed to bulk restore customers";
       console.error("❌ Error bulk restoring customers:", err);

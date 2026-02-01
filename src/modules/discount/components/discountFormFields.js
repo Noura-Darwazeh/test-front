@@ -12,6 +12,20 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
     return [];
   };
 
+  const getTargetLabel = (type) => {
+    if (type === "Customer") return t("discount.form.customer");
+    if (type === "Region") return t("discount.form.region");
+    if (type === "Line") return t("discount.form.line");
+    return t("discount.form.value");
+  };
+
+  const getTargetPlaceholder = (type) => {
+    if (type === "Customer") return t("discount.form.selectCustomer");
+    if (type === "Region") return t("discount.form.selectRegion");
+    if (type === "Line") return t("discount.form.selectLine");
+    return t("discount.form.valuePlaceholder");
+  };
+
   const discountFields = computed(() => [
     {
       name: "type",
@@ -25,6 +39,11 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
         { value: "Price", label: t("discountTypes.Price") },
       ],
       colClass: "col-md-6",
+      onChange: (value, formData) => {
+        if (!formData) return;
+        formData.target_id = "";
+        formData.value = "";
+      },
       validate: (value) => {
         const validTypes = ["Customer", "Region", "Line", "Price"];
         if (!validTypes.includes(value)) {
@@ -110,53 +129,45 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
       },
     },
     {
-      name: "value",
-      label: t("discount.form.value"),
-      type: (formData) => {
-        if (!formData?.type) return "text";
-        return formData.type === "Price" ? "number" : "select";
-      },
-      required: true,
-      placeholder: t("discount.form.valuePlaceholder"),
-      options: (formData) => {
-        if (["Customer", "Region", "Line"].includes(formData?.type)) {
-          return resolveValueOptions(formData);
+      name: "target_id",
+      label: (formData) => getTargetLabel(formData?.type),
+      type: "select",
+      required: (formData) =>
+        ["Customer", "Region", "Line"].includes(formData?.type),
+      placeholder: (formData) => getTargetPlaceholder(formData?.type),
+      options: (formData) => resolveValueOptions(formData),
+      colClass: "col-md-6",
+      hidden: (formData) =>
+        !["Customer", "Region", "Line"].includes(formData?.type),
+      validate: (value, formData) => {
+        if (!["Customer", "Region", "Line"].includes(formData?.type)) return null;
+        if (!value) return t("discount.validation.valueRequired");
+        const options = resolveValueOptions(formData);
+        const hasMatch = options.some(
+          (option) => String(option.value) === String(value)
+        );
+        if (!hasMatch) {
+          return t("discount.validation.valueRequired");
         }
-        return [];
+        return null;
       },
+    },
+    {
+      name: "value",
+      label: t("discount.form.priceValue"),
+      type: "number",
+      required: (formData) => formData?.type === "Price",
+      placeholder: t("discount.form.valuePlaceholder"),
       min: 0,
       step: 0.01,
       colClass: "col-md-6",
+      hidden: (formData) => formData?.type !== "Price",
       validate: (value, formData) => {
+        if (formData?.type !== "Price") return null;
         if (!value) return t("discount.validation.valueRequired");
-
-        // Conditional validation based on type
-        if (formData.type === "Price") {
-          const num = parseFloat(value);
-          if (isNaN(num) || num <= 0) {
-            return t("discount.validation.valueNumeric");
-          }
-        }
-
-        // For Customer, Region, Line - should be string identifiers
-        if (["Customer", "Region", "Line"].includes(formData.type)) {
-          const options = resolveValueOptions(formData);
-          const hasMatch = options.some(
-            (option) => String(option.value) === String(value)
-          );
-          if (!hasMatch) {
-            return t("discount.validation.valueRequired");
-          }
-        }
-
-        return null;
-      },
-      // Add helper text for Price type
-      helperText: (formData) => {
-        if (formData?.type === "Price") {
-          return t("discount.form.priceHelperText", {
-            example: formatPrice(100, "USD"),
-          });
+        const num = parseFloat(value);
+        if (isNaN(num) || num <= 0) {
+          return t("discount.validation.valueNumeric");
         }
         return null;
       },

@@ -1,5 +1,5 @@
 export const createOrderColumns = ({ t, formatPrice }) => [
-  { key: "id", label: t("orders.table.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "customer_name", label: t("orders.table.customer"), sortable: true },
   { key: "company_name", label: t("orders.table.company"), sortable: true },
   {
@@ -44,7 +44,7 @@ export const createOrderColumns = ({ t, formatPrice }) => [
 ];
 
 export const createTrashedColumns = ({ t, formatPrice }) => [
-  { key: "id", label: t("orders.table.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "customer_name", label: t("orders.table.customer") },
   { key: "type", label: t("orders.table.type") },
   { key: "package", label: t("orders.table.package") },

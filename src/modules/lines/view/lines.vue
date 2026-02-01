@@ -212,7 +212,6 @@ onMounted(async () => {
             linesStore.fetchLines(),
             regionsStore.fetchRegions(),
         ]);
-        console.log("✅ Lines loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load lines:", error);
     }
@@ -270,15 +269,15 @@ const detailsFields = computed(() => [
     { key: 'updated_at', label: t('lines.updatedAt'), colClass: 'col-md-6' },
 ]);
 
-const linesColumns = ref([
-    { key: "id", label: t("lines.id"), sortable: true },
+const linesColumns = computed(() => [
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("lines.name"), sortable: true },
     { key: "region", label: t("lines.region"), sortable: false },
     { key: "company", label: t("lines.company"), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
-    { key: "id", label: t("lines.id") },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("lines.name") },
     { key: "region", label: t("lines.region") },
     { key: "company", label: t("lines.company") },

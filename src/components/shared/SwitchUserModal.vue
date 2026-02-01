@@ -202,8 +202,6 @@ const fetchUsers = async () => {
       
       return true;
     });
-    
-    console.log('✅ Users loaded for switch:', users.value.length);
   } catch (err) {
     error.value = err.message || t('common.errorLoadingData');
     console.error('❌ Error loading users:', err);
@@ -214,15 +212,11 @@ const fetchUsers = async () => {
 
 const switchToUser = async (user) => {
   switching.value = true;
-  
+
   try {
-    console.log(`🔄 Switching to user: ${user.name} (ID: ${user.id})`);
-    
     const response = await apiServices.switchToUser(user.id);
-    
+
     if (response.data?.status === 'success' && response.data?.user && response.data?.authorization) {
-      console.log('✅ Switch successful');
-      
       // Update auth store with new user and tokens
       authStore.switchUser(
         response.data.user,
@@ -236,9 +230,6 @@ const switchToUser = async (user) => {
       // Redirect to user's default page or home
       const defaultPage = response.data.user.default_page || response.data.user.landing_page || '/driver';
       await router.push(defaultPage);
-      
-      // Show success message
-      console.log(`✅ Now logged in as: ${response.data.user.name}`);
     } else {
       throw new Error(t('navbar.switchUserFailed'));
     }

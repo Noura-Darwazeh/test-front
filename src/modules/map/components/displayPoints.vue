@@ -143,8 +143,6 @@ const closePopup = () => {
 };
 
 const goToCompanyDetails = () => {
-  console.log("Navigate to company details:", selectedLocation.value);
-  console.log("Prepared route:", `/company/${selectedLocation.value.id}`);
   // TODO: Will navigate to company details when route is ready
   // router.push(`/company/${selectedLocation.value.id}`);
   closePopup();

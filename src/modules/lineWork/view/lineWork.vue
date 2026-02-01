@@ -186,7 +186,6 @@ const trashedLineWork = computed(() => lineWorkStore.trashedLineWorks);
 onMounted(async () => {
     try {
         await lineWorkStore.fetchLineWorks();
-        console.log("✅ Line works loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load line works:", error);
     }
@@ -233,8 +232,8 @@ const detailsFields = computed(() => [
     { key: 'updated_at', label: t('lineWork.updatedAt'), colClass: 'col-md-6' },
 ]);
 
-const lineWorkColumns = ref([
-    { key: "id", label: t("lineWork.id"), sortable: true },
+const lineWorkColumns = computed(() => [
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("lineWork.name"), sortable: true },
     { key: "company", label: t("lineWork.company"), sortable: false },
 ]);

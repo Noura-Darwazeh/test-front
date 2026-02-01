@@ -357,7 +357,6 @@ const fetchDropdownData = async () => {
       companies.value = [];
     }
 
-    console.log("✅ Regions and currencies loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load dropdown data:", error);
   } finally {
@@ -369,7 +368,6 @@ const fetchDropdownData = async () => {
 onMounted(async () => {
   try {
     await Promise.all([fetchUsersPage(1), fetchDropdownData()]);
-    console.log("✅ All data loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load data:", error);
   }
@@ -543,7 +541,7 @@ const detailsFields = computed(() => [
 ]);
 
 const userColumns = computed(() => [
-  { key: "id", label: t("user.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "name", label: t("user.fullName"), sortable: true },
   { key: "username", label: t("user.username"), sortable: true },
   { key: "email", label: t("user.email"), sortable: false },
@@ -553,7 +551,7 @@ const userColumns = computed(() => [
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("user.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "name", label: t("user.fullName") },
   { key: "username", label: t("user.username") },
   { key: "email", label: t("user.email") },
@@ -978,8 +976,14 @@ const canDeleteUser = (user) => {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;
   }
-  
+
   return false;
+};
+
+// Disable row selection for users that can't be edited or deleted
+const disableUserSelection = (user) => {
+  // If user can't edit or delete, disable selection
+  return !canEditUser(user) && !canDeleteUser(user);
 };
 </script>
 

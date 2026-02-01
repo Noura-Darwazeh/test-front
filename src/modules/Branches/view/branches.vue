@@ -470,7 +470,6 @@ const handleSubmitbranch = async (branchData) => {
             longitude: branchData.longitude
         };
 
-        console.log('📤 Submitting branch data:', formattedData);
 
         if (isEditMode.value) {
             await branchesStore.updateBranch(selectedbranch.value.id, formattedData);

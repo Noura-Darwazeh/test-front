@@ -195,7 +195,6 @@ const trashedregions = computed(() => regionsStore.trashedRegions);
 onMounted(async () => {
   try {
     await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
-    console.log("✅ Regions loaded successfully");
   } catch (error) {
     console.error("❌ Failed to load regions:", error);
   }
@@ -275,13 +274,13 @@ const detailsFields = computed(() => [
 ]);
 
 const regionsColumns = ref([
-    { key: "id", label: t("regions.id"), sortable: true },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("regions.name"), sortable: true },
     { key: "timezone", label: t("regions.timezone"), sortable: false },
 ]);
 
 const trashedColumns = computed(() => [
-    { key: "id", label: t("regions.id") },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("regions.name") },
     { key: "timezone", label: t("regions.timezone") },
 ]);
@@ -394,7 +393,6 @@ const clearFormErrors = () => {
 
 const openAddModal = () => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot add regions');
         return;
     }
     clearFormErrors();
@@ -406,7 +404,6 @@ const openAddModal = () => {
 // Edit Modal - فقط للسوبر أدمن
 const openEditModal = (regions) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot edit regions');
         return;
     }
     clearFormErrors();
@@ -435,10 +432,9 @@ const closeDetailsModal = () => {
 
 const switchTab = async (tab) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot access trashed tab');
         return;
     }
-    
+
     activeTab.value = tab;
     selectedRows.value = [];
 
@@ -472,10 +468,9 @@ const handleRefresh = async () => {
 
 const handleSubmitregions = async (regionsData) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot submit regions');
         return;
     }
-    
+
     try {
         const keyValue = (regionsData.key || "").trim();
         const payload = {
@@ -506,10 +501,9 @@ const handleSubmitregions = async (regionsData) => {
 
 const handleRestoreregions = async (region) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot restore regions');
         return;
     }
-    
+
     try {
         await regionsStore.restoreRegion(region.id);
         console.log("✅ Region restored successfully!");
@@ -522,10 +516,9 @@ const handleRestoreregions = async (region) => {
 
 const handleDeleteRegion = async (region) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot delete regions');
         return;
     }
-    
+
     try {
         await regionsStore.deleteRegion(region.id);
         console.log("✅ Region deleted successfully!");
@@ -538,10 +531,9 @@ const handleDeleteRegion = async (region) => {
 
 const handlePermanentDeleteRegion = async (region) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot permanently delete regions');
         return;
     }
-    
+
     try {
         await regionsStore.deleteRegion(region.id, true);
         console.log("✅ Region permanently deleted successfully!");
@@ -554,10 +546,9 @@ const handlePermanentDeleteRegion = async (region) => {
 
 const handleBulkAction = ({ actionId }) => {
     if (!isSuperAdmin.value) {
-        console.warn('⚠️ Admin users cannot perform bulk actions');
         return;
     }
-    
+
     pendingBulkAction.value = actionId;
     isBulkConfirmOpen.value = true;
 };

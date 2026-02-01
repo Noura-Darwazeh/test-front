@@ -461,8 +461,109 @@
                 </div>
               </div>
 
-              <!-- Normal Order Price (Delivery/Return modes) -->
+              <!-- Normal Order Pricing (Delivery/Return modes) -->
               <div v-if="wizardMode !== 'exchange'" class="row g-3 mb-3">
+                <div class="col-12">
+                  <div class="btn-group w-100" role="group">
+                    <input
+                      id="pricingModeTotal"
+                      v-model="formData.pricing_mode"
+                      class="btn-check"
+                      type="radio"
+                      name="pricing_mode"
+                      value="total"
+                    />
+                    <label class="btn btn-outline-primary" for="pricingModeTotal">
+                      {{ $t("orders.form.totalPrice") }}
+                    </label>
+                    <input
+                      id="pricingModeDetailed"
+                      v-model="formData.pricing_mode"
+                      class="btn-check"
+                      type="radio"
+                      name="pricing_mode"
+                      value="detailed"
+                    />
+                    <label class="btn btn-outline-primary" for="pricingModeDetailed">
+                      {{ $t("orders.form.price") }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-if="wizardMode !== 'exchange' && formData.pricing_mode === 'total'"
+                class="row g-3 mb-3"
+              >
+                <div class="col-md-6">
+                  <label class="form-label"
+                    >{{ $t("orders.form.totalPrice") }}
+                    <span class="text-danger">*</span></label
+                  >
+                  <input
+                    v-model="formData.total_price"
+                    type="number"
+                    class="form-control"
+                    :class="{ 'is-invalid': getFieldError('total_price') }"
+                    step="0.01"
+                    required
+                    @input="clearFieldError('total_price')"
+                  />
+                  <div v-if="getFieldError('total_price')" class="invalid-feedback d-block">
+                    {{ getFieldError("total_price") }}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label"
+                    >{{ $t("orders.form.deliveryPrice") }}
+                    <span class="text-danger">*</span></label
+                  >
+                  <input
+                    v-model="formData.delivery_price"
+                    type="number"
+                    class="form-control"
+                    :class="{ 'is-invalid': getFieldError('delivery_price') }"
+                    step="0.01"
+                    required
+                    @input="clearFieldError('delivery_price')"
+                  />
+                  <div v-if="getFieldError('delivery_price')" class="invalid-feedback d-block">
+                    {{ getFieldError("delivery_price") }}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label"
+                    >{{ $t("orders.form.currencyId") }}
+                    <span class="text-danger">*</span></label
+                  >
+                  <select
+                    v-model="formData.currency_id"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('currency_id') }"
+                    required
+                    @change="clearFieldError('currency_id')"
+                  >
+                    <option value="">
+                      {{ $t("orders.form.selectCurrency") }}
+                    </option>
+                    <option
+                      v-for="(currency, index) in props.currencies"
+                      :key="getCurrencyValue(currency) || index"
+                      :value="getCurrencyValue(currency)"
+                    >
+                      {{ getCurrencyLabel(currency) }}
+                    </option>
+                  </select>
+                  <div v-if="getFieldError('currency_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("currency_id") }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-if="wizardMode !== 'exchange' && formData.pricing_mode === 'detailed'"
+                class="row g-3"
+              >
                 <div class="col-md-6">
                   <label class="form-label"
                     >{{ $t("orders.form.price") }}
@@ -508,9 +609,31 @@
                     {{ getFieldError("currency_id") }}
                   </div>
                 </div>
+                <div
+                  v-if="wizardMode !== 'exchange' && formData.pricing_mode === 'detailed'"
+                  class="col-md-6"
+                >
+                  <label class="form-label">{{
+                    $t("orders.form.discountId")
+                  }}</label>
+                  <select v-model="formData.discount_id" class="form-select">
+                    <option value="">{{ $t("orders.form.noDiscount") }}</option>
+                    <option
+                      v-for="(discount, index) in props.discounts"
+                      :key="getDiscountValue(discount) || index"
+                      :value="getDiscountValue(discount)"
+                    >
+                      {{ getDiscountLabel(discount) }}
+                    </option>
+                  </select>
+                </div>
+
               </div>
 
-              <div class="row g-3">
+              <div
+                v-if="wizardMode === 'exchange' || (wizardMode !== 'exchange' && formData.pricing_mode === 'detailed')"
+                class="row g-3"
+              >
                 <div class="col-md-6">
                   <label class="form-label"
                     >{{ $t("orders.form.linepriceId") }}
@@ -566,57 +689,39 @@
                     {{ getFieldError("company_item_price_id") }}
                   </div>
                 </div>
+              </div>
 
-                <div v-if="wizardMode !== 'exchange'" class="col-md-6">
-                  <label class="form-label">{{
-                    $t("orders.form.discountId")
-                  }}</label>
-                  <select v-model="formData.discount_id" class="form-select">
-                    <option value="">{{ $t("orders.form.noDiscount") }}</option>
-                    <option
-                      v-for="(discount, index) in props.discounts"
-                      :key="getDiscountValue(discount) || index"
-                      :value="getDiscountValue(discount)"
-                    >
-                      {{ getDiscountLabel(discount) }}
-                    </option>
-                  </select>
+              <!-- Checkboxes Section -->
+              <div class="row g-3 mt-2">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input
+                      id="deliveryPriceFromCustomer"
+                      v-model="formData.is_delivery_price_from_customer"
+                      class="form-check-input"
+                      type="checkbox"
+                      :true-value="1"
+                      :false-value="0"
+                    />
+                    <label class="form-check-label" for="deliveryPriceFromCustomer">
+                      {{ $t("orders.form.deliveryPriceFromCustomer") }}
+                    </label>
+                  </div>
                 </div>
 
-                <!-- Checkboxes Section -->
-                <div class="col-12">
-                  <div class="row g-3 mt-2">
-                    <div class="col-md-6">
-                      <div class="form-check">
-                        <input
-                          id="deliveryPriceFromCustomer"
-                          v-model="formData.is_delivery_price_from_customer"
-                          class="form-check-input"
-                          type="checkbox"
-                          :true-value="1"
-                          :false-value="0"
-                        />
-                        <label class="form-check-label" for="deliveryPriceFromCustomer">
-                          {{ $t("orders.form.deliveryPriceFromCustomer") }}
-                        </label>
-                      </div>
-                    </div>
-
-                    <div v-if="wizardMode === 'exchange'" class="col-md-6">
-                      <div class="form-check">
-                        <input
-                          id="priceFromCustomer"
-                          v-model="formData.is_price_from_customer"
-                          class="form-check-input"
-                          type="checkbox"
-                          :true-value="1"
-                          :false-value="0"
-                        />
-                        <label class="form-check-label" for="priceFromCustomer">
-                          {{ $t("orders.form.priceFromCustomer") }}
-                        </label>
-                      </div>
-                    </div>
+                <div v-if="wizardMode === 'exchange'" class="col-md-6">
+                  <div class="form-check">
+                    <input
+                      id="priceFromCustomer"
+                      v-model="formData.is_price_from_customer"
+                      class="form-check-input"
+                      type="checkbox"
+                      :true-value="1"
+                      :false-value="0"
+                    />
+                    <label class="form-check-label" for="priceFromCustomer">
+                      {{ $t("orders.form.priceFromCustomer") }}
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1341,7 +1446,10 @@ const buildDefaultFormData = () => ({
   case_return: "Full", // For exchange mode
   package: "one",
   parent_order_id: "",
+  pricing_mode: "total",
   price: "",
+  total_price: "",
+  delivery_price: "",
   currency_id: toSelectValue(currencyId.value),
   lineprice_id: "",
   discount_id: "",
@@ -1400,7 +1508,8 @@ const selectedParentOrder = computed(() => {
 });
 
 const parentOrderPriceValue = computed(() => {
-  const price = selectedParentOrder.value?.price;
+  const price =
+    selectedParentOrder.value?.total_price ?? selectedParentOrder.value?.price;
   if (price === null || price === undefined || price === "") return "";
   const numeric = Number.parseFloat(price);
   return Number.isNaN(numeric) ? "" : numeric;
@@ -1533,9 +1642,61 @@ const validateStepBasics = () => {
 const validateStepPricing = () => {
   let isValid = true;
 
-  if (isEmptyValue(formData.value.price)) {
-    setFieldError("price", requiredFieldMessage(t("orders.form.price")));
-    isValid = false;
+  if (isExchange.value) {
+    if (isEmptyValue(formData.value.price)) {
+      setFieldError("price", requiredFieldMessage(t("orders.form.price")));
+      isValid = false;
+    }
+    if (isEmptyValue(formData.value.lineprice_id)) {
+      setFieldError(
+        "lineprice_id",
+        requiredFieldMessage(t("orders.form.linepriceId"))
+      );
+      isValid = false;
+    }
+    if (isEmptyValue(formData.value.company_item_price_id)) {
+      setFieldError(
+        "company_item_price_id",
+        requiredFieldMessage(t("orders.form.companyItemPriceId"))
+      );
+      isValid = false;
+    }
+  } else {
+    if (formData.value.pricing_mode === "total") {
+      if (isEmptyValue(formData.value.total_price)) {
+        setFieldError(
+          "total_price",
+          requiredFieldMessage(t("orders.form.totalPrice"))
+        );
+        isValid = false;
+      }
+      if (isEmptyValue(formData.value.delivery_price)) {
+        setFieldError(
+          "delivery_price",
+          requiredFieldMessage(t("orders.form.deliveryPrice"))
+        );
+        isValid = false;
+      }
+    } else {
+      if (isEmptyValue(formData.value.price)) {
+        setFieldError("price", requiredFieldMessage(t("orders.form.price")));
+        isValid = false;
+      }
+      if (isEmptyValue(formData.value.lineprice_id)) {
+        setFieldError(
+          "lineprice_id",
+          requiredFieldMessage(t("orders.form.linepriceId"))
+        );
+        isValid = false;
+      }
+      if (isEmptyValue(formData.value.company_item_price_id)) {
+        setFieldError(
+          "company_item_price_id",
+          requiredFieldMessage(t("orders.form.companyItemPriceId"))
+        );
+        isValid = false;
+      }
+    }
   }
 
   if (
@@ -1544,22 +1705,6 @@ const validateStepPricing = () => {
     isEmptyValue(currencyId.value)
   ) {
     setFieldError("currency_id", requiredFieldMessage(t("orders.form.currencyId")));
-    isValid = false;
-  }
-
-  if (isEmptyValue(formData.value.lineprice_id)) {
-    setFieldError(
-      "lineprice_id",
-      requiredFieldMessage(t("orders.form.linepriceId"))
-    );
-    isValid = false;
-  }
-
-  if (isEmptyValue(formData.value.company_item_price_id)) {
-    setFieldError(
-      "company_item_price_id",
-      requiredFieldMessage(t("orders.form.companyItemPriceId"))
-    );
     isValid = false;
   }
 
@@ -1699,17 +1844,34 @@ const submitOrder = () => {
     return;
   }
 
+  const isTotalPricing =
+    !isExchange.value && formData.value.pricing_mode === "total";
+
   const baseOrderData = {
     to_id: parseInt(formData.value.to_id),
-    price: parseFloat(formData.value.price),
+    total_price: isTotalPricing
+      ? parseFloat(formData.value.total_price)
+      : undefined,
+    price: !isTotalPricing ? parseFloat(formData.value.price) : undefined,
+    delivery_price: isTotalPricing
+      ? parseFloat(formData.value.delivery_price)
+      : undefined,
     currency_id: resolvedCurrencyId,
-    lineprice_id: parseInt(formData.value.lineprice_id),
-    discount_id: formData.value.discount_id ? parseInt(formData.value.discount_id) : null,
-    company_item_price_id: parseInt(formData.value.company_item_price_id),
+    lineprice_id: !isTotalPricing
+      ? parseInt(formData.value.lineprice_id)
+      : undefined,
+    discount_id: !isTotalPricing && formData.value.discount_id
+      ? parseInt(formData.value.discount_id)
+      : undefined,
+    company_item_price_id: !isTotalPricing
+      ? parseInt(formData.value.company_item_price_id)
+      : undefined,
     case: formData.value.case,
     type: formData.value.type,
     package: requiresSinglePackage.value ? "one" : formData.value.package,
-    parent_order_id: formData.value.parent_order_id ? parseInt(formData.value.parent_order_id) : null,
+    parent_order_id: formData.value.parent_order_id
+      ? parseInt(formData.value.parent_order_id)
+      : null,
     company_id: resolvedCompanyId,
     order_items: transformedOrderItems,
     is_delivery_price_from_customer: (() => {
@@ -1728,8 +1890,8 @@ const submitOrder = () => {
 
   if (isExchange.value) {
     const exchangePayload = {
-      price: parseFloat(formData.value.price),
-      lineprice_id: parseInt(formData.value.lineprice_id),
+    price: parseFloat(formData.value.price),
+    lineprice_id: parseInt(formData.value.lineprice_id),
       company_item_price_id: parseInt(formData.value.company_item_price_id),
       case_delivery: formData.value.case,
       case_return: formData.value.case_return || formData.value.case,
@@ -1772,6 +1934,21 @@ watch(
 );
 
 watch(
+  () => formData.value.pricing_mode,
+  (mode) => {
+    clearAllErrors();
+    if (mode === "total") {
+      formData.value.price = "";
+      formData.value.lineprice_id = "";
+      formData.value.company_item_price_id = "";
+      formData.value.discount_id = "";
+    } else {
+      formData.value.total_price = "";
+    }
+  }
+);
+
+watch(
   () => formData.value.parent_order_id,
   (newValue) => {
     clearFieldError("parent_order_id");
@@ -1786,13 +1963,60 @@ watch(
       clearFieldError("to_id");
     }
 
+    if (isEmptyValue(formData.value.currency_id) && selected.currency_id) {
+      formData.value.currency_id = String(selected.currency_id);
+      clearFieldError("currency_id");
+    }
+
+    if (formData.value.pricing_mode === "detailed") {
+      if (isEmptyValue(formData.value.lineprice_id) && selected.lineprice_id) {
+        formData.value.lineprice_id = String(selected.lineprice_id);
+        clearFieldError("lineprice_id");
+      }
+
+      if (
+        isEmptyValue(formData.value.company_item_price_id) &&
+        selected.company_item_price_id
+      ) {
+        formData.value.company_item_price_id = String(
+          selected.company_item_price_id
+        );
+        clearFieldError("company_item_price_id");
+      }
+
+      if (isEmptyValue(formData.value.price)) {
+        const basePrice =
+          selected.total_price ?? selected.price ?? formData.value.price;
+        if (!isEmptyValue(basePrice)) {
+          formData.value.price = String(basePrice);
+          clearFieldError("price");
+        }
+      }
+    }
+
+    if (
+      wizardMode.value === "return" &&
+      formData.value.pricing_mode === "total" &&
+      isEmptyValue(formData.value.total_price)
+    ) {
+      const totalPrice =
+        selected.total_price ?? selected.price ?? formData.value.total_price;
+      if (!isEmptyValue(totalPrice)) {
+        formData.value.total_price = String(totalPrice);
+        clearFieldError("total_price");
+      }
+    }
+
     // Pre-populate return items from parent order
     const parentItems = selected.order_items || [];
     if (parentItems.length > 0) {
+      const sourceItem = parentItems[0];
       // Create a single order item with the return items from parent
       const newOrderItem = {
-        branch_customer_company_id: "",
-        branch_delivery_company_id: "",
+        branch_customer_company_id:
+          sourceItem?.branch_customer_company_id ?? "",
+        branch_delivery_company_id:
+          sourceItem?.branch_delivery_company_id ?? "",
         items: [], // For regular nested items
         itemsDelivery: [], // For exchange delivery items
         itemsReturn: [], // For exchange return items

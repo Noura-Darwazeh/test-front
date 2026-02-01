@@ -1,168 +1,105 @@
 <template>
-  <div class="permissions-page-container bg-light">
+  <div class="permissions-page">
     <!-- Page Header -->
-    <div class="mb-4">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-        <div>
-          <h4 class="mb-1 fw-bold">{{ $t('permissions.title') }}</h4>
-          <p class="text-muted mb-0">{{ $t('permissions.subtitle') }}</p>
-        </div>
+    <div class="page-header mb-4">
+      <div
+        class="d-flex align-items-center justify-content-between flex-wrap gap-3"
+      >
         <div class="d-flex gap-2 align-items-center">
-          <!-- Search -->
-          <div class="search-box">
-            <i class="fas fa-search search-icon"></i>
+          <div class="search-input">
+            <img :src="searchIcon" alt="search" class="search-icon" />
             <input
               type="text"
-              class="form-control"
               :placeholder="$t('permissions.searchUsers')"
               v-model="searchText"
             />
           </div>
-          <!-- Refresh Button -->
-          <PrimaryButton
-            :iconBefore="refreshIcon"
-            :loading="usersStore.loading"
+          <button
+            class="btn-refresh"
+            :disabled="usersStore.loading"
             @click="handleRefresh"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Permissions Legend -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <h6 class="fw-bold mb-3">
-          <i class="fas fa-key me-2 text-primary"></i>
-          {{ $t('permissions.availablePermissions') }}
-        </h6>
-        <div class="d-flex flex-wrap gap-2">
-          <span
-            v-for="permission in permissionsStore.permissions"
-            :key="permission.id"
-            class="badge permission-badge"
           >
-            <i class="fas fa-shield-alt me-1"></i>
-            {{ permission.name }}
-          </span>
-          <span v-if="permissionsStore.permissions.length === 0" class="text-muted">
-            {{ $t('permissions.noPermissions') }}
-          </span>
+            <img
+              :src="refreshIcon"
+              alt="refresh"
+              class="refresh-icon"
+              :class="{ rotating: usersStore.loading }"
+            />
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="usersStore.loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">{{ $t('common.loading') }}</span>
-      </div>
-      <p class="mt-2">{{ $t('common.loading') }}</p>
+    <div v-if="usersStore.loading" class="loading-state">
+      <div class="spinner-border text-primary" role="status"></div>
+      <p class="mt-2 text-muted">{{ $t("common.loading") }}</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="usersStore.error" class="alert alert-danger m-3">
+    <div v-else-if="usersStore.error" class="alert alert-danger">
       <i class="fas fa-exclamation-triangle me-2"></i>
       {{ usersStore.error }}
     </div>
 
-    <!-- Users Grid -->
-    <div v-else>
-      <div class="row">
-        <div
-          v-for="user in filteredUsers"
-          :key="user.id"
-          class="col-xl-4 col-lg-6 col-md-6 mb-4"
-        >
-          <div class="card user-card h-100 border-0 shadow-sm">
-            <!-- User Header -->
-            <div class="card-header user-card-header">
-              <div class="d-flex align-items-center">
-                <div class="user-avatar me-3">
-                  <img
-                    v-if="getFullImageUrl(user.image)"
-                    :src="getFullImageUrl(user.image)"
-                    :alt="user.name"
-                    class="avatar-img"
-                  />
-                  <div v-else class="avatar-placeholder">
-                    <i class="fas fa-user"></i>
-                  </div>
-                </div>
-                <div class="flex-grow-1">
-                  <h6 class="mb-0 fw-bold">{{ user.name }}</h6>
-                  <small class="text-muted">@{{ user.username }}</small>
-                </div>
-                <span class="badge role-badge">{{ user.role }}</span>
-              </div>
+    <!-- Users List -->
+    <div v-else class="users-container">
+      <div v-for="user in filteredUsers" :key="user.id" class="user-row">
+        <!-- User Info -->
+        <div class="user-info-section">
+          <div class="user-details">
+            <div class="user-name">{{ user.name }}</div>
+            <div class="user-meta">
+              <span class="username">@{{ user.username }}</span>
+              <span class="separator">•</span>
+              <span class="role">{{ user.role }}</span>
             </div>
+          </div>
+        </div>
 
-            <!-- User Info -->
-            <div class="card-body pb-2">
-              <div class="user-info mb-3">
-                <div class="info-item">
-                  <i class="fas fa-envelope text-muted me-2"></i>
-                  <span class="text-truncate">{{ user.email || '-' }}</span>
-                </div>
-                <div class="info-item">
-                  <i class="fas fa-building text-muted me-2"></i>
-                  <span>{{ user.company_name || '-' }}</span>
-                </div>
-              </div>
-
-              <!-- Permissions -->
-              <div class="permissions-section">
-                <label class="form-label fw-semibold small text-uppercase text-muted">
-                  <i class="fas fa-lock me-1"></i>
-                  {{ $t('permissions.userPermissions') }}
-                </label>
-                <div class="permissions-list">
-                  <div
-                    v-for="permission in permissionsStore.permissions"
-                    :key="permission.id"
-                    class="permission-item"
-                  >
-                    <div class="form-check form-switch">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        :id="`perm-${user.id}-${permission.id}`"
-                        :checked="permissionsStore.hasPermission(user.id, permission.id)"
-                        :disabled="toggleLoading[`${user.id}-${permission.id}`]"
-                        @change="togglePermission(user.id, permission.id, $event)"
-                      />
-                      <label
-                        class="form-check-label"
-                        :for="`perm-${user.id}-${permission.id}`"
-                      >
-                        {{ permission.name }}
-                        <span
-                          v-if="toggleLoading[`${user.id}-${permission.id}`]"
-                          class="spinner-border spinner-border-sm ms-1"
-                        ></span>
-                      </label>
-                    </div>
-                  </div>
-                  <div
-                    v-if="permissionsStore.permissions.length === 0"
-                    class="text-muted small"
-                  >
-                    {{ $t('permissions.noPermissionsAvailable') }}
-                  </div>
-                </div>
-              </div>
-            </div>
+        <!-- Permissions -->
+        <div class="permissions-section">
+          <div
+            v-for="permission in permissionsStore.permissions"
+            :key="permission.id"
+            class="permission-toggle"
+          >
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="
+                  permissionsStore.hasPermission(user.id, permission.id)
+                "
+                :disabled="toggleLoading[`${user.id}-${permission.id}`]"
+                @change="togglePermission(user.id, permission.id, $event)"
+              />
+              <span class="slider"></span>
+            </label>
+            <span class="permission-label">
+              {{ permission.name }}
+              <span
+                v-if="toggleLoading[`${user.id}-${permission.id}`]"
+                class="spinner-border spinner-border-sm ms-1"
+              ></span>
+            </span>
+          </div>
+          <div
+            v-if="permissionsStore.permissions.length === 0"
+            class="text-muted small"
+          >
+            {{ $t("permissions.noPermissionsAvailable") }}
           </div>
         </div>
       </div>
 
       <!-- No Results -->
-      <div v-if="filteredUsers.length === 0" class="text-center py-5">
-        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-        <p class="text-muted">{{ $t('permissions.noUsersFound') }}</p>
+      <div v-if="filteredUsers.length === 0" class="no-results">
+        <i class="fas fa-search fa-2x text-muted mb-2"></i>
+        <p class="text-muted mb-0">{{ $t("permissions.noUsersFound") }}</p>
       </div>
 
       <!-- Pagination -->
-      <div class="px-3 pt-1 pb-2">
+      <div v-if="filteredUsers.length > 0" class="pagination-wrapper">
         <Pagination
           :totalItems="usersStore.usersPagination.total"
           :itemsPerPage="itemsPerPage"
@@ -177,32 +114,19 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, reactive } from "vue";
-import { useI18n } from "vue-i18n";
 import { usePermissionsStore } from "../store/permissionsStore.js";
 import { useUsersManagementStore } from "../../user/store/usersManagement.js";
 import Pagination from "../../../components/shared/Pagination.vue";
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
+import searchIcon from "../../../assets/search.svg";
 import refreshIcon from "../../../assets/table/refresh.svg";
 
-const { t } = useI18n();
 const permissionsStore = usePermissionsStore();
 const usersStore = useUsersManagementStore();
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35").replace(/\/api\/?$/, "");
 
 const searchText = ref("");
 const currentPage = ref(1);
 const itemsPerPage = computed(() => usersStore.usersPagination.perPage || 10);
 const toggleLoading = reactive({});
-
-// Get full image URL
-const getFullImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-  // Filter out placeholder URLs
-  if (imagePath.includes("placeholder")) return null;
-  if (imagePath.startsWith("http")) return imagePath;
-  return `${API_BASE_URL}${imagePath}`;
-};
 
 // Filter users by search text
 const filteredUsers = computed(() => {
@@ -215,7 +139,7 @@ const filteredUsers = computed(() => {
       user.name?.toLowerCase().includes(search) ||
       user.username?.toLowerCase().includes(search) ||
       user.email?.toLowerCase().includes(search) ||
-      user.role?.toLowerCase().includes(search)
+      user.role?.toLowerCase().includes(search),
   );
 });
 
@@ -244,7 +168,10 @@ const togglePermission = async (userId, permissionId, event) => {
 const handleRefresh = async () => {
   await Promise.all([
     permissionsStore.fetchPermissions(),
-    usersStore.fetchUsers({ page: currentPage.value, perPage: itemsPerPage.value }),
+    usersStore.fetchUsers({
+      page: currentPage.value,
+      perPage: itemsPerPage.value,
+    }),
     permissionsStore.fetchUserPermissionsMap(),
   ]);
 };
@@ -274,165 +201,301 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.permissions-page-container {
-  max-width: 100%;
+.permissions-page {
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-/* Search Box */
-.search-box {
+/* Page Header */
+.page-header h4 {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Search Input */
+.search-input {
   position: relative;
-  min-width: 250px;
+  min-width: 280px;
 }
 
-.search-box .search-icon {
+.search-icon {
   position: absolute;
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6c757d;
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
 }
 
-.search-box .form-control {
-  padding-left: 38px;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-}
-
-.search-box .form-control:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
-}
-
-/* Permission Badge */
-.permission-badge {
-  background-color: rgba(13, 110, 253, 0.1);
-  color: #0d6efd;
-  padding: 0.5rem 0.75rem;
-  font-weight: 500;
+.search-input input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
-/* User Card */
-.user-card {
-  border-radius: 12px;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.search-input input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb, 0, 123, 255), 0.1);
 }
 
-.user-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
-}
-
-.user-card-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1.25rem;
-  border-bottom: none;
-}
-
-.user-avatar {
-  width: 50px;
-  height: 50px;
-  flex-shrink: 0;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
+/* Refresh Button */
+.btn-refresh {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 1rem;
 }
 
-.user-card-header h6 {
-  color: white;
+.btn-refresh:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #d0d0d0;
 }
 
-.user-card-header small {
-  color: rgba(255, 255, 255, 0.7) !important;
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.role-badge {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
+.refresh-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
 }
 
-/* User Info */
-.user-info {
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #eee;
+.refresh-icon.rotating {
+  animation: spin 1s linear infinite;
 }
 
-.info-item {
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* Users Container */
+.users-container {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+}
+
+/* User Row */
+.user-row {
   display: flex;
   align-items: center;
-  padding: 0.25rem 0;
-  font-size: 0.875rem;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
 }
 
-.info-item i {
-  width: 20px;
+.user-row:last-child {
+  border-bottom: none;
+}
+
+.user-row:hover {
+  background-color: #fafafa;
+}
+
+/* User Info Section */
+.user-info-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 280px;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar i {
+  font-size: 20px;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.user-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+.user-meta .username {
+  color: #666;
+}
+
+.user-meta .separator {
+  color: #ccc;
+}
+
+.user-meta .role {
+  color: #888;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 /* Permissions Section */
 .permissions-section {
-  padding-top: 0.75rem;
-}
-
-.permissions-list {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 24px;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
-.permission-item {
-  padding: 0.5rem 0.75rem;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
+.permission-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.permission-item:hover {
-  background-color: #e9ecef;
+.permission-label {
+  font-size: 14px;
+  color: #333;
+  user-select: none;
 }
 
-.form-check-input {
+/* Custom Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
   cursor: pointer;
-  width: 2.5em;
-  height: 1.25em;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ddd;
+  transition: 0.3s;
+  border-radius: 24px;
 }
 
-.form-check-input:checked {
-  background-color: #198754;
-  border-color: #198754;
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
 }
 
-.form-check-label {
-  cursor: pointer;
-  font-size: 0.875rem;
+input:checked + .slider {
+  background-color: var(--primary-color, #0d6efd);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+input:disabled + .slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* Pagination Wrapper */
+.pagination-wrapper {
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
 }
 
 /* Responsive */
+@media (max-width: 992px) {
+  .user-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .user-info-section {
+    width: 100%;
+  }
+
+  .permissions-section {
+    width: 100%;
+    padding-left: 0;
+  }
+}
+
 @media (max-width: 768px) {
-  .search-box {
+  .search-input {
     min-width: 100%;
+  }
+
+  .permissions-section {
+    flex-direction: column;
+    gap: 12px;
   }
 }
 </style>

@@ -9,34 +9,34 @@
               style="width:64px;height:64px;background:var(--primary-color);color:#fff">
               <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
             </div>
-            <h3 class="mb-0">Welcome Back</h3>
-            <p class="text-muted">Sign in to access your delivery dashboard</p>
+            <h3 class="mb-0">{{ $t('login.title') }}</h3>
+            <p class="text-muted">{{ $t('login.subtitle') }}</p>
           </div>
 
           <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
             <!-- Email/Login Field -->
             <div class="mb-3">
-              <FormLabel label="Email or Username" for-id="login" :required="true" />
-              <TextField 
-                id="login" 
-                v-model="form.login" 
-                type="text" 
-                placeholder="Enter your email or username"
-                :required="true" 
+              <FormLabel :label="$t('login.emailLabel')" for-id="login" :required="true" />
+              <TextField
+                id="login"
+                v-model="form.login"
+                type="text"
+                :placeholder="$t('login.emailPlaceholder')"
+                :required="true"
               />
               <small v-if="errors.login" class="text-danger">{{ errors.login }}</small>
             </div>
 
             <!-- Password Field -->
             <div class="mb-3">
-              <FormLabel label="Password" for-id="password" :required="true" />
-              <TextField 
-                id="password" 
-                v-model="form.password" 
-                type="password" 
-                placeholder="••••••••"
-                :minlength="6" 
-                :required="true" 
+              <FormLabel :label="$t('login.passwordLabel')" for-id="password" :required="true" />
+              <TextField
+                id="password"
+                v-model="form.password"
+                type="password"
+                :placeholder="$t('login.passwordPlaceholder')"
+                :minlength="6"
+                :required="true"
               />
               <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
             </div>
@@ -49,21 +49,21 @@
 
             <!-- Forgot Password Link -->
             <div class="d-flex justify-content-end mb-3">
-              <router-link 
-                to="/forgot-password" 
+              <router-link
+                to="/forgot-password"
                 class="text-decoration-none"
                 style="color:var(--primary-color);font-size:14px"
               >
-                Forgot Password?
+                {{ $t('login.forgotPassword') }}
               </router-link>
             </div>
 
             <!-- Submit Button -->
-            <PrimaryButton 
-              text="Sign In" 
-              loading-text="Signing In..." 
-              :loading="authStore.isLoading" 
-              type="submit" 
+            <PrimaryButton
+              :text="$t('login.signIn')"
+              :loading-text="$t('login.signingIn')"
+              :loading="authStore.isLoading"
+              type="submit"
             />
           </form>
         </div>
@@ -94,6 +94,7 @@
 <script setup>
 import { reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../../../stores/auth.js';
 import FormLabel from '../../../components/shared/FormLabel.vue';
 import TextField from '../../../components/shared/TextField.vue';
@@ -103,6 +104,7 @@ import packageIcon from '../../../assets/login/package.svg';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const { t } = useI18n();
 
 const slides = [
   {
@@ -147,17 +149,17 @@ async function onSubmit() {
 
   // Validate form
   if (!form.login) {
-    errors.login = 'Email or username is required';
+    errors.login = t('login.validation.emailRequired');
     return;
   }
-  
+
   if (!form.password) {
-    errors.password = 'Password is required';
+    errors.password = t('login.validation.passwordRequired');
     return;
   }
 
   if (form.password.length < 6) {
-    errors.password = 'Password must be at least 6 characters';
+    errors.password = t('login.validation.passwordMinLength');
     return;
   }
 
@@ -178,8 +180,7 @@ async function onSubmit() {
     }
 
     // Redirect to user's landing page on success
-    console.log('✅ Login successful, redirecting...');
-      const defaultPage = authStore.user?.default_page || '/user';
+    const defaultPage = authStore.user?.default_page || '/user';
     router.push(defaultPage);
   } catch (error) {
     // Error is already set in the store

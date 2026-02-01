@@ -103,8 +103,42 @@
             @close="closeFormModal" @submit="handleSubmitworkPlan" />
 
         <!-- Details Modal -->
-        <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('workPlan.details')" :data="selectedworkPlan"
-            :fields="detailsFields" @close="closeDetailsModal" />
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('workPlan.details')" 
+            :data="selectedworkPlan"
+            :fields="detailsFields" 
+            @close="closeDetailsModal"
+        >
+            <!-- Order Items with Progress -->
+            <template #after-details>
+                <div v-if="workPlanOrderItems.length > 0" class="mt-4">
+                    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-box-seam"></i>
+                        {{ $t('workPlan.orderItems') }} ({{ workPlanOrderItems.length }})
+                    </h6>
+                    <OrderItemProgress 
+                        v-for="orderItem in workPlanOrderItems" 
+                        :key="orderItem.id"
+                        :orderItem="orderItem"
+                    />
+                </div>
+                
+                <!-- Loading State -->
+                <div v-else-if="loadingDetails" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
+                    </div>
+                    <p class="text-muted mt-2">{{ $t('workPlan.loadingDetails') }}</p>
+                </div>
+                
+                <!-- Empty State -->
+                <div v-else class="mt-4 text-center py-4 bg-light rounded">
+                    <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0 mt-2">{{ $t('workPlan.noOrderItems') }}</p>
+                </div>
+            </template>
+        </DetailsModal>
 
         <!-- Bulk Action Confirmation Modal -->
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
@@ -127,6 +161,7 @@ import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import OrderItemProgress from "../../../components/shared/OrderItemProgress.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
@@ -166,6 +201,8 @@ const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 const ordersWithItems = ref([]);
 const loadingOrders = ref(false);
+const workPlanOrderItems = ref([]);
+const loadingDetails = ref(false);
 
 // ✅ Permissions
 const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
@@ -313,12 +350,10 @@ const handleRefresh = async () => {
     }
 };
 
-// ✅ Filter states مع reactive state
 const selectedLine = ref('');
 const selectedCase = ref('');
 const lineOptions = ref([]);
 
-// ✅ متغير لحفظ بيانات الفورم الأساسية
 const formData = ref({
     name: '',
     driver_id: '',
@@ -426,7 +461,6 @@ const workPlanFields = computed(() => {
             colClass: 'col-md-6',
             defaultValue: selectedLine.value,
             onChange: (value, formDataFromModal) => {
-                // ✅ احفظي البيانات الحالية قبل الفلتر
                 formData.value = {
                     name: formDataFromModal.name || formData.value.name,
                     driver_id: formDataFromModal.driver_id || formData.value.driver_id,
@@ -451,7 +485,6 @@ const workPlanFields = computed(() => {
             colClass: 'col-md-6',
             defaultValue: selectedCase.value,
             onChange: (value, formDataFromModal) => {
-                // ✅ احفظي البيانات الحالية قبل الفلتر
                 formData.value = {
                     name: formDataFromModal.name || formData.value.name,
                     driver_id: formDataFromModal.driver_id || formData.value.driver_id,
@@ -507,7 +540,6 @@ const detailsFields = computed(() => [
     { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
     { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
     { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
-    { key: 'orders', label: t('workPlan.orders'), colClass: 'col-md-12' },
 ]);
 
 const workPlanColumns = ref([
@@ -617,7 +649,6 @@ const fetchOrdersWithItems = async (filters = {}) => {
 
         ordersWithItems.value = data;
 
-        // ✅ Extract unique line names for filter dropdown
         const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
         lineOptions.value = uniqueLines.map(line => ({
             value: line,
@@ -634,7 +665,6 @@ const fetchOrdersWithItems = async (filters = {}) => {
     }
 };
 
-// ✅ Filter handler - محدث
 const handleFilterOrders = async () => {
     const filters = {};
 
@@ -677,7 +707,6 @@ const openAddModal = async () => {
     isEditMode.value = false;
     selectedworkPlan.value = {};
     
-    // ✅ امسحي الفلاتر وال form data
     selectedLine.value = '';
     selectedCase.value = '';
     formData.value = {
@@ -699,14 +728,12 @@ const openEditModal = async (workPlan) => {
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
     
-    // ✅ احفظي البيانات الحالية
     formData.value = {
         name: workPlan.name,
         driver_id: workPlan.driver_id,
         date: workPlan.date
     };
     
-    // ✅ امسحي الفلاتر
     selectedLine.value = '';
     selectedCase.value = '';
     
@@ -715,31 +742,40 @@ const openEditModal = async (workPlan) => {
     isFormModalOpen.value = true;
 };
 
-const openDetailsModal = (workPlan) => {
-    const orderGroups = {};
-
-    workPlan.workplanorder?.forEach(wo => {
-        const orderItemName = wo.order_item?.name || '';
-        const orderCode = orderItemName.split(' - ')[0].trim();
-        const itemName = orderItemName.split(' - ')[1]?.trim() || '';
-
-        if (!orderGroups[orderCode]) {
-            orderGroups[orderCode] = [];
-        }
-        if (itemName) {
-            orderGroups[orderCode].push(itemName);
-        }
-    });
-
-    const ordersDisplay = Object.entries(orderGroups)
-        .map(([code, items]) => `${code}: ${items.join(', ')}`)
-        .join('\n') || t('workPlan.noOrders');
-
-    selectedworkPlan.value = {
-        ...workPlan,
-        orders: ordersDisplay
-    };
+const openDetailsModal = async (workPlan) => {
+    selectedworkPlan.value = { ...workPlan };
     isDetailsModalOpen.value = true;
+    
+    // ✅ Fetch full work plan details with order items
+    await fetchWorkPlanDetails(workPlan.id);
+};
+
+const fetchWorkPlanDetails = async (workPlanId) => {
+    loadingDetails.value = true;
+    workPlanOrderItems.value = [];
+    
+    try {
+        const response = await apiServices.get(`/work_plans/${workPlanId}`);
+        const data = response.data.data;
+        
+        console.log("📋 Work plan details:", data);
+        
+        // ✅ Store order items with steps
+        if (data.workplanorder && Array.isArray(data.workplanorder)) {
+            workPlanOrderItems.value = data.workplanorder;
+        }
+        
+        // ✅ Update selected work plan with full data
+        selectedworkPlan.value = {
+            ...selectedworkPlan.value,
+            ...data
+        };
+        
+    } catch (error) {
+        console.error("❌ Failed to fetch work plan details:", error);
+    } finally {
+        loadingDetails.value = false;
+    }
 };
 
 const closeFormModal = () => {
@@ -747,7 +783,6 @@ const closeFormModal = () => {
     isEditMode.value = false;
     selectedworkPlan.value = {};
     
-    // ✅ امسحي الفلاتر وال form data
     selectedLine.value = '';
     selectedCase.value = '';
     formData.value = {
@@ -762,6 +797,7 @@ const closeFormModal = () => {
 const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
     selectedworkPlan.value = {};
+    workPlanOrderItems.value = [];
 };
 
 const handleSubmitworkPlan = async (workPlanData) => {
@@ -825,9 +861,9 @@ const handleSubmitworkPlan = async (workPlanData) => {
 
             if (error.response.data.errors) {
                 const errorMessages = Object.values(error.response.data.errors).flat();
-                alert("خطأ في البيانات:\n" + errorMessages.join("\n"));
+                alert( errorMessages.join("\n"));
             } else if (error.response.data.message) {
-                alert("خطأ: " + error.response.data.message);
+                alert( error.response.data.message);
             }
         }
     }

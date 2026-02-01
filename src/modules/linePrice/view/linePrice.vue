@@ -203,7 +203,6 @@ onMounted(async () => {
             linePriceStore.fetchLinePrices(),
             fetchDropdownData()
         ]);
-        console.log("✅ Line prices loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load line prices:", error);
     }
@@ -332,7 +331,7 @@ const detailsFields = computed(() => [
 ]);
 
 const linePriceColumns = ref([
-    { key: "id", label: t("linePrice.id"), sortable: true },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "line_name", label: t("linePrice.line"), sortable: false },
     { key: "price", label: t("linePrice.price"), sortable: true },
     { key: "currency_code", label: t("linePrice.currency"), sortable: false },
@@ -341,7 +340,7 @@ const linePriceColumns = ref([
 ]);
 
 const trashedColumns = computed(() => [
-    { key: "id", label: t("linePrice.id") },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "line_name", label: t("linePrice.line") },
     { key: "price", label: t("linePrice.price") },
     { key: "currency_code", label: t("linePrice.currency") },

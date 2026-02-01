@@ -20,7 +20,7 @@
 
           <!-- Body -->
           <div class="modal-body p-4" style="max-height: 70vh;">
-            <!-- Custom Slot for Content Before Details (e.g., tabs) -->
+            <!-- Custom Slot for Content Before Details -->
             <slot name="before-details"></slot>
 
             <!-- Image Section -->
@@ -162,7 +162,7 @@ const closeModal = () => {
   emit('close');
 };
 
-// Prevent body scroll when modal is open with scrollbar compensation
+// Prevent body scroll when modal is open
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;

@@ -25,7 +25,6 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
     });
 
     const normalizePayment = (payment) => {
-        console.log("🔍 Raw payment:", JSON.stringify(payment, null, 2));
 
         const clientCompany = payment["Clinet company"];
         const deliveryCompany = payment["Delivery company"];
@@ -59,7 +58,6 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
             updated_at: payment.updated_at,
         };
 
-        console.log("✅ Final normalized:", JSON.stringify(normalized, null, 2));
         return normalized;
     };
 
@@ -67,7 +65,6 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
         loading.value = true;
         error.value = null;
         try {
-            console.log("🔄 Updating payment:", paymentId, paymentData);
 
             const data = {
                 payment_ids: [paymentId],
@@ -82,11 +79,9 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
                 data.amount = parseFloat(paymentData.amount);
             }
 
-            console.log("📤 Sending to API:", data);
 
             const response = await apiServices.markPaymentsAsPaid(data);
 
-            console.log("📥 Update response:", response.data);
 
             await fetchPayments();
 
@@ -116,7 +111,6 @@ export const usePaymentsManagementStore = defineStore("paymentsManagement", () =
         try {
             const response = await apiServices.getPayments();
             payments.value = response.data.data.map(normalizePayment);
-            console.log("✅ Normalized Payments:", payments.value);
             return response.data;
         } catch (err) {
             error.value = err.message || "Failed to fetch payments";

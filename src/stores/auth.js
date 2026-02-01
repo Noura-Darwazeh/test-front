@@ -129,11 +129,9 @@ export const useAuthStore = defineStore("auth", () => {
       if (savedUser?.default_page && data.user.id === savedUser.id) {
         // ✅ نفس اليوزر، احتفظي بالـ landing page القديمة
         data.user.default_page = savedUser.default_page;
-        console.log('🏠 Restored saved landing page:', data.user.default_page);
       } else {
         // ✅ يوزر جديد أو ما في landing page محفوظة
         data.user.default_page = data.user.landing_page || '/user';
-        console.log('🏠 Using default landing page:', data.user.default_page);
       }
 
       // Save auth data
@@ -151,11 +149,8 @@ export const useAuthStore = defineStore("auth", () => {
       if (data.user?.language) {
         const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
         setItem("user_language", uiLang);
-        console.log(`🌐 User language preference: ${data.user.language}`);
       }
 
-      console.log("✅ Login successful:", data.user.name);
-      console.log("📸 User image:", data.user.image);
       return data;
     } else {
       throw new Error(data.message || "Login failed");
@@ -192,7 +187,6 @@ export const useAuthStore = defineStore("auth", () => {
         const response = await api.post("/logout");
 
         if (response.data.success === true) {
-          console.log(response.data.message);
           clearAuthData();
           return { success: true, message: response.data.message };
         } else {
@@ -207,7 +201,6 @@ export const useAuthStore = defineStore("auth", () => {
       console.error("❌ Logout error:", err);
 
       if (err.response?.status === 401 || err.response?.data?.success === false) {
-        console.warn("Invalid token detected, clearing local data");
         clearAuthData();
         return {
           success: true,
@@ -241,10 +234,6 @@ export const useAuthStore = defineStore("auth", () => {
       user.value = savedUser;
       device.value = savedDevice;
       isSwitchedUser.value = !!savedIsSwitched; // ✅ حدّثي الـ state
-      
-      console.log("✅ Auth initialized from localStorage");
-      console.log("📸 User image:", savedUser.image);
-      console.log("🔄 Is switched user:", isSwitchedUser.value);
     }
   }
 
@@ -292,13 +281,9 @@ function updateUser(userData) {
 
   // ✅ دمج البيانات الجديدة مع القديمة
   user.value = { ...user.value, ...userData };
-  
+
   // ✅ خزّني كل شي بالـ localStorage
   setItem("auth_user", user.value);
-  
-  console.log("✅ User updated:", user.value);
-  console.log("📸 User image:", user.value.image);
-  console.log("🏠 Landing page:", user.value.default_page); // ✅ أضفت هاي
 }
 
   /**
@@ -322,7 +307,6 @@ function updateUser(userData) {
 
       if (response.data?.data) {
         updateUser(response.data.data);
-        console.log(`✅ User language updated to: ${language}`);
       }
 
       return response.data;
@@ -376,11 +360,8 @@ function updateUser(userData) {
     setItem("auth_token", loginAsToken);
     setItem("auth_user", userData);
     setItem("is_switched_user", true);
-    
-    isSwitchedUser.value = true; // ✅ حدّثي الـ state
 
-    console.log(`✅ Switched to user: ${userData.name}`);
-    console.log("📸 User image:", userData.image);
+    isSwitchedUser.value = true; // ✅ حدّثي الـ state
   }
 
   /**
@@ -417,10 +398,9 @@ function updateUser(userData) {
         removeItem("original_admin_token");
         removeItem("original_admin_user");
         removeItem("is_switched_user");
-        
+
         isSwitchedUser.value = false; // ✅ حدّثي الـ state
 
-        console.log(`✅ Returned to admin account: ${originalUser.name}`);
         return true;
       }
     } catch (error) {

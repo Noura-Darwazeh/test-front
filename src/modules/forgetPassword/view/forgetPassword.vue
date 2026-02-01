@@ -9,20 +9,20 @@
                             style="width:64px;height:64px;background:var(--primary-color);color:#fff">
                             <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
                         </div>
-                        <h3 class="mb-0">Forgot Password?</h3>
-                        <p class="text-muted">Enter your email and we'll send you a link to reset your password.</p>
+                        <h3 class="mb-0">{{ $t('forgotPassword.title') }}</h3>
+                        <p class="text-muted">{{ $t('forgotPassword.subtitle') }}</p>
                     </div>
 
                     <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
                         <!-- Email Field -->
                         <div class="mb-3">
-                            <FormLabel label="Email Address" for-id="email" :required="true" />
-                            <TextField 
-                                id="email" 
-                                v-model="email" 
-                                type="email" 
-                                placeholder="you@example.com"
-                                :required="true" 
+                            <FormLabel :label="$t('forgotPassword.emailLabel')" for-id="email" :required="true" />
+                            <TextField
+                                id="email"
+                                v-model="email"
+                                type="email"
+                                :placeholder="$t('forgotPassword.emailPlaceholder')"
+                                :required="true"
                             />
                             <small v-if="errors.email" class="text-danger">{{ errors.email }}</small>
                         </div>
@@ -35,11 +35,11 @@
 
                         <!-- Submit Button -->
                         <div class="mb-3">
-                            <PrimaryButton 
-                                text="Send Reset Link" 
-                                loading-text="Sending..." 
+                            <PrimaryButton
+                                :text="$t('forgotPassword.sendResetLink')"
+                                :loading-text="$t('forgotPassword.sending')"
                                 :loading="submitting"
-                                type="submit" 
+                                type="submit"
                             />
                         </div>
 
@@ -53,7 +53,7 @@
                         <div class="mt-3 text-center">
                             <router-link to="/login" class="text-decoration-none"
                                 style="color:var(--primary-color);font-size:14px">
-                                Remember your password? Sign In
+                                {{ $t('forgotPassword.backToLogin') }}
                             </router-link>
                         </div>
                     </form>
@@ -64,8 +64,8 @@
             <div class="col-12 col-lg-6 d-none d-lg-flex align-items-center justify-content-center"
                 style="background: var(--primary-color); color: #fff; min-height:600px; padding: 40px;">
                 <div class="text-center">
-                    <h2 class="mb-3">Reset Your Password</h2>
-                    <p class="mb-0">A secure and simple way to regain access to your account.</p>
+                    <h2 class="mb-3">{{ $t('forgotPassword.resetInfo') }}</h2>
+                    <p class="mb-0">{{ $t('forgotPassword.resetInfoSubtitle') }}</p>
                 </div>
             </div>
         </div>
@@ -75,6 +75,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import FormLabel from '../../../components/shared/FormLabel.vue'
 import TextField from '../../../components/shared/TextField.vue'
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
@@ -83,12 +84,13 @@ import apiServices from '@/services/apiServices.js'
 import { setItem } from '@/utils/shared/storageUtils.js'
 
 const router = useRouter()
+const { t } = useI18n()
 const email = ref('')
 const submitting = ref(false)
 const sent = ref(false)
 const errors = reactive({ email: '' })
 const apiError = ref('')
-const successMessage = ref('Check your email for the password reset link.')
+const successMessage = ref(t('forgotPassword.successMessage'))
 
 async function onSubmit() {
     // Clear previous errors
@@ -97,14 +99,14 @@ async function onSubmit() {
 
     // Validate email
     if (!email.value || !email.value.trim()) {
-        errors.email = 'Email is required'
+        errors.email = t('forgotPassword.validation.emailRequired')
         return
     }
 
     // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.value)) {
-        errors.email = 'Please enter a valid email address'
+        errors.email = t('forgotPassword.validation.emailInvalid')
         return
     }
 
@@ -113,8 +115,6 @@ async function onSubmit() {
     try {
         // ✅ Use apiServices instead of direct API call
         const response = await apiServices.forgotPassword(email.value.trim())
-
-        console.log('✅ Forgot password API response:', response.data)
 
         // Check if successful
         if (response.data.success === true) {
@@ -125,13 +125,10 @@ async function onSubmit() {
             setItem('reset_email', email.value.trim())
             if (token) {
                 setItem('reset_token', token)
-                console.log('💾 Token and email saved to localStorage')
-            } else {
-                console.log('💾 Email saved to localStorage (token will come from URL)')
             }
 
             // Update success message with API response
-            successMessage.value = response.data.message || 'Check your email for the password reset link.'
+            successMessage.value = response.data.message || t('forgotPassword.successMessage')
 
             // Show success message
             sent.value = true
@@ -141,20 +138,20 @@ async function onSubmit() {
                 // router.push('/login')
             }, 5000)
         } else {
-            throw new Error(response.data.message || 'Failed to send reset link')
+            throw new Error(response.data.message || t('forgotPassword.errors.sendFailed'))
         }
     } catch (error) {
         console.error('❌ Forgot password error:', error)
-        
+
         // Handle different error scenarios
         if (error.response?.data?.message) {
             apiError.value = error.response.data.message
         } else if (error.response?.status === 404) {
-            apiError.value = 'Email not found in our system'
+            apiError.value = t('forgotPassword.errors.emailNotFound')
         } else if (error.response?.status === 422) {
-            apiError.value = 'Please enter a valid email address'
+            apiError.value = t('forgotPassword.validation.emailInvalid')
         } else {
-            apiError.value = error.message || 'Failed to send reset link. Please try again.'
+            apiError.value = error.message || t('forgotPassword.errors.sendFailed')
         }
     } finally {
         submitting.value = false

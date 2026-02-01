@@ -197,7 +197,6 @@ const { currencyFields } = useCurrencyFormFields(isEditMode, selectedCurrency);
 onMounted(async () => {
   try {
     await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
-    console.log("✅ Currencies loaded successfully");
   } catch (error) {
     if (applyServerErrors(error)) {
       return;
@@ -209,14 +208,14 @@ onMounted(async () => {
 
 // Table columns
 const currencyColumns = computed(() => [
-  { key: "id", label: t("currency.table.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "name", label: t("currency.table.name"), sortable: true },
   { key: "symbol", label: t("currency.table.symbol"), sortable: true },
   { key: "key", label: t("currency.table.key"), sortable: true },
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("currency.table.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "name", label: t("currency.table.name") },
   { key: "symbol", label: t("currency.table.symbol") },
   { key: "key", label: t("currency.table.key") },
@@ -431,12 +430,10 @@ const handleSubmitCurrency = async (currencyData) => {
       }
 
       if (Object.keys(updateData).length === 0) {
-        console.log('⚠️ Component: No changes detected');
         closeFormModal();
         return;
       }
 
-      console.log('📤 Component: Sending update data:', updateData);
 
       await currenciesStore.updateCurrency(selectedCurrency.value.id, updateData);
       console.log("✅ Component: Currency updated successfully!");
@@ -460,7 +457,6 @@ const handleSubmitCurrency = async (currencyData) => {
         symbol: currencyData.symbol,
       };
 
-      console.log('📤 Component: Sending new currency data:', newCurrency);
 
       await currenciesStore.addCurrency(newCurrency);
       console.log("✅ Component: Currency added successfully!");

@@ -390,19 +390,16 @@ const getOrderOptionsForField = (field) => {
     // Check if it's a Vue ref/computed (has value property)
     if (typeof field.orderOptions === 'object' && 'value' in field.orderOptions) {
       const options = unref(field.orderOptions);
-      console.log("📋 Order options from computed:", options);
       return Array.isArray(options) ? options : [];
     }
-    
+
     // If it's already an array, return it
     if (Array.isArray(field.orderOptions)) {
-      console.log("📋 Order options from array:", field.orderOptions);
       return field.orderOptions;
     }
   }
-  
+
   // Otherwise, return empty array
-  console.log("⚠️ No order options found for field:", field.name);
   return [];
 };
 
@@ -593,8 +590,6 @@ const initializeForm = () => {
           order: row?.order || "",
           items: Array.isArray(row?.items) ? [...row.items] : [] // ✅ نسخ الـ items
         }));
-        
-        console.log("🔄 Initialized orderRows:", formData[field.name]);
       } else if (field.type === "branchRows") {
         const defaultRows =
           Array.isArray(field.defaultValue) && field.defaultValue.length
@@ -611,9 +606,6 @@ const initializeForm = () => {
       errors[field.name] = "";
     }
   });
-  
-  // ✅ لوج لشوف شو صار
-  console.log("📋 Form data after initialization:", formData);
 
   if (!imageFile.value) {
     imagePreview.value = props.initialImage || null;

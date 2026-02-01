@@ -70,6 +70,8 @@ export const useOrdersStore = defineStore("orders", () => {
     lineprice_id: order.line_price?.id || null,
     lineprice_name: order.line_price?.name || "",
     lineprice_price: order.line_price?.price || "",
+    company_item_price_id:
+      order.company_item_price_id || order.company_item_price?.id || null,
     discount: order.discount,
     created_by: order.created_by,
     created_at: order.created_at,
@@ -114,6 +116,8 @@ export const useOrdersStore = defineStore("orders", () => {
       from_company_id: orderData.from_company_id,
       to_id: orderData.to_id,
       price: orderData.price,
+      total_price: orderData.total_price,
+      delivery_price: orderData.delivery_price,
       currency_id: orderData.currency_id,
       lineprice_id: orderData.lineprice_id,
       discount_id: orderData.discount_id ?? null,
@@ -134,6 +138,8 @@ export const useOrdersStore = defineStore("orders", () => {
       from_company_id: orderData.from_company_id,
       customer_id: orderData.customer_id,
       price: orderData.price,
+      total_price: orderData.total_price,
+      delivery_price: orderData.delivery_price,
       currency_id: orderData.currency_id,
       lineprice_id: orderData.lineprice_id,
       discount_id: orderData.discount_id,
@@ -220,9 +226,6 @@ export const useOrdersStore = defineStore("orders", () => {
       const response = await fetcher({ page, perPage });
       targetRef.value = mapOrders(response.data.data);
       applyPagination(paginationRef, response.data.meta);
-      console.log(
-        `[OK] Successfully loaded ${targetRef.value.length} ${logLabel} (page ${page} of ${paginationRef.value.lastPage})`
-      );
       return response.data;
     } catch (err) {
       handleError(err, errorLabel, `Error fetching ${logLabel}`);
@@ -255,7 +258,6 @@ export const useOrdersStore = defineStore("orders", () => {
       const responseData = requireOrderData(response);
       const transformedOrder = transformOrder(responseData);
 
-      console.log(`[OK] Successfully loaded order ${orderId}`);
       return transformedOrder;
     } catch (err) {
       handleError(err, "Failed to fetch order", "Error fetching order");
@@ -269,14 +271,9 @@ export const useOrdersStore = defineStore("orders", () => {
     loading.value = true;
     error.value = null;
     try {
-      console.log("[orders] addOrder input", JSON.stringify(orderData, null, 2));
       const apiData = buildCreatePayload(orderData);
 
-      console.log("[orders] addOrder payload", JSON.stringify(apiData, null, 2));
-
       const response = await apiServices.createOrder(apiData);
-
-      console.log("[OK] API Response:", response.data);
 
       const responseData = requireOrderData(response);
       if (responseData.id === undefined || responseData.id === null) {
@@ -286,7 +283,6 @@ export const useOrdersStore = defineStore("orders", () => {
       const newOrder = transformOrder(responseData);
 
       orders.value.push(newOrder);
-      console.log("[OK] Order added successfully to store");
       return newOrder;
     } catch (err) {
       handleError(err, "Failed to add order", "Error adding order", true);
@@ -307,7 +303,6 @@ export const useOrdersStore = defineStore("orders", () => {
         parentOrderId,
         exchangeData
       );
-      console.log("[OK] Exchange order created");
       return response.data;
     } catch (err) {
       handleError(err, "Failed to create exchange order", "Error creating exchange order", true);
@@ -323,16 +318,11 @@ export const useOrdersStore = defineStore("orders", () => {
     try {
       const apiData = buildUpdatePayload(orderData);
 
-      console.log("[SEND] Updating order:", apiData);
-
       const response = await apiServices.updateOrder(orderId, apiData);
-
-      console.log("[OK] API Response:", response.data);
 
       const responseOrder = requireOrderData(response);
       const updatedOrder = transformOrder(responseOrder);
       replaceOrderById(orders, updatedOrder);
-      console.log("[OK] Order updated successfully");
       return orders.value.find((order) => order.id === orderId);
     } catch (err) {
       handleError(err, "Failed to update order", "Error updating order");
@@ -353,7 +343,6 @@ export const useOrdersStore = defineStore("orders", () => {
       } else {
         moveOrdersByIds(orders, trashedOrders, [orderId]);
       }
-      console.log("[OK] Order deleted successfully");
     } catch (err) {
       handleError(err, "Failed to delete order", "Error deleting order");
       throw err;
@@ -382,7 +371,6 @@ export const useOrdersStore = defineStore("orders", () => {
       await apiServices.restoreOrder(orderId);
 
       moveOrdersByIds(trashedOrders, orders, [orderId]);
-      console.log("[OK] Order restored successfully");
     } catch (err) {
       handleError(err, "Failed to restore order", "Error restoring order");
       throw err;
@@ -402,8 +390,6 @@ export const useOrdersStore = defineStore("orders", () => {
       } else {
         moveOrdersByIds(orders, trashedOrders, orderIds);
       }
-
-      console.log(`[OK] Successfully bulk deleted ${orderIds.length} orders`);
     } catch (err) {
       handleError(err, "Failed to bulk delete orders", "Error bulk deleting orders");
       throw err;
@@ -419,8 +405,6 @@ export const useOrdersStore = defineStore("orders", () => {
       await apiServices.bulkRestoreOrders(orderIds);
 
       moveOrdersByIds(trashedOrders, orders, orderIds);
-
-      console.log(`[OK] Successfully bulk restored ${orderIds.length} orders`);
     } catch (err) {
       handleError(err, "Failed to bulk restore orders", "Error bulk restoring orders");
       throw err;
@@ -444,7 +428,6 @@ export const useOrdersStore = defineStore("orders", () => {
         year: response.data.year || { orders: 0 },
       };
 
-      console.log("[OK] Successfully loaded order statistics");
       return response.data;
     } catch (err) {
       handleError(err, "Failed to fetch order statistics", "Error fetching order statistics");

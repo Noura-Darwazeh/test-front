@@ -218,7 +218,7 @@ const trashedCompanyPricesWithLocalizedData = computed(() => {
 
 // Table columns
 const companyPriceColumns = computed(() => [
-  { key: "id", label: t("companyPrice.table.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   {
     key: "company_name",
     label: t("companyPrice.table.company"),
@@ -242,7 +242,7 @@ const companyPriceColumns = computed(() => [
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("companyPrice.table.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "company_name", label: t("companyPrice.table.company") },
   { key: "itemTypeDisplay", label: t("companyPrice.table.itemType") },
   {

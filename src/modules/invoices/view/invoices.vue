@@ -102,7 +102,7 @@ const invoices = computed(() => invoicesStore.invoices);
 const isRTL = computed(() => locale.value === "ar");
 
 const invoiceColumns = computed(() => [
-  { key: "id", label: t("invoice.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "invoice_code", label: t("invoice.invoiceCode"), sortable: true },
   { key: "delivery_company_name", label: t("invoice.deliveryCompany"), sortable: false },
   { key: "client_company_name", label: t("invoice.clientCompany"), sortable: false },
@@ -118,7 +118,7 @@ const invoiceColumns = computed(() => [
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("invoice.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "invoice_code", label: t("invoice.invoiceCode") },
   { key: "delivery_company_name", label: t("invoice.deliveryCompany") },
   { key: "client_company_name", label: t("invoice.clientCompany") },
@@ -266,7 +266,6 @@ const closeTrashedModal = () => {
 const handleRestore = async (invoice) => {
   try {
     await invoicesStore.restoreInvoice(invoice.id);
-    console.log("✅ Invoice restored successfully!");
     await invoicesStore.fetchTrashedInvoices();
     await invoicesStore.fetchInvoices();
   } catch (error) {
@@ -280,7 +279,6 @@ const handlePermanentDelete = async (invoice) => {
 
   try {
     await invoicesStore.deleteInvoice(invoice.id, true);
-    console.log("✅ Invoice permanently deleted!");
     await invoicesStore.fetchTrashedInvoices();
   } catch (error) {
     console.error("❌ Failed to permanently delete invoice:", error);
@@ -316,7 +314,6 @@ const markInvoicesAsPaid = async () => {
     });
 
     if (response.data?.success) {
-      console.log("✅ Invoices marked as paid successfully!");
       await invoicesStore.fetchInvoices();
       selectedRows.value = [];
       alert(response.data.message || t('invoice.markedAsPaidSuccess'));
@@ -349,7 +346,6 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
   try {
     if (actionId === 'restore') {
       await invoicesStore.bulkRestoreInvoices(selectedIds);
-      console.log("✅ Bulk restore successful!");
     } else if (actionId === 'forceDelete') {
       if (!confirm(t('common.bulkPermanentDeleteConfirm', {
         count: selectedIds.length,
@@ -359,7 +355,6 @@ const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
         return;
       }
       await invoicesStore.bulkDeleteInvoices(selectedIds, true);
-      console.log("✅ Bulk permanent delete successful!");
     }
 
     await invoicesStore.fetchTrashedInvoices();
@@ -376,7 +371,6 @@ const exportInvoicePDF = async (invoice) => {
   exportingInvoiceId.value = invoice.id;
 
   try {
-    console.log("📥 Fetching invoice data...");
     const response = await apiServices.getEntityById('invoices', invoice.id);
     
     const fullInvoice = response.data.data;
@@ -388,13 +382,11 @@ const exportInvoicePDF = async (invoice) => {
     let deliveryLogoBase64 = null;
     if (deliveryLogo && deliveryLogo.trim() !== '' && deliveryLogo !== 'data:image/jpg;base64,') {
       deliveryLogoBase64 = deliveryLogo;
-      console.log("✅ Delivery logo loaded");
     }
 
     let clientLogoBase64 = null;
     if (clientLogo && clientLogo.trim() !== '' && clientLogo !== 'data:image/jpg;base64,') {
       clientLogoBase64 = clientLogo;
-      console.log("✅ Client logo loaded");
     }
 
     const companyName = fullInvoice.delivery_company?.name || 'INVOICE';
@@ -520,9 +512,7 @@ const exportInvoicePDF = async (invoice) => {
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
-    console.log("📄 Generating PDF...");
     await html2pdf().set(options).from(element).save();
-    console.log(`✅ PDF exported successfully`);
 
   } catch (error) {
     console.error("❌ Error exporting PDF:", error);

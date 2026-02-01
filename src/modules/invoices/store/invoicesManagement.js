@@ -19,7 +19,6 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
     });
 
     const normalizeInvoice = (invoice) => {
-        console.log("🔍 Raw invoice:", JSON.stringify(invoice, null, 2));
 
         const deliveryCompany = invoice.delivery_company;
         const clientCompany = invoice.client_company;
@@ -43,7 +42,6 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
             updated_at: invoice.updated_at,
         };
 
-        console.log("✅ Normalized invoice:", JSON.stringify(normalized, null, 2));
         return normalized;
     };
 
@@ -75,8 +73,6 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
                 };
             }
 
-            console.log("✅ Normalized Invoices:", invoices.value);
-            console.log("📄 Pagination:", invoicesPagination.value);
             return response.data;
         } catch (err) {
             error.value = err.message || "Failed to fetch invoices";

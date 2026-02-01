@@ -79,7 +79,6 @@ const emit = defineEmits([
 ]);
 
 const handleAddClick = () => {
-  console.log('Add button clicked in TableHeader');
   emit('add-click');
 };
 
@@ -88,7 +87,6 @@ const handleRefreshClick = () => {
 };
 
 const handleTrashedClick = () => {
-  console.log('Trashed button clicked in TableHeader');
   emit('trashed-click');
 };
 </script>

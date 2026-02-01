@@ -307,8 +307,6 @@ class ApiServices {
 
   async updateCurrency(currencyId, currencyData) {
     try {
-      console.log('🔄 Updating currency:', currencyId, currencyData);
-
       return this.patch(`/currencies/${currencyId}`, currencyData, {
         headers: {
           'Content-Type': 'application/json',
@@ -884,9 +882,6 @@ async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
   }
 
   async updateWorkPlan(workPlanId, workPlanData) {
-    console.log("🔄 API updateWorkPlan called for ID:", workPlanId);
-    console.log("📤 API payload:", workPlanData);
-
     const cleanData = Object.entries(workPlanData).reduce(
       (acc, [key, value]) => {
         if (value !== null && value !== undefined && value !== "") {
@@ -896,8 +891,6 @@ async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
       },
       {},
     );
-
-    console.log("🧹 Cleaned data:", cleanData);
 
     return this.patch(`/work_plans/${workPlanId}`, cleanData, {
       headers: {
@@ -937,12 +930,6 @@ async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
 
   async updatePayment(paymentId, paymentData) {
     try {
-      console.log(
-        "🔄 Updating payment with POST override:",
-        paymentId,
-        paymentData,
-      );
-
       return this.post(`/payments/${paymentId}`, paymentData, {
         headers: {
           "X-HTTP-Method-Override": "PATCH",
@@ -1049,8 +1036,6 @@ async getTrashedCollections({ page = 1, perPage = 10 } = {}) {
 
 async updateCollection(collectionId, collectionData) {
   try {
-    console.log("🔄 Updating collection:", collectionId, collectionData);
-
     return this.post(`/collections/${collectionId}`, collectionData, {
       headers: {
         "X-HTTP-Method-Override": "PATCH",

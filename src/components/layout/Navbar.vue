@@ -183,7 +183,6 @@ const switchLanguage = async (lang) => {
 
     // Update user language in backend
     await authStore.updateUserLanguage(backendLang);
-    console.log(`✅ Language switched to ${lang}`);
   } catch (error) {
     console.error("❌ Failed to update language preference:", error);
     // Language is still changed in UI even if API fails
@@ -197,7 +196,6 @@ const handleProfile = (close) => {
 
 const handleSettings = (close) => {
   close();
-  console.log("Navigate to settings");
   // router.push({ name: "Settings" });
 };
 
@@ -215,11 +213,9 @@ const returnToAdmin = async () => {
     const success = await authStore.returnToAdmin();
     
     if (success) {
-      console.log("✅ Returned to admin account");
-      
       const defaultPage = authStore.user?.default_page || authStore.user?.landing_page || '/user';
       await router.push(defaultPage);
-      
+
       window.location.reload();
     } else {
       console.error("❌ Failed to return to admin");

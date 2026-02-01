@@ -129,7 +129,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
         };
       }
 
-      console.log("✅ Branches loaded successfully:", branches.value.length);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch branches";
@@ -144,15 +143,11 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     loading.value = true;
     error.value = null;
     try {
-      console.log("📤 Sending branch data to API:", branchData);
       const response = await apiServices.createBranch(branchData);
-
-      console.log("📥 API Response:", response.data);
 
       // Enrich new branch with company_name and flatten location
       const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
       branches.value.push(enrichedBranch);
-      console.log("✅ Branch added successfully");
       return enrichedBranch;
     } catch (err) {
       error.value = err.message || "Failed to add branch";
@@ -174,10 +169,7 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     loading.value = true;
     error.value = null;
     try {
-      console.log("📤 Updating branch with data:", branchData);
       const response = await apiServices.updateBranch(branchId, branchData);
-
-      console.log("📥 Update Response:", response.data);
 
       // Enrich updated branch with company_name and flatten location
       const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
@@ -185,7 +177,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
       if (index > -1) {
         branches.value[index] = enrichedBranch;
       }
-      console.log("✅ Branch updated successfully");
       return enrichedBranch;
     } catch (err) {
       error.value = err.message || "Failed to update branch";
@@ -221,7 +212,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
           trashedBranches.value.push(branch);
         }
       }
-      console.log("?o. Branch deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete branch";
       console.error("??O Error deleting branch:", err);
@@ -256,7 +246,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
         };
       }
 
-      console.log(`✅ Successfully loaded ${trashedBranches.value.length} trashed branches`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed branches";
@@ -284,7 +273,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
         const enrichedBranch = (await enrichBranchesWithCompanyName([response.data.data]))[0];
         branches.value.push(enrichedBranch);
       }
-      console.log("✅ Branch restored successfully");
     } catch (err) {
       error.value = err.message || "Failed to restore branch";
       console.error("❌ Error restoring branch:", err);
@@ -316,7 +304,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
         trashedBranches.value.push(...deletedBranches);
       }
 
-      console.log(`✅ Successfully bulk deleted ${branchIds.length} branches`);
     } catch (err) {
       error.value = err.message || "Failed to bulk delete branches";
       console.error("❌ Error bulk deleting branches:", err);
@@ -341,7 +328,6 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
       );
       branches.value.push(...restoredBranches);
 
-      console.log(`✅ Successfully bulk restored ${branchIds.length} branches`);
     } catch (err) {
       error.value = err.message || "Failed to bulk restore branches";
       console.error("❌ Error bulk restoring branches:", err);

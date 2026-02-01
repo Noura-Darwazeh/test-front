@@ -24,17 +24,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log(
-      `🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`,
-      {
-        params: config.params,
-        data: config.data,
-        headers: {
-          Authorization: token ? "Bearer ***" : "None",
-        },
-      }
-    );
-
     return config;
   },
   (error) => {
@@ -46,15 +35,6 @@ api.interceptors.request.use(
 // ---- Response Interceptor ----
 api.interceptors.response.use(
   (response) => {
-    console.log(
-      `✅ API Response: ${response.config.method?.toUpperCase()} ${
-        response.config.url
-      }`,
-      {
-        status: response.status,
-        data: response.data,
-      }
-    );
     if (response.data?.status === "failed") {
       const error = new Error(response.data.message || "API request failed");
       error.response = response;
@@ -66,7 +46,6 @@ api.interceptors.response.use(
   (error) => {
     // Handle different types of errors
     if (error.name === "AbortError" || error.code === "ERR_CANCELED") {
-      console.log("🚫 Request Cancelled");
       return Promise.reject(error);
     }
 

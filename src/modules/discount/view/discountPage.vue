@@ -280,7 +280,7 @@ watch(currentPage, async (newPage) => {
 
 // Table columns
 const discountColumns = computed(() => [
-  { key: "id", label: t("discount.table.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "type", label: t("discount.table.type"), sortable: true },
   {
     key: "discount_percentage",
@@ -307,7 +307,7 @@ const discountColumns = computed(() => [
 ]);
 
 const trashedColumns = computed(() => [
-  { key: "id", label: t("discount.table.id") },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "type", label: t("discount.table.type") },
   {
     key: "discount_percentage",
@@ -497,13 +497,18 @@ const handleAddDiscount = async (discountData) => {
       ? parseInt(discountData.company_id, 10)
       : null;
 
+  const rawValue =
+    discountData.type === "Price"
+      ? discountData.value
+      : discountData.target_id ?? discountData.value;
+
   const payload = {
     type: discountData.type,
     discount_percentage: parseFloat(discountData.discount_percentage),
     start_date: formatDateTime(discountData.start_date),
     end_date: formatDateTime(discountData.end_date),
     company_id: resolvedCompanyId,
-    value: normalizeValue(discountData.value, discountData.type),
+    value: normalizeValue(rawValue, discountData.type),
   };
 
   try {
@@ -617,12 +622,22 @@ const closeDetailsModal = () => {
 
 // Update form fields to support edit mode
 const discountFieldsWithDefaults = computed(() => {
-  return discountFields.value.map(field => ({
-    ...field,
-    defaultValue: isEditMode.value
-      ? selectedDiscount.value[field.name]
-      : (field.defaultValue ?? '')
-  }));
+  return discountFields.value.map((field) => {
+    let defaultValue = field.defaultValue ?? "";
+    if (isEditMode.value) {
+      if (field.name === "target_id") {
+        defaultValue = selectedDiscount.value.value;
+      } else if (field.name === "value") {
+        defaultValue = selectedDiscount.value.value;
+      } else {
+        defaultValue = selectedDiscount.value[field.name];
+      }
+    }
+    return {
+      ...field,
+      defaultValue,
+    };
+  });
 });
 
 // Details fields configuration

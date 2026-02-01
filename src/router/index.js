@@ -354,7 +354,6 @@ router.beforeEach((to, from, next) => {
 
   // Check if route requires authentication
   if (to.meta.requireAuth && !isAuthenticated) {
-    console.log("🔒 Route requires authentication, redirecting to login");
     return next({
       name: "Login",
       query: { redirect: to.fullPath },
@@ -363,7 +362,6 @@ router.beforeEach((to, from, next) => {
 
   // Check if route requires guest (logged out) access
   if (to.meta.requiresGuest && isAuthenticated) {
-    console.log("✅ Already authenticated, redirecting to default page");
     // Redirect to user's default page
     const defaultPage =
       authStore.user?.default_page || authStore.user?.landing_page || "/user";
@@ -373,15 +371,11 @@ router.beforeEach((to, from, next) => {
   // Check role-based access
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!authStore.hasAnyRole(to.meta.roles)) {
-      console.log("❌ Insufficient permissions for this route");
       const defaultPage =
         authStore.user?.default_page || authStore.user?.landing_page;
 
       // Prevent infinite redirect if default page is the restricted page
       if (defaultPage === to.path) {
-        console.warn(
-          "⚠️ Default page has role restrictions, redirecting to /driver",
-        );
         return next("/driver");
       }
 

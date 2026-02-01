@@ -5,10 +5,10 @@
             <div v-if="isValidatingToken" class="col-12 d-flex align-items-center justify-content-center" style="min-height:600px; padding: 48px 40px;">
                 <div class="text-center">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
                     </div>
-                    <h5 class="mb-2">Validating reset link...</h5>
-                    <p class="text-muted">Please wait while we verify your reset token.</p>
+                    <h5 class="mb-2">{{ $t('resetPassword.validating') }}</h5>
+                    <p class="text-muted">{{ $t('resetPassword.validatingMessage') }}</p>
                 </div>
             </div>
 
@@ -19,21 +19,21 @@
                         style="width:64px;height:64px;background:#dc3545;color:#fff">
                         <i class="fas fa-exclamation-triangle" style="font-size: 28px;"></i>
                     </div>
-                    <h3 class="mb-3 text-danger">Invalid Reset Link</h3>
+                    <h3 class="mb-3 text-danger">{{ $t('resetPassword.invalidTitle') }}</h3>
                     <div class="alert alert-danger" role="alert">
                         <i class="fas fa-exclamation-circle me-2"></i>
                         {{ apiError }}
                     </div>
                     <p class="text-muted mb-4">
-                        Reset links expire after 60 minutes for security reasons.
+                        {{ $t('resetPassword.expirationMessage') }}
                     </p>
-                    <PrimaryButton 
-                        text="Request New Reset Link" 
+                    <PrimaryButton
+                        :text="$t('resetPassword.requestNewLink')"
                         @click="router.push('/forgot-password')"
                         bg-color="var(--primary-color)"
                     />
                     <div class="mt-3">
-                        <small class="text-muted">Redirecting in 5 seconds...</small>
+                        <small class="text-muted">{{ $t('resetPassword.redirectingIn5') }}</small>
                     </div>
                 </div>
             </div>
@@ -48,38 +48,38 @@
                                 style="width:64px;height:64px;background:var(--primary-color);color:#fff">
                                 <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
                             </div>
-                            <h3 class="mb-0">Reset Your Password</h3>
-                            <p class="text-muted">Enter your new password to regain access to your account.</p>
+                            <h3 class="mb-0">{{ $t('resetPassword.title') }}</h3>
+                            <p class="text-muted">{{ $t('resetPassword.subtitle') }}</p>
                         </div>
 
                         <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
                             <!-- New Password Field -->
                             <div class="mb-3">
-                                <FormLabel label="New Password" for-id="password" :required="true" />
-                                <TextField 
-                                    id="password" 
-                                    v-model="form.password" 
-                                    type="password" 
-                                    placeholder="••••••••"
-                                    :minlength="6" 
-                                    :required="true" 
+                                <FormLabel :label="$t('resetPassword.newPasswordLabel')" for-id="password" :required="true" />
+                                <TextField
+                                    id="password"
+                                    v-model="form.password"
+                                    type="password"
+                                    :placeholder="$t('resetPassword.passwordPlaceholder')"
+                                    :minlength="6"
+                                    :required="true"
                                 />
                                 <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
                                 <small v-else class="text-muted d-block mt-1">
-                                    Password must be at least 6 characters
+                                    {{ $t('resetPassword.validation.passwordMin') }}
                                 </small>
                             </div>
 
                             <!-- Confirm Password Field -->
                             <div class="mb-3">
-                                <FormLabel label="Confirm Password" for-id="password_confirmation" :required="true" />
-                                <TextField 
-                                    id="password_confirmation" 
-                                    v-model="form.password_confirmation" 
-                                    type="password" 
-                                    placeholder="••••••••"
-                                    :minlength="6" 
-                                    :required="true" 
+                                <FormLabel :label="$t('resetPassword.confirmPasswordLabel')" for-id="password_confirmation" :required="true" />
+                                <TextField
+                                    id="password_confirmation"
+                                    v-model="form.password_confirmation"
+                                    type="password"
+                                    :placeholder="$t('resetPassword.passwordPlaceholder')"
+                                    :minlength="6"
+                                    :required="true"
                                 />
                                 <small v-if="errors.password_confirmation" class="text-danger">
                                     {{ errors.password_confirmation }}
@@ -94,12 +94,12 @@
 
                             <!-- Submit Button -->
                             <div class="mb-3">
-                                <PrimaryButton 
-                                    text="Reset Password" 
-                                    loading-text="Resetting..." 
+                                <PrimaryButton
+                                    :text="$t('resetPassword.resetButton')"
+                                    :loading-text="$t('resetPassword.resetting')"
                                     :loading="submitting"
                                     :disabled="!isFormValid"
-                                    type="submit" 
+                                    type="submit"
                                 />
                             </div>
 
@@ -108,14 +108,14 @@
                                 <i class="fas fa-check-circle me-2"></i>
                                 {{ successMessage }}
                                 <br>
-                                <small>Redirecting to login...</small>
+                                <small>{{ $t('resetPassword.redirectingToLogin') }}</small>
                             </div>
 
                             <!-- Back to login -->
                             <div class="mt-3 text-center">
                                 <router-link to="/login" class="text-decoration-none"
                                     style="color:var(--primary-color);font-size:14px">
-                                    Back to Sign In
+                                    {{ $t('resetPassword.backToLogin') }}
                                 </router-link>
                             </div>
                         </form>
@@ -126,8 +126,8 @@
                 <div class="col-12 col-lg-6 d-none d-lg-flex align-items-center justify-content-center"
                     style="background: var(--primary-color); color: #fff; min-height:600px; padding: 40px;">
                     <div class="text-center">
-                        <h2 class="mb-3">Secure Password Reset</h2>
-                        <p class="mb-0">Create a strong password to protect your account.</p>
+                        <h2 class="mb-3">{{ $t('resetPassword.secureResetTitle') }}</h2>
+                        <p class="mb-0">{{ $t('resetPassword.secureResetSubtitle') }}</p>
                     </div>
                 </div>
             </template>
@@ -138,6 +138,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import FormLabel from '../../../components/shared/FormLabel.vue'
 import TextField from '../../../components/shared/TextField.vue'
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
@@ -147,6 +148,7 @@ import { getItem, removeItem } from '@/utils/shared/storageUtils.js'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const form = reactive({
     password: '',
@@ -161,7 +163,7 @@ const errors = reactive({
 const submitting = ref(false)
 const success = ref(false)
 const apiError = ref('')
-const successMessage = ref('Password reset successfully!')
+const successMessage = ref(t('resetPassword.successMessage'))
 const isValidatingToken = ref(true)
 const isTokenValid = ref(false)
 
@@ -177,8 +179,6 @@ async function validateResetToken() {
         isValidatingToken.value = true
         apiError.value = ''
 
-        console.log('🔍 Validating reset token...')
-
         const response = await api.get('/password/reset/validate', {
             params: {
                 token: token.value,
@@ -187,7 +187,6 @@ async function validateResetToken() {
         })
 
         if (response.data.success === true) {
-            console.log('✅ Token is valid')
             isTokenValid.value = true
         } else {
             throw new Error(response.data.message || 'Invalid token')
@@ -201,9 +200,9 @@ async function validateResetToken() {
         if (err.response?.data?.message) {
             apiError.value = err.response.data.message
         } else if (err.response?.status === 400 || err.response?.status === 404) {
-            apiError.value = 'Invalid or expired reset link. The link may have expired after 60 minutes.'
+            apiError.value = t('resetPassword.errors.expiredLink')
         } else {
-            apiError.value = err.message || 'Invalid or expired reset link. Please request a new password reset.'
+            apiError.value = err.message || t('resetPassword.errors.invalidLink')
         }
 
         // Redirect to forgot password after 5 seconds
@@ -223,7 +222,7 @@ onMounted(async () => {
     // Validate that we have both token and email
     if (!token.value || !email.value) {
         console.error('❌ Missing token or email')
-        apiError.value = 'Invalid reset link. Please request a new password reset.'
+        apiError.value = t('resetPassword.errors.missingToken')
         isValidatingToken.value = false
         isTokenValid.value = false
         
@@ -232,8 +231,6 @@ onMounted(async () => {
             router.push('/forgot-password')
         }, 3000)
     } else {
-        console.log('✅ Token and email loaded:', { email: email.value, hasToken: !!token.value })
-        
         // Validate the token with the API
         await validateResetToken()
     }
@@ -253,13 +250,13 @@ const validatePasswords = () => {
     errors.password_confirmation = ''
 
     if (form.password.length > 0 && form.password.length < 6) {
-        errors.password = 'Password must be at least 6 characters'
+        errors.password = t('resetPassword.validation.passwordMin')
         return false
     }
 
-    if (form.password_confirmation.length > 0 && 
+    if (form.password_confirmation.length > 0 &&
         form.password !== form.password_confirmation) {
-        errors.password_confirmation = 'Passwords do not match'
+        errors.password_confirmation = t('resetPassword.validation.passwordsNotMatch')
         return false
     }
 
@@ -274,23 +271,23 @@ async function onSubmit() {
 
     // Validate form
     if (!form.password || form.password.length < 6) {
-        errors.password = 'Password must be at least 6 characters'
+        errors.password = t('resetPassword.validation.passwordMin')
         return
     }
 
     if (!form.password_confirmation) {
-        errors.password_confirmation = 'Please confirm your password'
+        errors.password_confirmation = t('resetPassword.validation.confirmRequired')
         return
     }
 
     if (form.password !== form.password_confirmation) {
-        errors.password_confirmation = 'Passwords do not match'
+        errors.password_confirmation = t('resetPassword.validation.passwordsNotMatch')
         return
     }
 
     // Check if we have token and email
     if (!token.value || !email.value) {
-        apiError.value = 'Invalid reset link. Please request a new password reset.'
+        apiError.value = t('resetPassword.errors.missingToken')
         return
     }
 
@@ -310,36 +307,33 @@ async function onSubmit() {
             }
         })
 
-        console.log('✅ Reset password API response:', response.data)
-
         // Check if successful
         if (response.data.success === true) {
             // Update success message with API response
-            successMessage.value = response.data.message || 'Password reset successfully!'
-            
+            successMessage.value = response.data.message || t('resetPassword.successMessage')
+
             // Show success message
             success.value = true
 
             // Clear reset data from localStorage
             removeItem('reset_token')
             removeItem('reset_email')
-            console.log('🗑️ Reset data cleared from localStorage')
 
             // Redirect to login after 3 seconds
             setTimeout(() => {
                 router.push('/login')
             }, 3000)
         } else {
-            throw new Error(response.data.message || 'Failed to reset password')
+            throw new Error(response.data.message || t('resetPassword.errors.resetFailed'))
         }
     } catch (error) {
         console.error('❌ Reset password error:', error)
-        
+
         // Handle different error scenarios
         if (error.response?.data?.message) {
             apiError.value = error.response.data.message
         } else if (error.response?.status === 400) {
-            apiError.value = 'Invalid or expired reset link. Please request a new one.'
+            apiError.value = t('resetPassword.errors.invalidLink')
         } else if (error.response?.status === 422) {
             // Validation errors
             const validationErrors = error.response.data.errors
@@ -351,9 +345,9 @@ async function onSubmit() {
                     errors.password_confirmation = validationErrors.password_confirmation[0]
                 }
             }
-            apiError.value = 'Please check your input and try again.'
+            apiError.value = t('resetPassword.errors.validationFailed')
         } else {
-            apiError.value = error.message || 'Failed to reset password. Please try again.'
+            apiError.value = error.message || t('resetPassword.errors.resetFailed')
         }
     } finally {
         submitting.value = false

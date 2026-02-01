@@ -294,7 +294,6 @@ onMounted(async () => {
             fetchDriversPage(1),
             fetchBranches(),
         ]);
-        console.log("✅ Drivers loaded successfully");
     } catch (error) {
         console.error("❌ Failed to load drivers:", error);
     }
@@ -468,7 +467,7 @@ const detailsFields = computed(() => [
 ]);
 
 const driverColumns = ref([
-    { key: "id", label: t("driver.id"), sortable: true },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("driver.name"), sortable: true },
     { key: "username", label: t("driver.username"), sortable: true },
     {
@@ -485,7 +484,7 @@ const driverColumns = ref([
 ]);
 
 const trashedColumns = computed(() => [
-    { key: "id", label: t("driver.id") },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("driver.name") },
     { key: "username", label: t("driver.username") },
     { key: "status", label: t("driver.status") },
@@ -868,7 +867,6 @@ const closeReassignModal = () => {
 const handlePermanentDeleteDriver = async (driver) => {
     try {
         await driverStore.deleteDriver(driver.id, true);
-        console.log("Driver permanently deleted successfully!");
         showSuccess(t('driver.permanentDeleteSuccess')); 
     } catch (error) {
         console.error("Failed to permanently delete driver:", error);

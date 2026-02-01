@@ -169,7 +169,6 @@ const fetchDrivers = async () => {
       label: driver.name || driver.user?.name || `Driver #${driver.id}`
     }));
 
-    console.log('✅ Drivers loaded:', drivers.value);
   } catch (error) {
     if (applyServerErrors(error)) {
       return;
@@ -194,7 +193,7 @@ onMounted(async () => {
 const collections = computed(() => collectionsStore.collections);
 
 const collectionColumns = computed(() => [
-  { key: "id", label: t("collection.id"), sortable: true },
+  { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "invoice_code", label: t("collection.invoiceCode"), sortable: false },
   { key: "driver_name", label: t("collection.driverName"), sortable: false },
   { key: "note", label: t("collection.note"), sortable: false },
@@ -366,15 +365,12 @@ const handleSubmitCollection = async (collectionData) => {
       data.note = collectionData.note;
     }
 
-    console.log("📤 Sending update request:", data);
 
     const response = await apiServices.markCollectionsAsPaid(data);
 
-    console.log("✅ Response:", response.data);
 
     await collectionsStore.fetchCollections();
 
-    console.log("✅ Collection updated successfully!");
     closeModal();
   } catch (error) {
     console.error("❌ Failed to update collection:", error);
@@ -407,14 +403,11 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
 
     if (paymentMethodData.paid_by_driver_id) {
       collectionData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
-      console.log('✅ Driver ID being sent:', collectionData.paid_by_driver_id);
     }
 
-    console.log("📤 Sending collection data:", collectionData);
 
     await apiServices.markCollectionsAsPaid(collectionData);
 
-    console.log("✅ Collections marked as paid successfully!");
 
     await collectionsStore.fetchCollections();
 
@@ -436,11 +429,9 @@ const closeInvoiceConfirm = () => {
 const confirmCreateInvoice = async () => {
   bulkActionLoading.value = true;
   try {
-    console.log("📤 Creating invoice for collections:", selectedRows.value);
 
     const response = await apiServices.createInvoiceFromCollections(selectedRows.value);
 
-    console.log("✅ Invoice created successfully:", response.data);
 
     // ✅ نحدّث الـ collections
     await collectionsStore.fetchCollections();

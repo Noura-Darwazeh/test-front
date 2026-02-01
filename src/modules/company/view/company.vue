@@ -338,7 +338,7 @@ const detailsFields = computed(() => [
 ]);
 
 const companyColumns = ref([
-    { key: "id", label: t("company.id"), sortable: true },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("company.name"), sortable: true },
     { key: "type", label: t("company.type"), sortable: false },
 ]);
@@ -575,10 +575,8 @@ const handleSubmitcompany = async (companyData) => {
 
         if (isEditMode.value) {
             await companyStore.updateCompany(selectedcompany.value.id, payload);
-            console.log('✅ Company updated successfully!');
         } else {
             await companyStore.addCompany(payload);
-            console.log('✅ Company added successfully with branches!');
         }
         closeFormModal();
     } catch (error) {
@@ -609,7 +607,6 @@ const executeDelete = async () => {
 
     try {
         await companyStore.deleteCompany(pendingDeleteCompany.value.id, isForceDelete.value);
-        console.log(`✅ Company ${isForceDelete.value ? 'permanently deleted' : 'deleted'} successfully!`);
 
         // Refresh trashed list if we're soft deleting from active tab
         if (!isForceDelete.value && activeTab.value === 'active') {
@@ -634,7 +631,6 @@ const cancelDelete = () => {
 const handleRestoreCompany = async (company) => {
     try {
         await companyStore.restoreCompany(company.id);
-        console.log("✅ Company restored successfully!");
     } catch (error) {
         console.error("❌ Failed to restore company:", error);
     }
@@ -655,17 +651,14 @@ const executeBulkAction = async () => {
         if (pendingBulkAction.value === 'delete') {
             // Soft delete from active tab
             await companyStore.bulkDeleteCompanies(selectedRows.value, false);
-            console.log(`✅ ${selectedRows.value.length} companies deleted successfully!`);
             // Refresh trashed list
             await companyStore.fetchTrashedCompanies();
         } else if (pendingBulkAction.value === 'forceDelete') {
             // Force delete from trashed tab
             await companyStore.bulkDeleteCompanies(selectedRows.value, true);
-            console.log(`✅ ${selectedRows.value.length} companies permanently deleted successfully!`);
         } else if (pendingBulkAction.value === 'restore') {
             // Restore from trashed tab
             await companyStore.bulkRestoreCompanies(selectedRows.value);
-            console.log(`✅ ${selectedRows.value.length} companies restored successfully!`);
         }
 
         // Clear selection after success

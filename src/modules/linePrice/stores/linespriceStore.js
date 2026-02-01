@@ -107,7 +107,6 @@ export const useLinePriceStore = defineStore("linePrice", () => {
         normalizeLinePrice(price)
       );
 
-      console.log(`✅ Successfully loaded ${linePrices.value.length} line prices`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch line prices";
@@ -187,17 +186,14 @@ export const useLinePriceStore = defineStore("linePrice", () => {
         type: priceData.type, // 'return' or 'one_way'
       };
 
-      console.log("📤 Sending line price data to API:", apiData);
 
       const response = await apiServices.createLinePrice(apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
       const newPrice = normalizeLinePrice(response.data.data);
 
       linePrices.value.push(newPrice);
-      console.log("✅ Line price added successfully to store");
       return newPrice;
     } catch (err) {
       // Handle validation errors
@@ -229,17 +225,14 @@ export const useLinePriceStore = defineStore("linePrice", () => {
       if (priceData.company_id) apiData.company_id = priceData.company_id;
       if (priceData.type) apiData.type = priceData.type;
 
-      console.log("📤 Updating line price:", apiData);
 
       const response = await apiServices.updateLinePrice(priceId, apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Update local state with response data
       const index = linePrices.value.findIndex((p) => p.id === priceId);
       if (index > -1) {
         linePrices.value[index] = normalizeLinePrice(response.data.data);
-        console.log("✅ Line price updated successfully");
       }
       return linePrices.value[index];
     } catch (err) {
@@ -273,7 +266,6 @@ export const useLinePriceStore = defineStore("linePrice", () => {
           trashedLinePrices.value.push(price);
         }
       }
-      console.log("? Line price deleted successfully");
     } catch (err) {
       error.value = err.message || "Failed to delete line price";
       console.error("? Error deleting line price:", err);
@@ -294,7 +286,6 @@ export const useLinePriceStore = defineStore("linePrice", () => {
         normalizeLinePrice(price)
       );
 
-      console.log(`✅ Successfully loaded ${trashedLinePrices.value.length} trashed line prices`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed line prices";
@@ -316,7 +307,6 @@ export const useLinePriceStore = defineStore("linePrice", () => {
         const price = trashedLinePrices.value.splice(index, 1)[0];
         linePrices.value.push(price);
       }
-      console.log("✅ Line price restored successfully");
     } catch (err) {
       error.value = err.message || "Failed to restore line price";
       console.error("❌ Error restoring line price:", err);
@@ -348,7 +338,6 @@ export const useLinePriceStore = defineStore("linePrice", () => {
         trashedLinePrices.value.push(...deletedPrices);
       }
 
-      console.log(`✅ Successfully bulk deleted ${priceIds.length} line prices`);
     } catch (err) {
       error.value = err.message || "Failed to bulk delete line prices";
       console.error("❌ Error bulk deleting line prices:", err);
@@ -373,7 +362,6 @@ export const useLinePriceStore = defineStore("linePrice", () => {
       );
       linePrices.value.push(...restoredPrices);
 
-      console.log(`✅ Successfully bulk restored ${priceIds.length} line prices`);
     } catch (err) {
       error.value = err.message || "Failed to bulk restore line prices";
       console.error("❌ Error bulk restoring line prices:", err);

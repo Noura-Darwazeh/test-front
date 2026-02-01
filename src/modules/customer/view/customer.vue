@@ -216,7 +216,6 @@ const trashedCustomers = computed(() => customerStore.trashedCustomers);
 onMounted(async () => {
     try {
         await fetchCustomersPage(1);
-        console.log("✅ Customers loaded successfully");
     } catch (error) {
         if (applyServerErrors(error)) {
             return;
@@ -367,7 +366,7 @@ const detailsFields = computed(() => {
 
 // ✅ Base columns - will be filtered based on role
 const baseColumns = ref([
-    { key: "id", label: t("customer.id"), sortable: true },
+    { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("customer.name"), sortable: true },
     { key: "phone_number", label: t("customer.phoneNumber"), sortable: false },
     { key: 'company_name', label: t('customer.companyName'), sortable: false },
@@ -384,7 +383,7 @@ const displayColumns = computed(() => {
 
 const trashedColumns = computed(() => {
     const columns = [
-        { key: "id", label: t("customer.id") },
+        { key: "__index", label: "#", sortable: false, isIndex: true },
         { key: "name", label: t("customer.name") },
         { key: "phone_number", label: t("customer.phoneNumber") },
     ];

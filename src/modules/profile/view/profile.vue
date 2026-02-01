@@ -336,7 +336,6 @@ const fetchDropdownData = async () => {
       }));
     }
 
-    console.log('✅ Dropdowns loaded from API - Companies:', companies.value.length, 'Regions:', regions.value.length, 'Currencies:', currencies.value.length);
   } catch (error) {
     console.error('❌ Failed to load dropdown data (will use profile data):', error);
   }
@@ -358,7 +357,6 @@ const populateDropdownsFromProfile = () => {
         value: companyId,
         label: companyName
       });
-      console.log('✅ Added company to dropdown:', companyName);
     }
   }
 
@@ -372,7 +370,6 @@ const populateDropdownsFromProfile = () => {
         value: regionId,
         label: regionName
       });
-      console.log('✅ Added region to dropdown:', regionName);
     }
   }
 
@@ -386,15 +383,9 @@ const populateDropdownsFromProfile = () => {
         value: currencyId,
         label: currencyName
       });
-      console.log('✅ Added currency to dropdown:', currencyName);
     }
   }
 
-  console.log('✅ Dropdowns populated from profile:', {
-    companies: companies.value,
-    regions: regions.value,
-    currencies: currencies.value
-  });
 };
 
 // Initialize form data from userProfile
@@ -403,10 +394,6 @@ const initializeFormData = () => {
 
   const user = userProfile.value;
 
-  console.log('👤 User Profile:', user);
-  console.log('🏢 Company Raw:', user.company);
-  console.log('🌍 Region Raw:', user.region);
-  console.log('💰 Currency Raw:', user.currency);
 
   formData.name = user.name || '';
   formData.username = user.username || '';
@@ -417,19 +404,16 @@ const initializeFormData = () => {
   formData.company_id = user.company?.id
     ? String(user.company.id)
     : '';
-  console.log('✅ Company ID set to:', formData.company_id);
 
   // ✅ Region: object {id: 1, name: "Jordan"} -> extract id
   formData.region_id = user.region?.id
     ? String(user.region.id)
     : '';
-  console.log('✅ Region ID set to:', formData.region_id);
 
   // ✅ Currency: object {id: 1, name: "JOD"} -> extract id
   formData.currency_id = user.currency?.id
     ? String(user.currency.id)
     : '';
-  console.log('✅ Currency ID set to:', formData.currency_id);
 
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
@@ -449,7 +433,6 @@ const initializeFormData = () => {
     default_page: formData.default_page,
   };
 
-  console.log('📝 Form Data Final:', formData);
 };
 
 // ✅ Fetch User Profile from API
@@ -466,7 +449,6 @@ const fetchUserProfile = async () => {
     const response = await apiServices.getUserProfile(userId);
     userProfile.value = response.data.data;
 
-    console.log('✅ User profile loaded:', userProfile.value);
 
     // ✅ Populate dropdowns from profile (for Admin users who can't access full lists)
     populateDropdownsFromProfile();
@@ -603,8 +585,6 @@ const handleSaveChanges = async () => {
       // ✅ حدّثي الـ authStore (هيك بتتخزن في localStorage)
       authStore.updateUser(userData);
 
-      console.log('✅ Profile updated successfully!');
-      console.log('🏠 Landing page saved:', userData.default_page);
       
       alert(t('profile.updateSuccess') || 'Profile updated successfully!');
 
@@ -638,7 +618,6 @@ const handleSaveChanges = async () => {
     const currentUser = authStore.user;
     currentUser.default_page = formData.default_page;
     authStore.updateUser(currentUser);
-    console.log('✅ Landing page saved locally:', formData.default_page);
 
     const errorMessage = error.response?.data?.message || error.message || t('profile.updateError');
     alert(errorMessage);
@@ -730,7 +709,6 @@ const handleChangePassword = async (passwordData) => {
     });
 
     if (response.data?.message) {
-      console.log('✅ Password changed successfully!', response.data);
       alert(t('profile.passwordChangeSuccess'));
       closePasswordModal();
 

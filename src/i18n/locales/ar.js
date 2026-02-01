@@ -37,6 +37,65 @@
     loginSuccess: "تم تسجيل الدخول بنجاح! جاري التحويل...",
   },
 
+  forgotPassword: {
+    title: "نسيت كلمة المرور؟",
+    subtitle: "أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.",
+    emailLabel: "عنوان البريد الإلكتروني",
+    emailPlaceholder: "example@example.com",
+    sendResetLink: "إرسال رابط إعادة التعيين",
+    sending: "جاري الإرسال...",
+    backToLogin: "تذكرت كلمة المرور؟ تسجيل الدخول",
+    resetInfo: "إعادة تعيين كلمة المرور",
+    resetInfoSubtitle: "طريقة آمنة وبسيطة لاستعادة الوصول إلى حسابك.",
+    successMessage: "تحقق من بريدك الإلكتروني للحصول على رابط إعادة تعيين كلمة المرور.",
+
+    validation: {
+      emailRequired: "البريد الإلكتروني مطلوب",
+      emailInvalid: "يرجى إدخال عنوان بريد إلكتروني صالح",
+    },
+
+    errors: {
+      emailNotFound: "البريد الإلكتروني غير موجود في نظامنا",
+      sendFailed: "فشل إرسال رابط إعادة التعيين. يرجى المحاولة مرة أخرى.",
+    },
+  },
+
+  resetPassword: {
+    title: "إعادة تعيين كلمة المرور",
+    subtitle: "أدخل كلمة المرور الجديدة لاستعادة الوصول إلى حسابك.",
+    newPasswordLabel: "كلمة المرور الجديدة",
+    confirmPasswordLabel: "تأكيد كلمة المرور",
+    passwordPlaceholder: "••••••••",
+    resetButton: "إعادة تعيين كلمة المرور",
+    resetting: "جاري إعادة التعيين...",
+    backToLogin: "العودة إلى تسجيل الدخول",
+    validating: "جاري التحقق من الرابط...",
+    validatingMessage: "يرجى الانتظار بينما نتحقق من رمز إعادة التعيين.",
+    invalidTitle: "رابط إعادة التعيين غير صالح",
+    expirationMessage: "تنتهي صلاحية روابط إعادة التعيين بعد 60 دقيقة لأسباب أمنية.",
+    requestNewLink: "طلب رابط إعادة تعيين جديد",
+    redirectingIn5: "جاري التحويل خلال 5 ثواني...",
+    redirectingToLogin: "جاري التحويل إلى صفحة تسجيل الدخول...",
+    secureResetTitle: "إعادة تعيين كلمة المرور الآمنة",
+    secureResetSubtitle: "أنشئ كلمة مرور قوية لحماية حسابك.",
+    successMessage: "تم إعادة تعيين كلمة المرور بنجاح!",
+
+    validation: {
+      passwordRequired: "كلمة المرور مطلوبة",
+      passwordMin: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+      confirmRequired: "يرجى تأكيد كلمة المرور",
+      passwordsNotMatch: "كلمات المرور غير متطابقة",
+    },
+
+    errors: {
+      expiredLink: "رابط إعادة التعيين غير صالح أو منتهي الصلاحية. قد يكون الرابط قد انتهت صلاحيته بعد 60 دقيقة.",
+      invalidLink: "رابط إعادة التعيين غير صالح أو منتهي الصلاحية. يرجى طلب إعادة تعيين كلمة مرور جديدة.",
+      missingToken: "رابط إعادة التعيين غير صالح. يرجى طلب إعادة تعيين كلمة مرور جديدة.",
+      validationFailed: "يرجى التحقق من المدخلات والمحاولة مرة أخرى.",
+      resetFailed: "فشل في إعادة تعيين كلمة المرور. يرجى المحاولة مرة أخرى.",
+    },
+  },
+
   sidebar: {
     logoText: "توصيل PITS",
   },
@@ -1170,8 +1229,13 @@
       customerId: "العميل",
       selectCustomer: "اختر العميل",
       selectLocation: "اختر الموقع",
+      selectCurrency: "اختر العملة",
+      selectLinePrice: "اختر سعر الخط",
+      selectCompanyPrice: "اختر سعر الشركة",
+      selectBranch: "اختر الفرع",
       selectParentOrder: "اختر الطلب الأصلي",
       price: "السعر",
+      totalPrice: "السعر الإجمالي",
       pricePlaceholder: "أدخل مبلغ السعر",
       deliveryPrice: "سعر التوصيل",
       returnPrice: "سعر الإرجاع",
@@ -1198,8 +1262,8 @@
       parentOrderId: "الطلب الأصلي",
       noParentOrder: "لا يوجد طلب أصلي",
       companyId: "الشركة",
-      branchCustomerCompanyId: "فرع العميل",
-      branchDeliveryCompanyId: "فرع التوصيل",
+      branchCustomerCompanyId: "من الفرع",
+      branchDeliveryCompanyId: "إلى الفرع",
     },
 
     // المعالج
@@ -1285,6 +1349,8 @@
         "الطلبات متعددة الحزم يجب أن تحتوي على عنصرين على الأقل",
       incompleteOrderItem:
         "عنصر الطلب {index} غير مكتمل. يرجى ملء جميع الحقول المطلوبة.",
+      sameBranchNotAllowed:
+        "عنصر الطلب {index} يجب أن يستخدم فروعاً مختلفة للعميل والتوصيل.",
       multiGroupIdRequired: "عنصر الحزمة المتعددة {index} يتطلب معرف مجموعة.",
       fromCompanyRequired: "عنصر الطلب {index} يتطلب شركة مصدر للحالة السريعة.",
       toCompanyRequired: "عنصر الطلب {index} يتطلب شركة وجهة للحالة الجزئية.",
@@ -1344,6 +1410,38 @@
       availableDrivers: "السائقون المتاحون",
       noDrivers: "لا يوجد سائقون متاحون",
       confirm: "تعيين السائق",
+    },
+  },
+
+  statistics: {
+    title: "الإحصائيات",
+    goToOrder: "الذهاب إلى الطلب",
+    tabs: {
+      orders: "الطلبات",
+      drivers: "السائقين",
+      customers: "العملاء",
+      lineWork: "خطوط العمل",
+      lines: "الخطوط",
+    },
+    labels: {
+      totalCustomers: "إجمالي العملاء",
+      bestCustomers: "أفضل العملاء",
+      totalLineWorks: "إجمالي خطوط العمل",
+      lineWorkDrivers: "سائقي خطوط العمل",
+      lineWorkName: "خط العمل",
+      driversCount: "عدد السائقين",
+      totalLines: "إجمالي الخطوط",
+      mostUsedLines: "الخطوط الأكثر استخداماً",
+      linesByRegion: "الخطوط حسب المنطقة",
+      regionName: "المنطقة",
+      linesCount: "عدد الخطوط",
+      totalDrivers: "إجمالي السائقين",
+      availableDrivers: "السائقون المتاحون",
+      busyDrivers: "السائقون المشغولون",
+      holidayDrivers: "في إجازة",
+      deliveryTime: "وقت التوصيل",
+      minimumHours: "الحد الأدنى من الساعات",
+      maximumHours: "الحد الأقصى من الساعات",
     },
   },
 
@@ -1444,6 +1542,13 @@
       company: "الشركة",
       companyPlaceholder: "اختر الشركة",
       value: "القيمة",
+      customer: "العميل",
+      region: "المنطقة",
+      line: "الخط",
+      selectCustomer: "اختر العميل",
+      selectRegion: "اختر المنطقة",
+      selectLine: "اختر الخط",
+      priceValue: "السعر",
       valuePlaceholder: "أدخل القيمة حسب النوع",
     },
 
@@ -1744,6 +1849,7 @@
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
+    details: "تفاصيل العملة",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -1767,6 +1873,15 @@
       symbolPlaceholder: "أدخل رمز العملة (مثل: $, €)",
     },
 
+    details: {
+      id: "المعرف",
+      key: "الرمز",
+      nameEnglish: "الاسم (بالإنجليزية)",
+      nameArabic: "الاسم (بالعربية)",
+      symbol: "الرمز",
+      status: "الحالة",
+    },
+
     // رسائل التحقق
     validation: {
       keyRequired: "رمز العملة مطلوب",
@@ -1780,6 +1895,7 @@
     actions: {
       edit: "تعديل",
       delete: "حذف",
+      details: "التفاصيل",
     },
 
     // الإجراءات الجماعية
@@ -1822,7 +1938,15 @@
     companyName: "اسم الشركة",
     date: "التاريخ",
     today: "اليوم",
-
+    orderItems: 'عناصر الطلب',
+    driver: 'السائق',
+    status: {
+      pending: 'قيد الانتظار',
+      start: 'بدأ',
+      pickup: 'تم الاستلام',
+      done: 'مكتمل',
+      failed: 'فشل',
+    },
     tabs: {
       calendar: "التقويم",
       table: "الجدول",
@@ -1941,6 +2065,43 @@
     Supervisor: "مشرف",
     Driver: "سائق",
   },
+
+  collection: {
+    title: "التحصيلات",
+    id: "المعرف",
+    invoiceCode: "رمز الفاتورة",
+    driverName: "اسم السائق",
+    note: "ملاحظة",
+    status: "الحالة",
+    actions: "الإجراءات",
+    edit: "تعديل",
+    details: "التفاصيل",
+    searchPlaceholder: "البحث عن التحصيلات...",
+    filterByStatus: "تصفية حسب الحالة",
+    markAsPaid: "وضع علامة كمدفوع",
+    createdAt: "تاريخ الإنشاء",
+    updatedAt: "تاريخ التحديث",
+    makeInvoice: "إنشاء فاتورة",
+    createInvoiceTitle: "إنشاء فاتورة",
+    createInvoiceConfirm:
+      "هل أنت متأكد من إنشاء فاتورة لـ {count} تحصيلات؟",
+    invoiceCreatedSuccess: "تم إنشاء الفاتورة بنجاح!",
+
+    form: {
+      status: "الحالة",
+      note: "ملاحظة",
+      notePlaceholder: "أدخل ملاحظة...",
+    },
+    entitySingular: "تحصيل",
+    entityPlural: "تحصيلات",
+  },
+
+  collectionStatus: {
+    pending: "قيد الانتظار",
+    completed: "مكتمل",
+    failed: "فشل",
+  },
+
   // الترجمات المشتركة
   common: {
     create: "انشاء",
@@ -2007,8 +2168,10 @@
       "هل أنت متأكد من الحذف النهائي لـ {count} {entity}؟",
     bulkRestoreConfirm: "هل أنت متأكد من استعادة {count} {entity}؟",
 
-    all: "الكل"
-
+    all: "الكل",
+    ok: "موافق",
+    success: "نجح!",
+    operationSuccess: "تمت العملية بنجاح",
   },
 
   payment: {
@@ -2044,6 +2207,7 @@
     noTrashedInvoices: "لا توجد فواتير محذوفة",
     entitySingular: "فاتورة",
     entityPlural: "فواتير",
+    exportPDF: "تصدير PDF",
     logoPlaceholder: "شعارك هنا",
     number: "رقم",
     date: "التاريخ",
@@ -2068,21 +2232,22 @@
     noCollections: "لا يوجد تحصيلات",
     markAsPaid: "مدفوع",
     to: "الى",
+  },
 
-    invoiceStatus: {
-      pending: "قيد الانتظار",
-      completed: "مكتملة"
-    },
-    // إدارة الصلاحيات
-    permissions: {
-      title: "إدارة الصلاحيات",
-      subtitle: "إدارة صلاحيات المستخدمين والتحكم في الوصول",
-      searchUsers: "البحث عن مستخدمين...",
-      availablePermissions: "الصلاحيات المتاحة",
-      noPermissions: "لا توجد صلاحيات متاحة",
-      userPermissions: "صلاحيات المستخدم",
-      noPermissionsAvailable: "لا توجد صلاحيات متاحة",
-      noUsersFound: "لم يتم العثور على مستخدمين",
-    },
-  }
-}
+  invoiceStatus: {
+    pending: "قيد الانتظار",
+    completed: "مكتملة",
+  },
+
+  // إدارة الصلاحيات
+  permissions: {
+    title: "إدارة الصلاحيات",
+    subtitle: "إدارة صلاحيات المستخدمين والتحكم في الوصول",
+    searchUsers: "البحث عن مستخدمين...",
+    availablePermissions: "الصلاحيات المتاحة",
+    noPermissions: "لا توجد صلاحيات متاحة",
+    userPermissions: "صلاحيات المستخدم",
+    noPermissionsAvailable: "لا توجد صلاحيات متاحة",
+    noUsersFound: "لم يتم العثور على مستخدمين",
+  },
+};

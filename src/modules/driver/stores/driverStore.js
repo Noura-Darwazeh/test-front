@@ -124,7 +124,6 @@ export const useDriverStore = defineStore("driver", () => {
         };
       }
 
-      console.log(`✅ Successfully loaded ${drivers.value.length} drivers`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch drivers";
@@ -177,21 +176,18 @@ export const useDriverStore = defineStore("driver", () => {
         apiData.email = emailValue;
       }
 
-
-      console.log("📤 Sending driver data to API:", {
+      console.log("[driver] create payload", {
         ...apiData,
-        password: "***" // Hide password in logs
+        password: "***",
       });
 
       const response = await apiServices.createDriver(apiData);
 
-      console.log("✅ API Response:", response.data);
 
       // Transform response to match frontend format
       const newDriver = normalizeDriver(response.data.data);
 
       drivers.value.push(newDriver);
-      console.log("✅ Driver added successfully to store");
       return newDriver;
     } catch (err) {
       // Handle validation errors
@@ -250,14 +246,13 @@ export const useDriverStore = defineStore("driver", () => {
       apiData.image = driverData.image;
     }
 
-    console.log("📤 Updating driver:", {
+    console.log("[driver] update payload", {
       ...apiData,
-      password: apiData.password ? "***" : undefined
+      password: apiData.password ? "***" : undefined,
     });
 
     const response = await apiServices.updateDriver(driverId, apiData);
 
-    console.log("✅ API Response:", response.data);
 
     // Update local state with response data
     const index = drivers.value.findIndex((d) => d.id === driverId);
@@ -266,7 +261,6 @@ export const useDriverStore = defineStore("driver", () => {
         ...drivers.value[index],
         ...response.data.data,
       });
-      console.log("✅ Driver updated successfully");
     }
     return drivers.value[index];
   } catch (err) {
@@ -329,7 +323,6 @@ export const useDriverStore = defineStore("driver", () => {
         };
       }
 
-      console.log(`✅ Successfully loaded ${trashedDrivers.value.length} trashed drivers`);
       return response.data;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed drivers";
@@ -382,7 +375,6 @@ export const useDriverStore = defineStore("driver", () => {
         trashedDrivers.value.push(...deletedDrivers);
       }
 
-      console.log(`✅ Successfully bulk deleted ${driverIds.length} drivers`);
     } catch (err) {
       error.value = err.message || "Failed to bulk delete drivers";
       console.error("❌ Error bulk deleting drivers:", err);
@@ -407,7 +399,6 @@ export const useDriverStore = defineStore("driver", () => {
       );
       drivers.value.push(...restoredDrivers);
 
-      console.log(`✅ Successfully bulk restored ${driverIds.length} drivers`);
     } catch (err) {
       error.value = err.message || "Failed to bulk restore drivers";
       console.error("❌ Error bulk restoring drivers:", err);

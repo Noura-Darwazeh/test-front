@@ -40,6 +40,65 @@ export default {
     loginSuccess: "Login successful! Redirecting...",
   },
 
+  forgotPassword: {
+    title: "Forgot Password?",
+    subtitle: "Enter your email and we'll send you a link to reset your password.",
+    emailLabel: "Email Address",
+    emailPlaceholder: "you@example.com",
+    sendResetLink: "Send Reset Link",
+    sending: "Sending...",
+    backToLogin: "Remember your password? Sign In",
+    resetInfo: "Reset Your Password",
+    resetInfoSubtitle: "A secure and simple way to regain access to your account.",
+    successMessage: "Check your email for the password reset link.",
+
+    validation: {
+      emailRequired: "Email is required",
+      emailInvalid: "Please enter a valid email address",
+    },
+
+    errors: {
+      emailNotFound: "Email not found in our system",
+      sendFailed: "Failed to send reset link. Please try again.",
+    },
+  },
+
+  resetPassword: {
+    title: "Reset Your Password",
+    subtitle: "Enter your new password to regain access to your account.",
+    newPasswordLabel: "New Password",
+    confirmPasswordLabel: "Confirm Password",
+    passwordPlaceholder: "••••••••",
+    resetButton: "Reset Password",
+    resetting: "Resetting...",
+    backToLogin: "Back to Sign In",
+    validating: "Validating reset link...",
+    validatingMessage: "Please wait while we verify your reset token.",
+    invalidTitle: "Invalid Reset Link",
+    expirationMessage: "Reset links expire after 60 minutes for security reasons.",
+    requestNewLink: "Request New Reset Link",
+    redirectingIn5: "Redirecting in 5 seconds...",
+    redirectingToLogin: "Redirecting to login...",
+    secureResetTitle: "Secure Password Reset",
+    secureResetSubtitle: "Create a strong password to protect your account.",
+    successMessage: "Password reset successfully!",
+
+    validation: {
+      passwordRequired: "Password is required",
+      passwordMin: "Password must be at least 6 characters",
+      confirmRequired: "Please confirm your password",
+      passwordsNotMatch: "Passwords do not match",
+    },
+
+    errors: {
+      expiredLink: "Invalid or expired reset link. The link may have expired after 60 minutes.",
+      invalidLink: "Invalid or expired reset link. Please request a new password reset.",
+      missingToken: "Invalid reset link. Please request a new password reset.",
+      validationFailed: "Please check your input and try again.",
+      resetFailed: "Failed to reset password. Please try again.",
+    },
+  },
+
   sidebar: {
     logoText: "PITS Delivery",
   },
@@ -171,7 +230,7 @@ export default {
     title: "Driver Table",
     pageTitle: "Drivers Management",
     pageSubtitle: "Manage delivery drivers and their details",
-     id: "ID",
+    id: "ID",
     name: "Name",
     username: "Username",
     email: "Email",
@@ -952,6 +1011,12 @@ export default {
     filterBy: "Filter By",
   },
 
+  companyTypes: {
+    "delivery company": "Delivery Company",
+    "admin company": "Admin Company",
+    "customer company": "Customer Company",
+  },
+
   // Role Values
   roles: {
     Admin: "Admin",
@@ -1168,6 +1233,7 @@ export default {
       selectBranch: "Select Branch",
       selectParentOrder: "Select Parent Order",
       price: "Price",
+      totalPrice: "Total Price",
       pricePlaceholder: "Enter price amount",
       deliveryPrice: "Delivery Price",
       returnPrice: "Return Price",
@@ -1192,8 +1258,8 @@ export default {
       parentOrderId: "Parent Order",
       noParentOrder: "No Parent Order",
       companyId: "Company",
-      branchCustomerCompanyId: "Customer Branch",
-      branchDeliveryCompanyId: "Delivery Branch",
+      branchCustomerCompanyId: "From Branch",
+      branchDeliveryCompanyId: "To Branch",
     },
 
     // Wizard
@@ -1470,6 +1536,13 @@ export default {
       company: "Company",
       companyPlaceholder: "Select company",
       value: "Value",
+      customer: "Customer",
+      region: "Region",
+      line: "Line",
+      selectCustomer: "Select Customer",
+      selectRegion: "Select Region",
+      selectLine: "Select Line",
+      priceValue: "Price",
       valuePlaceholder: "Enter value based on type",
     },
 
@@ -1774,6 +1847,7 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
+    details: "Currency Details",
     actions: "Actions",
 
     // Table Columns
@@ -1935,6 +2009,15 @@ export default {
     date: "Date",
     today: "Today",
     order: "Order",
+    orderItems: 'Order Items',
+    driver: 'Driver',
+    status: {
+      pending: 'Pending',
+      start: 'Started',
+      pickup: 'Picked Up',
+      done: 'Completed',
+      failed: 'Failed'
+    },
     tabs: {
       calendar: "Calendar",
       table: "Table",
