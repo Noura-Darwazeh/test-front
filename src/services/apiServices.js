@@ -838,9 +838,6 @@ async getOrdersWithItems(filters = {}) {
   }
 
   // ===== Work Plans Services =====
-// إضافة هذه الدوال في قسم Work Plans Services في ملف src/services/apiServices.js
-
-  // ===== Work Plans Services =====
   async getWorkPlans({ page = 1, perPage = 10 } = {}) {
     return this.getEntities("work_plans", { page, perPage });
   }
@@ -849,18 +846,27 @@ async getOrdersWithItems(filters = {}) {
     return this.getTrashedEntities("work_plans", { page, perPage });
   }
 
-  // ✅ NEW: Check driver's work plans before deletion
   async getDriverWorkPlans(driverId) {
     return this.get(`/work_plan/driver/${driverId}`);
   }
 
-// ✅ FIXED: استخدمي patch بدل post
 async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
-  return this.patch("/work_plan/reassign_driver", {
-    workplan: workplanIds,
-    driver_id_old: oldDriverId,
-    driver_id_new: newDriverId
-  });
+  try {
+    console.log('🔄 API: Reassigning work plans and deleting driver:', {
+      workplan: workplanIds,
+      driver_id_old: oldDriverId,
+      driver_id_new: newDriverId
+    });
+
+    return this.patch("/work_plan/reassign_driver", {
+      workplan: workplanIds,
+      driver_id_old: oldDriverId,
+      driver_id_new: newDriverId
+    });
+  } catch (error) {
+    console.error('❌ Error in reassignDriverWorkPlans:', error);
+    throw error;
+  }
 }
 
   async createWorkPlan(workPlanData) {
