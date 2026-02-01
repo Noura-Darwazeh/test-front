@@ -12,34 +12,35 @@
           <!-- Header -->
           <div class="modal-header bg-light border-bottom">
             <h5 class="modal-title fw-semibold d-flex align-items-center gap-2">
-              <i class="fas fa-exclamation-triangle text-warning"></i>
-              {{ $t('driver.reassignWorkPlansTitle') }}
+              <i class="fas fa-info-circle text-primary"></i>
+              {{ $t('driver.workPlansFound') }}
             </h5>
             <button type="button" class="btn-close" @click="closeModal"></button>
           </div>
 
           <!-- Body -->
           <div class="modal-body p-4" style="max-height: 70vh;">
-            <!-- Warning Message -->
-            <div v-if="!canDelete" class="alert alert-danger d-flex align-items-start gap-2 mb-3">
-              <i class="fas fa-ban mt-1"></i>
+            <!-- Info Message -->
+            <div v-if="!canDelete" class="alert alert-danger d-flex align-items-start gap-3 mb-4">
+              <i class="fas fa-exclamation-triangle mt-1 fs-5"></i>
               <div>
-                <strong>{{ $t('driver.cannotDelete') }}</strong>
-                <p class="mb-0 mt-1">{{ $t('driver.hasActiveSteps') }}</p>
+                <strong class="d-block mb-1">{{ $t('driver.cannotDelete') }}</strong>
+                <p class="mb-0 small">{{ $t('driver.hasActiveSteps') }}</p>
               </div>
             </div>
 
-            <div v-else class="alert alert-warning d-flex align-items-start gap-2 mb-3">
-              <i class="fas fa-info-circle mt-1"></i>
+            <div v-else class="alert alert-info d-flex align-items-start gap-3 mb-4">
+              <i class="fas fa-info-circle mt-1 fs-5"></i>
               <div>
-                <strong>{{ $t('driver.workPlansFound') }}</strong>
-                <p class="mb-0 mt-1">{{ $t('driver.reassignRequired') }}</p>
+                <strong class="d-block mb-1">{{ $t('driver.workPlansFoundTitle') }}</strong>
+                <p class="mb-0 small">{{ $t('driver.deleteOptions') }}</p>
               </div>
             </div>
 
             <!-- Work Plans List -->
-            <div v-if="workPlans.length > 0" class="mb-3">
-              <label class="fw-semibold mb-2">
+            <div v-if="workPlans.length > 0" class="mb-4">
+              <label class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-clipboard-list text-primary"></i>
                 {{ $t('driver.workPlans') }} ({{ workPlans.length }})
               </label>
               <div class="work-plans-list">
@@ -49,55 +50,118 @@
                   class="work-plan-item p-3 mb-2 border rounded-3 bg-light"
                 >
                   <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                      <h6 class="mb-1 fw-semibold">{{ plan.name }}</h6>
-                      <small class="text-muted">
-                        <i class="fas fa-calendar me-1"></i>
-                        {{ formatDate(plan.date) }}
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1 fw-semibold text-dark">
+                        <i class="fas fa-file-alt text-primary me-2"></i>
+                        {{ plan.name }}
+                      </h6>
+                      <small class="text-muted d-flex align-items-center gap-3 mt-2">
+                        <span>
+                          <i class="fas fa-calendar me-1"></i>
+                          {{ formatDate(plan.date) }}
+                        </span>
+                        <span v-if="plan.orders_count" class="badge bg-primary-subtle text-primary">
+                          <i class="fas fa-box me-1"></i>
+                          {{ plan.orders_count }} {{ $t('driver.orders') }}
+                        </span>
                       </small>
-                    </div>
-                    <div>
-                      <span v-if="plan.orders_count" class="badge bg-primary">
-                        {{ plan.orders_count }} {{ $t('driver.orders') }}
-                      </span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Driver Selection (only if can delete) -->
-            <div v-if="canDelete" class="mb-3">
-              <label class="form-label fw-semibold" for="newDriver">
-                {{ $t('driver.selectNewDriver') }}
-                <span class="text-danger">*</span>
+            <!-- Delete Options (only if can delete) -->
+            <div v-if="canDelete" class="delete-options">
+              <label class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                <i class="fas fa-cog text-primary"></i>
+                {{ $t('driver.selectDeleteOption') }}
               </label>
-              <select
-                id="newDriver"
-                v-model="selectedNewDriver"
-                class="form-select"
-                :class="{ 'is-invalid': validationError }"
+
+              <!-- Option 1: Delete without reassigning -->
+              <div 
+                class="option-card p-3 mb-3 border rounded-3 cursor-pointer"
+                :class="{ 'selected': deleteOption === 'without_reassign' }"
+                @click="deleteOption = 'without_reassign'"
               >
-                <option value="" disabled>{{ $t('driver.chooseDriver') }}</option>
-                <option
-                  v-for="driver in availableDrivers"
-                  :key="driver.id"
-                  :value="driver.id"
-                >
-                  {{ driver.name }} - {{ driver.username }}
-                </option>
-              </select>
-              <div v-if="validationError" class="invalid-feedback">
-                {{ validationError }}
+                <div class="d-flex align-items-start gap-3">
+                  <input 
+                    type="radio" 
+                    name="deleteOption" 
+                    value="without_reassign"
+                    v-model="deleteOption"
+                    class="form-check-input mt-1"
+                  />
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-semibold">
+                      <i class="fas fa-trash-alt text-danger me-2"></i>
+                      {{ $t('driver.deleteWithoutReassign') }}
+                    </h6>
+                    <p class="mb-0 small text-muted">{{ $t('driver.deleteWithoutReassignDesc') }}</p>
+                  </div>
+                </div>
               </div>
+
+              <!-- Option 2: Reassign to another driver -->
+              <div 
+                class="option-card p-3 border rounded-3 cursor-pointer"
+                :class="{ 'selected': deleteOption === 'with_reassign' }"
+                @click="deleteOption = 'with_reassign'"
+              >
+                <div class="d-flex align-items-start gap-3">
+                  <input 
+                    type="radio" 
+                    name="deleteOption" 
+                    value="with_reassign"
+                    v-model="deleteOption"
+                    class="form-check-input mt-1"
+                  />
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1 fw-semibold">
+                      <i class="fas fa-exchange-alt text-success me-2"></i>
+                      {{ $t('driver.reassignToDriver') }}
+                    </h6>
+                    <p class="mb-0 small text-muted">{{ $t('driver.reassignToDriverDesc') }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Driver Selection (only if reassign option selected) -->
+              <Transition name="slide-down">
+                <div v-if="deleteOption === 'with_reassign'" class="driver-selection mt-3 p-3 bg-light rounded-3">
+                  <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                    <i class="fas fa-user-tie text-primary"></i>
+                    {{ $t('driver.selectNewDriver') }}
+                    <span class="text-danger">*</span>
+                  </label>
+                  <select
+                    v-model="selectedNewDriver"
+                    class="form-select"
+                    :class="{ 'is-invalid': validationError }"
+                  >
+                    <option value="" disabled>{{ $t('driver.chooseDriver') }}</option>
+                    <option
+                      v-for="driver in availableDrivers"
+                      :key="driver.id"
+                      :value="driver.id"
+                    >
+                      <i class="fas fa-user me-2"></i>
+                      {{ driver.name }} - {{ driver.username }}
+                    </option>
+                  </select>
+                  <div v-if="validationError" class="invalid-feedback">
+                    {{ validationError }}
+                  </div>
+                </div>
+              </Transition>
             </div>
 
             <!-- Loading State -->
-            <div v-if="reassigning" class="text-center py-3">
-              <div class="spinner-border text-primary" role="status">
+            <div v-if="processing" class="text-center py-4">
+              <div class="spinner-border text-primary mb-3" role="status">
                 <span class="visually-hidden">{{ $t('common.loading') }}</span>
               </div>
-              <p class="mt-2">{{ $t('driver.reassigning') }}</p>
+              <p class="text-muted">{{ $t('driver.processing') }}</p>
             </div>
           </div>
 
@@ -107,15 +171,15 @@
               :text="$t('common.cancel')"
               @click="closeModal"
               bg-color="var(--color-secondary)"
-              :disabled="reassigning"
+              :disabled="processing"
             />
             <PrimaryButton
               v-if="canDelete"
-              :text="$t('driver.reassignAndDelete')"
-              @click="handleReassign"
-              bg-color="var(--color-danger)"
-              :loading="reassigning"
-              :disabled="!selectedNewDriver || reassigning"
+              :text="getConfirmButtonText"
+              @click="handleConfirm"
+              :bg-color="deleteOption === 'with_reassign' ? 'var(--color-success)' : 'var(--color-danger)'"
+              :loading="processing"
+              :disabled="isConfirmDisabled"
             />
           </div>
         </div>
@@ -154,11 +218,27 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'reassign', 'force-close']);
+const emit = defineEmits(['close', 'delete', 'reassign']);
 
+const deleteOption = ref('without_reassign');
 const selectedNewDriver = ref('');
 const validationError = ref('');
-const reassigning = ref(false);
+const processing = ref(false);
+
+const getConfirmButtonText = computed(() => {
+  if (deleteOption.value === 'with_reassign') {
+    return t('driver.reassignAndDelete');
+  }
+  return t('driver.deleteDriver');
+});
+
+const isConfirmDisabled = computed(() => {
+  if (processing.value) return true;
+  if (deleteOption.value === 'with_reassign' && !selectedNewDriver.value) {
+    return true;
+  }
+  return false;
+});
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
@@ -171,45 +251,54 @@ const formatDate = (dateString) => {
 };
 
 const closeModal = () => {
-  if (!reassigning.value) {
-    selectedNewDriver.value = '';
-    validationError.value = '';
+  if (!processing.value) {
+    resetForm();
     emit('close');
   }
 };
 
-const handleReassign = async () => {
-  if (!selectedNewDriver.value) {
+const resetForm = () => {
+  deleteOption.value = 'without_reassign';
+  selectedNewDriver.value = '';
+  validationError.value = '';
+  processing.value = false;
+};
+
+const handleConfirm = async () => {
+  if (deleteOption.value === 'with_reassign' && !selectedNewDriver.value) {
     validationError.value = t('driver.validation.driverRequired');
     return;
   }
 
   validationError.value = '';
-  reassigning.value = true;
+  processing.value = true;
 
   try {
-    const workPlanIds = props.workPlans.map(plan => plan.id);
-    
-    await emit('reassign', {
-      workPlanIds,
-      oldDriverId: props.driver.id,
-      newDriverId: selectedNewDriver.value
-    });
+    if (deleteOption.value === 'with_reassign') {
+      // Reassign and delete
+      const workPlanIds = props.workPlans.map(plan => plan.id);
+      await emit('reassign', {
+        workPlanIds,
+        oldDriverId: props.driver.id,
+        newDriverId: selectedNewDriver.value
+      });
+    } else {
+      // Delete without reassigning
+      await emit('delete', props.driver.id);
+    }
 
-    selectedNewDriver.value = '';
+    resetForm();
   } catch (error) {
-    console.error('❌ Reassign failed:', error);
+    console.error('❌ Action failed:', error);
     validationError.value = error.message || t('common.saveFailed');
   } finally {
-    reassigning.value = false;
+    processing.value = false;
   }
 };
 
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
-    selectedNewDriver.value = '';
-    validationError.value = '';
-    reassigning.value = false;
+    resetForm();
     
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = 'hidden';
@@ -221,10 +310,17 @@ watch(() => props.isOpen, (newVal) => {
     document.body.style.paddingRight = '';
   }
 });
+
+watch(deleteOption, () => {
+  if (deleteOption.value === 'without_reassign') {
+    selectedNewDriver.value = '';
+    validationError.value = '';
+  }
+});
 </script>
 
 <style scoped>
-/* Backdrop transitions */
+/* Transitions */
 .backdrop-enter-active,
 .backdrop-leave-active {
   transition: opacity 0.2s ease;
@@ -245,7 +341,6 @@ watch(() => props.isOpen, (newVal) => {
   z-index: 1040;
 }
 
-/* Modal transitions */
 .modal-enter-active {
   transition: opacity 0.2s ease;
 }
@@ -286,8 +381,9 @@ watch(() => props.isOpen, (newVal) => {
   overflow-y: auto;
 }
 
+/* Work Plans List */
 .work-plans-list {
-  max-height: 300px;
+  max-height: 250px;
   overflow-y: auto;
 }
 
@@ -307,5 +403,81 @@ watch(() => props.isOpen, (newVal) => {
 .work-plan-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #f0f7ff !important;
+}
+
+/* Option Cards */
+.option-card {
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background-color: white;
+}
+
+.option-card:hover {
+  border-color: var(--primary-color) !important;
+  transform: translateX(4px);
+}
+
+.option-card.selected {
+  background-color: #f0f7ff;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+}
+
+.option-card .form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* Driver Selection Transition */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.driver-selection {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Alert Styling */
+.alert {
+  border-radius: 12px;
+  border: none;
+}
+
+.alert-danger {
+  background-color: #fee;
+  color: #c33;
+}
+
+.alert-info {
+  background-color: #e7f3ff;
+  color: #0066cc;
+}
+
+/* Cursor */
+.cursor-pointer {
+  cursor: pointer;
 }
 </style>

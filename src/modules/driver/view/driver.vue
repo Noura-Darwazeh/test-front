@@ -149,14 +149,15 @@
 
         <!-- ✅ NEW: Driver Reassign Modal -->
         <DriverReassignModal
-            :isOpen="isReassignModalOpen"
-            :driver="driverToDelete"
-            :workPlans="driverWorkPlans"
-            :availableDrivers="otherDrivers"
-            :canDelete="canDeleteDriver"
-            @close="closeReassignModal"
-            @reassign="handleReassignWorkPlans"
-        />
+    :isOpen="isReassignModalOpen"
+    :driver="driverToDelete"
+    :workPlans="driverWorkPlans"
+    :availableDrivers="otherDrivers"
+    :canDelete="canDeleteDriver"
+    @close="closeReassignModal"
+    @reassign="handleReassignWorkPlans"
+    @delete="handleDirectDelete"
+  />
 
         <!-- Bulk Action Confirmation Modal -->
         <ConfirmationModal
@@ -775,12 +776,10 @@ const handleRestoreDriver = async (driver) => {
     }
 };
 
-// ✅ تعديل handleDeleteDriver function
 const handleDeleteDriver = async (driver) => {
     try {
         console.log('🔍 Checking work plans for driver:', driver.id);
         
-        // Check if driver has work plans
         const response = await apiServices.getDriverWorkPlans(driver.id);
         
         const workplans = response.data?.workplans || response.data?.data || [];
@@ -788,7 +787,7 @@ const handleDeleteDriver = async (driver) => {
         
         console.log('📦 Workplans found:', workplans);
         
-        // ❌ إذا في error أو success = false (يعني في active steps)
+        // ❌ إذا في active steps - ما تقدر تحذف
         if (success === false) {
             canDeleteDriver.value = false;
             driverToDelete.value = driver;
@@ -797,39 +796,27 @@ const handleDeleteDriver = async (driver) => {
             return;
         }
         
-        // ✅ إذا في work plans (بس بدون active steps)
+        // ✅ إذا في work plans (بس بدون active steps) - اعرض الخيارات
         if (Array.isArray(workplans) && workplans.length > 0) {
             canDeleteDriver.value = true;
             driverToDelete.value = driver;
             driverWorkPlans.value = workplans;
             isReassignModalOpen.value = true;
-            console.log('🔔 Opening reassign modal with', workplans.length, 'plans');
+            console.log('🔔 Opening options modal with', workplans.length, 'plans');
             return;
         }
         
-        // ✅ ما في work plans - احزفي مباشرة
+        // ✅ ما في work plans - احذف مباشرة
         console.log('✅ No work plans found, deleting driver directly...');
         await driverStore.deleteDriver(driver.id);
         showSuccess(t('driver.deleteSuccess'));
         
     } catch (error) {
         console.error("❌ Error checking/deleting driver:", error);
-        
-        // حتى لو في error، حاولي تحذفي
-        if (error.response?.status === 404 || error.response?.status === 500) {
-            try {
-                await driverStore.deleteDriver(driver.id);
-                showSuccess(t('driver.deleteSuccess'));
-            } catch (deleteError) {
-                alert(deleteError.message || t('common.saveFailed'));
-            }
-        } else {
-            alert(error.message || t('common.saveFailed'));
-        }
+        alert(error.message || t('common.saveFailed'));
     }
 };
 
-// ✅ تحديث handleReassignWorkPlans
 const handleReassignWorkPlans = async ({ workPlanIds, oldDriverId, newDriverId }) => {
     try {
         console.log('🔄 Reassigning and deleting driver:', {
@@ -838,19 +825,35 @@ const handleReassignWorkPlans = async ({ workPlanIds, oldDriverId, newDriverId }
             newDriverId
         });
         
-        // ✅ استدعي API إعادة التعيين + الحذف مباشرة
         await apiServices.reassignDriverWorkPlans(workPlanIds, oldDriverId, newDriverId);
         
         console.log('✅ Driver work plans reassigned and driver deleted successfully');
         showSuccess(t('driver.reassignSuccess'));
         
-        // Close modal and refresh
         closeReassignModal();
         await handleRefresh();
         
     } catch (error) {
         console.error('❌ Failed to reassign/delete:', error);
         alert(error.message || t('driver.reassignFailed'));
+    }
+};
+
+const handleDirectDelete = async (driverId) => {
+    try {
+        console.log('🗑️ Deleting driver without reassigning:', driverId);
+        
+        await driverStore.deleteDriver(driverId);
+        
+        console.log('✅ Driver deleted successfully');
+        showSuccess(t('driver.deleteSuccess'));
+        
+        closeReassignModal();
+        await handleRefresh();
+        
+    } catch (error) {
+        console.error('❌ Failed to delete:', error);
+        alert(error.message || t('driver.deleteFailed'));
     }
 };
 
