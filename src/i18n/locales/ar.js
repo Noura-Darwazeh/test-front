@@ -27,10 +27,13 @@
 
     // Validation
     validation: {
-      emailRequired: "البريد الإلكتروني أو اسم المستخدم مطلوب",
-      passwordRequired: "كلمة المرور مطلوبة",
-      passwordMinLength: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
-      invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      emailRequired: 'البريد الإلكتروني أو اسم المستخدم مطلوب',
+      passwordRequired: 'كلمة المرور مطلوبة',
+      passwordMinLength: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
+      invalidEmail: 'البريد الإلكتروني غير صحيح',
+      invalidUsername: 'اسم المستخدم غير صحيح',
+      invalidPassword: 'كلمة المرور غير صحيحة',
+      invalidCredentials: 'البريد الإلكتروني/اسم المستخدم أو كلمة المرور غير صحيحة',
     },
 
     // Success messages

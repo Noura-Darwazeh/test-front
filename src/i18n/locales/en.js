@@ -30,10 +30,13 @@ export default {
 
     // Validation
     validation: {
-      emailRequired: "Email or username is required",
-      passwordRequired: "Password is required",
-      passwordMinLength: "Password must be at least 6 characters",
-      invalidCredentials: "Invalid email or password",
+      emailRequired: 'Email or username is required',
+      passwordRequired: 'Password is required',
+      passwordMinLength: 'Password must be at least 6 characters',
+      invalidEmail: 'Invalid email address',
+      invalidUsername: 'Invalid username',
+      invalidPassword: 'Incorrect password',
+      invalidCredentials: 'Invalid email/username or password',
     },
 
     // Success messages
