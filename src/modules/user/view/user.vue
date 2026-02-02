@@ -499,25 +499,6 @@ const userFields = computed(() => [
     locked: !isSuperAdmin.value, // ✅ Locked for Admin
     hidden: !isSuperAdmin.value, // ✅ Hidden for Admin
   },
-
-
-{
-  name: "shared_line",
-  label: t("user.form.sharedLine"),
-  type: "checkbox",
-  required: false,
-  colClass: "col-md-6",
-  defaultValue: isEditMode.value ? selectedUser.value.shared_line : 0,
-  trueValue: 1,
-  falseValue: 0,
-  // ✅ Show only for Admin role
-  hidden: (formData) => {
-    const selectedRole = Array.isArray(formData.role) 
-      ? formData.role[0] 
-      : formData.role;
-    return selectedRole !== 'Admin';
-  },
-},
   {
     name: "region_id",
     label: t("user.form.region"),
@@ -555,13 +536,6 @@ const detailsFields = computed(() => [
     label: t("user.userRole"),
     translationKey: "roles",
     colClass: "col-md-6",
-  },
-    // ✅ Add shared_line field
-  {
-    key: "shared_line",
-    label: t("user.form.sharedLine"),
-    colClass: "col-md-6",
-    translator: (value) => value === 1 ? t("common.yes") : t("common.no")
   },
   { key: "company_name", label: t("user.company"), colClass: "col-md-12" },
 ]);
@@ -759,8 +733,7 @@ const openEditModal = (user) => {
 
 // Details Modal
 const openDetailsModal = (user) => {
-  const freshUser = usersStore.users.find(u => u.id === user.id) || user;
-  selectedUser.value = { ...freshUser };
+  selectedUser.value = { ...user };
 
   if (selectedUser.value.image) {
     selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
@@ -785,9 +758,6 @@ const closeDeleteModal = () => {
   isDeleteModalOpen.value = false;
   userToDelete.value = null;
 };
-
-// src/modules/user/view/user.vue
-// في src/modules/user/view/user.vue
 
 const handleSubmitUser = async (userData) => {
   try {
@@ -856,18 +826,10 @@ const handleSubmitUser = async (userData) => {
         updatedData.password = userData.password;
       }
 
-      // ✅ CRITICAL FIX: دايمًا ابعثي shared_line للـ Admin role
-      if (normalizedRole === 'Admin') {
-        // ✅ تأكدي انه القيمة رقم (0 أو 1)
-        updatedData.shared_line = Number(userData.shared_line ?? 0);
-      }
-
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
         updatedData.image = userData.image;
       }
-
-      console.log('✅ Sending update data:', updatedData); // للـ debugging
 
       await usersStore.updateUser(selectedUser.value.id, updatedData);
       console.log("✅ User updated successfully!");
@@ -882,15 +844,10 @@ const handleSubmitUser = async (userData) => {
         password: userData.password,
         phone_number: userData.phone_number,
         role: normalizedRole,
-        company_id: isAdmin.value ? companyId.value : (userData.company_id || null),
+        company_id: isAdmin.value ? companyId.value : (userData.company_id || null), // ✅ Force Admin's company
         region_id: userData.region_id || null,
         currency_id: userData.currency_id || null,
       };
-
-      // ✅ أضيفي shared_line للـ Admin role
-      if (normalizedRole === 'Admin') {
-        newUser.shared_line = Number(userData.shared_line ?? 0);
-      }
 
       // Add optional email field only if provided
       if (userData.email) newUser.email = userData.email;
@@ -899,8 +856,6 @@ const handleSubmitUser = async (userData) => {
       if (userData.image && userData.image instanceof File) {
         newUser.image = userData.image;
       }
-
-      console.log('✅ Sending new user data:', newUser); // للـ debugging
 
       await usersStore.addUser(newUser);
       console.log("✅ User added successfully!");

@@ -191,8 +191,6 @@ export default {
       companyPlaceholder: "Select company",
       uploadImage: "Upload Image",
       removeImage: "Remove",
-      sharedLine: "Shared Lines",
-      sharedLineHelp: "Allow this admin to see all lines created by SuperAdmin",
     },
 
     // Validation Messages
