@@ -499,6 +499,25 @@ const userFields = computed(() => [
     locked: !isSuperAdmin.value, // ✅ Locked for Admin
     hidden: !isSuperAdmin.value, // ✅ Hidden for Admin
   },
+
+
+{
+  name: "shared_line",
+  label: t("user.form.sharedLine"),
+  type: "checkbox",
+  required: false,
+  colClass: "col-md-6",
+  defaultValue: isEditMode.value ? selectedUser.value.shared_line : 0,
+  trueValue: 1,
+  falseValue: 0,
+  // ✅ Show only for Admin role
+  hidden: (formData) => {
+    const selectedRole = Array.isArray(formData.role) 
+      ? formData.role[0] 
+      : formData.role;
+    return selectedRole !== 'Admin';
+  },
+},
   {
     name: "region_id",
     label: t("user.form.region"),
@@ -536,6 +555,13 @@ const detailsFields = computed(() => [
     label: t("user.userRole"),
     translationKey: "roles",
     colClass: "col-md-6",
+  },
+    // ✅ Add shared_line field
+  {
+    key: "shared_line",
+    label: t("user.form.sharedLine"),
+    colClass: "col-md-6",
+    translator: (value) => value === 1 ? t("common.yes") : t("common.no")
   },
   { key: "company_name", label: t("user.company"), colClass: "col-md-12" },
 ]);
@@ -733,7 +759,8 @@ const openEditModal = (user) => {
 
 // Details Modal
 const openDetailsModal = (user) => {
-  selectedUser.value = { ...user };
+  const freshUser = usersStore.users.find(u => u.id === user.id) || user;
+  selectedUser.value = { ...freshUser };
 
   if (selectedUser.value.image) {
     selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
@@ -758,6 +785,8 @@ const closeDeleteModal = () => {
   isDeleteModalOpen.value = false;
   userToDelete.value = null;
 };
+
+// src/modules/user/view/user.vue
 
 const handleSubmitUser = async (userData) => {
   try {
@@ -826,6 +855,11 @@ const handleSubmitUser = async (userData) => {
         updatedData.password = userData.password;
       }
 
+      // ✅ Add shared_line if role is Admin and value changed
+      if (normalizedRole === 'Admin' && userData.shared_line !== selectedUser.value.shared_line) {
+        updatedData.shared_line = userData.shared_line;
+      }
+
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
         updatedData.image = userData.image;
@@ -844,9 +878,11 @@ const handleSubmitUser = async (userData) => {
         password: userData.password,
         phone_number: userData.phone_number,
         role: normalizedRole,
-        company_id: isAdmin.value ? companyId.value : (userData.company_id || null), // ✅ Force Admin's company
+        company_id: isAdmin.value ? companyId.value : (userData.company_id || null),
         region_id: userData.region_id || null,
         currency_id: userData.currency_id || null,
+        // ✅ Add shared_line for Admin role
+        ...(normalizedRole === 'Admin' && { shared_line: userData.shared_line || 0 })
       };
 
       // Add optional email field only if provided

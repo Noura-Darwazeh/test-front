@@ -41,23 +41,27 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     return { id: value, name: fallbackName };
   };
 
-  const normalizeUser = (user) => {
-    const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
-    const companyInfo = extractIdName(user.company ?? user.company_id);
-    const regionInfo = extractIdName(user.region ?? user.region_id);
-    const currencyInfo = extractIdName(user.currency ?? user.currency_id);
+// src/modules/user/store/usersManagement.js
 
-    return {
-      ...user,
-      role: roleValue ?? "",
-      company_id: companyInfo.id ?? null,
-      company_name: user.company_name || companyInfo.name || "",
-      region_id: regionInfo.id ?? null,
-      region_name: user.region_name || regionInfo.name || "",
-      currency_id: currencyInfo.id ?? null,
-      currency_name: user.currency_name || currencyInfo.name || "",
-    };
+const normalizeUser = (user) => {
+  const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
+  const companyInfo = extractIdName(user.company ?? user.company_id);
+  const regionInfo = extractIdName(user.region ?? user.region_id);
+  const currencyInfo = extractIdName(user.currency ?? user.currency_id);
+
+  return {
+    ...user,
+    role: roleValue ?? "",
+    company_id: companyInfo.id ?? null,
+    company_name: user.company_name || companyInfo.name || "",
+    region_id: regionInfo.id ?? null,
+    region_name: user.region_name || regionInfo.name || "",
+    currency_id: currencyInfo.id ?? null,
+    currency_name: user.currency_name || currencyInfo.name || "",
+    // ✅ Add shared_line with default value 0
+    shared_line: user.shared_line ?? 0,
   };
+};
 
   const extractUsersPayload = (payload) => {
     const dataRoot = payload?.data;

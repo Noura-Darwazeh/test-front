@@ -121,19 +121,25 @@
                   </div>
                 </div>
 
-                <!-- Checkbox -->
-                <div v-else-if="field.type === 'checkbox'" class="form-check mt-2">
-                  <input
-                    :id="field.name"
-                    v-model="formData[field.name]"
-                    class="form-check-input"
-                    type="checkbox"
-                    :true-value="field.trueValue ?? 1"
-                    :false-value="field.falseValue ?? 0"
-                    :disabled="field.disabled"
-                    @change="handleFieldInput(field)"
-                  />
-                </div>
+               <!-- Checkbox -->
+<div v-else-if="field.type === 'checkbox'" class="d-flex align-items-center gap-3 mt-2">
+  <div class="form-check form-switch">
+    <input
+      :id="field.name"
+      v-model="formData[field.name]"
+      class="form-check-input"
+      type="checkbox"
+      role="switch"
+      :true-value="field.trueValue ?? 1"
+      :false-value="field.falseValue ?? 0"
+      :disabled="field.disabled"
+      @change="handleFieldInput(field)"
+    />
+  </div>
+  <span class="fw-medium" :class="formData[field.name] === (field.trueValue ?? 1) ? 'text-success' : 'text-muted'">
+    {{ formData[field.name] === (field.trueValue ?? 1) ? t('common.yes') : t('common.no') }}
+  </span>
+</div>
 
                 <!-- Button field -->
                 <PrimaryButton v-else-if="field.type === 'button'" type="button" :text="field.text || field.label"
