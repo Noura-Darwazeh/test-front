@@ -44,18 +44,44 @@
             <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
                 <div class="card border-0">
                     <div class="card-body p-0">
-                        <BulkActionsBar v-if="canAddWorkPlan" :selectedCount="selectedRows.length" entityName="workPlan"
-                            :actions="bulkActions" :loading="bulkActionLoading" @action="handleBulkAction" />
-                        <DataTable :columns="filteredColumns" :data="paginatedTableData"
-                            :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
-                            :showCheckbox="canAddWorkPlan">
+                        <BulkActionsBar 
+                            v-if="canAddWorkPlan && selectedRows.some(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            })" 
+                            :selectedCount="selectedRows.filter(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            }).length" 
+                            entityName="workPlan"
+                            :actions="bulkActions" 
+                            :loading="bulkActionLoading" 
+                            @action="handleBulkAction" 
+                        />
+                        <DataTable 
+                            :columns="filteredColumns" 
+                            :data="paginatedTableData"
+                            :actionsLabel="$t('workPlan.actions')" 
+                            v-model="selectedRows"
+                            :showCheckbox="canAddWorkPlan"
+                            :disableRowWhen="(row) => !canModifyPlan(row)">
                             <template #actions="{ row }">
-                                <ActionsDropdown v-if="canAddWorkPlan" :row="row" :editLabel="$t('workPlan.edit')"
-                                    :detailsLabel="$t('workPlan.details')" :deleteLabel="$t('workPlan.delete')"
-                                    :confirmDelete="true" @edit="openEditModal" @details="openDetailsModal"
+                                <ActionsDropdown 
+                                    v-if="canModifyPlan(row)" 
+                                    :row="row" 
+                                    :editLabel="$t('workPlan.edit')"
+                                    :detailsLabel="$t('workPlan.details')" 
+                                    :deleteLabel="$t('workPlan.delete')"
+                                    :confirmDelete="true" 
+                                    @edit="openEditModal" 
+                                    @details="openDetailsModal"
                                     @delete="handleDeleteWorkPlan" />
-                                <PrimaryButton v-else :text="$t('workPlan.details')" bgColor="var(--primary-color)"
-                                    class="d-inline-flex align-items-center" @click="openDetailsModal(row)" />
+                                <PrimaryButton 
+                                    v-else 
+                                    :text="$t('workPlan.details')" 
+                                    bgColor="var(--primary-color)"
+                                    class="d-inline-flex align-items-center" 
+                                    @click="openDetailsModal(row)" />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -72,19 +98,45 @@
                 :class="{ 'show active': activeTab === 'trashed' }">
                 <div class="card border-0">
                     <div class="card-body p-0">
-                        <BulkActionsBar v-if="canAddWorkPlan" :selectedCount="selectedRows.length" entityName="workPlan"
-                            :actions="bulkActions" :loading="bulkActionLoading" @action="handleBulkAction" />
-                        <DataTable :columns="filteredColumns" :data="paginatedTableData"
-                            :actionsLabel="$t('workPlan.actions')" v-model="selectedRows"
-                            :showCheckbox="canAddWorkPlan">
+                        <BulkActionsBar 
+                            v-if="canAddWorkPlan && selectedRows.some(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            })" 
+                            :selectedCount="selectedRows.filter(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            }).length" 
+                            entityName="workPlan"
+                            :actions="bulkActions" 
+                            :loading="bulkActionLoading" 
+                            @action="handleBulkAction" 
+                        />
+                        <DataTable 
+                            :columns="filteredColumns" 
+                            :data="paginatedTableData"
+                            :actionsLabel="$t('workPlan.actions')" 
+                            v-model="selectedRows"
+                            :showCheckbox="canAddWorkPlan"
+                            :disableRowWhen="(row) => !canModifyPlan(row)">
                             <template #actions="{ row }">
-                                <ActionsDropdown v-if="canAddWorkPlan" :row="row"
+                                <ActionsDropdown 
+                                    v-if="canModifyPlan(row)" 
+                                    :row="row"
                                     :restoreLabel="$t('workPlan.trashed.restore')"
-                                    :deleteLabel="$t('workPlan.trashed.delete')" :showEdit="false" :showDetails="false"
-                                    :showRestore="true" :confirmDelete="true" @restore="handleRestoreworkPlan"
+                                    :deleteLabel="$t('workPlan.trashed.delete')" 
+                                    :showEdit="false" 
+                                    :showDetails="false"
+                                    :showRestore="true" 
+                                    :confirmDelete="true" 
+                                    @restore="handleRestoreworkPlan"
                                     @delete="handlePermanentDeleteWorkPlan" />
-                                <PrimaryButton v-else :text="$t('workPlan.details')" bgColor="var(--primary-color)"
-                                    class="d-inline-flex align-items-center" @click="openDetailsModal(row)" />
+                                <PrimaryButton 
+                                    v-else 
+                                    :text="$t('workPlan.details')" 
+                                    bgColor="var(--primary-color)"
+                                    class="d-inline-flex align-items-center" 
+                                    @click="openDetailsModal(row)" />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -207,17 +259,43 @@ const loadingDetails = ref(false);
 // ✅ Permissions
 const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
 const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
-const canAddWorkPlan = computed(() => isAdmin.value);
+const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
+
+// ✅ SuperAdmin يقدر يضيف/يعدل/يحذف فقط لشركته
+const canAddWorkPlan = computed(() => {
+  if (isDriver.value) return false;
+  return isAdmin.value || isSuperAdmin.value;
+});
+
+// ✅ دالة جديدة: تحقق إذا الـ work plan تابع لشركة المستخدم
+const isOwnCompanyPlan = (plan) => {
+  if (!companyId.value) return false;
+  const planCompanyId = String(plan.company_id);
+  return planCompanyId === String(companyId.value);
+};
+
+// ✅ دالة جديدة: يقدر يعدل/يحذف؟
+const canModifyPlan = (plan) => {
+  if (isDriver.value) return false;
+  if (isAdmin.value) return true; // Admin يقدر يعدل كل شي بشركته
+  if (isSuperAdmin.value) {
+    // SuperAdmin يقدر يعدل فقط plans شركته
+    return isOwnCompanyPlan(plan);
+  }
+  return false;
+};
 
 // Get work plans based on user role
 const workPlans = computed(() => {
     const allPlans = workPlansStore.workPlans;
 
     if (isSuperAdmin.value) {
+        // ✅ SuperAdmin يشوف كل الـ plans
         return allPlans;
     }
 
     if (isAdmin.value) {
+        // Admin يشوف فقط plans شركته
         if (companyId.value) {
             const filtered = allPlans.filter(plan => {
                 const planCompanyId = String(plan.company_id);
@@ -229,6 +307,7 @@ const workPlans = computed(() => {
         }
     }
 
+    // Driver - no access
     return [];
 });
 
@@ -720,10 +799,13 @@ const openAddModal = async () => {
 };
 
 const openEditModal = async (workPlan) => {
-    if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to edit work plans");
+    // ✅ التحقق من الصلاحية
+    if (!canModifyPlan(workPlan)) {
+        console.warn("⚠️ You don't have permission to edit this work plan");
+        alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
         return;
     }
+    
     clearFormErrors();
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
@@ -870,10 +952,13 @@ const handleSubmitworkPlan = async (workPlanData) => {
 };
 
 const handleRestoreworkPlan = async (workPlan) => {
-    if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to restore work plans");
+    // ✅ التحقق من الصلاحية
+    if (!canModifyPlan(workPlan)) {
+        console.warn("⚠️ You don't have permission to restore this work plan");
+        alert(t('workPlan.noPermissionToRestore') || "You don't have permission to restore this work plan");
         return;
     }
+    
     try {
         await workPlansStore.restoreWorkPlan(workPlan.id);
         console.log("✅ Work plan restored successfully!");
@@ -885,10 +970,13 @@ const handleRestoreworkPlan = async (workPlan) => {
 };
 
 const handleDeleteWorkPlan = async (workPlan) => {
-    if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to delete work plans");
+    // ✅ التحقق من الصلاحية
+    if (!canModifyPlan(workPlan)) {
+        console.warn("⚠️ You don't have permission to delete this work plan");
+        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
         return;
     }
+    
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id);
         console.log("✅ Work plan deleted successfully!");
@@ -900,10 +988,13 @@ const handleDeleteWorkPlan = async (workPlan) => {
 };
 
 const handlePermanentDeleteWorkPlan = async (workPlan) => {
-    if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to permanently delete work plans");
+    // ✅ التحقق من الصلاحية
+    if (!canModifyPlan(workPlan)) {
+        console.warn("⚠️ You don't have permission to permanently delete this work plan");
+        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to permanently delete this work plan");
         return;
     }
+    
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id, true);
         console.log("✅ Work plan permanently deleted successfully!");
@@ -919,6 +1010,21 @@ const handleBulkAction = ({ actionId }) => {
         console.warn("⚠️ User doesn't have permission for bulk actions");
         return;
     }
+    
+    // ✅ فلترة الصفوف حسب الصلاحية
+    const validRows = selectedRows.value.filter(id => {
+        const plan = paginatedTableData.value.find(p => p.id === id);
+        return plan && canModifyPlan(plan);
+    });
+    
+    if (validRows.length === 0) {
+        alert(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
+        return;
+    }
+    
+    // ✅ تحديث الصفوف المحددة
+    selectedRows.value = validRows;
+    
     pendingBulkAction.value = actionId;
     isBulkConfirmOpen.value = true;
 };
