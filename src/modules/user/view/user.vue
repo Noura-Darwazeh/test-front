@@ -787,6 +787,7 @@ const closeDeleteModal = () => {
 };
 
 // src/modules/user/view/user.vue
+// في src/modules/user/view/user.vue
 
 const handleSubmitUser = async (userData) => {
   try {
@@ -855,15 +856,18 @@ const handleSubmitUser = async (userData) => {
         updatedData.password = userData.password;
       }
 
-      // ✅ Add shared_line if role is Admin and value changed
-      if (normalizedRole === 'Admin' && userData.shared_line !== selectedUser.value.shared_line) {
-        updatedData.shared_line = userData.shared_line;
+      // ✅ CRITICAL FIX: دايمًا ابعثي shared_line للـ Admin role
+      if (normalizedRole === 'Admin') {
+        // ✅ تأكدي انه القيمة رقم (0 أو 1)
+        updatedData.shared_line = Number(userData.shared_line ?? 0);
       }
 
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
         updatedData.image = userData.image;
       }
+
+      console.log('✅ Sending update data:', updatedData); // للـ debugging
 
       await usersStore.updateUser(selectedUser.value.id, updatedData);
       console.log("✅ User updated successfully!");
@@ -881,9 +885,12 @@ const handleSubmitUser = async (userData) => {
         company_id: isAdmin.value ? companyId.value : (userData.company_id || null),
         region_id: userData.region_id || null,
         currency_id: userData.currency_id || null,
-        // ✅ Add shared_line for Admin role
-        ...(normalizedRole === 'Admin' && { shared_line: userData.shared_line || 0 })
       };
+
+      // ✅ أضيفي shared_line للـ Admin role
+      if (normalizedRole === 'Admin') {
+        newUser.shared_line = Number(userData.shared_line ?? 0);
+      }
 
       // Add optional email field only if provided
       if (userData.email) newUser.email = userData.email;
@@ -892,6 +899,8 @@ const handleSubmitUser = async (userData) => {
       if (userData.image && userData.image instanceof File) {
         newUser.image = userData.image;
       }
+
+      console.log('✅ Sending new user data:', newUser); // للـ debugging
 
       await usersStore.addUser(newUser);
       console.log("✅ User added successfully!");

@@ -121,7 +121,7 @@
                   </div>
                 </div>
 
-               <!-- Checkbox -->
+<!-- Checkbox -->
 <div v-else-if="field.type === 'checkbox'" class="d-flex align-items-center gap-3 mt-2">
   <div class="form-check form-switch">
     <input
@@ -578,7 +578,6 @@ const renderFields = computed(() =>
 // Initialize form
 // في src/components/shared/FormModal.vue
 
-// Initialize form
 const initializeForm = () => {
   if (!props.fields || props.fields.length === 0) return;
 
@@ -587,14 +586,13 @@ const initializeForm = () => {
   props.fields.forEach((field) => {
     if (field && field.name) {
       if (field.type === "orderRows") {
-        // ✅ تعديل هون
         const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
           ? field.defaultValue
           : [{ order: "", items: [] }];
         
         formData[field.name] = defaultRows.map((row) => ({
           order: row?.order || "",
-          items: Array.isArray(row?.items) ? [...row.items] : [] // ✅ نسخ الـ items
+          items: Array.isArray(row?.items) ? [...row.items] : []
         }));
       } else if (field.type === "branchRows") {
         const defaultRows =
@@ -606,7 +604,16 @@ const initializeForm = () => {
           latitude: row?.latitude ?? "",
           longitude: row?.longitude ?? "",
         }));
-      } else {
+      } 
+      // ✅ أضيفي هاي الـ condition للـ checkbox
+      else if (field.type === "checkbox") {
+        const trueValue = field.trueValue ?? 1;
+        const falseValue = field.falseValue ?? 0;
+        // ✅ تأكدي انه القيمة رقم مش string
+        const defaultVal = field.defaultValue ?? falseValue;
+        formData[field.name] = Number(defaultVal) === Number(trueValue) ? trueValue : falseValue;
+      }
+      else {
         formData[field.name] = resolveDefaultValue(field);
       }
       errors[field.name] = "";
@@ -621,9 +628,8 @@ const initializeForm = () => {
     }
   }
 };
+ 
 
-
-// Reset form
 // Reset form
 const resetForm = () => {
   if (!props.fields || props.fields.length === 0) return;

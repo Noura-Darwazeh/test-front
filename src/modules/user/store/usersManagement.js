@@ -43,6 +43,8 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
 
 // src/modules/user/store/usersManagement.js
 
+// في src/modules/user/store/usersManagement.js
+
 const normalizeUser = (user) => {
   const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
   const companyInfo = extractIdName(user.company ?? user.company_id);
@@ -58,8 +60,7 @@ const normalizeUser = (user) => {
     region_name: user.region_name || regionInfo.name || "",
     currency_id: currencyInfo.id ?? null,
     currency_name: user.currency_name || currencyInfo.name || "",
-    // ✅ Add shared_line with default value 0
-    shared_line: user.shared_line ?? 0,
+    shared_line: Number(user.shared_line ?? 0),
   };
 };
 
