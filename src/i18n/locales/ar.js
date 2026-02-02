@@ -518,7 +518,9 @@
     title: "جدول الشركات",
     pageTitle: "إدارة الشركات",
     pageSubtitle: "إدارة الشركات وتفاصيلها",
-
+    sharedLine: "مشاركة الخطوط",
+    sharedLineEnabled: "الخطوط مشاركة مع المدراء",
+    sharedLineDisabled: "الخطوط خاصة بالشركة",
     // الإجراءات
     searchPlaceholder: "البحث عن شركات...",
     search: "بحث",

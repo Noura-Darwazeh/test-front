@@ -97,22 +97,32 @@
                 <span v-else class="text-muted">—</span>
               </td>
 
-              <td v-for="col in columns" :key="col.key" class="text-dark">
-                <StatusBadge
-                  v-if="col.component === 'StatusBadge'"
-                  :status="row[col.key]"
-                  v-bind="col.componentProps || {}"
-                />
-                <span v-else>
-                  {{
-                    col.key === "__index" || col.isIndex
-                      ? rowIndex + 1
-                      : col.formatter
-                        ? col.formatter(row[col.key], row, rowIndex)
-                        : row[col.key]
-                  }}
-                </span>
-              </td>
+             <td v-for="col in columns" :key="col.key" class="text-dark">
+  <!-- Custom Slot for Column -->
+  <slot 
+    v-if="$slots[`cell-${col.key}`]" 
+    :name="`cell-${col.key}`" 
+    :row="row"
+  ></slot>
+  
+  <!-- StatusBadge Component -->
+  <StatusBadge
+    v-else-if="col.component === 'StatusBadge'"
+    :status="row[col.key]"
+    v-bind="col.componentProps || {}"
+  />
+  
+  <!-- Default Text -->
+  <span v-else>
+    {{
+      col.key === "__index" || col.isIndex
+        ? rowIndex + 1
+        : col.formatter
+          ? col.formatter(row[col.key], row, rowIndex)
+          : row[col.key]
+    }}
+  </span>
+</td>
 
               <!-- Actions Slot -->
               <td v-if="hasActionsSlot" class="text-center" @click.stop>
@@ -180,21 +190,31 @@
               </small>
             </div>
             <div class="col-7 ps-2" :class="{ 'text-start': isRTL }">
-              <StatusBadge
-                v-if="col.component === 'StatusBadge'"
-                :status="row[col.key]"
-                v-bind="col.componentProps || {}"
-              />
-              <span v-else class="text-dark fw-medium d-block">
-                {{
-                  col.key === "__index" || col.isIndex
-                    ? rowIndex + 1
-                    : col.formatter
-                      ? col.formatter(row[col.key], row, rowIndex)
-                      : row[col.key]
-                }}
-              </span>
-            </div>
+  <!-- Custom Slot for Column -->
+  <slot 
+    v-if="$slots[`cell-${col.key}`]" 
+    :name="`cell-${col.key}`" 
+    :row="row"
+  ></slot>
+  
+  <!-- StatusBadge Component -->
+  <StatusBadge
+    v-else-if="col.component === 'StatusBadge'"
+    :status="row[col.key]"
+    v-bind="col.componentProps || {}"
+  />
+  
+  <!-- Default Text -->
+  <span v-else class="text-dark fw-medium d-block">
+    {{
+      col.key === "__index" || col.isIndex
+        ? rowIndex + 1
+        : col.formatter
+          ? col.formatter(row[col.key], row, rowIndex)
+          : row[col.key]
+    }}
+  </span>
+</div>
           </div>
 
           <!-- Mobile Expanded Content -->

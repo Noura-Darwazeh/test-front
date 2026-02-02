@@ -474,7 +474,16 @@ class ApiServices {
 
     return this.updateEntity("companies", companyId, companyData);
   }
-
+  async updateCompanySharedLine(companyId, sharedLine) {
+    try {
+      return this.patch(`/companies/${companyId}/shared-line`, {
+        shared_line: sharedLine
+      });
+    } catch (error) {
+      console.error('❌ Error updating shared line:', error);
+      throw error;
+    }
+  }
   async deleteCompany(companyId, force = false) {
     return this.deleteEntity("companies", companyId, force);
   }
@@ -780,22 +789,22 @@ class ApiServices {
   }
 
   // ✅ Add new function for filtered orders
-async getOrdersWithItems(filters = {}) {
-  const params = new URLSearchParams();
-  
-  if (filters.line_name) {
-    params.append('line_name', filters.line_name);
+  async getOrdersWithItems(filters = {}) {
+    const params = new URLSearchParams();
+
+    if (filters.line_name) {
+      params.append('line_name', filters.line_name);
+    }
+
+    if (filters.case) {
+      params.append('case', filters.case);
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `/orders_with_items?${queryString}` : '/orders_with_items';
+
+    return api.get(url);
   }
-  
-  if (filters.case) {
-    params.append('case', filters.case);
-  }
-  
-  const queryString = params.toString();
-  const url = queryString ? `/orders_with_items?${queryString}` : '/orders_with_items';
-  
-  return api.get(url);
-}
 
   // ===== Line Work Services =====
   async getLineWorks({ page = 1, perPage = 10 } = {}) {
@@ -848,24 +857,24 @@ async getOrdersWithItems(filters = {}) {
     return this.get(`/work_plan/driver/${driverId}`);
   }
 
-async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
-  try {
-    console.log('🔄 API: Reassigning work plans and deleting driver:', {
-      workplan: workplanIds,
-      driver_id_old: oldDriverId,
-      driver_id_new: newDriverId
-    });
+  async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
+    try {
+      console.log('🔄 API: Reassigning work plans and deleting driver:', {
+        workplan: workplanIds,
+        driver_id_old: oldDriverId,
+        driver_id_new: newDriverId
+      });
 
-    return this.patch("/work_plan/reassign_driver", {
-      workplan: workplanIds,
-      driver_id_old: oldDriverId,
-      driver_id_new: newDriverId
-    });
-  } catch (error) {
-    console.error('❌ Error in reassignDriverWorkPlans:', error);
-    throw error;
+      return this.patch("/work_plan/reassign_driver", {
+        workplan: workplanIds,
+        driver_id_old: oldDriverId,
+        driver_id_new: newDriverId
+      });
+    } catch (error) {
+      console.error('❌ Error in reassignDriverWorkPlans:', error);
+      throw error;
+    }
   }
-}
 
   async createWorkPlan(workPlanData) {
     const cleanData = Object.entries(workPlanData).reduce(
@@ -1023,83 +1032,83 @@ async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
   }
 
   // في src/services/apiServices.js
-// أضيفي هاي الدوال الجديدة
+  // أضيفي هاي الدوال الجديدة
 
-// ===== Collections Services =====
-async getCollections({ page = 1, perPage = 10 } = {}) {
-  return this.get(`/collections?page=${page}&per_page=${perPage}`);
-}
-
-async getTrashedCollections({ page = 1, perPage = 10 } = {}) {
-  return this.getTrashedEntities("collections", { page, perPage });
-}
-
-async updateCollection(collectionId, collectionData) {
-  try {
-    return this.post(`/collections/${collectionId}`, collectionData, {
-      headers: {
-        "X-HTTP-Method-Override": "PATCH",
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error in updateCollection:", error);
-    throw error;
+  // ===== Collections Services =====
+  async getCollections({ page = 1, perPage = 10 } = {}) {
+    return this.get(`/collections?page=${page}&per_page=${perPage}`);
   }
-}
 
-async deleteCollection(collectionId, force = false) {
-  return this.deleteEntity("collections", collectionId, force);
-}
+  async getTrashedCollections({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("collections", { page, perPage });
+  }
 
-async restoreCollection(collectionId) {
-  return this.restoreEntity("collections", collectionId);
-}
+  async updateCollection(collectionId, collectionData) {
+    try {
+      return this.post(`/collections/${collectionId}`, collectionData, {
+        headers: {
+          "X-HTTP-Method-Override": "PATCH",
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error in updateCollection:", error);
+      throw error;
+    }
+  }
 
-async bulkDeleteCollections(collectionIds, force = false) {
-  return this.bulkDeleteEntities("collection", "collections", collectionIds, force);
-}
+  async deleteCollection(collectionId, force = false) {
+    return this.deleteEntity("collections", collectionId, force);
+  }
 
-async bulkRestoreCollections(collectionIds) {
-  return this.bulkRestoreEntities("collection", "collections", collectionIds);
-}
+  async restoreCollection(collectionId) {
+    return this.restoreEntity("collections", collectionId);
+  }
 
-async markCollectionsAsPaid(collectionData) {
-  return this.patch("/collections", collectionData);
-}
+  async bulkDeleteCollections(collectionIds, force = false) {
+    return this.bulkDeleteEntities("collection", "collections", collectionIds, force);
+  }
+
+  async bulkRestoreCollections(collectionIds) {
+    return this.bulkRestoreEntities("collection", "collections", collectionIds);
+  }
+
+  async markCollectionsAsPaid(collectionData) {
+    return this.patch("/collections", collectionData);
+  }
 
 
-// ===== Invoice Services =====
-async getInvoices({ page = 1, perPage = 10 } = {}) {
-  return this.get(`/invoices?page=${page}&per_page=${perPage}`);
-}
+  // ===== Invoice Services =====
+  async getInvoices({ page = 1, perPage = 10 } = {}) {
+    return this.get(`/invoices?page=${page}&per_page=${perPage}`);
+  }
 
-async getTrashedInvoices({ page = 1, perPage = 10 } = {}) {
-  return this.getTrashedEntities("invoices", { page, perPage });
-}
+  async getTrashedInvoices({ page = 1, perPage = 10 } = {}) {
+    return this.getTrashedEntities("invoices", { page, perPage });
+  }
 
-async deleteInvoice(invoiceId, force = false) {
-  return this.deleteEntity("invoices", invoiceId, force);
-}
+  async deleteInvoice(invoiceId, force = false) {
+    return this.deleteEntity("invoices", invoiceId, force);
+  }
 
-async restoreInvoice(invoiceId) {
-  return this.restoreEntity("invoices", invoiceId);
-}
+  async restoreInvoice(invoiceId) {
+    return this.restoreEntity("invoices", invoiceId);
+  }
 
-async bulkDeleteInvoices(invoiceIds, force = false) {
-  return this.bulkDeleteEntities("invoice", "invoices", invoiceIds, force);
-}
+  async bulkDeleteInvoices(invoiceIds, force = false) {
+    return this.bulkDeleteEntities("invoice", "invoices", invoiceIds, force);
+  }
 
-async bulkRestoreInvoices(invoiceIds) {
-  return this.bulkRestoreEntities("invoice", "invoices", invoiceIds);
-}
+  async bulkRestoreInvoices(invoiceIds) {
+    return this.bulkRestoreEntities("invoice", "invoices", invoiceIds);
+  }
 
-// ===== Invoice Creation from Collections =====
-async createInvoiceFromCollections(collectionIds) {
-  return this.post("/invoices", {
-    collection_ids: collectionIds
-  });
-}
+  // ===== Invoice Creation from Collections =====
+  async createInvoiceFromCollections(collectionIds) {
+    return this.post("/invoices", {
+      collection_ids: collectionIds
+    });
+  }
 }
 
 // Create and freeze the singleton instance

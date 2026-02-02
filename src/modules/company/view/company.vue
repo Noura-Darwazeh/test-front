@@ -33,6 +33,15 @@
                 <div class="card-body p-0">
                     <DataTable :columns="filteredColumns" :data="paginatedcompanies" v-model="selectedRows"
                         :actionsLabel="$t('company.actions')">
+                        <!-- Shared Line Column -->
+                        <template #cell-shared_line="{ row }">
+                            <SharedLineToggle 
+                                :companyId="row.id"
+                                :sharedLine="row.shared_line"
+                                @updated="handleSharedLineUpdate"
+                            />
+                        </template>
+                        
                         <template #actions="{ row }">
                             <ActionsDropdown :row="row" :editLabel="$t('company.edit')"
                                 :detailsLabel="$t('company.details')" :deleteLabel="$t('company.delete')"
@@ -63,6 +72,15 @@
                 <div class="card-body p-0">
                     <DataTable :columns="filteredColumns" :data="paginatedTrashedCompanies" v-model="selectedRows"
                         :actionsLabel="$t('company.actions')">
+                        <!-- Shared Line Column for Trashed -->
+                        <template #cell-shared_line="{ row }">
+                            <SharedLineToggle 
+                                :companyId="row.id"
+                                :sharedLine="row.shared_line"
+                                @updated="handleSharedLineUpdate"
+                            />
+                        </template>
+                        
                         <template #actions="{ row }">
                             <ActionsDropdown :row="row" :restoreLabel="$t('company.trashed.restore')"
                                 :deleteLabel="$t('company.trashed.delete')" :showEdit="false" :showDetails="false"
@@ -220,6 +238,7 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SharedLineToggle from "../../../components/shared/SharedLineToggle.vue";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import CompanyHeader from "../components/companyHeader.vue";
@@ -335,12 +354,19 @@ const detailsFields = computed(() => [
     { key: 'id', label: t('company.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('company.name'), colClass: 'col-md-6' },
     { key: 'type', label: t('company.type'), translationKey: 'companyTypes', colClass: 'col-md-6' },
+    { 
+        key: 'shared_line', 
+        label: t('company.sharedLine'), 
+        colClass: 'col-md-6',
+        translator: (value) => value === 1 ? t('company.sharedLineEnabled') : t('company.sharedLineDisabled')
+    },
 ]);
 
 const companyColumns = ref([
     { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("company.name"), sortable: true },
     { key: "type", label: t("company.type"), sortable: false },
+    { key: "shared_line", label: t("company.sharedLine"), sortable: false },
 ]);
 
 const visibleColumns = ref([]);
@@ -687,6 +713,21 @@ const handleRefresh = async () => {
         }
     } catch (error) {
         console.error("Failed to refresh companies:", error);
+    }
+};
+
+// ✅ Handler for Shared Line Toggle
+const handleSharedLineUpdate = ({ companyId, sharedLine }) => {
+    // Update local data in active companies
+    const company = companies.value.find(c => c.id === companyId);
+    if (company) {
+        company.shared_line = sharedLine;
+    }
+    
+    // Also update in trashed if exists
+    const trashedCompany = trashedCompanies.value.find(c => c.id === companyId);
+    if (trashedCompany) {
+        trashedCompany.shared_line = sharedLine;
     }
 };
 </script>

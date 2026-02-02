@@ -508,7 +508,9 @@ export default {
   company: {
     // Page Headers
     title: "Company Table",
-
+    sharedLine: "Shared Line",
+    sharedLineEnabled: "Lines shared with admins",
+    sharedLineDisabled: "Lines private to company",
     // Actions
     searchPlaceholder: "Search companies...",
     search: "Search",
