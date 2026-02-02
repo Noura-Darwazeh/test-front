@@ -26,16 +26,16 @@
         v-if="showPassword"
         :src="showIcon"
         alt=""
-        width="28"
-        height="28"
+        width="24"
+        height="24"
         class="iconEye"
       />
       <img
         v-else
         :src="hideIcon"
         alt=""
-        width="28"
-        height="28"
+        width="24"
+        height="24"
         class="iconEye"
       />
     </button>
@@ -98,7 +98,7 @@ function togglePasswordVisibility() {
 
 <style scoped>
 .form-control {
-  border: 2px solid var(--border-light);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 0.875rem 1rem;
   font-size: 0.9375rem;
@@ -119,8 +119,8 @@ function togglePasswordVisibility() {
 
 .form-control:focus {
   outline: none;
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 4px var(--primary-100);
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 4px var( --primary-text);
 }
 
 .form-control.pe-5 {

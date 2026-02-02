@@ -66,22 +66,19 @@
                             :showCheckbox="canAddWorkPlan"
                             :disableRowWhen="(row) => !canModifyPlan(row)">
                             <template #actions="{ row }">
+                                <!-- ✅ Actions Dropdown مع التحكم بالخيارات -->
                                 <ActionsDropdown 
-                                    v-if="canModifyPlan(row)" 
                                     :row="row" 
                                     :editLabel="$t('workPlan.edit')"
                                     :detailsLabel="$t('workPlan.details')" 
                                     :deleteLabel="$t('workPlan.delete')"
-                                    :confirmDelete="true" 
+                                    :confirmDelete="true"
+                                    :showEdit="canModifyPlan(row)"
+                                    :showDelete="canModifyPlan(row)"
+                                    :showDetails="true"
                                     @edit="openEditModal" 
                                     @details="openDetailsModal"
                                     @delete="handleDeleteWorkPlan" />
-                                <PrimaryButton 
-                                    v-else 
-                                    :text="$t('workPlan.details')" 
-                                    bgColor="var(--primary-color)"
-                                    class="d-inline-flex align-items-center" 
-                                    @click="openDetailsModal(row)" />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -120,23 +117,22 @@
                             :showCheckbox="canAddWorkPlan"
                             :disableRowWhen="(row) => !canModifyPlan(row)">
                             <template #actions="{ row }">
+                                <!-- ✅ Trashed Actions Dropdown -->
                                 <ActionsDropdown 
-                                    v-if="canModifyPlan(row)" 
                                     :row="row"
                                     :restoreLabel="$t('workPlan.trashed.restore')"
-                                    :deleteLabel="$t('workPlan.trashed.delete')" 
+                                    :deleteLabel="$t('workPlan.trashed.delete')"
+                                    :detailsLabel="$t('workPlan.details')"
                                     :showEdit="false" 
-                                    :showDetails="false"
-                                    :showRestore="true" 
+                                    :showDetails="true"
+                                    :showRestore="canModifyPlan(row)" 
+                                    :showDelete="false"
+                                    :showPermanentDelete="canModifyPlan(row)"
+                                    :permanentDeleteLabel="$t('workPlan.trashed.delete')"
                                     :confirmDelete="true" 
+                                    @details="openDetailsModal"
                                     @restore="handleRestoreworkPlan"
-                                    @delete="handlePermanentDeleteWorkPlan" />
-                                <PrimaryButton 
-                                    v-else 
-                                    :text="$t('workPlan.details')" 
-                                    bgColor="var(--primary-color)"
-                                    class="d-inline-flex align-items-center" 
-                                    @click="openDetailsModal(row)" />
+                                    @permanent-delete="handlePermanentDeleteWorkPlan" />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
@@ -267,14 +263,14 @@ const canAddWorkPlan = computed(() => {
   return isAdmin.value || isSuperAdmin.value;
 });
 
-// ✅ دالة جديدة: تحقق إذا الـ work plan تابع لشركة المستخدم
+// ✅ دالة: تحقق إذا الـ work plan تابع لشركة المستخدم
 const isOwnCompanyPlan = (plan) => {
   if (!companyId.value) return false;
   const planCompanyId = String(plan.company_id);
   return planCompanyId === String(companyId.value);
 };
 
-// ✅ دالة جديدة: يقدر يعدل/يحذف؟
+// ✅ دالة: يقدر يعدل/يحذف؟
 const canModifyPlan = (plan) => {
   if (isDriver.value) return false;
   if (isAdmin.value) return true; // Admin يقدر يعدل كل شي بشركته
