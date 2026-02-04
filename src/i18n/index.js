@@ -6,7 +6,7 @@ import ar from "./locales/ar.js";
 // Get saved language from localStorage or detect browser language
 const getSavedLanguage = () => {
   // First, check localStorage
-  const savedLang = getItem("lang");
+  const savedLang = getItem("user_language");
   if (savedLang) {
     return savedLang;
   }
@@ -16,7 +16,7 @@ const getSavedLanguage = () => {
   const detectedLang = browserLang.startsWith("ar") ? "ar" : "en";
   
   // Save detected language to localStorage
-  setItem("lang", detectedLang);
+  setItem("user_language", detectedLang);
   
   return detectedLang;
 };
@@ -33,8 +33,12 @@ export const i18n = createI18n({
 
 // Function to change language and save to localStorage
 export const setLocale = (lang) => {
-  i18n.global.locale.value = lang;
-  setItem("lang", lang);
-  document.documentElement.lang = lang;
-  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  const normalizedLang = lang.toLowerCase(); 
+  i18n.global.locale.value = normalizedLang;
+  setItem("user_language", normalizedLang); 
+  
+  document.documentElement.lang = normalizedLang;
+  document.documentElement.dir = normalizedLang === "ar" ? "rtl" : "ltr";
+  
+  console.log("✅ Language changed to:", normalizedLang); 
 };

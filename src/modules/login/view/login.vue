@@ -157,7 +157,7 @@ const changeLanguage = (lang, close) => {
   currentLanguage.value = lang;
   setLocale(lang);
   close();
-  window.location.reload();
+ 
 };
 
 const nextSlide = () => currentSlide.value = (currentSlide.value + 1) % slides.length;
@@ -196,11 +196,7 @@ async function onSubmit() {
     // Save and apply user language
     setLocale(userLang);
     
-    // Reload if language changed
-    if (userLang !== currentLanguage.value) {
-      window.location.reload();
-      return;
-    }
+  
     
     router.push(authStore.user?.default_page || '/user');
   } catch (error) {
