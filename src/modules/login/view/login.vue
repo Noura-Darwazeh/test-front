@@ -1,5 +1,5 @@
 <template>
-  <div class=" login-container">
+  <div class="login-container">
     <!-- Language Selector -->
     <div class="position-fixed top-0 end-0 p-4" style="z-index: 1000;">
       <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
@@ -14,7 +14,6 @@
               <a class="dropdown-item rounded" :class="{ active: currentLanguage === 'en' }"
                 @click.prevent="changeLanguage('en', close)">
                 <div class="fw-semibold">English</div>
-                <i v-if="currentLanguage === 'en'" class="text-primary"></i>
               </a>
             </li>
             <li><hr class="dropdown-divider" /></li>
@@ -22,7 +21,6 @@
               <a class="dropdown-item rounded" :class="{ active: currentLanguage === 'ar' }"
                 @click.prevent="changeLanguage('ar', close)">
                 <div class="fw-semibold">العربية</div>
-                <i v-if="currentLanguage === 'ar'" class="text-primary"></i>
               </a>
             </li>
           </ul>
@@ -38,7 +36,7 @@
             <div class="logo-circle mx-auto mb-4">
               <img :src="packageIcon" alt="Logo" class="logo-icon" />
             </div>
-            <h2 class="fw-bold text-dark mb-2">{{ $t('login.title') }}</h2>
+            <h2 class="fw-bold mb-2">{{ $t('login.title') }}</h2>
             <p class="text-muted">{{ $t('login.subtitle') }}</p>
           </div>
 
@@ -110,7 +108,6 @@
 </template>
 
 <script setup>
-// Same script - no changes needed
 import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -212,19 +209,19 @@ async function onSubmit() {
 
 <style scoped>
 .login-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
- 
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+  min-height: 100vh;
 }
 
 .logo-circle {
   width: 80px;
   height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 30px rgba(var(--primary-color-rgb), 0.3);
   animation: pulse 2s infinite;
 }
 
@@ -239,11 +236,11 @@ async function onSubmit() {
 }
 
 .forgot-link {
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .forgot-link:hover {
-  color: #764ba2;
+  color: var(--primary-hover);
 }
 
 .carousel-section {
@@ -251,7 +248,7 @@ async function onSubmit() {
 }
 
 .overlay {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
+  background: linear-gradient(135deg, rgba(var(--primary-color-rgb), 0.7), rgba(var(--primary-color-rgb), 0.7));
 }
 
 .carousel-btn {
