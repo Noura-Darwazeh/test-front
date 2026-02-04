@@ -98,7 +98,7 @@ function togglePasswordVisibility() {
 
 <style scoped>
 .form-control {
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 0.875rem 1rem;
   font-size: 0.9375rem;
@@ -110,17 +110,7 @@ function togglePasswordVisibility() {
 
 .form-control::placeholder {
   color: var(--neutral-400);
-  font-weight: 400;
-}
-
-.form-control:hover {
-  border-color: var(--border-medium);
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 4px var( --primary-text);
+  font-weight: 100;
 }
 
 .form-control.pe-5 {

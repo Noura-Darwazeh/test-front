@@ -1,35 +1,28 @@
 <template>
-  <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light position-relative" style="padding:32px;">
-    <!-- Language Selector - Direct BaseDropdown Usage -->
-    <div class="position-absolute language-selector-wrapper">
+  <div class=" login-container">
+    <!-- Language Selector -->
+    <div class="position-fixed top-0 end-0 p-4" style="z-index: 1000;">
       <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
         <template #trigger>
-          <button class="btn btn-link p-0 language-trigger" type="button">
-            <span class="language-flag">{{ currentFlag }}</span>
+          <button class="btn btn-light border-primary shadow-sm" type="button">
+            <span>{{ currentLanguageLabel }}</span>
           </button>
         </template>
         <template #menu="{ close }">
           <ul class="list-unstyled mb-0">
             <li>
-              <a 
-                class="dropdown-item d-flex align-items-center gap-2" 
-                href="#" 
-                :class="{ active: currentLanguage === 'en' }"
-                @click.prevent="changeLanguage('en', close)"
-              >
-                <span>🇬🇧</span>
-                <span>English</span>
+              <a class="dropdown-item rounded" :class="{ active: currentLanguage === 'en' }"
+                @click.prevent="changeLanguage('en', close)">
+                <div class="fw-semibold">English</div>
+                <i v-if="currentLanguage === 'en'" class="text-primary"></i>
               </a>
             </li>
+            <li><hr class="dropdown-divider" /></li>
             <li>
-              <a 
-                class="dropdown-item d-flex align-items-center gap-2" 
-                href="#" 
-                :class="{ active: currentLanguage === 'ar' }"
-                @click.prevent="changeLanguage('ar', close)"
-              >
-                <span>🇸🇦</span>
-                <span>العربية</span>
+              <a class="dropdown-item rounded" :class="{ active: currentLanguage === 'ar' }"
+                @click.prevent="changeLanguage('ar', close)">
+                <div class="fw-semibold">العربية</div>
+                <i v-if="currentLanguage === 'ar'" class="text-primary"></i>
               </a>
             </li>
           </ul>
@@ -37,91 +30,79 @@
       </BaseDropdown>
     </div>
 
-    <div class="row shadow rounded-4 bg-white overflow-hidden g-0" style="max-width:1200px; width:100%">
-      <!-- LEFT: FORM -->
-      <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
-        <div style="max-width: 420px; width: 100%;">
-          <div class="text-center mb-4">
-            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-              style="width:64px;height:64px;background:var(--primary-color);color:#fff">
-              <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
+    <div class="row g-0 min-vh-100">
+      <!-- Form Section -->
+      <div class="col-lg-6 bg-white d-flex align-items-center justify-content-center p-4">
+        <div class="w-100" style="max-width: 480px;">
+          <div class="text-center mb-5">
+            <div class="logo-circle mx-auto mb-4">
+              <img :src="packageIcon" alt="Logo" class="logo-icon" />
             </div>
-            <h3 class="mb-0">{{ $t('login.title') }}</h3>
+            <h2 class="fw-bold text-dark mb-2">{{ $t('login.title') }}</h2>
             <p class="text-muted">{{ $t('login.subtitle') }}</p>
           </div>
 
-          <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
-            <!-- Email/Login Field -->
-            <div class="mb-3">
+          <form @submit.prevent="onSubmit">
+            <div class="mb-4">
               <FormLabel :label="$t('login.emailLabel')" for-id="login" :required="true" />
-              <TextField
-                id="login"
-                v-model="form.login"
-                type="text"
-                :placeholder="$t('login.emailPlaceholder')"
-                :required="true"
-              />
-              <small v-if="errors.login" class="text-danger">{{ errors.login }}</small>
+              <TextField id="login" v-model="form.login" type="text"
+                :placeholder="$t('login.emailPlaceholder')" :required="true" />
+              <small v-if="errors.login" class="text-danger d-block mt-1">
+                {{ errors.login }}
+              </small>
             </div>
 
-            <!-- Password Field -->
-            <div class="mb-3">
+            <div class="mb-4">
               <FormLabel :label="$t('login.passwordLabel')" for-id="password" :required="true" />
-              <TextField
-                id="password"
-                v-model="form.password"
-                type="password"
-                :placeholder="$t('login.passwordPlaceholder')"
-                :minlength="6"
-                :required="true"
-              />
-              <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
+              <TextField id="password" v-model="form.password" type="password"
+                :placeholder="$t('login.passwordPlaceholder')" :minlength="6" :required="true" />
+              <small v-if="errors.password" class="text-danger d-block mt-1">
+                {{ errors.password }}
+              </small>
             </div>
 
-            <!-- Error Message from API -->
-            <div v-if="authStore.error" class="alert alert-danger" role="alert">
-              <i class="fas fa-exclamation-circle me-2"></i>
-              {{ authStore.error }}
+            <div v-if="authStore.error" class="alert alert-danger">
+              <i class="fas fa-exclamation-triangle"></i> {{ authStore.error }}
             </div>
 
-            <!-- Forgot Password Link -->
-            <div class="d-flex justify-content-end mb-3">
-              <router-link
-                to="/forgot-password"
-                class="text-decoration-none"
-                style="color:var(--primary-color);font-size:14px"
-              >
-                {{ $t('login.forgotPassword') }}
+            <div class="text-end mb-4">
+              <router-link to="/forgot-password" class="text-decoration-none fw-semibold forgot-link">
+                <i class="fas fa-key"></i> {{ $t('login.forgotPassword') }}
               </router-link>
             </div>
 
-            <!-- Submit Button -->
-            <PrimaryButton
-              :text="$t('login.signIn')"
-              :loading-text="$t('login.signingIn')"
-              :loading="authStore.isLoading"
-              type="submit"
-            />
+            <PrimaryButton :text="$t('login.signIn')" :loading-text="$t('login.signingIn')"
+              :loading="authStore.isLoading" type="submit" class="w-100" />
           </form>
         </div>
       </div>
 
-      <!-- RIGHT: CAROUSEL -->
-      <div class="col-12 col-lg-6 p-0 position-relative d-flex align-items-center d-none d-lg-flex"
-        style="min-height:600px">
-        <div class="w-100 h-100 position-relative">
-          <div class="carousel slide h-100" ref="carousel" data-bs-ride="carousel" data-bs-interval="3000">
-            <div class="carousel-inner h-100">
-              <div v-for="(slide, idx) in slides" :key="idx"
-                :class="['carousel-item', 'h-100', idx === 0 ? 'active' : '']">
-                <img :src="slide.img" class="d-block w-100 h-100" style="object-fit:cover;" alt="slide" />
-                <div class="position-absolute text-white"
-                  style="left:20px;bottom:20px;text-shadow:0 2px 6px rgba(0,0,0,0.6)">
-                  <h6 class="mb-1">{{ slide.text }}</h6>
-                </div>
-              </div>
+      <!-- Carousel Section -->
+      <div class="col-lg-6 position-relative carousel-section d-none d-lg-block">
+        <button class="btn carousel-btn position-absolute top-50 start-0 translate-middle-y ms-4" @click="prevSlide">
+          <img :src="leftArrowIcon" alt="Previous" width="24" height="24"/>
+        </button>
+        <button class="btn carousel-btn position-absolute top-50 end-0 translate-middle-y me-4" @click="nextSlide">
+          <img :src="rightArrowIcon" alt="Next" width="24" height="24" />
+        </button>
+
+        <transition-group name="slide">
+          <div v-for="(slide, idx) in slides" :key="idx" v-show="idx === currentSlide" 
+               class="position-absolute w-100 h-100">
+            <img :src="slide.img" alt="slide" class="w-100 h-100 object-fit-cover" />
+            <div class="overlay position-absolute top-0 start-0 w-100 h-100"></div>
+            <div class="position-absolute bottom-0 start-0 text-white p-5 mb-5">
+              <h3 class="display-5 fw-bold mb-3">{{ slide.title }}</h3>
+              <p class="fs-5" style="max-width: 500px;">{{ slide.description }}</p>
             </div>
           </div>
+        </transition-group>
+
+        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-4 d-flex gap-3">
+          <button v-for="(slide, idx) in slides" :key="`dot-${idx}`"
+            class="btn p-0 indicator-dot" :class="{ active: idx === currentSlide }" 
+            @click="goToSlide(idx)">
+          </button>
         </div>
       </div>
     </div>
@@ -129,7 +110,8 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue';
+// Same script - no changes needed
+import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../../../stores/auth.js';
@@ -139,92 +121,57 @@ import PrimaryButton from '../../../components/shared/PrimaryButton.vue';
 import BaseDropdown from '../../../components/shared/BaseDropdown.vue';
 import { setLocale } from '@/i18n/index';
 import packageIcon from '../../../assets/login/package.svg';
+import leftArrowIcon from '../../../assets/login/left-arrow.svg';
+import rightArrowIcon from '../../../assets/login/right-arrow.svg';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { t, locale } = useI18n();
 
 const currentLanguage = ref(locale.value);
+const currentSlide = ref(0);
+let slideInterval = null;
 
 const slides = [
-  {
-    img: new URL('../../../assets/login/slide1.jpg', import.meta.url).href,
-    text: 'Secure Packaging'
-  },
-  {
-    img: new URL('../../../assets/login/slide2.jpg', import.meta.url).href,
-    text: 'Professional Couriers'
-  },
-  {
-    img: new URL('../../../assets/login/slide3.jpg', import.meta.url).href,
-    text: 'Safe Delivery'
-  },
-  {
-    img: new URL('../../../assets/login/slide4.PNG', import.meta.url).href,
-    text: 'Fast & Reliable Delivery'
-  }
+  { img: new URL('../../../assets/login/slide1.jpg', import.meta.url).href, title: 'Secure Packaging', description: 'Professional packaging services to ensure your items arrive safely' },
+  { img: new URL('../../../assets/login/slide2.jpg', import.meta.url).href, title: 'Professional Couriers', description: 'Experienced delivery team dedicated to excellence' },
+  { img: new URL('../../../assets/login/slide3.jpg', import.meta.url).href, title: 'Safe Delivery', description: 'Track your packages in real-time with our advanced system' },
+  { img: new URL('../../../assets/login/slide4.PNG', import.meta.url).href, title: 'Fast & Reliable', description: 'Quick delivery guaranteed with our efficient network' }
 ];
 
-const form = reactive({ 
-  login: '', 
-  password: '' 
-});
+const form = reactive({ login: '', password: '' });
+const errors = reactive({ login: '', password: '' });
 
-const errors = reactive({ 
-  login: '', 
-  password: '' 
-});
-
-// ===== Language Logic =====
 const isRTL = computed(() => currentLanguage.value === 'ar');
+const currentLanguageLabel = computed(() => currentLanguage.value === 'ar' ? 'العربية' : 'English');
 
-const currentFlag = computed(() => {
-  return currentLanguage.value === 'ar' ? '🇸🇦' : '🇬🇧';
-});
-
-/**
- * Detect browser language on mount
- */
 onMounted(() => {
-  detectBrowserLanguage();
-});
-
-/**
- * Detect browser language and set if not already set
- */
-const detectBrowserLanguage = () => {
   const savedLang = localStorage.getItem('lang');
-  
   if (!savedLang) {
     const browserLang = navigator.language || navigator.userLanguage;
-    
-    if (browserLang.startsWith('ar')) {
-      currentLanguage.value = 'ar';
-      setLocale('ar');
-    } else {
-      currentLanguage.value = 'en';
-      setLocale('en');
-    }
-  } else {
-    currentLanguage.value = savedLang;
+    currentLanguage.value = browserLang.startsWith('ar') ? 'ar' : 'en';
+    setLocale(currentLanguage.value);
   }
-};
+  slideInterval = setInterval(() => nextSlide(), 5000);
+});
 
-/**
- * Change language
- */
-const changeLanguage = (lang, closeDropdown) => {
+onUnmounted(() => {
+  if (slideInterval) clearInterval(slideInterval);
+});
+
+const changeLanguage = (lang, close) => {
   currentLanguage.value = lang;
   setLocale(lang);
-  closeDropdown();
+  close();
   window.location.reload();
 };
 
-// ===== Login Logic =====
-const resolveUiLocale = (language) => {
-  const normalized = (language || '').toLowerCase();
-  if (normalized === 'arabic' || normalized === 'ar') return 'ar';
-  return 'en';
+const nextSlide = () => currentSlide.value = (currentSlide.value + 1) % slides.length;
+const prevSlide = () => currentSlide.value = (currentSlide.value - 1 + slides.length) % slides.length;
+const goToSlide = (idx) => {
+  currentSlide.value = idx;
+  if (slideInterval) clearInterval(slideInterval);
+  slideInterval = setInterval(() => nextSlide(), 5000);
 };
 
 async function onSubmit() {
@@ -236,34 +183,27 @@ async function onSubmit() {
     errors.login = t('login.validation.emailRequired');
     return;
   }
-
   if (!form.password) {
     errors.password = t('login.validation.passwordRequired');
     return;
   }
-
   if (form.password.length < 6) {
     errors.password = t('login.validation.passwordMinLength');
     return;
   }
 
   try {
-    await authStore.login({
-      login: form.login,
-      password: form.password
-    });
-
-    const uiLang = resolveUiLocale(authStore.user?.language);
-    const currentLang = localStorage.getItem('lang') || 'en';
+    await authStore.login({ login: form.login, password: form.password });
+    const uiLang = authStore.user?.language?.toLowerCase() === 'arabic' || 
+                   authStore.user?.language === 'ar' ? 'ar' : 'en';
     setLocale(uiLang);
-
-    if (uiLang !== currentLang) {
+    
+    if (uiLang !== localStorage.getItem('lang')) {
       window.location.reload();
       return;
     }
-
-    const defaultPage = authStore.user?.default_page || '/user';
-    router.push(defaultPage);
+    
+    router.push(authStore.user?.default_page || '/user');
   } catch (error) {
     console.error('❌ Login failed:', error.message);
   }
@@ -271,63 +211,94 @@ async function onSubmit() {
 </script>
 
 <style scoped>
-.icon-white {
+.login-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+ 
+}
+
+.logo-circle {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  animation: pulse 2s infinite;
+}
+
+.logo-icon {
+  width: 40px;
   filter: brightness(0) invert(1);
 }
 
-.language-selector-wrapper {
-  top: 20px;
-  right: 20px;
-  z-index: 10;
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
-.language-trigger {
-  color: #6c757d;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  padding: 0.25rem;
+.forgot-link {
+  color: #667eea;
 }
 
-.language-trigger:hover {
-  color: var(--primary-color);
-  transform: scale(1.1);
+.forgot-link:hover {
+  color: #764ba2;
 }
 
-.language-trigger:focus {
-  box-shadow: none;
+.carousel-section {
+  overflow: hidden;
 }
 
-.language-flag {
-  font-size: 1.5rem;
-  line-height: 1;
-  display: block;
+.overlay {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.7), rgba(118, 75, 162, 0.7));
 }
 
-.dropdown-item {
-  padding: 0.5rem 1rem;
-  transition: all 0.2s ease;
-  cursor: pointer;
+.carousel-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  z-index: 20;
 }
 
-.dropdown-item:hover {
-  background-color: #f8f9fa;
-  color: var(--primary-color);
+.carousel-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1) !important;
 }
 
-.dropdown-item.active {
-  background-color: var(--primary-color);
-  color: white;
+.carousel-btn img {
+  filter: brightness(0) invert(1);
 }
 
-@media (max-width: 991px) {
-  .carousel .position-absolute {
-    left: 12px;
-    bottom: 12px;
-  }
+.indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  border: none;
+  transition: all 0.3s;
+}
 
-  .language-selector-wrapper {
-    top: 10px;
-    right: 10px;
-  }
+.indicator-dot.active {
+  width: 32px;
+  border-radius: 6px;
+  background: white;
+}
+
+.slide-enter-active, .slide-leave-active {
+  transition: all 0.8s ease;
+}
+
+.slide-enter-from {
+  opacity: 0;
+  transform: translateX(100px);
+}
+
+.slide-leave-to {
+  opacity: 0;
+  transform: translateX(-100px);
 }
 </style>

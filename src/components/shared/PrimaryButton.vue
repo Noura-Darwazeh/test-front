@@ -108,6 +108,10 @@ const iconStyle = computed(() => {
   font-weight: 500;
   transition: all 0.2s ease;
   white-space: nowrap;
+   display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .btn-primary:hover {
