@@ -2,56 +2,12 @@ import { createI18n } from "vue-i18n";
 import en from "./locales/en.js";
 import ar from "./locales/ar.js";
 
-/**
- * Detect browser language
- * @returns {string} - 'ar' or 'en'
- */
-function detectBrowserLanguage() {
-  try {
-    const browserLang = navigator.language || navigator.userLanguage;
-    // Check if browser language is Arabic
-    if (browserLang.startsWith('ar')) {
-      return 'ar';
-    }
-    // Default to English for all other languages
-    return 'en';
-  } catch (error) {
-    console.warn('Error detecting browser language:', error);
-    return 'en';
-  }
-}
-
-/**
- * Get initial locale with priority:
- * 1. User language from profile (highest priority)
- * 2. Saved language preference
- * 3. Browser language (first visit)
- * 4. Default 'en' (fallback)
- */
-function getInitialLocale() {
-  // Check user's language preference from profile first
-  const userLanguage = localStorage.getItem("user_language");
-  if (userLanguage === "ar" || userLanguage === "en") {
-    return userLanguage;
-  }
-
-  // Then check saved language preference
-  const saved = localStorage.getItem("lang");
-  if (saved === "ar" || saved === "en") {
-    return saved;
-  }
-
-  // First visit - detect browser language
-  const browserLang = detectBrowserLanguage();
-  
-  // Save browser language for next time
-  localStorage.setItem("lang", browserLang);
-  
-  return browserLang;
-}
-
-// Get the initial locale
-const locale = getInitialLocale();
+// Check for user's language preference from profile first, then fall back to saved lang
+const userLanguage = localStorage.getItem("user_language");
+const saved = localStorage.getItem("lang");
+const preferredLang = userLanguage || saved;
+const locale = preferredLang === "ar" || preferredLang === "en" ? preferredLang : "en";
+// If neither is set or they're invalid, default to "en"
 
 export const i18n = createI18n({
   legacy: false, // composition api is used instead of options api.
