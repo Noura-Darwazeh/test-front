@@ -1945,6 +1945,8 @@
     today: "اليوم",
     orderItems: 'عناصر الطلب',
     driver: 'السائق',
+    entityPlural: "خطط العمل",
+    entitySingular:"خطة العمل",
     status: {
       pending: 'قيد الانتظار',
       start: 'بدأ',

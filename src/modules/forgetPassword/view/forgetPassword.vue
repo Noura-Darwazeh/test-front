@@ -1,8 +1,8 @@
 <template>
     <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light" style="padding:32px;">
-        <div class="row shadow rounded-4 bg-white overflow-hidden g-0" style="max-width:1200px; width:100%">
-            <!-- LEFT: FORM -->
-            <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
+        <div class="shadow rounded-4 bg-white overflow-hidden" style="max-width: 500px; width: 100%;">
+            <!-- FORM SECTION - Centered -->
+            <div class="d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
                 <div style="max-width: 420px; width: 100%;">
                     <div class="text-center mb-4">
                         <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
@@ -33,8 +33,8 @@
                             {{ apiError }}
                         </div>
 
-                        <!-- Submit Button -->
-                        <div class="mb-3">
+                        <!-- Submit Button - Centered -->
+                        <div class="d-flex justify-content-center mb-3">
                             <PrimaryButton
                                 :text="$t('forgotPassword.sendResetLink')"
                                 :loading-text="$t('forgotPassword.sending')"
@@ -50,22 +50,13 @@
                         </div>
 
                         <!-- Back to login -->
-                        <div class="mt-3 text-center">
+                        <div class="d-flex justify-content-end mt-3">
                             <router-link to="/login" class="text-decoration-none"
                                 style="color:var(--primary-color);font-size:14px">
                                 {{ $t('forgotPassword.backToLogin') }}
                             </router-link>
                         </div>
                     </form>
-                </div>
-            </div>
-
-            <!-- RIGHT: -->
-            <div class="col-12 col-lg-6 d-none d-lg-flex align-items-center justify-content-center"
-                style="background: var(--primary-color); color: #fff; min-height:600px; padding: 40px;">
-                <div class="text-center">
-                    <h2 class="mb-3">{{ $t('forgotPassword.resetInfo') }}</h2>
-                    <p class="mb-0">{{ $t('forgotPassword.resetInfoSubtitle') }}</p>
                 </div>
             </div>
         </div>
@@ -93,17 +84,14 @@ const apiError = ref('')
 const successMessage = ref(t('forgotPassword.successMessage'))
 
 async function onSubmit() {
-    // Clear previous errors
     errors.email = ''
     apiError.value = ''
 
-    // Validate email
     if (!email.value || !email.value.trim()) {
         errors.email = t('forgotPassword.validation.emailRequired')
         return
     }
 
-    // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.value)) {
         errors.email = t('forgotPassword.validation.emailInvalid')
@@ -113,27 +101,19 @@ async function onSubmit() {
     submitting.value = true
 
     try {
-        // ✅ Use apiServices instead of direct API call
         const response = await apiServices.forgotPassword(email.value.trim())
 
-        // Check if successful
         if (response.data.success === true) {
-            // Extract token from response if available
             const token = response.data.token || response.data.data?.token
 
-            // Save email and token to localStorage
             setItem('reset_email', email.value.trim())
             if (token) {
                 setItem('reset_token', token)
             }
 
-            // Update success message with API response
             successMessage.value = response.data.message || t('forgotPassword.successMessage')
-
-            // Show success message
             sent.value = true
 
-            // Optional: Redirect after 5 seconds
             setTimeout(() => {
                 // router.push('/login')
             }, 5000)
@@ -143,7 +123,6 @@ async function onSubmit() {
     } catch (error) {
         console.error('❌ Forgot password error:', error)
 
-        // Handle different error scenarios
         if (error.response?.data?.message) {
             apiError.value = error.response.data.message
         } else if (error.response?.status === 404) {
@@ -162,11 +141,5 @@ async function onSubmit() {
 <style scoped>
 .icon-white {
     filter: brightness(0) invert(1);
-}
-
-@media (max-width: 991px) {
-    .col-lg-6.d-none.d-lg-flex {
-        display: none !important;
-    }
 }
 </style>

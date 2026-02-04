@@ -2016,6 +2016,8 @@ export default {
     order: "Order",
     orderItems: 'Order Items',
     driver: 'Driver',
+    entityPlural: "Work Plans",
+    entitySingular:"work plan",
     status: {
       pending: 'Pending',
       start: 'Started',

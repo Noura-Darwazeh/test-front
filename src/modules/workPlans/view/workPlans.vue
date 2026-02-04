@@ -1,11 +1,21 @@
 <template>
     <div class="user-page-container bg-light">
-        <WorkPlansHeader v-model="searchText" :searchPlaceholder="$t('workPlan.searchPlaceholder')" :data="headerData"
-            groupKey="company_name" v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('workPlan.filterByCompany')" translationKey="" :columns="workPlanColumns"
-            v-model:visibleColumns="visibleColumns" :showAddButton="canAddWorkPlan && activeTab !== 'trashed'"
-            :addButtonText="$t('workPlan.addNew')" :showTrashedButton="false" @add-click="openAddModal"
-            @refresh-click="handleRefresh" />
+        <WorkPlansHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('workPlan.searchPlaceholder')" 
+            :data="workPlans"
+            groupKey="company_name" 
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('workPlan.filterByCompany')" 
+            translationKey="" 
+            :columns="workPlanColumns"
+            v-model:visibleColumns="visibleColumns" 
+            :showAddButton="canAddWorkPlan"
+            :addButtonText="$t('workPlan.addNew')" 
+            :showTrashedButton="false" 
+            @add-click="openAddModal"
+            @refresh-click="handleRefresh" 
+        />
 
         <!-- Tabs Navigation -->
         <div class="card border-0 mb-3">
@@ -20,12 +30,6 @@
                     <li class="nav-item">
                         <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="switchTab('table')">
                             <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
-                        </button>
-                    </li>
-                    <li v-if="canAddWorkPlan" class="nav-item">
-                        <button class="nav-link trashed-tab" :class="{ active: activeTab === 'trashed' }"
-                            @click="switchTab('trashed')">
-                            <i class="bi bi-trash me-2"></i> {{ $t('workPlan.trashed.title') }}
                         </button>
                     </li>
                 </ul>
@@ -66,7 +70,6 @@
                             :showCheckbox="canAddWorkPlan"
                             :disableRowWhen="(row) => !canModifyPlan(row)">
                             <template #actions="{ row }">
-                                <!-- ✅ Actions Dropdown مع التحكم بالخيارات -->
                                 <ActionsDropdown 
                                     :row="row" 
                                     :editLabel="$t('workPlan.edit')"
@@ -78,67 +81,18 @@
                                     :showDetails="true"
                                     @edit="openEditModal" 
                                     @details="openDetailsModal"
-                                    @delete="handleDeleteWorkPlan" />
+                                    @delete="handleDeleteWorkPlan" 
+                                />
                             </template>
                         </DataTable>
                         <div class="px-3 pt-1 pb-2 bg-light">
-                            <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage"
-                                :currentPage="currentPage" :totalPages="currentPagination.lastPage"
-                                @update:currentPage="(page) => currentPage = page" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Trashed Tab -->
-            <div v-show="activeTab === 'trashed'" class="tab-pane fade"
-                :class="{ 'show active': activeTab === 'trashed' }">
-                <div class="card border-0">
-                    <div class="card-body p-0">
-                        <BulkActionsBar 
-                            v-if="canAddWorkPlan && selectedRows.some(id => {
-                                const plan = paginatedTableData.find(p => p.id === id);
-                                return plan && canModifyPlan(plan);
-                            })" 
-                            :selectedCount="selectedRows.filter(id => {
-                                const plan = paginatedTableData.find(p => p.id === id);
-                                return plan && canModifyPlan(plan);
-                            }).length" 
-                            entityName="workPlan"
-                            :actions="bulkActions" 
-                            :loading="bulkActionLoading" 
-                            @action="handleBulkAction" 
-                        />
-                        <DataTable 
-                            :columns="filteredColumns" 
-                            :data="paginatedTableData"
-                            :actionsLabel="$t('workPlan.actions')" 
-                            v-model="selectedRows"
-                            :showCheckbox="canAddWorkPlan"
-                            :disableRowWhen="(row) => !canModifyPlan(row)">
-                            <template #actions="{ row }">
-                                <!-- ✅ Trashed Actions Dropdown -->
-                                <ActionsDropdown 
-                                    :row="row"
-                                    :restoreLabel="$t('workPlan.trashed.restore')"
-                                    :deleteLabel="$t('workPlan.trashed.delete')"
-                                    :detailsLabel="$t('workPlan.details')"
-                                    :showEdit="false" 
-                                    :showDetails="true"
-                                    :showRestore="canModifyPlan(row)" 
-                                    :showDelete="false"
-                                    :showPermanentDelete="canModifyPlan(row)"
-                                    :permanentDeleteLabel="$t('workPlan.trashed.delete')"
-                                    :confirmDelete="true" 
-                                    @details="openDetailsModal"
-                                    @restore="handleRestoreworkPlan"
-                                    @permanent-delete="handlePermanentDeleteWorkPlan" />
-                            </template>
-                        </DataTable>
-                        <div class="px-3 pt-1 pb-2 bg-light">
-                            <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage"
-                                :currentPage="currentPage" :totalPages="currentPagination.lastPage"
-                                @update:currentPage="(page) => currentPage = page" />
+                            <Pagination 
+                                :totalItems="currentPagination.total" 
+                                :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" 
+                                :totalPages="currentPagination.lastPage"
+                                @update:currentPage="(page) => currentPage = page" 
+                            />
                         </div>
                     </div>
                 </div>
@@ -146,9 +100,15 @@
         </div>
 
         <!-- Dynamic Form Modal for Add/Edit workPlan -->
-        <FormModal :isOpen="isFormModalOpen" :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
-            :fields="workPlanFields" :showImageUpload="false" :serverErrors="formErrors"
-            @close="closeFormModal" @submit="handleSubmitworkPlan" />
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
+            :fields="workPlanFields" 
+            :showImageUpload="false" 
+            :serverErrors="formErrors"
+            @close="closeFormModal" 
+            @submit="handleSubmitworkPlan" 
+        />
 
         <!-- Details Modal -->
         <DetailsModal 
@@ -158,7 +118,6 @@
             :fields="detailsFields" 
             @close="closeDetailsModal"
         >
-            <!-- Order Items with Progress -->
             <template #after-details>
                 <div v-if="workPlanOrderItems.length > 0" class="mt-4">
                     <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
@@ -172,7 +131,6 @@
                     />
                 </div>
                 
-                <!-- Loading State -->
                 <div v-else-if="loadingDetails" class="text-center py-4">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">{{ $t('common.loading') }}</span>
@@ -180,7 +138,6 @@
                     <p class="text-muted mt-2">{{ $t('workPlan.loadingDetails') }}</p>
                 </div>
                 
-                <!-- Empty State -->
                 <div v-else class="mt-4 text-center py-4 bg-light rounded">
                     <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
                     <p class="text-muted mb-0 mt-2">{{ $t('workPlan.noOrderItems') }}</p>
@@ -189,9 +146,15 @@
         </DetailsModal>
 
         <!-- Bulk Action Confirmation Modal -->
-        <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
-            :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
-            @confirm="executeBulkAction" @close="cancelBulkAction" />
+        <ConfirmationModal 
+            :isOpen="isBulkConfirmOpen" 
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage" 
+            :confirmText="$t('common.confirm')" 
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction" 
+            @close="cancelBulkAction" 
+        />
 
         <!-- Success Modal -->
         <SuccessModal 
@@ -219,7 +182,6 @@ import { useI18n } from "vue-i18n";
 import WorkPlansHeader from "../components/workPlansHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import WorkPlanCalendar from "../components/calender.vue"
-import PrimaryButton from "../../../components/shared/PrimaryButton.vue";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../store/workPlansStore.js";
 import { useDriverStore } from "../../driver/stores/driverStore.js";
@@ -257,41 +219,34 @@ const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() ===
 const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
 const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
 
-// ✅ SuperAdmin يقدر يضيف/يعدل/يحذف فقط لشركته
 const canAddWorkPlan = computed(() => {
   if (isDriver.value) return false;
   return isAdmin.value || isSuperAdmin.value;
 });
 
-// ✅ دالة: تحقق إذا الـ work plan تابع لشركة المستخدم
 const isOwnCompanyPlan = (plan) => {
   if (!companyId.value) return false;
   const planCompanyId = String(plan.company_id);
   return planCompanyId === String(companyId.value);
 };
 
-// ✅ دالة: يقدر يعدل/يحذف؟
 const canModifyPlan = (plan) => {
   if (isDriver.value) return false;
-  if (isAdmin.value) return true; // Admin يقدر يعدل كل شي بشركته
+  if (isAdmin.value) return true;
   if (isSuperAdmin.value) {
-    // SuperAdmin يقدر يعدل فقط plans شركته
     return isOwnCompanyPlan(plan);
   }
   return false;
 };
 
-// Get work plans based on user role
 const workPlans = computed(() => {
     const allPlans = workPlansStore.workPlans;
 
     if (isSuperAdmin.value) {
-        // ✅ SuperAdmin يشوف كل الـ plans
         return allPlans;
     }
 
     if (isAdmin.value) {
-        // Admin يشوف فقط plans شركته
         if (companyId.value) {
             const filtered = allPlans.filter(plan => {
                 const planCompanyId = String(plan.company_id);
@@ -303,11 +258,8 @@ const workPlans = computed(() => {
         }
     }
 
-    // Driver - no access
     return [];
 });
-
-const trashedworkPlans = computed(() => workPlansStore.trashedWorkPlans);
 
 const orderOptions = computed(() => {
     const options = ordersWithItems.value.map(order => ({
@@ -329,11 +281,9 @@ const orderOptions = computed(() => {
         });
     }
 
-    console.log("📋 Order options:", options);
     return options;
 });
 
-// Computed property for driver options
 const driverOptions = computed(() => {
     const companyDrivers = driverStore.drivers.filter(driver =>
         String(driver.company_id) === String(companyId.value)
@@ -354,26 +304,17 @@ onMounted(async () => {
     }
 });
 
-// Watch for page changes to fetch new data from server
 watch(currentPage, async (newPage) => {
     if (skipNextPageWatch.value) {
         skipNextPageWatch.value = false;
         return;
     }
     try {
-        if (activeTab.value === "trashed") {
-            await workPlansStore.fetchTrashedWorkPlans({
-                page: newPage,
-                perPage: itemsPerPage.value,
-                drivers: driverStore.drivers,
-            });
-        } else {
-            await workPlansStore.fetchWorkPlans({
-                page: newPage,
-                perPage: itemsPerPage.value,
-                drivers: driverStore.drivers,
-            });
-        }
+        await workPlansStore.fetchWorkPlans({
+            page: newPage,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
     } catch (err) {
         console.error("Failed to load page:", err);
     }
@@ -386,19 +327,11 @@ const switchTab = async (tab) => {
     selectedRows.value = [];
 
     try {
-        if (tab === "trashed") {
-            await workPlansStore.fetchTrashedWorkPlans({
-                page: 1,
-                perPage: itemsPerPage.value,
-                drivers: driverStore.drivers,
-            });
-        } else {
-            await workPlansStore.fetchWorkPlans({
-                page: 1,
-                perPage: itemsPerPage.value,
-                drivers: driverStore.drivers,
-            });
-        }
+        await workPlansStore.fetchWorkPlans({
+            page: 1,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
     } catch (error) {
         console.error("Failed to switch tabs:", error);
     }
@@ -407,19 +340,11 @@ const switchTab = async (tab) => {
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
-        if (activeTab.value === "trashed") {
-            await workPlansStore.fetchTrashedWorkPlans({
-                page: currentPage.value,
-                perPage: itemsPerPage.value,
-                drivers: driverStore.drivers,
-            });
-        } else {
-            await workPlansStore.fetchWorkPlans({
-                page: currentPage.value,
-                perPage: itemsPerPage.value,
-                drivers: driverStore.drivers,
-            });
-        }
+        await workPlansStore.fetchWorkPlans({
+            page: currentPage.value,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
     } catch (error) {
         console.error("Failed to refresh work plans:", error);
     }
@@ -439,16 +364,12 @@ const workPlanFields = computed(() => {
     let defaultOrders = [{ order: '', items: [] }];
 
     if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
-        console.log("📝 Editing work plan, workplanorder:", selectedworkPlan.value.workplanorder);
-
         const orderItemsMap = new Map();
 
         selectedworkPlan.value.workplanorder.forEach(wo => {
             const orderItemId = wo.order_item?.id || wo.order_item_id;
             const orderItemName = wo.order_item?.name || '';
             const orderCode = orderItemName.split(' - ')[0].trim();
-
-            console.log(`📦 Order Item ID: ${orderItemId}, Name: ${orderItemName}, Code: ${orderCode}`);
 
             if (orderItemId && orderCode) {
                 if (!orderItemsMap.has(orderCode)) {
@@ -457,8 +378,6 @@ const workPlanFields = computed(() => {
                 orderItemsMap.get(orderCode).push(orderItemId);
             }
         });
-
-        console.log("🗺️ Order items map:", orderItemsMap);
 
         defaultOrders = [];
         orderItemsMap.forEach((itemIds, orderCode) => {
@@ -471,8 +390,6 @@ const workPlanFields = computed(() => {
         if (defaultOrders.length === 0) {
             defaultOrders = [{ order: '', items: [] }];
         }
-
-        console.log("✅ Default orders for edit:", defaultOrders);
     }
 
     return [
@@ -587,15 +504,11 @@ const workPlanFields = computed(() => {
 
 const getItemsOptionsForOrder = (orderCode) => {
     if (!orderCode) {
-        console.log("⚠️ No order code provided");
         return [];
     }
 
-    console.log("🔍 Getting items for order:", orderCode);
-
     const order = ordersWithItems.value.find(o => o.order_code === orderCode);
     if (!order || !order.order_items || order.order_items.length === 0) {
-        console.log("⚠️ No items found for order:", orderCode);
         return [];
     }
 
@@ -604,11 +517,9 @@ const getItemsOptionsForOrder = (orderCode) => {
         label: item.orderitemname
     }));
 
-    console.log("✅ Items options for", orderCode, ":", items);
     return items;
 };
 
-// Details Fields
 const detailsFields = computed(() => [
     { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
     { key: 'name', label: t('workPlan.name'), colClass: 'col-md-6' },
@@ -625,32 +536,14 @@ const workPlanColumns = ref([
     { key: 'company_name', label: t('workPlan.companyName') },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "id", label: t("workPlan.id") },
-    { key: "name", label: t("workPlan.name") },
-    { key: 'date', label: t('workPlan.date'), sortable: true },
-    { key: 'company_name', label: t('workPlan.companyName') },
-]);
-
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-    const columns =
-        activeTab.value === "trashed" ? trashedColumns.value : workPlanColumns.value;
-    if (activeTab.value === "trashed") return columns;
-    return columns.filter((col) => visibleColumns.value.includes(col.key));
-});
-
-const headerData = computed(() => {
-    return activeTab.value === "trashed" ? trashedworkPlans.value : workPlans.value;
-});
-
-const currentTableData = computed(() => {
-    return activeTab.value === "trashed" ? trashedworkPlans.value : workPlans.value;
+    return workPlanColumns.value.filter((col) => visibleColumns.value.includes(col.key));
 });
 
 const filteredTableData = computed(() => {
-    let result = currentTableData.value;
+    let result = workPlans.value;
     result = filterByGroups(result, selectedGroups.value, "company_name");
     result = filterData(result, searchText.value);
     return result;
@@ -660,27 +553,10 @@ const paginatedTableData = computed(() => {
     return filteredTableData.value;
 });
 
-const currentPagination = computed(() =>
-    activeTab.value === "trashed"
-        ? workPlansStore.trashedPagination
-        : workPlansStore.workPlansPagination
-);
+const currentPagination = computed(() => workPlansStore.workPlansPagination);
 
+// ✅ Only delete action
 const bulkActions = computed(() => {
-    if (activeTab.value === "trashed") {
-        return [
-            {
-                id: "restore",
-                label: t("workPlan.bulkRestore"),
-                bgColor: "var(--color-success)",
-            },
-            {
-                id: "permanentDelete",
-                label: t("common.permanentDelete"),
-                bgColor: "var(--color-danger)",
-            },
-        ];
-    }
     return [
         {
             id: "delete",
@@ -696,20 +572,13 @@ const bulkConfirmMessage = computed(() => {
     const count = selectedRows.value.length;
     const entity = count === 1 ? t('workPlan.entitySingular') : t('workPlan.entityPlural');
 
-    if (pendingBulkAction.value === "restore") {
-        return t('common.bulkRestoreConfirm', { count, entity });
-    }
-    if (pendingBulkAction.value === "permanentDelete") {
-        return t('common.bulkPermanentDeleteConfirm', { count, entity });
-    }
-    return t('common.bulkDeleteConfirm', { count, entity });
+    return t('common.bulkPermanentDeleteConfirm', { count, entity });
 });
 
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
 
-// Fetch orders with items from API
 const fetchOrdersWithItems = async (filters = {}) => {
     loadingOrders.value = true;
     try {
@@ -729,9 +598,6 @@ const fetchOrdersWithItems = async (filters = {}) => {
             value: line,
             label: line
         }));
-
-        console.log("✅ Orders with items loaded:", ordersWithItems.value);
-        console.log("📋 Available lines:", lineOptions.value);
     } catch (error) {
         console.error("❌ Failed to fetch orders with items:", error);
         ordersWithItems.value = [];
@@ -750,35 +616,15 @@ const handleFilterOrders = async () => {
     if (selectedCase.value) {
         filters.case = selectedCase.value;
     }
-
-    console.log("🔍 Applying filters:", filters);
-    console.log("💾 Saved form data:", formData.value);
     
     await fetchOrdersWithItems(filters);
 };
 
-const clearOrderFilters = async () => {
-    selectedLine.value = '';
-    selectedCase.value = '';
-    await fetchOrdersWithItems();
-};
-
-const applyServerErrors = (error) => {
-    const normalized = normalizeServerErrors(error);
-    formErrors.value = normalized;
-    return Object.keys(normalized).length > 0;
-};
-
-const clearFormErrors = () => {
-    formErrors.value = {};
-};
-
 const openAddModal = async () => {
     if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to add work plans");
         return;
     }
-    clearFormErrors();
+    formErrors.value = {};
     isEditMode.value = false;
     selectedworkPlan.value = {};
     
@@ -795,14 +641,12 @@ const openAddModal = async () => {
 };
 
 const openEditModal = async (workPlan) => {
-    // ✅ التحقق من الصلاحية
     if (!canModifyPlan(workPlan)) {
-        console.warn("⚠️ You don't have permission to edit this work plan");
         alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
         return;
     }
     
-    clearFormErrors();
+    formErrors.value = {};
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
     
@@ -815,7 +659,6 @@ const openEditModal = async (workPlan) => {
     selectedLine.value = '';
     selectedCase.value = '';
     
-    console.log("📝 Opening edit modal for work plan:", selectedworkPlan.value);
     await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
@@ -824,7 +667,6 @@ const openDetailsModal = async (workPlan) => {
     selectedworkPlan.value = { ...workPlan };
     isDetailsModalOpen.value = true;
     
-    // ✅ Fetch full work plan details with order items
     await fetchWorkPlanDetails(workPlan.id);
 };
 
@@ -836,14 +678,10 @@ const fetchWorkPlanDetails = async (workPlanId) => {
         const response = await apiServices.get(`/work_plans/${workPlanId}`);
         const data = response.data.data;
         
-        console.log("📋 Work plan details:", data);
-        
-        // ✅ Store order items with steps
         if (data.workplanorder && Array.isArray(data.workplanorder)) {
             workPlanOrderItems.value = data.workplanorder;
         }
         
-        // ✅ Update selected work plan with full data
         selectedworkPlan.value = {
             ...selectedworkPlan.value,
             ...data
@@ -869,7 +707,7 @@ const closeFormModal = () => {
         date: ''
     };
     
-    clearFormErrors();
+    formErrors.value = {};
 };
 
 const closeDetailsModal = () => {
@@ -880,12 +718,8 @@ const closeDetailsModal = () => {
 
 const handleSubmitworkPlan = async (workPlanData) => {
     if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission to submit work plans");
         return;
     }
-
-    console.log("📤 Form data received:", workPlanData);
-    console.log("🔧 Edit mode:", isEditMode.value);
 
     const orderItems = [];
     if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
@@ -904,8 +738,6 @@ const handleSubmitworkPlan = async (workPlanData) => {
         });
     }
 
-    console.log("📦 Collected order items:", orderItems);
-
     const payload = {
         name: workPlanData.name,
         driver_id: parseInt(workPlanData.driver_id),
@@ -917,17 +749,12 @@ const handleSubmitworkPlan = async (workPlanData) => {
         payload.company_id = parseInt(companyId.value || workPlanData.company_id);
     }
 
-    console.log("📤 Sending work plan payload:", payload);
-    console.log("🆔 Work plan ID:", selectedworkPlan.value.id);
-
     try {
         if (isEditMode.value) {
             await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
-            console.log("✅ Work plan updated successfully!");
             showSuccess(t('workPlan.updateSuccess'));
         } else {
             await workPlansStore.addWorkPlan(payload, driverStore.drivers);
-            console.log("✅ Work plan added successfully!");
             showSuccess(t('workPlan.addSuccess'));
         }
         closeFormModal();
@@ -935,47 +762,25 @@ const handleSubmitworkPlan = async (workPlanData) => {
         console.error("❌ Failed to save work plan:", error);
 
         if (error.response && error.response.data) {
-            console.error("🔴 Server validation errors:", error.response.data);
-
             if (error.response.data.errors) {
                 const errorMessages = Object.values(error.response.data.errors).flat();
-                alert( errorMessages.join("\n"));
+                alert(errorMessages.join("\n"));
             } else if (error.response.data.message) {
-                alert( error.response.data.message);
+                alert(error.response.data.message);
             }
         }
     }
 };
 
-const handleRestoreworkPlan = async (workPlan) => {
-    // ✅ التحقق من الصلاحية
-    if (!canModifyPlan(workPlan)) {
-        console.warn("⚠️ You don't have permission to restore this work plan");
-        alert(t('workPlan.noPermissionToRestore') || "You don't have permission to restore this work plan");
-        return;
-    }
-    
-    try {
-        await workPlansStore.restoreWorkPlan(workPlan.id);
-        console.log("✅ Work plan restored successfully!");
-        showSuccess(t('workPlan.restoreSuccess'));
-    } catch (error) {
-        console.error("❌ Failed to restore work plan:", error);
-        alert(error.message || t('common.saveFailed'));
-    }
-};
-
+// ✅ Force delete
 const handleDeleteWorkPlan = async (workPlan) => {
-    // ✅ التحقق من الصلاحية
     if (!canModifyPlan(workPlan)) {
-        console.warn("⚠️ You don't have permission to delete this work plan");
         alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
         return;
     }
     
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id);
-        console.log("✅ Work plan deleted successfully!");
         showSuccess(t('workPlan.deleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to delete work plan:", error);
@@ -983,31 +788,11 @@ const handleDeleteWorkPlan = async (workPlan) => {
     }
 };
 
-const handlePermanentDeleteWorkPlan = async (workPlan) => {
-    // ✅ التحقق من الصلاحية
-    if (!canModifyPlan(workPlan)) {
-        console.warn("⚠️ You don't have permission to permanently delete this work plan");
-        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to permanently delete this work plan");
-        return;
-    }
-    
-    try {
-        await workPlansStore.deleteWorkPlan(workPlan.id, true);
-        console.log("✅ Work plan permanently deleted successfully!");
-        showSuccess(t('workPlan.permanentDeleteSuccess'));
-    } catch (error) {
-        console.error("❌ Failed to permanently delete work plan:", error);
-        alert(error.message || t('common.saveFailed'));
-    }
-};
-
 const handleBulkAction = ({ actionId }) => {
     if (!canAddWorkPlan.value) {
-        console.warn("⚠️ User doesn't have permission for bulk actions");
         return;
     }
     
-    // ✅ فلترة الصفوف حسب الصلاحية
     const validRows = selectedRows.value.filter(id => {
         const plan = paginatedTableData.value.find(p => p.id === id);
         return plan && canModifyPlan(plan);
@@ -1018,13 +803,12 @@ const handleBulkAction = ({ actionId }) => {
         return;
     }
     
-    // ✅ تحديث الصفوف المحددة
     selectedRows.value = validRows;
-    
     pendingBulkAction.value = actionId;
     isBulkConfirmOpen.value = true;
 };
 
+// ✅ Execute bulk force delete
 const executeBulkAction = async () => {
     if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
     bulkActionLoading.value = true;
@@ -1032,19 +816,8 @@ const executeBulkAction = async () => {
     const count = selectedRows.value.length;
 
     try {
-        if (pendingBulkAction.value === "delete") {
-            await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, false);
-            console.log("✅ Work plans soft deleted successfully");
-            showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
-        } else if (pendingBulkAction.value === "restore") {
-            await workPlansStore.bulkRestoreWorkPlans(selectedRows.value);
-            console.log("✅ Work plans restored successfully");
-            showSuccess(t('workPlan.bulkRestoreSuccess', { count }));
-        } else if (pendingBulkAction.value === "permanentDelete") {
-            await workPlansStore.bulkDeleteWorkPlans(selectedRows.value, true);
-            console.log("✅ Work plans permanently deleted successfully");
-            showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
-        }
+        await workPlansStore.bulkDeleteWorkPlans(selectedRows.value);
+        showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
         selectedRows.value = [];
         pendingBulkAction.value = null;
         await handleRefresh();
@@ -1084,16 +857,5 @@ const cancelBulkAction = () => {
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
     background-color: transparent;
-}
-
-/* RTL Support */
-[dir="rtl"] .nav-tabs .nav-link i {
-    margin-left: 0.5rem;
-    margin-right: 0;
-}
-
-[dir="rtl"] .nav-tabs .nav-link {
-    margin-right: 0;
-    margin-left: 0.25rem;
 }
 </style>

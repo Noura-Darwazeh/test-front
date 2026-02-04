@@ -257,7 +257,7 @@ const calendarEvents = computed(() => {
             id: firstPlan.id,
             title: title,
             start: date,
-            backgroundColor: "var(--primary-color",
+            backgroundColor: "var(--primary-color)",
             borderColor: "var(--primary-color)",
             textColor: '#fff',
             classNames: ['work-plan-event'],
