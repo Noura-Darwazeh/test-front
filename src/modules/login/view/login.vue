@@ -143,12 +143,9 @@ const isRTL = computed(() => currentLanguage.value === 'ar');
 const currentLanguageLabel = computed(() => currentLanguage.value === 'ar' ? 'العربية' : 'English');
 
 onMounted(() => {
-  const savedLang = localStorage.getItem('lang');
-  if (!savedLang) {
-    const browserLang = navigator.language || navigator.userLanguage;
-    currentLanguage.value = browserLang.startsWith('ar') ? 'ar' : 'en';
-    setLocale(currentLanguage.value);
-  }
+  // Language is already set from i18n/index.js, just sync with component
+  currentLanguage.value = locale.value;
+  
   slideInterval = setInterval(() => nextSlide(), 5000);
 });
 
@@ -191,11 +188,16 @@ async function onSubmit() {
 
   try {
     await authStore.login({ login: form.login, password: form.password });
-    const uiLang = authStore.user?.language?.toLowerCase() === 'arabic' || 
-                   authStore.user?.language === 'ar' ? 'ar' : 'en';
-    setLocale(uiLang);
     
-    if (uiLang !== localStorage.getItem('lang')) {
+    // Get user's preferred language
+    const userLang = authStore.user?.language?.toLowerCase() === 'arabic' || 
+                     authStore.user?.language === 'ar' ? 'ar' : 'en';
+    
+    // Save and apply user language
+    setLocale(userLang);
+    
+    // Reload if language changed
+    if (userLang !== currentLanguage.value) {
       window.location.reload();
       return;
     }

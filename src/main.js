@@ -17,5 +17,6 @@ app.use(createPinia());
 app.use(i18n);
 app.use(router);
 app.use(OpenLayersMap);
-
+document.documentElement.lang = i18n.global.locale.value;
+document.documentElement.dir = i18n.global.locale.value === "ar" ? "rtl" : "ltr";
 app.mount("#app");

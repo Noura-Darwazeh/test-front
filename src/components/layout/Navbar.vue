@@ -173,8 +173,6 @@ const isLogoutModalOpen = ref(false);
 
 const switchLanguage = async (lang) => {
   const langLower = lang.toLowerCase();
-
-  // Map UI language codes to backend format
   const backendLang = langLower === 'ar' ? 'arabic' : 'english';
 
   try {
@@ -185,7 +183,6 @@ const switchLanguage = async (lang) => {
     await authStore.updateUserLanguage(backendLang);
   } catch (error) {
     console.error("❌ Failed to update language preference:", error);
-    // Language is still changed in UI even if API fails
   }
 };
 
