@@ -1,5 +1,42 @@
 <template>
-    <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light" style="padding:32px;">
+    <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light position-relative" style="padding:32px;">
+        <!-- Language Selector - Direct BaseDropdown Usage -->
+        <div class="position-absolute language-selector-wrapper">
+            <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
+                <template #trigger>
+                    <button class="btn btn-link p-0 language-trigger" type="button">
+                        <span class="language-flag">{{ currentFlag }}</span>
+                    </button>
+                </template>
+                <template #menu="{ close }">
+                    <ul class="list-unstyled mb-0">
+                        <li>
+                            <a 
+                                class="dropdown-item d-flex align-items-center gap-2" 
+                                href="#" 
+                                :class="{ active: currentLanguage === 'en' }"
+                                @click.prevent="changeLanguage('en', close)"
+                            >
+                                <span>🇬🇧</span>
+                                <span>English</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a 
+                                class="dropdown-item d-flex align-items-center gap-2" 
+                                href="#" 
+                                :class="{ active: currentLanguage === 'ar' }"
+                                @click.prevent="changeLanguage('ar', close)"
+                            >
+                                <span>🇸🇦</span>
+                                <span>العربية</span>
+                            </a>
+                        </li>
+                    </ul>
+                </template>
+            </BaseDropdown>
+        </div>
+
         <div class="shadow rounded-4 bg-white overflow-hidden" style="max-width: 500px; width: 100%;">
             <!-- FORM SECTION - Centered -->
             <div class="d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
@@ -64,18 +101,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import FormLabel from '../../../components/shared/FormLabel.vue'
 import TextField from '../../../components/shared/TextField.vue'
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
+import BaseDropdown from '../../../components/shared/BaseDropdown.vue'
 import packageIcon from '../../../assets/login/package.svg'
 import apiServices from '@/services/apiServices.js'
 import { setItem } from '@/utils/shared/storageUtils.js'
+import { setLocale } from '@/i18n/index'
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
 const email = ref('')
 const submitting = ref(false)
 const sent = ref(false)
@@ -83,6 +123,54 @@ const errors = reactive({ email: '' })
 const apiError = ref('')
 const successMessage = ref(t('forgotPassword.successMessage'))
 
+// ===== Language Logic =====
+const currentLanguage = ref(locale.value);
+
+const isRTL = computed(() => currentLanguage.value === 'ar');
+
+const currentFlag = computed(() => {
+  return currentLanguage.value === 'ar' ? '🇸🇦' : '🇬🇧';
+});
+
+/**
+ * Detect browser language on mount
+ */
+onMounted(() => {
+  detectBrowserLanguage();
+});
+
+/**
+ * Detect browser language and set if not already set
+ */
+const detectBrowserLanguage = () => {
+  const savedLang = localStorage.getItem('lang');
+  
+  if (!savedLang) {
+    const browserLang = navigator.language || navigator.userLanguage;
+    
+    if (browserLang.startsWith('ar')) {
+      currentLanguage.value = 'ar';
+      setLocale('ar');
+    } else {
+      currentLanguage.value = 'en';
+      setLocale('en');
+    }
+  } else {
+    currentLanguage.value = savedLang;
+  }
+};
+
+/**
+ * Change language
+ */
+const changeLanguage = (lang, closeDropdown) => {
+  currentLanguage.value = lang;
+  setLocale(lang);
+  closeDropdown();
+  window.location.reload();
+};
+
+// ===== Form Logic =====
 async function onSubmit() {
     errors.email = ''
     apiError.value = ''
@@ -141,5 +229,56 @@ async function onSubmit() {
 <style scoped>
 .icon-white {
     filter: brightness(0) invert(1);
+}
+
+.language-selector-wrapper {
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+}
+
+.language-trigger {
+    color: #6c757d;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    padding: 0.25rem;
+}
+
+.language-trigger:hover {
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.language-trigger:focus {
+    box-shadow: none;
+}
+
+.language-flag {
+    font-size: 1.5rem;
+    line-height: 1;
+    display: block;
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: var(--primary-color);
+}
+
+.dropdown-item.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+@media (max-width: 576px) {
+    .language-selector-wrapper {
+        top: 10px;
+        right: 10px;
+    }
 }
 </style>

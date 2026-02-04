@@ -1,5 +1,42 @@
 <template>
-  <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light" style="padding:32px;">
+  <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light position-relative" style="padding:32px;">
+    <!-- Language Selector - Direct BaseDropdown Usage -->
+    <div class="position-absolute language-selector-wrapper">
+      <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
+        <template #trigger>
+          <button class="btn btn-link p-0 language-trigger" type="button">
+            <span class="language-flag">{{ currentFlag }}</span>
+          </button>
+        </template>
+        <template #menu="{ close }">
+          <ul class="list-unstyled mb-0">
+            <li>
+              <a 
+                class="dropdown-item d-flex align-items-center gap-2" 
+                href="#" 
+                :class="{ active: currentLanguage === 'en' }"
+                @click.prevent="changeLanguage('en', close)"
+              >
+                <span>🇬🇧</span>
+                <span>English</span>
+              </a>
+            </li>
+            <li>
+              <a 
+                class="dropdown-item d-flex align-items-center gap-2" 
+                href="#" 
+                :class="{ active: currentLanguage === 'ar' }"
+                @click.prevent="changeLanguage('ar', close)"
+              >
+                <span>🇸🇦</span>
+                <span>العربية</span>
+              </a>
+            </li>
+          </ul>
+        </template>
+      </BaseDropdown>
+    </div>
+
     <div class="row shadow rounded-4 bg-white overflow-hidden g-0" style="max-width:1200px; width:100%">
       <!-- LEFT: FORM -->
       <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
@@ -92,19 +129,22 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../../../stores/auth.js';
 import FormLabel from '../../../components/shared/FormLabel.vue';
 import TextField from '../../../components/shared/TextField.vue';
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue';
+import BaseDropdown from '../../../components/shared/BaseDropdown.vue';
 import { setLocale } from '@/i18n/index';
 import packageIcon from '../../../assets/login/package.svg';
 
 const router = useRouter();
 const authStore = useAuthStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+const currentLanguage = ref(locale.value);
 
 const slides = [
   {
@@ -135,6 +175,52 @@ const errors = reactive({
   password: '' 
 });
 
+// ===== Language Logic =====
+const isRTL = computed(() => currentLanguage.value === 'ar');
+
+const currentFlag = computed(() => {
+  return currentLanguage.value === 'ar' ? '🇸🇦' : '🇬🇧';
+});
+
+/**
+ * Detect browser language on mount
+ */
+onMounted(() => {
+  detectBrowserLanguage();
+});
+
+/**
+ * Detect browser language and set if not already set
+ */
+const detectBrowserLanguage = () => {
+  const savedLang = localStorage.getItem('lang');
+  
+  if (!savedLang) {
+    const browserLang = navigator.language || navigator.userLanguage;
+    
+    if (browserLang.startsWith('ar')) {
+      currentLanguage.value = 'ar';
+      setLocale('ar');
+    } else {
+      currentLanguage.value = 'en';
+      setLocale('en');
+    }
+  } else {
+    currentLanguage.value = savedLang;
+  }
+};
+
+/**
+ * Change language
+ */
+const changeLanguage = (lang, closeDropdown) => {
+  currentLanguage.value = lang;
+  setLocale(lang);
+  closeDropdown();
+  window.location.reload();
+};
+
+// ===== Login Logic =====
 const resolveUiLocale = (language) => {
   const normalized = (language || '').toLowerCase();
   if (normalized === 'arabic' || normalized === 'ar') return 'ar';
@@ -142,12 +228,10 @@ const resolveUiLocale = (language) => {
 };
 
 async function onSubmit() {
-  // Clear previous errors
   errors.login = '';
   errors.password = '';
   authStore.clearError();
 
-  // Validate form
   if (!form.login) {
     errors.login = t('login.validation.emailRequired');
     return;
@@ -164,7 +248,6 @@ async function onSubmit() {
   }
 
   try {
-    // Attempt login
     await authStore.login({
       login: form.login,
       password: form.password
@@ -179,11 +262,9 @@ async function onSubmit() {
       return;
     }
 
-    // Redirect to user's landing page on success
     const defaultPage = authStore.user?.default_page || '/user';
     router.push(defaultPage);
   } catch (error) {
-    // Error is already set in the store
     console.error('❌ Login failed:', error.message);
   }
 }
@@ -194,10 +275,59 @@ async function onSubmit() {
   filter: brightness(0) invert(1);
 }
 
+.language-selector-wrapper {
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.language-trigger {
+  color: #6c757d;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  padding: 0.25rem;
+}
+
+.language-trigger:hover {
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.language-trigger:focus {
+  box-shadow: none;
+}
+
+.language-flag {
+  font-size: 1.5rem;
+  line-height: 1;
+  display: block;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+  color: var(--primary-color);
+}
+
+.dropdown-item.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
 @media (max-width: 991px) {
   .carousel .position-absolute {
     left: 12px;
     bottom: 12px;
+  }
+
+  .language-selector-wrapper {
+    top: 10px;
+    right: 10px;
   }
 }
 </style>
