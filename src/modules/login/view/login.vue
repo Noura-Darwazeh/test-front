@@ -65,7 +65,7 @@
 
             <div class="text-end mb-4">
               <router-link to="/forgot-password" class="text-decoration-none fw-semibold forgot-link">
-                <i class="fas fa-key"></i> {{ $t('login.forgotPassword') }}
+                 {{ $t('login.forgotPassword') }}
               </router-link>
             </div>
 

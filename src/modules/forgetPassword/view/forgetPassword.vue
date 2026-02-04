@@ -1,41 +1,32 @@
 <template>
     <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light position-relative" style="padding:32px;">
-        <!-- Language Selector - Direct BaseDropdown Usage -->
-        <div class="position-absolute language-selector-wrapper">
-            <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
-                <template #trigger>
-                    <button class="btn btn-link p-0 language-trigger" type="button">
-                        <span class="language-flag">{{ currentFlag }}</span>
-                    </button>
-                </template>
-                <template #menu="{ close }">
-                    <ul class="list-unstyled mb-0">
-                        <li>
-                            <a 
-                                class="dropdown-item d-flex align-items-center gap-2" 
-                                href="#" 
-                                :class="{ active: currentLanguage === 'en' }"
-                                @click.prevent="changeLanguage('en', close)"
-                            >
-                                <span>🇬🇧</span>
-                                <span>English</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a 
-                                class="dropdown-item d-flex align-items-center gap-2" 
-                                href="#" 
-                                :class="{ active: currentLanguage === 'ar' }"
-                                @click.prevent="changeLanguage('ar', close)"
-                            >
-                                <span>🇸🇦</span>
-                                <span>العربية</span>
-                            </a>
-                        </li>
-                    </ul>
-                </template>
-            </BaseDropdown>
-        </div>
+          <!-- Language Selector -->
+    <div class="position-fixed top-0 end-0 p-4" style="z-index: 1000;">
+      <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
+        <template #trigger>
+          <button class="btn btn-light border-primary shadow-sm" type="button">
+            <span>{{ currentLanguageLabel }}</span>
+          </button>
+        </template>
+        <template #menu="{ close }">
+          <ul class="list-unstyled mb-0">
+            <li>
+              <a class="dropdown-item rounded" :class="{ active: currentLanguage === 'en' }"
+                @click.prevent="changeLanguage('en', close)">
+                <div class="fw-semibold">English</div>
+              </a>
+            </li>
+            <li><hr class="dropdown-divider" /></li>
+            <li>
+              <a class="dropdown-item rounded" :class="{ active: currentLanguage === 'ar' }"
+                @click.prevent="changeLanguage('ar', close)">
+                <div class="fw-semibold">العربية</div>
+              </a>
+            </li>
+          </ul>
+        </template>
+      </BaseDropdown>
+    </div>
 
         <div class="shadow rounded-4 bg-white overflow-hidden" style="max-width: 500px; width: 100%;">
             <!-- FORM SECTION - Centered -->
@@ -46,7 +37,7 @@
                             style="width:64px;height:64px;background:var(--primary-color);color:#fff">
                             <img :src="packageIcon" alt="" width="28" height="28" class="icon-white" />
                         </div>
-                        <h3 class="mb-0">{{ $t('forgotPassword.title') }}</h3>
+                        <h3 class="fw-bold mb-2">{{ $t('forgotPassword.title') }}</h3>
                         <p class="text-muted">{{ $t('forgotPassword.subtitle') }}</p>
                     </div>
 
@@ -88,8 +79,8 @@
 
                         <!-- Back to login -->
                         <div class="d-flex justify-content-end mt-3">
-                            <router-link to="/login" class="text-decoration-none"
-                                style="color:var(--primary-color);font-size:14px">
+                            <router-link to="/login" class="text-decoration-none fw-semibold login-link"
+                                >
                                 {{ $t('forgotPassword.backToLogin') }}
                             </router-link>
                         </div>
@@ -127,10 +118,10 @@ const successMessage = ref(t('forgotPassword.successMessage'))
 const currentLanguage = ref(locale.value);
 
 const isRTL = computed(() => currentLanguage.value === 'ar');
-
-const currentFlag = computed(() => {
-  return currentLanguage.value === 'ar' ? '🇸🇦' : '🇬🇧';
+const currentLanguageLabel = computed(() => {
+  return currentLanguage.value === 'ar' ? 'العربية' : 'English';
 });
+
 
 /**
  * Detect browser language on mount
@@ -274,7 +265,13 @@ async function onSubmit() {
     background-color: var(--primary-color);
     color: white;
 }
+.login-link {
+  color: var(--primary-color);
+}
 
+.login-link:hover {
+  color: var(--primary-hover);
+}
 @media (max-width: 576px) {
     .language-selector-wrapper {
         top: 10px;
