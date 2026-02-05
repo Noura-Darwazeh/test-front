@@ -14,7 +14,7 @@
             v-model="searchText" 
             :searchPlaceholder="$t('lineWork.searchPlaceholder')" 
             :data="lineWorks"
-            :columns="lineWorkColumns" 
+            :columns="displayColumns" 
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true" 
             :addButtonText="$t('lineWork.addNew')"
@@ -70,8 +70,12 @@
                         :loading="bulkActionLoading"
                         @action="handleBulkAction"
                     />
-                    <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('lineWork.actions')"
-                        v-model="selectedRows">
+                    <DataTable 
+                        :columns="filteredColumns" 
+                        :data="paginatedData" 
+                        :actionsLabel="$t('lineWork.actions')"
+                        v-model="selectedRows"
+                    >
                         <template #actions="{ row }">
                             <ActionsDropdown
                                 v-if="activeTab === 'active'"
@@ -144,7 +148,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
@@ -162,8 +166,11 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const lineWorkStore = useLineWorkStore();
-const { companyId, companyOption } = useAuthDefaults();
+const { companyId, companyOption, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+
+// ✅ Check if user is SuperAdmin
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
 const isFormModalOpen = ref(false);
@@ -223,25 +230,53 @@ const lineWorkFields = computed(() => [
     },
 ]);
 
-// Details Fields
-const detailsFields = computed(() => [
-    { key: 'id', label: t('lineWork.id'), colClass: 'col-md-6' },
-    { key: 'name', label: t('lineWork.name'), colClass: 'col-md-6' },
-    { key: 'company', label: t('lineWork.company'), colClass: 'col-md-6' },
-    { key: 'created_at', label: t('lineWork.createdAt'), colClass: 'col-md-6' },
-    { key: 'updated_at', label: t('lineWork.updatedAt'), colClass: 'col-md-6' },
-]);
+// ✅ Details Fields - Hide company for Admin
+const detailsFields = computed(() => {
+    const fields = [
+        { key: 'id', label: t('lineWork.id'), colClass: 'col-md-6' },
+        { key: 'name', label: t('lineWork.name'), colClass: 'col-md-6' },
+    ];
+    
+    // Only show company field for SuperAdmin
+    if (isSuperAdmin.value) {
+        fields.push({ key: 'company', label: t('lineWork.company'), colClass: 'col-md-6' });
+    }
+    
+    fields.push(
+        { key: 'created_at', label: t('lineWork.createdAt'), colClass: 'col-md-6' },
+        { key: 'updated_at', label: t('lineWork.updatedAt'), colClass: 'col-md-6' }
+    );
+    
+    return fields;
+});
 
-const lineWorkColumns = computed(() => [
+// ✅ Base columns - will be filtered based on role
+const baseColumns = ref([
     { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("lineWork.name"), sortable: true },
     { key: "company", label: t("lineWork.company"), sortable: false },
 ]);
 
+// ✅ Columns to display based on user role
+const displayColumns = computed(() => {
+    if (isSuperAdmin.value) {
+        return baseColumns.value;
+    }
+    // For Admin, exclude company column
+    return baseColumns.value.filter(col => col.key !== 'company');
+});
+
 const visibleColumns = ref([]);
 
+// ✅ Initialize visible columns based on role
+watch(() => displayColumns.value, (newColumns) => {
+    if (visibleColumns.value.length === 0) {
+        visibleColumns.value = newColumns.map(col => col.key);
+    }
+}, { immediate: true });
+
 const filteredColumns = computed(() => {
-    return lineWorkColumns.value.filter((col) =>
+    return displayColumns.value.filter((col) =>
         visibleColumns.value.includes(col.key)
     );
 });
@@ -305,7 +340,6 @@ const bulkConfirmMessage = computed(() => {
     }
     return '';
 });
-
 
 const applyServerErrors = (error) => {
     const normalized = normalizeServerErrors(error);
@@ -501,7 +535,6 @@ const handleDeleteLineWork = async (lineWork) => {
         alert(error.message || t('common.saveFailed'));
     }
 };
-
 </script>
 
 <style scoped>

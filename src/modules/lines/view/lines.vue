@@ -14,7 +14,11 @@
             v-model="searchText"
             :searchPlaceholder="$t('lines.searchPlaceholder')"
             :data="lines"
-            :columns="linesColumns"
+            :groupKey="isSuperAdmin ? 'company' : null"
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('lines.filterByCompany')"
+            translationKey=""
+            :columns="displayColumns"
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true"
             :addButtonText="$t('lines.addNew')"
@@ -153,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
@@ -161,7 +165,7 @@ import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue"
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
-import { filterData } from "@/utils/dataHelpers";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -173,10 +177,14 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 const { t } = useI18n();
 const linesStore = useLinesStore();
 const regionsStore = useRegionsManagementStore();
-const { companyId, companyOption } = useAuthDefaults();
+const { companyId, companyOption, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
+// ✅ Check if user is SuperAdmin
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
+
 const searchText = ref("");
+const selectedGroups = ref([]);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -259,34 +267,70 @@ const linesFields = computed(() => [
     },
 ]);
 
-// Details Fields
-const detailsFields = computed(() => [
-    { key: 'id', label: t('lines.id'), colClass: 'col-md-6' },
-    { key: 'name', label: t('lines.name'), colClass: 'col-md-6' },
-    { key: 'region', label: t('lines.region'), colClass: 'col-md-6' },
-    { key: 'company', label: t('lines.company'), colClass: 'col-md-6' },
-    { key: 'created_at', label: t('lines.createdAt'), colClass: 'col-md-6' },
-    { key: 'updated_at', label: t('lines.updatedAt'), colClass: 'col-md-6' },
-]);
+// ✅ Details Fields - Hide company for Admin
+const detailsFields = computed(() => {
+    const fields = [
+        { key: 'id', label: t('lines.id'), colClass: 'col-md-6' },
+        { key: 'name', label: t('lines.name'), colClass: 'col-md-6' },
+        { key: 'region', label: t('lines.region'), colClass: 'col-md-6' },
+    ];
+    
+    // Only show company field for SuperAdmin
+    if (isSuperAdmin.value) {
+        fields.push({ key: 'company', label: t('lines.company'), colClass: 'col-md-6' });
+    }
+    
+    fields.push(
+        { key: 'created_at', label: t('lines.createdAt'), colClass: 'col-md-6' },
+        { key: 'updated_at', label: t('lines.updatedAt'), colClass: 'col-md-6' }
+    );
+    
+    return fields;
+});
 
-const linesColumns = computed(() => [
+// ✅ Base columns - will be filtered based on role
+const baseColumns = ref([
     { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("lines.name"), sortable: true },
     { key: "region", label: t("lines.region"), sortable: false },
     { key: "company", label: t("lines.company"), sortable: false },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "__index", label: "#", sortable: false, isIndex: true },
-    { key: "name", label: t("lines.name") },
-    { key: "region", label: t("lines.region") },
-    { key: "company", label: t("lines.company") },
-]);
+// ✅ Columns to display based on user role
+const displayColumns = computed(() => {
+    if (isSuperAdmin.value) {
+        return baseColumns.value;
+    }
+    // For Admin, exclude company column
+    return baseColumns.value.filter(col => col.key !== 'company');
+});
+
+const trashedColumns = computed(() => {
+    const columns = [
+        { key: "__index", label: "#", sortable: false, isIndex: true },
+        { key: "name", label: t("lines.name") },
+        { key: "region", label: t("lines.region") },
+    ];
+    
+    // Only show company for SuperAdmin
+    if (isSuperAdmin.value) {
+        columns.push({ key: "company", label: t("lines.company") });
+    }
+    
+    return columns;
+});
 
 const visibleColumns = ref([]);
 
+// ✅ Initialize visible columns based on role
+watch(() => displayColumns.value, (newColumns) => {
+    if (visibleColumns.value.length === 0) {
+        visibleColumns.value = newColumns.map(col => col.key);
+    }
+}, { immediate: true });
+
 const filteredColumns = computed(() => {
-    return linesColumns.value.filter((col) =>
+    return displayColumns.value.filter((col) =>
         visibleColumns.value.includes(col.key)
     );
 });
@@ -305,6 +349,12 @@ const currentLoading = computed(() => {
 const currentFilteredData = computed(() => {
     let result = currentData.value;
     result = filterData(result, searchText.value);
+    
+    // ✅ Only apply group filter for SuperAdmin
+    if (isSuperAdmin.value && selectedGroups.value.length > 0) {
+        result = filterByGroups(result, selectedGroups.value, 'company');
+    }
+    
     return result;
 });
 
