@@ -108,7 +108,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
+import { reactive, ref, computed, onMounted, onUnmounted, nextTick  } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../../../stores/auth.js';
@@ -195,7 +195,8 @@ async function onSubmit() {
     
     // Save and apply user language
     setLocale(userLang);
-    
+        await nextTick();
+
   
     
     router.push(authStore.user?.default_page || '/user');
