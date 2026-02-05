@@ -1,3 +1,4 @@
+<!-- src/modules/linePrice/view/linePrice.vue -->
 <template>
     <div class="user-page-container bg-light">
         <!-- Floating Validation Error Alert -->
@@ -14,13 +15,17 @@
             v-model="searchText"
             :searchPlaceholder="$t('linePrice.searchPlaceholder')"
             :data="linePrices"
-            :columns="linePriceColumns"
+            :groupKey="isSuperAdmin ? 'company_name' : null"
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('linePrice.filterByCompany')"
+            translationKey=""
+            :columns="displayColumns"
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true"
             :addButtonText="$t('linePrice.addNew')"
-        @add-click="openAddModal"
-        @refresh-click="handleRefresh"
-    />
+            @add-click="openAddModal"
+            @refresh-click="handleRefresh"
+        />
 
         <div class="card border-0">
             <!-- Tabs -->
@@ -172,10 +177,14 @@ import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const linePriceStore = useLinePriceStore();
-const { companyId, companyOption, currencyId } = useAuthDefaults();
+const { companyId, companyOption, currencyId, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
+// ✅ Check if user is SuperAdmin
+const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
+
 const searchText = ref("");
+const selectedGroups = ref([]);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -311,26 +320,38 @@ const linePriceFields = computed(() => [
     },
 ]);
 
-// Details Fields
-const detailsFields = computed(() => [
-    { key: 'id', label: t('linePrice.id'), colClass: 'col-md-6' },
-    { key: 'line_name', label: t('linePrice.line'), colClass: 'col-md-6' },
-    { key: 'price', label: t('linePrice.price'), colClass: 'col-md-6' },
-    { key: 'currency_code', label: t('linePrice.currency'), colClass: 'col-md-6' },
-    { key: 'company_name', label: t('linePrice.company'), colClass: 'col-md-6' },
-    { 
-        key: 'type', 
-        label: t('linePrice.type'), 
-        colClass: 'col-md-6',
-        translator: (value) => {
-            return value === 'return' ? t('linePrice.form.types.return') : t('linePrice.form.types.delivery');
-        }
-    },
-    { key: 'created_at', label: t('linePrice.createdAt'), colClass: 'col-md-6' },
-    { key: 'updated_at', label: t('linePrice.updatedAt'), colClass: 'col-md-6' },
-]);
+// ✅ Details Fields - Hide company for Admin
+const detailsFields = computed(() => {
+    const fields = [
+        { key: 'id', label: t('linePrice.id'), colClass: 'col-md-6' },
+        { key: 'line_name', label: t('linePrice.line'), colClass: 'col-md-6' },
+        { key: 'price', label: t('linePrice.price'), colClass: 'col-md-6' },
+        { key: 'currency_code', label: t('linePrice.currency'), colClass: 'col-md-6' },
+    ];
+    
+    // Only show company field for SuperAdmin
+    if (isSuperAdmin.value) {
+        fields.push({ key: 'company_name', label: t('linePrice.company'), colClass: 'col-md-6' });
+    }
+    
+    fields.push(
+        { 
+            key: 'type', 
+            label: t('linePrice.type'), 
+            colClass: 'col-md-6',
+            translator: (value) => {
+                return value === 'return' ? t('linePrice.form.types.return') : t('linePrice.form.types.delivery');
+            }
+        },
+        { key: 'created_at', label: t('linePrice.createdAt'), colClass: 'col-md-6' },
+        { key: 'updated_at', label: t('linePrice.updatedAt'), colClass: 'col-md-6' }
+    );
+    
+    return fields;
+});
 
-const linePriceColumns = ref([
+// ✅ Base columns - will be filtered based on role
+const baseColumns = ref([
     { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "line_name", label: t("linePrice.line"), sortable: false },
     { key: "price", label: t("linePrice.price"), sortable: true },
@@ -339,18 +360,44 @@ const linePriceColumns = ref([
     { key: "type", label: t("linePrice.type"), sortable: false },
 ]);
 
-const trashedColumns = computed(() => [
-    { key: "__index", label: "#", sortable: false, isIndex: true },
-    { key: "line_name", label: t("linePrice.line") },
-    { key: "price", label: t("linePrice.price") },
-    { key: "currency_code", label: t("linePrice.currency") },
-    { key: "type", label: t("linePrice.type") },
-]);
+// ✅ Columns to display based on user role
+const displayColumns = computed(() => {
+    if (isSuperAdmin.value) {
+        return baseColumns.value;
+    }
+    // For Admin, exclude company_name column
+    return baseColumns.value.filter(col => col.key !== 'company_name');
+});
+
+const trashedColumns = computed(() => {
+    const columns = [
+        { key: "__index", label: "#", sortable: false, isIndex: true },
+        { key: "line_name", label: t("linePrice.line") },
+        { key: "price", label: t("linePrice.price") },
+        { key: "currency_code", label: t("linePrice.currency") },
+    ];
+    
+    // Only show company for SuperAdmin
+    if (isSuperAdmin.value) {
+        columns.push({ key: "company_name", label: t("linePrice.company") });
+    }
+    
+    columns.push({ key: "type", label: t("linePrice.type") });
+    
+    return columns;
+});
 
 const visibleColumns = ref([]);
 
+// ✅ Initialize visible columns based on role
+onMounted(() => {
+    if (visibleColumns.value.length === 0) {
+        visibleColumns.value = displayColumns.value.map(col => col.key);
+    }
+});
+
 const filteredColumns = computed(() => {
-    return linePriceColumns.value.filter((col) =>
+    return displayColumns.value.filter((col) =>
         visibleColumns.value.includes(col.key)
     );
 });
@@ -368,14 +415,21 @@ const currentLoading = computed(() => {
 // Filter current data
 const currentFilteredData = computed(() => {
     let result = currentData.value;
+    
+    // Apply search filter
     result = filterData(result, searchText.value);
+    
+    // Apply group filter (company) only for SuperAdmin
+    if (isSuperAdmin.value && selectedGroups.value.length > 0) {
+        result = result.filter(item => selectedGroups.value.includes(item.company_name));
+    }
+    
     return result;
 });
 
 const paginatedData = computed(() => {
     return currentFilteredData.value;
 });
-
 
 const applyServerErrors = (error) => {
     const normalized = normalizeServerErrors(error);
