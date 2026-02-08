@@ -28,6 +28,7 @@
     </Teleport>
   </div>
 </template>
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
@@ -46,6 +47,10 @@ const props = defineProps({
   menuClass: {
     type: String,
     default: "",
+  },
+  closeOnScroll: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -102,6 +107,12 @@ const handleClickOutside = (event) => {
   }
 };
 
+const handleScroll = () => {
+  if (isOpen.value && props.closeOnScroll) {
+    close();
+  }
+};
+
 const updateMenuPosition = () => {
   if (!triggerRef.value || !menuRef.value) return;
 
@@ -111,11 +122,9 @@ const updateMenuPosition = () => {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
-  // Calculate menu width - ensure it doesn't exceed viewport on mobile
   const maxMenuWidth = viewportWidth - (padding * 2);
   const menuWidth = Math.min(menuRect.width, maxMenuWidth);
 
-  // Determine horizontal position
   let left;
   if (props.menuPosition === "start") {
     left = triggerRect.left;
@@ -123,24 +132,18 @@ const updateMenuPosition = () => {
     left = triggerRect.right - menuWidth;
   }
 
-  // Ensure horizontal bounds - clamp to viewport
   left = Math.max(padding, Math.min(left, viewportWidth - menuWidth - padding));
 
-  // Determine vertical position
   let top;
   const spaceBelow = viewportHeight - triggerRect.bottom;
   const spaceAbove = triggerRect.top;
   const menuHeight = menuRect.height;
 
-  // Check if there's enough space below
   if (spaceBelow >= menuHeight + padding) {
-    // Position below the trigger
     top = triggerRect.bottom + 2;
   } else if (spaceAbove >= menuHeight + padding) {
-    // Position above the trigger
     top = triggerRect.top - menuHeight - 2;
   } else {
-    // Not enough space above or below - position where there's more space
     if (spaceBelow > spaceAbove) {
       top = triggerRect.bottom + 2;
     } else {
@@ -148,7 +151,6 @@ const updateMenuPosition = () => {
     }
   }
 
-  // Final vertical bounds check
   top = Math.max(padding, Math.min(top, viewportHeight - menuHeight - padding));
 
   menuStyles.value = {
@@ -172,16 +174,15 @@ const handleWindowChange = () => {
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
   window.addEventListener("resize", handleWindowChange);
-  window.addEventListener("scroll", handleWindowChange, true);
+  window.addEventListener("scroll", handleScroll, true);
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
   window.removeEventListener("resize", handleWindowChange);
-  window.removeEventListener("scroll", handleWindowChange, true);
+  window.removeEventListener("scroll", handleScroll, true);
 });
 
-// Expose methods for parent components
 defineExpose({
   close,
   open,

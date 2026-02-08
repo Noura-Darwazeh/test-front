@@ -124,13 +124,10 @@ export const useAuthStore = defineStore("auth", () => {
         data.user.image = getFullImageUrl(data.user.image);
       }
 
-      // ✅ جيبي الـ default_page المخزنة محليًا (إذا موجودة)
       const savedUser = getItem("auth_user");
       if (savedUser?.default_page && data.user.id === savedUser.id) {
-        // ✅ نفس اليوزر، احتفظي بالـ landing page القديمة
         data.user.default_page = savedUser.default_page;
       } else {
-        // ✅ يوزر جديد أو ما في landing page محفوظة
         data.user.default_page = data.user.landing_page || '/user';
       }
 

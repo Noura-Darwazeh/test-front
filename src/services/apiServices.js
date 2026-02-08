@@ -1031,9 +1031,6 @@ class ApiServices {
     return this.patch("/payments", paymentData);
   }
 
-  // في src/services/apiServices.js
-  // أضيفي هاي الدوال الجديدة
-
   // ===== Collections Services =====
   async getCollections({ page = 1, perPage = 10 } = {}) {
     return this.get(`/collections?page=${page}&per_page=${perPage}`);

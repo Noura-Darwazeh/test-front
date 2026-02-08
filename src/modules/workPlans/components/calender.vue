@@ -219,7 +219,6 @@ onMounted(() => {
 });
 
 const calendarEvents = computed(() => {
-    // Group plans by date
     const plansByDate = {};
 
     props.workPlans
@@ -329,12 +328,10 @@ const calendarOptions = ref({
             return;
         }
 
-        // Add tooltip on hover for main plans
         const tooltip = document.createElement('div');
         tooltip.className = 'event-tooltip';
 
         if (props.hasMultiplePlans) {
-            // Show info that there are multiple plans
             tooltip.innerHTML = `
                 <div class="tooltip-content">
                     <strong>${props.fullName}</strong>

@@ -274,16 +274,14 @@ const paginatedData = computed(() => {
   );
 });
 
-// ✅ نغيّر الـ bulk actions حسب إذا في invoice ولا لا
 const bulkActions = computed(() => {
-  // ✅ نشوف إذا كل الـ selected rows عندهم invoice_id
   const allHaveInvoice = selectedRows.value.length > 0 && selectedRows.value.every(id => {
     const collection = collections.value.find(c => c.id === id);
     return collection && collection.invoice_id;
   });
 
   if (allHaveInvoice) {
-    // ✅ إذا كلهم عندهم invoice، نعرض "Mark as Paid"
+
     return [
       {
         id: 'paid',
@@ -292,7 +290,6 @@ const bulkActions = computed(() => {
       },
     ];
   } else {
-    // ✅ إذا ما عندهم invoice، نعرض "Make Invoice"
     return [
       {
         id: 'makeInvoice',
@@ -378,13 +375,10 @@ const handleSubmitCollection = async (collectionData) => {
   }
 };
 
-// ✅ نعدّل handleBulkAction عشان يتعامل مع الحالتين
 const handleBulkAction = ({ actionId }) => {
   if (actionId === 'paid') {
-    // ✅ إذا الـ action هو "Mark as Paid"
     isPaymentMethodModalOpen.value = true;
   } else if (actionId === 'makeInvoice') {
-    // ✅ إذا الـ action هو "Make Invoice"
     isInvoiceConfirmOpen.value = true;
   }
 };
@@ -421,7 +415,6 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
   }
 };
 
-// ✅ دوال جديدة للـ Invoice Creation
 const closeInvoiceConfirm = () => {
   isInvoiceConfirmOpen.value = false;
 };
@@ -431,18 +424,10 @@ const confirmCreateInvoice = async () => {
   try {
 
     const response = await apiServices.createInvoiceFromCollections(selectedRows.value);
-
-
-    // ✅ نحدّث الـ collections
     await collectionsStore.fetchCollections();
-
-    // ✅ ننظف الـ selection
     selectedRows.value = [];
-
-    // ✅ نسكّر الـ modal
     closeInvoiceConfirm();
 
-    // ✅ نعرض رسالة نجاح
     alert(t('collection.invoiceCreatedSuccess'));
   } catch (error) {
     console.error("❌ Failed to create invoice:", error);

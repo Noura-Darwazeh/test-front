@@ -393,7 +393,6 @@ const validateAllFields = () => {
 };
 
 const handleFieldInput = (fieldName) => {
-  // Clear error on input
   if (fieldErrors.value[fieldName]) {
     fieldErrors.value[fieldName] = '';
   }

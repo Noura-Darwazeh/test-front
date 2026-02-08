@@ -6,7 +6,6 @@
             @refresh-click="handleRefresh" />
 
         <div class="card border-0">
-            <!-- Tabs - إخفاء تاب Trashed من الأدمن -->
             <div class="card-header bg-white border-bottom" v-if="isSuperAdmin">
                 <ul class="nav nav-tabs card-header-tabs">
                     <li class="nav-item">
@@ -31,7 +30,6 @@
             </div>
             
             <div class="card-body p-0">
-                <!-- إخفاء BulkActionsBar من الأدمن -->
                 <BulkActionsBar
                     v-if="isSuperAdmin"
                     :selectedCount="selectedRows.length"
@@ -76,7 +74,6 @@
                                 @details="openDetailsModal"
                             />
                             
-                            <!-- للسوبر أدمن: كل الصلاحيات -->
                             <ActionsDropdown
                                 v-else-if="activeTab === 'active'"
                                 :row="row"
@@ -106,7 +103,6 @@
             </div>
         </div>
 
-        <!-- Form Modal - فقط للسوبر أدمن -->
         <FormModal 
             v-if="isSuperAdmin"
             :isOpen="isFormModalOpen" 
@@ -118,7 +114,6 @@
             @submit="handleSubmitregions" 
         />
 
-        <!-- Details Modal - للجميع -->
         <DetailsModal 
             :isOpen="isDetailsModalOpen" 
             :title="$t('regions.details')" 
@@ -127,7 +122,6 @@
             @close="closeDetailsModal" 
         />
 
-        <!-- Confirmation Modal - فقط للسوبر أدمن -->
         <ConfirmationModal 
             v-if="isSuperAdmin"
             :isOpen="isBulkConfirmOpen" 
@@ -171,7 +165,6 @@ const regionsStore = useRegionsManagementStore();
 const authStore = useAuthStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
-// ✅ التحقق من صلاحيات السوبر أدمن
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
@@ -380,7 +373,6 @@ const bulkConfirmMessage = computed(() => {
 });
 
 
-// Add Modal - فقط للسوبر أدمن
 const applyServerErrors = (error) => {
     const normalized = normalizeServerErrors(error);
     formErrors.value = normalized;
@@ -401,7 +393,6 @@ const openAddModal = () => {
     isFormModalOpen.value = true;
 };
 
-// Edit Modal - فقط للسوبر أدمن
 const openEditModal = (regions) => {
     if (!isSuperAdmin.value) {
         return;
@@ -412,7 +403,6 @@ const openEditModal = (regions) => {
     isFormModalOpen.value = true;
 };
 
-// Details Modal - للجميع
 const openDetailsModal = (regions) => {
     selectedregions.value = { ...regions };
     isDetailsModalOpen.value = true;

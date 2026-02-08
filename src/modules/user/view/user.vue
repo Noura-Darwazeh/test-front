@@ -1012,9 +1012,7 @@ const canDeleteUser = (user) => {
   return false;
 };
 
-// Disable row selection for users that can't be edited or deleted
 const disableUserSelection = (user) => {
-  // If user can't edit or delete, disable selection
   return !canEditUser(user) && !canDeleteUser(user);
 };
 </script>

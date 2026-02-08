@@ -12,22 +12,18 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
 
     const normalizeCollection = (collection) => {
 
-    // ✅ الـ API بيرجع received_by_driver مش driver
     const driver = collection.received_by_driver;
     
-    // ✅ الـ API بيرجع invoice_id كـ object مش invoice_code مباشرة
     const invoice = collection.invoice_id;
     
     const normalized = {
         id: collection.id,
         status: collection.status,
-        note: collection.notes || "N/A", // ✅ notes مش note
+        note: collection.notes || "N/A", 
         
-        // ✅ من الـ invoice object
         invoice_id: invoice ? invoice.id : null,
         invoice_code: invoice ? invoice.invoice_code : "N/A",
         
-        // ✅ من الـ driver object
         driver_id: driver ? driver.id : null,
         driver_name: driver ? driver.name : "N/A",
         

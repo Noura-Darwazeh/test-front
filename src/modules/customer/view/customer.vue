@@ -504,7 +504,6 @@ const closeDetailsModal = () => {
     selectedCustomer.value = {};
 };
 
-// Tab switching function
 const switchTab = async (tab) => {
     activeTab.value = tab;
     skipNextPageWatch.value = true;

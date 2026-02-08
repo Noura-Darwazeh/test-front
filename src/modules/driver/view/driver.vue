@@ -299,7 +299,6 @@ onMounted(async () => {
     }
 });
 
-// Watch for page changes to fetch new data from server
 watch(currentPage, async (newPage) => {
     if (skipNextPageWatch.value) {
         skipNextPageWatch.value = false;
@@ -701,7 +700,7 @@ const cancelBulkAction = () => {
 };
 
 const handleSubmitDriver = async (driverData) => {
-    // Clear previous validation error
+ 
     validationError.value = null;
     
     try {
@@ -786,7 +785,6 @@ const handleDeleteDriver = async (driver) => {
         
         console.log('📦 Workplans found:', workplans);
         
-        // ❌ إذا في active steps - ما تقدر تحذف
         if (success === false) {
             canDeleteDriver.value = false;
             driverToDelete.value = driver;
@@ -795,7 +793,6 @@ const handleDeleteDriver = async (driver) => {
             return;
         }
         
-        // ✅ إذا في work plans (بس بدون active steps) - اعرض الخيارات
         if (Array.isArray(workplans) && workplans.length > 0) {
             canDeleteDriver.value = true;
             driverToDelete.value = driver;
@@ -805,7 +802,6 @@ const handleDeleteDriver = async (driver) => {
             return;
         }
         
-        // ✅ ما في work plans - احذف مباشرة
         console.log('✅ No work plans found, deleting driver directly...');
         await driverStore.deleteDriver(driver.id);
         showSuccess(t('driver.deleteSuccess'));

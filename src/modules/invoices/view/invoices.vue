@@ -375,7 +375,6 @@ const exportInvoicePDF = async (invoice) => {
     
     const fullInvoice = response.data.data;
 
-    // ✅ جلب الـ Logos
     const deliveryLogo = fullInvoice.delivery_company?.logo;
     const clientLogo = fullInvoice.client_company?.logo;
 
@@ -433,7 +432,7 @@ const exportInvoicePDF = async (invoice) => {
         <div style="margin-bottom: 20px; border-bottom: 3px solid #4A90E2; padding-bottom: 15px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             
-            <!-- 🏢 Delivery Company Logo -->
+            <!--  Delivery Company Logo -->
             <div style="flex: 1; text-align: ${textAlign};">
               ${deliveryLogoBase64
                 ? `<img src="${deliveryLogoBase64}" alt="Delivery Company" style="max-width: 120px; max-height: 60px; object-fit: contain;" />`
@@ -444,7 +443,7 @@ const exportInvoicePDF = async (invoice) => {
               <p style="margin: 4px 0 0 0; font-size: 10px; color: #6C757D; font-weight: 600;">${t('invoice.from') || 'FROM'}</p>
             </div>
 
-            <!-- 🏢 Client Company Logo -->
+            <!--  Client Company Logo -->
             <div style="flex: 1; text-align: ${isRTL.value ? 'left' : 'right'};">
               ${clientLogoBase64
                 ? `<img src="${clientLogoBase64}" alt="Client Company" style="max-width: 120px; max-height: 60px; object-fit: contain;" />`
