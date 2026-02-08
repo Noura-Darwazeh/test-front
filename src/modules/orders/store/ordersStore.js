@@ -67,6 +67,8 @@ export const useOrdersStore = defineStore("orders", () => {
     case: order.case,
     type: order.type,
     package: order.package,
+    line_id: order.line?.id || order.line_id || null,
+    line_name: order.line?.name || "",
     lineprice_id: order.line_price?.id || null,
     lineprice_name: order.line_price?.name || "",
     lineprice_price: order.line_price?.price || "",

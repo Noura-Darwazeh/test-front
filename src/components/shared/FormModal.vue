@@ -523,6 +523,7 @@ const setServerErrors = (payload) => {
   Object.keys(serverFieldErrors).forEach((key) => {
     delete serverFieldErrors[key];
   });
+  imageError.value = "";
 
   if (!payload || typeof payload !== "object") {
     return;
@@ -533,11 +534,19 @@ const setServerErrors = (payload) => {
     if (Array.isArray(message)) {
       const firstMessage = message.find((entry) => entry);
       if (firstMessage) {
-        serverFieldErrors[field] = String(firstMessage);
+        if (field === "image") {
+          imageError.value = String(firstMessage);
+        } else {
+          serverFieldErrors[field] = String(firstMessage);
+        }
       }
       return;
     }
-    serverFieldErrors[field] = String(message);
+    if (field === "image") {
+      imageError.value = String(message);
+    } else {
+      serverFieldErrors[field] = String(message);
+    }
   });
 };
 

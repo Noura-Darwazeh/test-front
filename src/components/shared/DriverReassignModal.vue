@@ -145,7 +145,6 @@
                       :key="driver.id"
                       :value="driver.id"
                     >
-                      <i class="fas fa-user me-2"></i>
                       {{ driver.name }} - {{ driver.username }}
                     </option>
                   </select>

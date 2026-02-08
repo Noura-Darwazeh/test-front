@@ -4,6 +4,7 @@
     :customers="customers"
     :companies="companiesList"
     :currencies="currencies"
+    :lines="lines"
     :linePrices="linePrices"
     :discounts="discounts"
     :branches="branches"
@@ -47,6 +48,27 @@
         @edit="(payload) => $emit('edit-order', payload)"
         @details="(payload) => $emit('details-order', payload)"
         @delete="(payload) => $emit('delete-order', payload)"
+      />
+    </template>
+  </DetailsModal>
+
+  <DetailsModal
+    :isOpen="isProgressModalOpen"
+    :title="$t('orders.progress.title')"
+    :data="selectedProgressOrder"
+    :fields="[]"
+    @close="$emit('close-progress')"
+  >
+    <template #after-details>
+      <OrderDetailsContent
+        v-if="selectedProgressOrder"
+        tab="details"
+        :order="selectedProgressOrder"
+        :exchange="{ delivery: null, return: null, hasExchange: false }"
+        :formatPrice="formatPrice"
+        :getOrderItemTitle="getOrderItemTitle"
+        :getOrderItemQuantity="getOrderItemQuantity"
+        :showItems="false"
       />
     </template>
   </DetailsModal>
@@ -111,6 +133,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isProgressModalOpen: {
+    type: Boolean,
+    default: false,
+  },
   detailsModalTab: {
     type: String,
     default: "details",
@@ -118,6 +144,10 @@ const props = defineProps({
   selectedOrderExchange: {
     type: Object,
     default: () => ({ delivery: null, return: null, hasExchange: false }),
+  },
+  selectedProgressOrder: {
+    type: Object,
+    default: () => ({}),
   },
   formatPrice: {
     type: Function,
@@ -150,6 +180,7 @@ const emit = defineEmits([
   "edit-order",
   "details-order",
   "delete-order",
+  "close-progress",
   "confirm-bulk",
   "close-bulk",
   "update:detailsModalTab",
@@ -160,6 +191,7 @@ const { companyOption } = useAuthDefaults();
 
 const customers = ref([]);
 const currencies = ref([]);
+const lines = ref([]);
 const linePrices = ref([]);
 const discounts = ref([]);
 const branches = ref([]);
@@ -179,16 +211,20 @@ const detailsModalTabProxy = computed({
 const resolveCurrencyLabel = (currency) => {
   if (!currency) return "";
   if (Array.isArray(currency)) {
-    return currency[1] || (currency[0] ? `Currency ${currency[0]}` : "");
+    const name = currency[1] || "";
+    const symbol = currency[2] || "";
+    if (name && symbol && name !== symbol) return `${name} (${symbol})`;
+    return name || symbol || (currency[0] ? `Currency ${currency[0]}` : "");
   }
   const name =
-    currency.name ||
     currency.nameenglish ||
     currency.namearabic ||
+    currency.name ||
+    currency.key ||
     currency.code ||
     "";
   const symbol = currency.symbol || "";
-  if (name && symbol) return `${name} (${symbol})`;
+  if (name && symbol && name !== symbol) return `${name} (${symbol})`;
   return name || symbol || (currency.id ? `Currency ${currency.id}` : "");
 };
 
@@ -495,6 +531,7 @@ const fetchDropdownData = async () => {
   const results = await Promise.allSettled([
     apiServices.getCustomers(),
     apiServices.getCurrencies(),
+    apiServices.getLines({ page: 1, perPage: 1000 }),
     apiServices.getLinePrices(),
     apiServices.getDiscounts(),
     apiServices.getBranches(),
@@ -504,6 +541,7 @@ const fetchDropdownData = async () => {
   const [
     customersRes,
     currenciesRes,
+    linesRes,
     linePricesRes,
     discountsRes,
     branchesRes,
@@ -522,6 +560,13 @@ const fetchDropdownData = async () => {
   } else {
     currencies.value = [];
     logError("currencies", currenciesRes.reason);
+  }
+
+  if (linesRes.status === "fulfilled") {
+    lines.value = extractArray(linesRes.value);
+  } else {
+    lines.value = [];
+    logError("lines", linesRes.reason);
   }
 
   if (linePricesRes.status === "fulfilled") {

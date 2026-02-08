@@ -19,11 +19,11 @@ export const getTimePeriodOptions = (t) => [
 ];
 
 export const getCurrentData = ({ activeTab, orders, trashedOrders }) => {
-  return activeTab === "active" ? orders : trashedOrders;
+  return activeTab === "trashed" ? trashedOrders : orders;
 };
 
 export const getCurrentLoading = ({ activeTab, loading, trashedLoading }) => {
-  return activeTab === "active" ? loading : trashedLoading;
+  return activeTab === "trashed" ? trashedLoading : loading;
 };
 
 export const getCurrentPagination = ({
@@ -31,7 +31,7 @@ export const getCurrentPagination = ({
   ordersPagination,
   trashedPagination,
 }) => {
-  return activeTab === "active" ? ordersPagination : trashedPagination;
+  return activeTab === "trashed" ? trashedPagination : ordersPagination;
 };
 
 export const getFilteredColumns = ({
@@ -40,14 +40,14 @@ export const getFilteredColumns = ({
   trashedColumns,
   visibleColumns,
 }) => {
-  if (activeTab === "active") {
+  if (activeTab !== "trashed") {
     return orderColumns.filter((col) => visibleColumns.includes(col.key));
   }
   return trashedColumns;
 };
 
 export const getBulkActions = (t, activeTab) => {
-  if (activeTab === "active") {
+  if (activeTab !== "trashed") {
     return [
       {
         id: "delete",

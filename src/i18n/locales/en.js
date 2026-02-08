@@ -47,7 +47,7 @@ export default {
     title: "Forgot Password?",
     subtitle: "Enter your email and we'll send you a link to reset your password.",
     emailLabel: "Email Address",
-    emailPlaceholder: "you@example.com",
+    emailPlaceholder: "you(at)example.com",
     sendResetLink: "Send Reset Link",
     sending: "Sending...",
     backToLogin: "Remember your password? Sign In",
@@ -210,6 +210,7 @@ export default {
       phoneRequired: "Phone number is required",
       phoneMax: "Phone number must not exceed 20 characters",
       roleRequired: "Role is required",
+      regionRequired: "Region is required",
       companyRequired: "Company is required",
       imageRequired: "Profile picture is required",
       imageSize: "Image size must not exceed 200 KB",
@@ -1233,6 +1234,7 @@ export default {
       selectCustomer: "Select Customer",
       selectLocation: "Select Location",
       selectCurrency: "Select Currency",
+      selectLine: "Select Line",
       selectLinePrice: "Select Line Price",
       selectCompanyPrice: "Select Company Price",
       selectBranch: "Select Branch",
@@ -1243,6 +1245,7 @@ export default {
       deliveryPrice: "Delivery Price",
       returnPrice: "Return Price",
       currencyId: "Currency",
+      lineId: "Line",
       linepriceId: "Line Price",
       discountId: "Discount",
       noDiscount: "No Discount",
@@ -1361,6 +1364,19 @@ export default {
       empty: "No trashed orders",
       restore: "Restore Order",
       delete: "Delete Permanently",
+    },
+    progress: {
+      title: "Order Progress",
+      tab: "Order Progress",
+      view: "View Progress",
+      selectOrder: "Select Order",
+      selectOrderPlaceholder: "Choose an order...",
+      selectOrderHint: "Select an order to view its progress.",
+      currentStatus: "Current Status",
+      pending: "Pending",
+      inprocess: "In Progress",
+      done: "Delivered",
+      failed: "Failed",
     },
 
     // Order Details
@@ -1966,12 +1982,12 @@ export default {
     validation: {
       requiredField: "{field} is required",
       invalidEmail: "Invalid email format",
+      invalidImageFile: "Please select a valid image file (JPG, PNG, GIF, WEBP)",
+      imageMaxSize: "Image size must be less than {size}MB",
       minLength: "Must be at least {min} characters",
-      imageRequired: "Profile picture is required",
-      invalidImageFile: "Please select a valid image file",
-      imageMaxSize: "Image size should not exceed {size}MB",
-      orderRowRequired: "Order and items are required",
-      branchNameRequired: "Branch name is required",
+      phoneInvalid: "Invalid phone number",
+      phoneTooShort: "Phone number is too short (minimum 10 digits)",
+      phoneTooLong: "Phone number is too long (maximum 15 digits)"
     },
 
     // Bulk action confirmation messages
@@ -2108,6 +2124,7 @@ export default {
   },
 
   profile: {
+  
     title: "Profile",
     personalInfo: "Personal Information",
     accountSettings: "Account Settings",
@@ -2135,6 +2152,8 @@ export default {
     imageUpdateSuccess: "Profile image updated successfully!",
     imageUpdateError: "Failed to update profile image.",
     noImageSelected: "Please select an image first.",
+    loadError: "Failed to load profile"
+
   },
 
   collection: {

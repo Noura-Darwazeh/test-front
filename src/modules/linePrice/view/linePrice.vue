@@ -231,12 +231,14 @@ const fetchDropdownData = async () => {
 
         currencyOptions.value = (currenciesResponse.data.data || []).map((currency) => {
             const name =
-                currency.name ||
                 currency.nameenglish ||
                 currency.namearabic ||
+                currency.name ||
+                currency.key ||
+                currency.code ||
                 "";
             const symbol = currency.symbol || "";
-            const label = name && symbol ? `${name} (${symbol})` : (name || symbol);
+            const label = name && symbol && name !== symbol ? `${name} (${symbol})` : (name || symbol);
             return {
                 value: String(currency.id),
                 label

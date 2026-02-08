@@ -14,7 +14,12 @@ export const setItem = (key, value) => {
 export const getItem = (key, defaultValue = null) => {
   try {
     const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
+    if (!item) return defaultValue;
+    try {
+      return JSON.parse(item);
+    } catch {
+      return item;
+    }
   } catch (error) {
     console.error(`Error getting localStorage item ${key}:`, error);
     return defaultValue;

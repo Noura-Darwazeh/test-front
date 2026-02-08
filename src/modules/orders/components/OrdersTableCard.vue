@@ -66,10 +66,13 @@
                 :row="row"
                 :editLabel="$t('orders.actions.edit')"
                 :detailsLabel="$t('orders.actions.view')"
+                :progressLabel="$t('orders.progress.view')"
+                :showProgress="true"
                 :deleteLabel="$t('orders.actions.delete')"
                 :confirmDelete="true"
                 @edit="$emit('edit', row)"
                 @details="$emit('details', row)"
+                @progress="$emit('progress', row)"
                 @delete="$emit('delete', row)"
               />
               <ActionsDropdown
@@ -212,6 +215,7 @@ const emit = defineEmits([
   "bulk-action",
   "edit",
   "details",
+  "progress",
   "delete",
   "restore",
   "delete-permanent",

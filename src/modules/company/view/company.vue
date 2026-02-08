@@ -1,5 +1,9 @@
 <template>
     <div class="user-page-container bg-light">
+        <div v-if="!isSuperAdmin" class="alert alert-warning m-3">
+            {{ $t('common.accessDenied') }}
+        </div>
+        <template v-else>
         <!-- Tabs for Active and Trashed Companies -->
         <ul class="nav nav-tabs mb-3">
             <li class="nav-item">
@@ -227,6 +231,7 @@
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="bulkConfirmTitle" :message="bulkConfirmMessage"
             :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')" @confirm="executeBulkAction"
             @close="cancelBulkAction" />
+        </template>
     </div>
 </template>
 
@@ -246,9 +251,14 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import { useCompanyManagementStore } from "../store/companyManagement.js";
 import apiServices from "@/services/apiServices.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useAuthStore } from "@/stores/auth.js";
 
 const { t } = useI18n();
 const companyStore = useCompanyManagementStore();
+const authStore = useAuthStore();
+const isSuperAdmin = computed(
+    () => (authStore.userRole || "").toLowerCase() === "superadmin",
+);
 
 // Tab Management
 const activeTab = ref('active');

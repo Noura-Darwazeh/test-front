@@ -73,29 +73,65 @@
                   <!-- Full Name -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.fullName')" :required="true" />
-                    <TextField v-model="formData.name" type="text" :placeholder="$t('user.form.namePlaceholder')"
-                      @input="markAsChanged" />
+                    <TextField 
+                      v-model="formData.name" 
+                      type="text" 
+                      :placeholder="$t('user.form.namePlaceholder')"
+                      :class="{ 'is-invalid': fieldErrors.name }"
+                      @input="handleFieldInput('name')"
+                      @blur="validateField('name')"
+                    />
+                    <div v-if="fieldErrors.name" class="invalid-feedback d-block">
+                      {{ fieldErrors.name }}
+                    </div>
                   </div>
 
                   <!-- Username -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.username')" :required="true" />
-                    <TextField v-model="formData.username" type="text"
-                      :placeholder="$t('user.form.usernamePlaceholder')" @input="markAsChanged" />
+                    <TextField 
+                      v-model="formData.username" 
+                      type="text"
+                      :placeholder="$t('user.form.usernamePlaceholder')" 
+                      :class="{ 'is-invalid': fieldErrors.username }"
+                      @input="handleFieldInput('username')"
+                      @blur="validateField('username')"
+                    />
+                    <div v-if="fieldErrors.username" class="invalid-feedback d-block">
+                      {{ fieldErrors.username }}
+                    </div>
                   </div>
 
                   <!-- Email -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.email')" />
-                    <TextField v-model="formData.email" type="email" :placeholder="$t('user.form.emailPlaceholder')"
-                      @input="markAsChanged" />
+                    <TextField 
+                      v-model="formData.email" 
+                      type="email" 
+                      :placeholder="$t('user.form.emailPlaceholder')"
+                      :class="{ 'is-invalid': fieldErrors.email }"
+                      @input="handleFieldInput('email')"
+                      @blur="validateField('email')"
+                    />
+                    <div v-if="fieldErrors.email" class="invalid-feedback d-block">
+                      {{ fieldErrors.email }}
+                    </div>
                   </div>
 
                   <!-- Phone Number -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.phoneNumber')" :required="true" />
-                    <TextField v-model="formData.phone_number" type="tel"
-                      :placeholder="$t('user.form.phoneNumberPlaceholder')" @input="markAsChanged" />
+                    <TextField 
+                      v-model="formData.phone_number" 
+                      type="tel"
+                      :placeholder="$t('user.form.phoneNumberPlaceholder')" 
+                      :class="{ 'is-invalid': fieldErrors.phone_number }"
+                      @input="handleFieldInput('phone_number')"
+                      @blur="validateField('phone_number')"
+                    />
+                    <div v-if="fieldErrors.phone_number" class="invalid-feedback d-block">
+                      {{ fieldErrors.phone_number }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -153,16 +189,6 @@
                     </select>
                   </div>
 
-                  <!-- Default Landing Page -->
-                  <!-- <div class="col-12">
-                    <FormLabel :label="$t('profile.defaultLandingPage')" />
-                    <select v-model="formData.default_page" class="form-select" @change="markAsChanged">
-                      <option v-for="page in availablePages" :key="page.value" :value="page.value">
-                        {{ page.label }}
-                      </option>
-                    </select>
-                  </div> -->
-
                   <!-- Language -->
                   <div class="col-12">
                     <FormLabel :label="$t('profile.language')" />
@@ -204,6 +230,14 @@
       <FormModal :isOpen="isPasswordModalOpen" :title="$t('profile.changePassword')" :fields="passwordFields"
         :showImageUpload="false" :serverErrors="passwordFormErrors" @close="closePasswordModal"
         @submit="handleChangePassword" />
+
+      <!-- Success Modal -->
+      <SuccessModal
+        :isOpen="isSuccessModalOpen"
+        :title="$t('common.success')"
+        :message="successMessage"
+        @close="closeSuccessModal"
+      />
     </div>
   </div>
 </template>
@@ -217,6 +251,7 @@ import FormModal from '@/components/shared/FormModal.vue';
 import PrimaryButton from '@/components/shared/PrimaryButton.vue';
 import FormLabel from '@/components/shared/FormLabel.vue';
 import TextField from '@/components/shared/TextField.vue';
+import SuccessModal from '@/components/shared/SuccessModal.vue';
 import apiServices from '@/services/apiServices.js';
 import { setLocale } from '@/i18n/index';
 import { normalizeServerErrors } from '@/utils/formErrors.js';
@@ -224,7 +259,6 @@ import cameraIcon from '@/assets/profile/camera.svg';
 import settingIcon from '@/assets/profile/setting.svg';
 import userIcon from '@/assets/sidebar/userIcon.svg';
 
-// ✅ API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://192.168.100.35:80';
 
 const { t } = useI18n();
@@ -240,6 +274,16 @@ const isSaving = ref(false);
 const hasChanges = ref(false);
 const fileInput = ref(null);
 const imageFile = ref(null);
+const isSuccessModalOpen = ref(false);
+const successMessage = ref('');
+
+// ✅ Field Errors
+const fieldErrors = ref({
+  name: '',
+  username: '',
+  email: '',
+  phone_number: ''
+});
 
 // Form data
 const formData = reactive({
@@ -262,18 +306,6 @@ const originalData = ref({});
 const regions = ref([]);
 const currencies = ref([]);
 const companies = ref([]);
-
-// Available pages for landing page selection
-const availablePages = computed(() => {
-  const routes = router.getRoutes()
-    .filter(route => route.meta?.showInSidebar)
-    .map(route => ({
-      value: route.path,
-      label: route.meta.titleKey ? t(route.meta.titleKey) : route.name
-    }));
-
-  return routes;
-});
 
 // Password Fields
 const passwordFields = computed(() => [
@@ -306,6 +338,68 @@ const passwordFields = computed(() => [
   },
 ]);
 
+// ✅ Validation Functions
+const validateField = (fieldName) => {
+  const value = formData[fieldName];
+  
+  // Clear previous error
+  fieldErrors.value[fieldName] = '';
+
+  // Required fields validation
+  if (['name', 'username', 'phone_number'].includes(fieldName)) {
+    if (!value || value.trim() === '') {
+      fieldErrors.value[fieldName] = t('common.validation.requiredField', { field: t(`user.${fieldName === 'phone_number' ? 'phoneNumber' : fieldName}`) });
+      return false;
+    }
+  }
+
+  // Email validation
+  if (fieldName === 'email' && value && value.trim() !== '') {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      fieldErrors.value.email = t('common.validation.invalidEmail');
+      return false;
+    }
+  }
+
+  // Phone number validation
+  if (fieldName === 'phone_number' && value) {
+    const phoneDigits = value.replace(/\D/g, '');
+    
+    if (phoneDigits.length < 10) {
+      fieldErrors.value.phone_number = t('common.validation.phoneTooShort');
+      return false;
+    }
+    
+    if (phoneDigits.length > 15) {
+      fieldErrors.value.phone_number = t('common.validation.phoneTooLong');
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const validateAllFields = () => {
+  let isValid = true;
+  
+  ['name', 'username', 'email', 'phone_number'].forEach(field => {
+    if (!validateField(field)) {
+      isValid = false;
+    }
+  });
+  
+  return isValid;
+};
+
+const handleFieldInput = (fieldName) => {
+  // Clear error on input
+  if (fieldErrors.value[fieldName]) {
+    fieldErrors.value[fieldName] = '';
+  }
+  markAsChanged();
+};
+
 // Fetch dropdown data
 const fetchDropdownData = async () => {
   try {
@@ -325,7 +419,18 @@ const fetchDropdownData = async () => {
     if (currenciesResponse?.data?.data) {
       currencies.value = currenciesResponse.data.data.map(currency => ({
         value: String(currency.id),
-        label: `${currency.code} (${currency.symbol})`
+        label: (() => {
+          const name =
+            currency.nameenglish ||
+            currency.namearabic ||
+            currency.name ||
+            currency.key ||
+            currency.code ||
+            "";
+          const symbol = currency.symbol || "";
+          if (name && symbol && name !== symbol) return `${name} (${symbol})`;
+          return name || symbol || "";
+        })(),
       }));
     }
 
@@ -337,17 +442,15 @@ const fetchDropdownData = async () => {
     }
 
   } catch (error) {
-    console.error('❌ Failed to load dropdown data (will use profile data):', error);
+    console.error('❌ Failed to load dropdown data:', error);
   }
 };
 
-// NEW: Populate dropdowns from user profile data (for Admin users)
 const populateDropdownsFromProfile = () => {
   if (!userProfile.value) return;
 
   const user = userProfile.value;
 
-  // ✅ Add user's company to companies dropdown
   if (user.company?.id) {
     const companyId = String(user.company.id);
     const companyName = user.company.name;
@@ -360,7 +463,6 @@ const populateDropdownsFromProfile = () => {
     }
   }
 
-  // ✅ Add user's region to regions dropdown
   if (user.region?.id) {
     const regionId = String(user.region.id);
     const regionName = user.region.name;
@@ -373,7 +475,6 @@ const populateDropdownsFromProfile = () => {
     }
   }
 
-  // ✅ Add user's currency to currencies dropdown
   if (user.currency?.id) {
     const currencyId = String(user.currency.id);
     const currencyName = user.currency.name;
@@ -385,42 +486,27 @@ const populateDropdownsFromProfile = () => {
       });
     }
   }
-
 };
 
-// Initialize form data from userProfile
 const initializeFormData = () => {
   if (!userProfile.value) return;
 
   const user = userProfile.value;
-
 
   formData.name = user.name || '';
   formData.username = user.username || '';
   formData.email = user.email || '';
   formData.phone_number = user.phone_number || '';
 
-  // ✅ Company: object {id: 1, name: "shiply2"} -> extract id
-  formData.company_id = user.company?.id
-    ? String(user.company.id)
-    : '';
-
-  // ✅ Region: object {id: 1, name: "Jordan"} -> extract id
-  formData.region_id = user.region?.id
-    ? String(user.region.id)
-    : '';
-
-  // ✅ Currency: object {id: 1, name: "JOD"} -> extract id
-  formData.currency_id = user.currency?.id
-    ? String(user.currency.id)
-    : '';
+  formData.company_id = user.company?.id ? String(user.company.id) : '';
+  formData.region_id = user.region?.id ? String(user.region.id) : '';
+  formData.currency_id = user.currency?.id ? String(user.currency.id) : '';
 
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
   formData.imagePreview = null;
   imageFile.value = null;
 
-  // Store original data
   originalData.value = {
     name: formData.name,
     username: formData.username,
@@ -433,9 +519,12 @@ const initializeFormData = () => {
     default_page: formData.default_page,
   };
 
+  // Clear all errors
+  Object.keys(fieldErrors.value).forEach(key => {
+    fieldErrors.value[key] = '';
+  });
 };
 
-// ✅ Fetch User Profile from API
 const fetchUserProfile = async () => {
   try {
     isLoading.value = true;
@@ -449,22 +538,16 @@ const fetchUserProfile = async () => {
     const response = await apiServices.getUserProfile(userId);
     userProfile.value = response.data.data;
 
-
-    // ✅ Populate dropdowns from profile (for Admin users who can't access full lists)
     populateDropdownsFromProfile();
-
-    // Initialize form with fetched data
     initializeFormData();
 
   } catch (error) {
     console.error('❌ Failed to fetch user profile:', error);
-    alert(t('profile.loadError') || 'Failed to load profile');
   } finally {
     isLoading.value = false;
   }
 };
 
-// ✅ Get full image URL with cache-busting
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
 
@@ -479,25 +562,22 @@ const getImageUrl = (imagePath) => {
   return `${API_BASE_URL}${imagePath}?t=${Date.now()}`;
 };
 
-// Mark as changed
 const markAsChanged = () => {
   hasChanges.value = true;
 };
 
-// ✅ Handle image upload
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Validate file type
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   if (!validTypes.includes(file.type)) {
-    alert(t('common.validation.invalidImageFile'));
+    fieldErrors.value.image = t('common.validation.invalidImageFile');
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    alert(t('common.validation.imageMaxSize', { size: 5 }));
+    fieldErrors.value.image = t('common.validation.imageMaxSize', { size: 5 });
     return;
   }
 
@@ -511,23 +591,24 @@ const handleImageUpload = (event) => {
   reader.readAsDataURL(file);
 };
 
-// Trigger file input
 const triggerFileInput = () => {
   if (fileInput.value) {
     fileInput.value.click();
   }
 };
 
-// Handle language change
 const handleLanguageChange = async () => {
   markAsChanged();
-
-  // Update UI language immediately for better UX
   const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
   setLocale(uiLang);
 };
 
 const handleSaveChanges = async () => {
+  // ✅ Validate all fields
+  if (!validateAllFields()) {
+    return;
+  }
+
   const languageChanged = formData.language !== originalData.value.language;
   
   try {
@@ -560,9 +641,6 @@ const handleSaveChanges = async () => {
 
     formDataToSend.append('language', formData.language);
 
-    // ❌ ما نبعتها للـ backend
-    // formDataToSend.append('default_page', formData.default_page);
-
     if (imageFile.value) {
       formDataToSend.append('image', imageFile.value);
     }
@@ -579,19 +657,17 @@ const handleSaveChanges = async () => {
         userData.image = `${userData.image}?t=${Date.now()}`;
       }
 
-      // ✅ حطّي الـ landing page محليًا (مش من الـ backend)
       userData.default_page = formData.default_page;
-
-      // ✅ حدّثي الـ authStore (هيك بتتخزن في localStorage)
       authStore.updateUser(userData);
 
-      
-      alert(t('profile.updateSuccess') || 'Profile updated successfully!');
+      // ✅ Show Success Modal instead of alert
+      successMessage.value = t('profile.updateSuccess') || 'Profile updated successfully!';
+      isSuccessModalOpen.value = true;
 
       if (languageChanged) {
         const uiLang = formData.language === 'arabic' ? 'ar' : 'en';
         setLocale(uiLang);
-        setTimeout(() => window.location.reload(), 500);
+        setTimeout(() => window.location.reload(), 1500);
         return;
       }
 
@@ -606,55 +682,25 @@ const handleSaveChanges = async () => {
       initializeFormData();
       hasChanges.value = false;
 
-      // ✅ بس reload عادي (بدون redirect)
       setTimeout(() => {
         window.location.reload();
-      }, 500);
+      }, 1500);
     }
   } catch (error) {
     console.error('❌ Failed to update profile:', error);
     
-    // ✅ حتى لو فشل الـ API، احفظي الـ landing page محليًا
     const currentUser = authStore.user;
     currentUser.default_page = formData.default_page;
     authStore.updateUser(currentUser);
 
     const errorMessage = error.response?.data?.message || error.message || t('profile.updateError');
-    alert(errorMessage);
+    successMessage.value = errorMessage;
+    isSuccessModalOpen.value = true;
   } finally {
     isSaving.value = false;
   }
 };
 
-   
-
-
-
-
-
-
-  
-
-  
-    
-  
-
-    
-    
-
- 
-
-
-
-
-
-
-
-
-
-
-
-// Handle cancel
 const handleCancel = () => {
   if (confirm(t('common.confirmCancel'))) {
     initializeFormData();
@@ -662,7 +708,6 @@ const handleCancel = () => {
   }
 };
 
-// Modal handlers
 const openPasswordModal = () => {
   passwordFormErrors.value = {};
   isPasswordModalOpen.value = true;
@@ -673,18 +718,21 @@ const closePasswordModal = () => {
   passwordFormErrors.value = {};
 };
 
+const closeSuccessModal = () => {
+  isSuccessModalOpen.value = false;
+  successMessage.value = '';
+};
+
 const applyPasswordErrors = (error) => {
   const normalized = normalizeServerErrors(error);
   passwordFormErrors.value = normalized;
   return Object.keys(normalized).length > 0;
 };
 
-// Handle password change
 const handleChangePassword = async (passwordData) => {
   try {
     passwordFormErrors.value = {};
 
-    // Validate passwords match
     if (passwordData.new_password !== passwordData.confirm_password) {
       passwordFormErrors.value = {
         confirm_password: t('profile.passwordMismatch'),
@@ -692,7 +740,6 @@ const handleChangePassword = async (passwordData) => {
       return;
     }
 
-    // Validate password strength
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&#]).{8,}$/;
     if (!passwordRegex.test(passwordData.new_password)) {
       passwordFormErrors.value = {
@@ -709,25 +756,25 @@ const handleChangePassword = async (passwordData) => {
     });
 
     if (response.data?.message) {
-      alert(t('profile.passwordChangeSuccess'));
+      successMessage.value = t('profile.passwordChangeSuccess');
+      isSuccessModalOpen.value = true;
       closePasswordModal();
 
-      // Logout after password change
       setTimeout(() => {
         authStore.logout();
         router.push('/login');
-      }, 1000);
+      }, 2000);
     }
   } catch (error) {
     console.error('❌ Failed to change password:', error);
     if (applyPasswordErrors(error)) {
       return;
     }
-    alert(error.message || t('profile.passwordChangeError'));
+    successMessage.value = error.message || t('profile.passwordChangeError');
+    isSuccessModalOpen.value = true;
   }
 };
 
-// Get role badge class
 const getRoleBadgeClass = (role) => {
   const roleClasses = {
     SuperAdmin: 'bg-danger',
@@ -739,12 +786,8 @@ const getRoleBadgeClass = (role) => {
   return roleClasses[role] || 'bg-secondary';
 };
 
-// ✅ Initialize on mount - CORRECT ORDER
 onMounted(async () => {
-  // Step 1: Load dropdowns FIRST (will fail for Admin, but that's ok)
   await fetchDropdownData();
-
-  // Step 2: Load user profile AFTER (will populate dropdowns from profile data)
   await fetchUserProfile();
 });
 </script>
@@ -781,13 +824,24 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
+/* ✅ Invalid Field Styling */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #dc3545;
+}
+
+.invalid-feedback {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
 .badge {
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
 }
 
-/* Fixed Action Bar */
 .fixed-action-bar {
   position: fixed;
   bottom: 0;
@@ -796,7 +850,6 @@ onMounted(async () => {
   z-index: 1000;
 }
 
-/* Slide up animation */
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: all 0.3s ease;

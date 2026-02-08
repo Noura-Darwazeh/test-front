@@ -336,7 +336,24 @@ const fetchDropdownData = async () => {
     if (currenciesResponse.status === "fulfilled") {
       currencies.value = currenciesResponse.value.data.data.map((currency) => ({
         value: String(currency.id),
-        label: `${currency.code} (${currency.symbol})`,
+        label: (() => {
+          if (Array.isArray(currency)) {
+            const name = currency[1] || "";
+            const symbol = currency[2] || "";
+            if (name && symbol && name !== symbol) return `${name} (${symbol})`;
+            return name || symbol || "";
+          }
+          const name =
+            currency.nameenglish ||
+            currency.namearabic ||
+            currency.name ||
+            currency.key ||
+            currency.code ||
+            "";
+          const symbol = currency.symbol || "";
+          if (name && symbol && name !== symbol) return `${name} (${symbol})`;
+          return name || symbol || "";
+        })(),
       }));
     } else {
       currencies.value = [];
@@ -475,7 +492,13 @@ const userFields = computed(() => [
     //     ? selectedUser.value.role[0]
     //     : selectedUser.value.role
     //   : "",
-      defaultValue: isEditMode.value ? selectedUser.value.role : "", 
+      defaultValue: isEditMode.value ? selectedUser.value.role : "",
+    validate: (value) => {
+      if (!value || (Array.isArray(value) && value.length === 0)) {
+        return t("user.validation.roleRequired");
+      }
+      return null;
+    },
 
   },
   {
@@ -503,10 +526,14 @@ const userFields = computed(() => [
     name: "region_id",
     label: t("user.form.region"),
     type: "select",
-    required: false,
+    required: true,
     options: [{ value: "", label: t("user.form.noRegion") }, ...regions.value],
     colClass: "col-md-6",
     defaultValue: isEditMode.value ? selectedUser.value.region_id : "",
+    validate: (value) => {
+      if (!value) return t("user.validation.regionRequired");
+      return null;
+    },
   },
   {
     name: "currency_id",
@@ -540,15 +567,20 @@ const detailsFields = computed(() => [
   { key: "company_name", label: t("user.company"), colClass: "col-md-12" },
 ]);
 
-const userColumns = computed(() => [
-  { key: "__index", label: "#", sortable: false, isIndex: true },
-  { key: "name", label: t("user.fullName"), sortable: true },
-  { key: "username", label: t("user.username"), sortable: true },
-  { key: "email", label: t("user.email"), sortable: false },
-  { key: "phone_number", label: t("user.phoneNumber"), sortable: false },
-  { key: "role", label: t("user.userRole"), sortable: true },
-  { key: "company_name", label: t("user.company"), sortable: false },
-]);
+const userColumns = computed(() => {
+  const columns = [
+    { key: "__index", label: "#", sortable: false, isIndex: true },
+    { key: "name", label: t("user.fullName"), sortable: true },
+    { key: "username", label: t("user.username"), sortable: true },
+    { key: "email", label: t("user.email"), sortable: false },
+    { key: "phone_number", label: t("user.phoneNumber"), sortable: false },
+    { key: "role", label: t("user.userRole"), sortable: true },
+    { key: "company_name", label: t("user.company"), sortable: false },
+  ];
+  return isSuperAdmin.value
+    ? columns
+    : columns.filter((col) => col.key !== "company_name");
+});
 
 const trashedColumns = computed(() => [
   { key: "__index", label: "#", sortable: false, isIndex: true },
@@ -768,7 +800,7 @@ const handleSubmitUser = async (userData) => {
       userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE
     ) {
       console.error("❌ Image size exceeds limit");
-      alert("Image size should not exceed 200KB");
+      formErrors.value = { ...formErrors.value, image: t("user.validation.imageSize") };
       return;
     }
     

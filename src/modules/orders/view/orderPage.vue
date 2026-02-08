@@ -39,6 +39,7 @@
       @bulk-action="handleBulkAction"
       @edit="editOrder"
       @details="viewOrderDetails"
+      @progress="openProgressModal"
       @delete="handleDeleteOrder"
       @restore="handleRestoreOrder"
       @delete-permanent="handlePermanentDeleteOrder"
@@ -59,10 +60,13 @@
       :isDetailsModalOpen="isDetailsModalOpen"
       v-model:detailsModalTab="detailsModalTab"
       :selectedOrderExchange="selectedOrderExchange"
+      :isProgressModalOpen="isProgressModalOpen"
+      :selectedProgressOrder="selectedProgressOrder"
       :formatPrice="formatPrice"
       :getOrderItemTitle="getOrderItemTitle"
       :getOrderItemQuantity="getOrderItemQuantity"
       @close-details="closeDetailsModal"
+      @close-progress="closeProgressModal"
       @edit-order="editOrder"
       @details-order="viewOrderDetails"
       @delete-order="handleDeleteOrder"
@@ -179,6 +183,8 @@ const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 const activeTab = ref('active');
+const isProgressModalOpen = ref(false);
+const selectedProgressOrder = ref(null);
 
 const statusFilterData = computed(() => {
   return buildStatusFilterData({
@@ -249,6 +255,7 @@ const currentData = computed(() => {
 
 const processedOrders = computed(() => buildProcessedOrders(currentData.value));
 
+
 // Function to check if a row is expandable (has child orders)
 const isOrderExpandable = (row) => {
   return row._hasChildren === true;
@@ -269,12 +276,10 @@ const buildOrderFilters = () => {
     filters.search = trimmedSearch;
   }
   if (selectedGroups.value.length > 0) {
-    const toApiStatus = (status) =>
-      status === "inprocess" ? "in_progress" : status;
     filters.status =
       selectedGroups.value.length === 1
-        ? toApiStatus(selectedGroups.value[0])
-        : selectedGroups.value.map(toApiStatus).join(",");
+        ? selectedGroups.value[0]
+        : selectedGroups.value.join(",");
   }
   return filters;
 };
@@ -289,9 +294,9 @@ const fetchOrdersPage = async (page = 1) => {
 };
 
 const currentFilteredData = computed(() => {
-  // Use processedOrders for active tab to handle exchange grouping
+  // Use processedOrders for active/progress tabs to handle exchange grouping
   const result =
-    activeTab.value === "active" ? processedOrders.value : currentData.value;
+    activeTab.value === "trashed" ? currentData.value : processedOrders.value;
   return filterByTimePeriod(result, selectedTimePeriod.value);
 });
 
@@ -358,22 +363,46 @@ const {
   fetchOrdersPage,
 });
 
-watch([searchText, selectedGroups], async () => {
+const searchDebounceTimer = ref(null);
+
+const openProgressModal = (order) => {
+  selectedProgressOrder.value = { ...order };
+  isProgressModalOpen.value = true;
+};
+
+const closeProgressModal = () => {
+  isProgressModalOpen.value = false;
+  selectedProgressOrder.value = null;
+};
+
+watch([searchText, selectedGroups], () => {
+  if (searchDebounceTimer.value) {
+    clearTimeout(searchDebounceTimer.value);
+  }
   if (currentPage.value !== 1) {
     skipNextPageWatch.value = true;
     currentPage.value = 1;
   }
-  try {
-    await fetchOrdersPage(1);
-  } catch (error) {
-    console.error("❌ Failed to apply filters:", error);
-  }
+  searchDebounceTimer.value = setTimeout(async () => {
+    try {
+      await fetchOrdersPage(1);
+    } catch (error) {
+      console.error("Failed to apply filters:", error);
+    }
+  }, 400);
 });
+
 
 watch(selectedTimePeriod, () => {
   if (currentPage.value !== 1) {
     skipNextPageWatch.value = true;
     currentPage.value = 1;
+  }
+});
+
+watch(activeTab, (tab) => {
+  if (tab === "progress") {
+    selectedProgressOrderId.value = "";
   }
 });
 </script>

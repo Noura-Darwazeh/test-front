@@ -631,7 +631,12 @@
               </div>
 
               <div
-                v-if="wizardMode === 'exchange' || (wizardMode !== 'exchange' && formData.pricing_mode === 'detailed')"
+                v-if="
+                  wizardMode === 'exchange' ||
+                  (wizardMode !== 'exchange' &&
+                    (formData.pricing_mode === 'detailed' ||
+                      formData.pricing_mode === 'total'))
+                "
                 class="row g-3"
               >
                 <div class="col-md-6">
@@ -662,7 +667,13 @@
                   </div>
                 </div>
 
-                <div class="col-md-6">
+                <div
+                  v-if="
+                    wizardMode === 'exchange' ||
+                    (wizardMode !== 'exchange' && formData.pricing_mode === 'detailed')
+                  "
+                  class="col-md-6"
+                >
                   <label class="form-label"
                     >{{ $t("orders.form.companyItemPriceId") }}
                     <span class="text-danger">*</span></label
@@ -1372,6 +1383,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  lines: {
+    type: Array,
+    default: () => [],
+  },
   linePrices: {
     type: Array,
     default: () => [],
@@ -1677,6 +1692,13 @@ const validateStepPricing = () => {
         );
         isValid = false;
       }
+      if (isEmptyValue(formData.value.lineprice_id)) {
+        setFieldError(
+          "lineprice_id",
+          requiredFieldMessage(t("orders.form.linepriceId"))
+        );
+        isValid = false;
+      }
     } else {
       if (isEmptyValue(formData.value.price)) {
         setFieldError("price", requiredFieldMessage(t("orders.form.price")));
@@ -1857,7 +1879,7 @@ const submitOrder = () => {
       ? parseFloat(formData.value.delivery_price)
       : undefined,
     currency_id: resolvedCurrencyId,
-    lineprice_id: !isTotalPricing
+    lineprice_id: !isEmptyValue(formData.value.lineprice_id)
       ? parseInt(formData.value.lineprice_id)
       : undefined,
     discount_id: !isTotalPricing && formData.value.discount_id
@@ -1939,7 +1961,6 @@ watch(
     clearAllErrors();
     if (mode === "total") {
       formData.value.price = "";
-      formData.value.lineprice_id = "";
       formData.value.company_item_price_id = "";
       formData.value.discount_id = "";
     } else {
@@ -2004,6 +2025,18 @@ watch(
       if (!isEmptyValue(totalPrice)) {
         formData.value.total_price = String(totalPrice);
         clearFieldError("total_price");
+      }
+    }
+
+    if (
+      wizardMode.value === "return" &&
+      formData.value.pricing_mode === "total" &&
+      isEmptyValue(formData.value.lineprice_id)
+    ) {
+      const parentLinePriceId = selected.lineprice_id ?? selected.line_price?.id;
+      if (!isEmptyValue(parentLinePriceId)) {
+        formData.value.lineprice_id = String(parentLinePriceId);
+        clearFieldError("lineprice_id");
       }
     }
 

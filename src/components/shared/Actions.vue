@@ -21,6 +21,14 @@
                         {{ detailsLabel }}
                     </a>
                 </li>
+                <li v-if="showProgress">
+                    <a class="dropdown-item d-flex align-items-center gap-1" href="#"
+                        @click.prevent="handleProgress(close)">
+                        <img :src=progressIcon width="20" height="20" />
+
+                        {{ progressLabel }}
+                    </a>
+                </li>
                 <li v-if="showDelete">
                     <a class="dropdown-item d-flex align-items-center gap-1" href="#"
                         @click.prevent="handleDelete(close)">
@@ -70,6 +78,7 @@ import editIcon from "../../assets/table/edit.svg";
 import detailsIcon from "../../assets/table/details.svg";
 import deleteIcon from "../../assets/table/recycle.svg";
 import restoreIcon from "../../assets/table/refresh.svg";
+import progressIcon from "../../assets/order_transaction/shipped.svg";
 import PrimaryButton from './PrimaryButton.vue';
 const { locale, t } = useI18n();
 const isRTL = computed(() => locale.value === 'ar');
@@ -123,6 +132,14 @@ const props = defineProps({
         type: Boolean,
         default: true
     },
+    progressLabel: {
+        type: String,
+        default: 'Progress'
+    },
+    showProgress: {
+        type: Boolean,
+        default: false
+    },
     restoreLabel: {
         type: String,
         default: 'Restore'
@@ -141,7 +158,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['edit', 'details', 'delete', 'restore', 'permanent-delete']);
+const emit = defineEmits(['edit', 'details', 'delete', 'restore', 'permanent-delete', 'progress']);
 
 const deleteConfirmState = ref(false);
 
@@ -166,6 +183,11 @@ const handleEdit = (close) => {
 const handleDetails = (close) => {
     close();
     emit('details', props.row);
+};
+
+const handleProgress = (close) => {
+    close();
+    emit('progress', props.row);
 };
 
 const handleDelete = (close) => {
