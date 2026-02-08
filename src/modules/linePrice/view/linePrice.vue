@@ -668,7 +668,7 @@ const handlePermanentDeleteLinePrice = async (linePrice) => {
     }
 };
 
-</script>
+</script>+
 
 <style scoped>
 .user-page-container {
