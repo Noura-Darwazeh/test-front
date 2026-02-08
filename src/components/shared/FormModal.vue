@@ -64,14 +64,53 @@
                   </label>
 
                 <!-- Text/Email/Tel/Password/Number/Date Input -->
-                <input
-                  v-if="['text', 'email', 'tel', 'password', 'number', 'datetime-local', 'date'].includes(field.type)"
-                  :id="field.name" :type="field.type" class="form-control" v-model="formData[field.name]"
-                  :placeholder="field.placeholder || field.label" :required="field.required"
-                  :minlength="field.minlength" :step="field.step" :min="field.min" :max="field.max"
-                  :disabled="field.disabled" :readonly="field.readonly"
-                  @input="handleFieldInput(field)"
-                  @blur="handleFieldBlur(field)" />
+                <div v-if="['text', 'email', 'tel', 'password', 'number', 'datetime-local', 'date'].includes(field.type)" 
+                     class="position-relative">
+                  <input
+                    :id="field.name" 
+                    :type="field.type === 'password' && showPassword[field.name] ? 'text' : field.type"
+                    class="form-control" 
+                    :class="{ 'pe-5': field.type === 'password' }"
+                    v-model="formData[field.name]"
+                    :placeholder="field.placeholder || field.label" 
+                    :required="field.required"
+                    :minlength="field.minlength" 
+                    :step="field.step" 
+                    :min="field.min" 
+                    :max="field.max"
+                    :disabled="field.disabled" 
+                    :readonly="field.readonly"
+                    @input="handleFieldInput(field)"
+                    @blur="handleFieldBlur(field)" 
+                  />
+                  
+                  <!-- Password Toggle Button -->
+                  <button
+                    v-if="field.type === 'password'"
+                    type="button"
+                    @click="togglePasswordVisibility(field.name)"
+                    class="btn position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent p-0 me-2"
+                    style="z-index: 10"
+                    tabindex="-1"
+                  >
+                    <img
+                      v-if="showPassword[field.name]"
+                      :src="showIcon"
+                      alt="Hide password"
+                      width="24"
+                      height="24"
+                      class="iconEye"
+                    />
+                    <img
+                      v-else
+                      :src="hideIcon"
+                      alt="Show password"
+                      width="24"
+                      height="24"
+                      class="iconEye"
+                    />
+                  </button>
+                </div>
 
                 <!-- Select Dropdown -->
                 <select v-else-if="field.type === 'select'" :id="field.name" class="form-select"
@@ -324,6 +363,8 @@ import removeIcon from "../../assets/table/recycle.svg";
 import userIcon from "../../assets/modal/user.svg";
 import addIcon from "../../assets/table/add.svg";
 import crossIcon from "../../assets/modal/cross.svg";
+import showIcon from "@/assets/login/show.svg";
+import hideIcon from "@/assets/login/hide.svg";
 import { Vector as VectorLayer } from "ol/layer";
 import { Vector as VectorSource } from "ol/source";
 import { Feature } from "ol";
@@ -354,11 +395,16 @@ const imagePreview = ref(null);
 const imageFile = ref(null);
 const imageError = ref("");
 const fileInput = ref(null);
+const showPassword = ref({});
 
 const uploadLabel = computed(() =>
   props.imageUploadLabel ? props.imageUploadLabel : t("common.uploadImage")
 );
 const removeLabel = computed(() => t("common.remove"));
+
+const togglePasswordVisibility = (fieldName) => {
+  showPassword.value[fieldName] = !showPassword.value[fieldName];
+};
 
 // Get select options (supports computed properties)
 const getSelectOptions = (field) => {
@@ -578,10 +624,6 @@ const renderFields = computed(() =>
     : []
 );
 
-// Initialize form
-// في src/components/shared/FormModal.vue
-
-// Initialize form
 const initializeForm = () => {
   if (!props.fields || props.fields.length === 0) return;
 
@@ -590,14 +632,13 @@ const initializeForm = () => {
   props.fields.forEach((field) => {
     if (field && field.name) {
       if (field.type === "orderRows") {
-        // ✅ تعديل هون
         const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
           ? field.defaultValue
           : [{ order: "", items: [] }];
         
         formData[field.name] = defaultRows.map((row) => ({
           order: row?.order || "",
-          items: Array.isArray(row?.items) ? [...row.items] : [] // ✅ نسخ الـ items
+          items: Array.isArray(row?.items) ? [...row.items] : []
         }));
       } else if (field.type === "branchRows") {
         const defaultRows =
@@ -625,23 +666,19 @@ const initializeForm = () => {
   }
 };
 
-
-// Reset form
-// Reset form
 const resetForm = () => {
   if (!props.fields || props.fields.length === 0) return;
 
   props.fields.forEach((field) => {
     if (field && field.name) {
       if (field.type === "orderRows") {
-        // ✅ تعديل هون
         const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
           ? field.defaultValue
           : [{ order: "", items: [] }];
         
         formData[field.name] = defaultRows.map((row) => ({
           order: row?.order || "",
-          items: Array.isArray(row?.items) ? [...row.items] : [] // ✅ نسخ الـ items
+          items: Array.isArray(row?.items) ? [...row.items] : []
         }));
       } else if (field.type === "branchRows") {
         const defaultRows =
@@ -668,8 +705,6 @@ const resetForm = () => {
   }
   closeMapPicker();
 };
-    
-
 
 // Add / Remove order rows
 const addOrderRow = (fieldName) => {
@@ -1213,6 +1248,22 @@ const handleFieldChange = (field, event) => {
   -moz-appearance: none;
   background-image: none;
   padding-right: 0.75rem;
+}
+
+/* Password Toggle Styles */
+.form-control.pe-5 {
+  padding-right: 3rem !important;
+}
+
+.btn .iconEye {
+  filter: brightness(0) saturate(100%) invert(46%) sepia(3%) saturate(1481%)
+    hue-rotate(167deg) brightness(96%) contrast(88%);
+  transition: all 0.2s ease;
+}
+
+.btn:hover .iconEye {
+  filter: brightness(0) saturate(100%) invert(38%) sepia(89%) saturate(2166%)
+    hue-rotate(227deg) brightness(97%) contrast(92%);
 }
 
 /* ✅ Multiselect Styles */
