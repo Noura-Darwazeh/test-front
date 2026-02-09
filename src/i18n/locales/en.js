@@ -63,6 +63,8 @@ export default {
     errors: {
       emailNotFound: "Email not found in our system",
       sendFailed: "Failed to send reset link. Please try again.",
+      serverError: 'Server error. Please try again later'
+
     },
   },
 

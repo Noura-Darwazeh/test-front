@@ -51,14 +51,11 @@
                                 type="email"
                                 :placeholder="$t('forgotPassword.emailPlaceholder')"
                                 :required="true"
+                                @input="clearErrors"
                             />
-                            <small v-if="errors.email" class="text-danger">{{ errors.email }}</small>
-                        </div>
-
-                        <!-- API Error Message -->
-                        <div v-if="apiError" class="alert alert-danger" role="alert">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            {{ apiError }}
+                            <div v-if="emailError" class="error-message">
+                                {{ emailError }}
+                            </div>
                         </div>
 
                         <!-- Submit Button - Centered -->
@@ -68,19 +65,19 @@
                                 :loading-text="$t('forgotPassword.sending')"
                                 :loading="submitting"
                                 type="submit"
+                                :disabled="submitting"
                             />
                         </div>
 
-                        <!-- Success Message -->
-                        <div v-if="sent" class="alert alert-success mt-3" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            {{ successMessage }}
+                        <!-- ✅ Success Message -->
+                        <div v-if="sent" class="alert alert-success d-flex align-items-start mt-3" role="alert">
+                            <i class="fas fa-check-circle me-2 mt-1"></i>
+                            <span>{{ successMessage }}</span>
                         </div>
 
                         <!-- Back to login -->
                         <div class="d-flex justify-content-end mt-3">
-                            <router-link to="/login" class="text-decoration-none fw-semibold login-link"
-                                >
+                            <router-link to="/login" class="text-decoration-none fw-semibold login-link">
                                 {{ $t('forgotPassword.backToLogin') }}
                             </router-link>
                         </div>
@@ -92,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import FormLabel from '../../../components/shared/FormLabel.vue'
@@ -110,9 +107,8 @@ const { t, locale } = useI18n()
 const email = ref('')
 const submitting = ref(false)
 const sent = ref(false)
-const errors = reactive({ email: '' })
-const apiError = ref('')
-const successMessage = ref(t('forgotPassword.successMessage'))
+const emailError = ref('') 
+const successMessage = ref('')
 
 // ===== Language Logic =====
 const currentLanguage = ref(locale.value);
@@ -122,17 +118,10 @@ const currentLanguageLabel = computed(() => {
   return currentLanguage.value === 'ar' ? 'العربية' : 'English';
 });
 
-
-/**
- * Detect browser language on mount
- */
 onMounted(() => {
   detectBrowserLanguage();
 });
 
-/**
- * Detect browser language and set if not already set
- */
 const detectBrowserLanguage = () => {
   const savedLang = localStorage.getItem('lang');
   
@@ -151,9 +140,6 @@ const detectBrowserLanguage = () => {
   }
 };
 
-/**
- * Change language
- */
 const changeLanguage = (lang, closeDropdown) => {
   currentLanguage.value = lang;
   setLocale(lang);
@@ -161,19 +147,28 @@ const changeLanguage = (lang, closeDropdown) => {
   window.location.reload();
 };
 
+// ✅ Clear errors when user types
+const clearErrors = () => {
+    emailError.value = ''
+    sent.value = false
+}
+
 // ===== Form Logic =====
 async function onSubmit() {
-    errors.email = ''
-    apiError.value = ''
+    // Clear previous errors
+    emailError.value = ''
+    sent.value = false
 
+    // Validate email is not empty
     if (!email.value || !email.value.trim()) {
-        errors.email = t('forgotPassword.validation.emailRequired')
+        emailError.value = t('forgotPassword.validation.emailRequired')
         return
     }
 
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.value)) {
-        errors.email = t('forgotPassword.validation.emailInvalid')
+        emailError.value = t('forgotPassword.validation.emailInvalid')
         return
     }
 
@@ -192,24 +187,40 @@ async function onSubmit() {
 
             successMessage.value = response.data.message || t('forgotPassword.successMessage')
             sent.value = true
+            emailError.value = '' // ✅ Clear error on success
 
-            setTimeout(() => {
-                // router.push('/login')
-            }, 5000)
+            // Optional: redirect after delay
+            // setTimeout(() => {
+            //     router.push('/login')
+            // }, 5000)
         } else {
             throw new Error(response.data.message || t('forgotPassword.errors.sendFailed'))
         }
     } catch (error) {
         console.error('❌ Forgot password error:', error)
 
-        if (error.response?.data?.message) {
-            apiError.value = error.response.data.message
-        } else if (error.response?.status === 404) {
-            apiError.value = t('forgotPassword.errors.emailNotFound')
+        // ✅ Handle different error cases - show under input
+        if (error.response?.status === 404) {
+            emailError.value = t('forgotPassword.errors.emailNotFound')
         } else if (error.response?.status === 422) {
-            apiError.value = t('forgotPassword.validation.emailInvalid')
+            // ✅ Validation error
+            const validationErrors = error.response?.data?.errors
+            if (validationErrors?.email) {
+                emailError.value = Array.isArray(validationErrors.email) 
+                    ? validationErrors.email[0] 
+                    : validationErrors.email
+            } else {
+                emailError.value = error.response?.data?.message || t('forgotPassword.validation.emailInvalid')
+            }
+        } else if (error.response?.status === 500) {
+            // ✅ Server error
+            emailError.value = t('forgotPassword.errors.serverError')
+        } else if (error.response?.data?.message) {
+            // ✅ Any other API error message
+            emailError.value = error.response.data.message
         } else {
-            apiError.value = error.message || t('forgotPassword.errors.sendFailed')
+            // ✅ Generic error
+            emailError.value = error.message || t('forgotPassword.errors.sendFailed')
         }
     } finally {
         submitting.value = false
@@ -222,49 +233,6 @@ async function onSubmit() {
     filter: brightness(0) invert(1);
 }
 
-.language-selector-wrapper {
-    top: 20px;
-    right: 20px;
-    z-index: 10;
-}
-
-.language-trigger {
-    color: #6c757d;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    padding: 0.25rem;
-}
-
-.language-trigger:hover {
-    color: var(--primary-color);
-    transform: scale(1.1);
-}
-
-.language-trigger:focus {
-    box-shadow: none;
-}
-
-.language-flag {
-    font-size: 1.5rem;
-    line-height: 1;
-    display: block;
-}
-
-.dropdown-item {
-    padding: 0.5rem 1rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.dropdown-item:hover {
-    background-color: #f8f9fa;
-    color: var(--primary-color);
-}
-
-.dropdown-item.active {
-    background-color: var(--primary-color);
-    color: white;
-}
 .login-link {
   color: var(--primary-color);
 }
@@ -272,6 +240,23 @@ async function onSubmit() {
 .login-link:hover {
   color: var(--primary-hover);
 }
+
+.error-message {
+    color: var(--color-danger);
+    font-size: 0.875rem;
+    margin-top: 0.375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.error-message::before {
+    content: "⚠";
+    font-size: 1rem;
+}
+
+
+
 @media (max-width: 576px) {
     .language-selector-wrapper {
         top: 10px;
