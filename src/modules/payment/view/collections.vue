@@ -10,7 +10,8 @@
       translationKey="collectionStatus" 
       :columns="collectionColumns" 
       v-model:visibleColumns="visibleColumns"
-      :showAddButton="false" 
+      :showAddButton="false"
+      :showTrashedButton="false"
       @refresh-click="handleRefresh" 
     />
 
@@ -47,14 +48,14 @@
             :actionsLabel="$t('collection.actions')"
             v-model="selectedRows" 
             :disableRowWhen="hasInvoiceId"
+            :showCheckbox="true"
           >
             <template #actions="{ row }">
               <ActionsDropdown 
                 :row="row" 
-                :editLabel="$t('collection.edit')" 
                 :detailsLabel="$t('collection.details')"
-                :showDelete="false" 
-                @edit="openEditModal" 
+                :showDelete="false"
+                :showEdit="false"
                 @details="openDetailsModal" 
               />
             </template>
@@ -71,16 +72,6 @@
         </div>
       </div>
     </div>
-
-    <FormModal 
-      :isOpen="isModalOpen" 
-      :title="$t('collection.edit')" 
-      :fields="collectionFields" 
-      :showImageUpload="false"
-      :serverErrors="formErrors"
-      @close="closeModal" 
-      @submit="handleSubmitCollection" 
-    />
 
     <!-- Details Modal -->
     <DetailsModal 
@@ -101,7 +92,7 @@
       @submit="handlePaymentMethodSubmit" 
     />
 
-    <!-- ✅ Confirmation Modal for Invoice Creation -->
+    <!-- Confirmation Modal for Invoice Creation -->
     <ConfirmationModal
       :isOpen="isInvoiceConfirmOpen"
       :title="t('collection.createInvoiceTitle')"
@@ -123,14 +114,12 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import TableHeader from "../../../components/shared/TableHeader.vue";
-import FormModal from "../../../components/shared/FormModal.vue";
 import PaymentMethodModal from "../components/PaymentMethodModal.vue";
-import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue"; // ✅ أضفنا هاد
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCollectionsManagementStore } from "../store/collectionsManagement.js";
 import apiServices from "@/services/apiServices.js";
-import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const collectionsStore = useCollectionsManagementStore();
@@ -140,25 +129,16 @@ const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
-const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const selectedCollection = ref({});
-const formErrors = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isPaymentMethodModalOpen = ref(false);
 const paymentMethodLoading = ref(false);
-const isInvoiceConfirmOpen = ref(false); // ✅ للـ confirmation modal
+const isInvoiceConfirmOpen = ref(false);
 
 // Data
 const drivers = ref([]);
-
-// Status options
-const statuses = ref([
-  { value: "pending", label: t("collectionStatus.pending") },
-  { value: "completed", label: t("collectionStatus.completed") },
-  { value: "failed", label: t("collectionStatus.failed") },
-]);
 
 // Fetch drivers
 const fetchDrivers = async () => {
@@ -168,11 +148,7 @@ const fetchDrivers = async () => {
       value: String(driver.id),
       label: driver.name || driver.user?.name || `Driver #${driver.id}`
     }));
-
   } catch (error) {
-    if (applyServerErrors(error)) {
-      return;
-    }
     console.error("❌ Failed to load drivers:", error);
   }
 };
@@ -207,27 +183,6 @@ const collectionColumns = computed(() => [
 ]);
 
 const visibleColumns = ref(collectionColumns.value.map(col => col.key));
-
-const collectionFields = computed(() => [
-  {
-    name: "status",
-    label: t("collection.form.status"),
-    type: "select",
-    required: true,
-    options: statuses.value,
-    colClass: "col-md-12",
-    defaultValue: selectedCollection.value.status || 'pending',
-  },
-  {
-    name: "note",
-    label: t("collection.form.note"),
-    type: "text",
-    required: false,
-    placeholder: t("collection.form.notePlaceholder"),
-    colClass: "col-md-12",
-    defaultValue: selectedCollection.value.note || '',
-  },
-]);
 
 const detailsFields = computed(() => [
   { key: 'id', label: t('collection.id'), colClass: 'col-md-6' },
@@ -281,7 +236,6 @@ const bulkActions = computed(() => {
   });
 
   if (allHaveInvoice) {
-
     return [
       {
         id: 'paid',
@@ -319,60 +273,14 @@ const handleRefresh = async () => {
   }
 };
 
-const applyServerErrors = (error) => {
-  const normalized = normalizeServerErrors(error);
-  formErrors.value = normalized;
-  return Object.keys(normalized).length > 0;
-};
-
-const clearFormErrors = () => {
-  formErrors.value = {};
-};
-
-const openEditModal = (collection) => {
-  clearFormErrors();
-  selectedCollection.value = { ...collection };
-  isModalOpen.value = true;
-};
-
 const openDetailsModal = (collection) => {
   selectedCollection.value = { ...collection };
   isDetailsModalOpen.value = true;
 };
 
-const closeModal = () => {
-  isModalOpen.value = false;
-  selectedCollection.value = {};
-  clearFormErrors();
-};
-
 const closeDetailsModal = () => {
   isDetailsModalOpen.value = false;
   selectedCollection.value = {};
-};
-
-const handleSubmitCollection = async (collectionData) => {
-  try {
-    const data = {
-      collection_ids: [selectedCollection.value.id],
-      status: collectionData.status,
-    };
-
-    if (collectionData.note && collectionData.note.trim() !== '') {
-      data.note = collectionData.note;
-    }
-
-
-    const response = await apiServices.markCollectionsAsPaid(data);
-
-
-    await collectionsStore.fetchCollections();
-
-    closeModal();
-  } catch (error) {
-    console.error("❌ Failed to update collection:", error);
-    alert(error.response?.data?.message || error.message || "Failed to update collection. Please try again.");
-  }
 };
 
 const handleBulkAction = ({ actionId }) => {
@@ -399,10 +307,7 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
       collectionData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
     }
 
-
     await apiServices.markCollectionsAsPaid(collectionData);
-
-
     await collectionsStore.fetchCollections();
 
     selectedRows.value = [];
@@ -422,8 +327,7 @@ const closeInvoiceConfirm = () => {
 const confirmCreateInvoice = async () => {
   bulkActionLoading.value = true;
   try {
-
-    const response = await apiServices.createInvoiceFromCollections(selectedRows.value);
+    await apiServices.createInvoiceFromCollections(selectedRows.value);
     await collectionsStore.fetchCollections();
     selectedRows.value = [];
     closeInvoiceConfirm();
