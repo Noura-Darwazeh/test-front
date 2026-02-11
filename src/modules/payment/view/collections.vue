@@ -103,6 +103,13 @@
       @confirm="confirmCreateInvoice"
       @close="closeInvoiceConfirm"
     />
+
+        <SuccessModal
+      :isOpen="isSuccessModalOpen"
+      :title="$t('common.success')"
+      :message="successMessage"
+      @close="closeSuccessModal"
+    />
   </div>
 </template>
 
@@ -120,6 +127,7 @@ import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCollectionsManagementStore } from "../store/collectionsManagement.js";
 import apiServices from "@/services/apiServices.js";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
 
 const { t } = useI18n();
 const collectionsStore = useCollectionsManagementStore();
@@ -323,7 +331,20 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
 const closeInvoiceConfirm = () => {
   isInvoiceConfirmOpen.value = false;
 };
+// Success Modal State
+const isSuccessModalOpen = ref(false);
+const successMessage = ref('');
 
+// Success Modal Methods
+const showSuccessModal = (message) => {
+  successMessage.value = message;
+  isSuccessModalOpen.value = true;
+};
+
+const closeSuccessModal = () => {
+  isSuccessModalOpen.value = false;
+  successMessage.value = '';
+};
 const confirmCreateInvoice = async () => {
   bulkActionLoading.value = true;
   try {
@@ -332,7 +353,8 @@ const confirmCreateInvoice = async () => {
     selectedRows.value = [];
     closeInvoiceConfirm();
 
-    alert(t('collection.invoiceCreatedSuccess'));
+        showSuccessModal(t('collection.invoiceCreatedSuccess'));
+
   } catch (error) {
     console.error("❌ Failed to create invoice:", error);
     alert(error.response?.data?.message || error.message || "Failed to create invoice. Please try again.");
