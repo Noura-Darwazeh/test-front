@@ -1268,6 +1268,8 @@ export default {
       parentOrderId: "Parent Order",
       noParentOrder: "No Parent Order",
       companyId: "Company",
+      fromCompanyId: "From Company",
+      selectFromCompany: "Select From Company",
       branchCustomerCompanyId: "From Branch",
       branchDeliveryCompanyId: "To Branch",
     },

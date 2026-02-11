@@ -121,6 +121,7 @@ export const useOrdersStore = defineStore("orders", () => {
       total_price: orderData.total_price,
       delivery_price: orderData.delivery_price,
       currency_id: orderData.currency_id,
+      line_id: orderData.line_id,
       lineprice_id: orderData.lineprice_id,
       discount_id: orderData.discount_id ?? null,
       company_item_price_id: orderData.company_item_price_id,

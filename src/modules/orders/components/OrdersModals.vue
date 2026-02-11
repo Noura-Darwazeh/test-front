@@ -187,7 +187,7 @@ const emit = defineEmits([
 ]);
 
 const { t } = useI18n();
-const { companyOption } = useAuthDefaults();
+const { companyOption, authStore } = useAuthDefaults();
 
 const customers = ref([]);
 const currencies = ref([]);
@@ -196,8 +196,21 @@ const linePrices = ref([]);
 const discounts = ref([]);
 const branches = ref([]);
 const companyPrices = ref([]);
+const fetchedCompanies = ref([]);
 
-const companiesList = computed(() => props.companies);
+const isSuperAdmin = computed(
+  () => String(authStore.userRole || "").toLowerCase() === "superadmin"
+);
+
+const companiesList = computed(() => {
+  if (Array.isArray(props.companies) && props.companies.length > 0) {
+    return props.companies;
+  }
+  if (fetchedCompanies.value.length > 0) {
+    return fetchedCompanies.value;
+  }
+  return companyOption.value;
+});
 
 const detailsModalTabProxy = computed({
   get() {
@@ -595,6 +608,18 @@ const fetchDropdownData = async () => {
   } else {
     companyPrices.value = [];
     logError("company item prices", companyPricesRes.reason);
+  }
+
+  if (isSuperAdmin.value) {
+    try {
+      const companiesRes = await apiServices.getCompanies({ page: 1, perPage: 1000 });
+      fetchedCompanies.value = extractArray(companiesRes);
+    } catch (reason) {
+      fetchedCompanies.value = [];
+      logError("companies", reason);
+    }
+  } else {
+    fetchedCompanies.value = [];
   }
 };
 

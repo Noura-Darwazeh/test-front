@@ -1272,6 +1272,8 @@
       parentOrderId: "الطلب الأصلي",
       noParentOrder: "لا يوجد طلب أصلي",
       companyId: "الشركة",
+      fromCompanyId: "من الشركة",
+      selectFromCompany: "اختر الشركة",
       branchCustomerCompanyId: "من الفرع",
       branchDeliveryCompanyId: "إلى الفرع",
     },

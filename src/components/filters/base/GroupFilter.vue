@@ -41,7 +41,6 @@
   </div>
 </template>
 <script setup>
-import PrimaryButton from "@/components/shared/PrimaryButton.vue";
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 // ---------------------- Props and Emits ----------------
@@ -61,15 +60,62 @@ const dropdownRef = ref(null);
 const isOpen = ref(false);
 const selectedGroups = ref([]);
 const menuStyles = ref({});
+const cachedGroups = ref([]);
+
+const normalizeSelectionList = (list) => {
+  if (!Array.isArray(list)) return [];
+  const normalized = list
+    .map((item) => normalizeGroup(item))
+    .filter((item) => item !== "" && item !== null && item !== undefined);
+  return [...new Set(normalized)];
+};
+
+const areSelectionsEqual = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
+const normalizeGroup = (group) => {
+  if (group === null || group === undefined) return "";
+  if (typeof group === "string") return group.trim();
+  return group;
+};
+
+const mergeCachedGroups = (groups = []) => {
+  const merged = [...cachedGroups.value];
+  groups.forEach((group) => {
+    const normalized = normalizeGroup(group);
+    if (
+      normalized === "" ||
+      normalized === null ||
+      normalized === undefined
+    ) {
+      return;
+    }
+    if (!merged.includes(normalized)) {
+      merged.push(normalized);
+    }
+  });
+  cachedGroups.value = merged;
+};
 
 // ------------------------ Computed -------------------
 const uniqueValues = computed(() => {
-  if (!props.data || !props.groupKey) return [];
+  const latestValues =
+    props.data && props.groupKey
+      ? props.data.map((item) => normalizeGroup(item?.[props.groupKey]))
+      : [];
 
-  const values = props.data.map((item) => item[props.groupKey]);
+  const combined = [...cachedGroups.value, ...latestValues, ...selectedGroups.value]
+    .filter((value) => value !== "" && value !== null && value !== undefined);
 
-  const unique = [...new Set(values)];
-  return unique.sort();
+  const unique = [...new Set(combined)];
+  return unique.sort((a, b) => String(a).localeCompare(String(b)));
 });
 
 const availableGroups = computed(() => {
@@ -103,7 +149,13 @@ const formatGroupLabel = (group) => {
 };
 
 const addGroup = (group) => {
-  selectedGroups.value.push(group);
+  const normalized = normalizeGroup(group);
+  if (normalized === "" || normalized === null || normalized === undefined) {
+    return;
+  }
+  if (!selectedGroups.value.includes(normalized)) {
+    selectedGroups.value = [...selectedGroups.value, normalized];
+  }
 };
 
 const removeGroup = (group) => {
@@ -172,8 +224,12 @@ const updateMenuPosition = () => {
 
 // -------------------- LifeCycle --------------
 onMounted(() => {
-  if (props.modelValue && props.modelValue.length) {
-    selectedGroups.value = [...props.modelValue];
+  const normalizedModel = normalizeSelectionList(props.modelValue);
+  selectedGroups.value = normalizedModel;
+  mergeCachedGroups(normalizedModel);
+
+  if (props.data && props.groupKey) {
+    mergeCachedGroups(props.data.map((item) => item?.[props.groupKey]));
   }
 
   document.addEventListener("click", handleClickOutside);
@@ -187,9 +243,39 @@ onUnmounted(() => {
 watch(
   selectedGroups,
   (newValue) => {
-    emit("update:modelValue", newValue);
+    const normalized = normalizeSelectionList(newValue);
+
+    if (!areSelectionsEqual(newValue, normalized)) {
+      selectedGroups.value = normalized;
+      return;
+    }
+
+    mergeCachedGroups(normalized);
+    if (!areSelectionsEqual(normalized, normalizeSelectionList(props.modelValue))) {
+      emit("update:modelValue", [...normalized]);
+    }
   },
-  { deep: true }
+  { deep: false }
+);
+
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    const normalized = normalizeSelectionList(newValue);
+    mergeCachedGroups(normalized);
+    if (!areSelectionsEqual(selectedGroups.value, normalized)) {
+      selectedGroups.value = normalized;
+    }
+  },
+  { deep: false }
+);
+
+watch(
+  () => props.data,
+  (newValue) => {
+    if (!props.groupKey || !Array.isArray(newValue)) return;
+    mergeCachedGroups(newValue.map((item) => item?.[props.groupKey]));
+  }
 );
 
 watch(isOpen, (newValue) => {

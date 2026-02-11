@@ -77,6 +77,32 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label"
+                    >{{ $t("orders.form.fromCompanyId") }}
+                    <span class="text-danger">*</span></label
+                  >
+                  <select
+                    v-model="formData.from_company_id"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('from_company_id') }"
+                    required
+                    @change="clearFieldError('from_company_id')"
+                  >
+                    <option value="">{{ $t("orders.form.selectFromCompany") }}</option>
+                    <option
+                      v-for="(company, index) in fromCompanyOptions"
+                      :key="getCompanyValue(company) || index"
+                      :value="getCompanyValue(company)"
+                    >
+                      {{ getCompanyLabel(company) }}
+                    </option>
+                  </select>
+                  <div v-if="getFieldError('from_company_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("from_company_id") }}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label"
                     >{{ $t("orders.form.customerId") }}
                     <span class="text-danger">*</span></label
                   >
@@ -118,10 +144,10 @@
                     <option value="Full">
                       {{ $t("orders.form.caseFull") }}
                     </option>
-                    <option value="Part">
+                    <option value="Part" :disabled="isPartOrFastCaseDisabled">
                       {{ $t("orders.form.casePart") }}
                     </option>
-                    <option value="Fast">
+                    <option value="Fast" :disabled="isPartOrFastCaseDisabled">
                       {{ $t("orders.form.caseFast") }}
                     </option>
                   </select>
@@ -163,6 +189,32 @@
 
               <div class="return-parent-selection mb-4">
                 <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label"
+                      >{{ $t("orders.form.fromCompanyId") }}
+                      <span class="text-danger">*</span></label
+                    >
+                    <select
+                      v-model="formData.from_company_id"
+                      class="form-select"
+                      :class="{ 'is-invalid': getFieldError('from_company_id') }"
+                      required
+                      @change="clearFieldError('from_company_id')"
+                    >
+                      <option value="">{{ $t("orders.form.selectFromCompany") }}</option>
+                      <option
+                        v-for="(company, index) in fromCompanyOptions"
+                        :key="getCompanyValue(company) || index"
+                        :value="getCompanyValue(company)"
+                      >
+                        {{ getCompanyLabel(company) }}
+                      </option>
+                    </select>
+                    <div v-if="getFieldError('from_company_id')" class="invalid-feedback d-block">
+                      {{ getFieldError("from_company_id") }}
+                    </div>
+                  </div>
+
                   <div class="col-md-6">
                     <label class="form-label"
                       >{{ $t("orders.form.customerId") }}
@@ -283,6 +335,32 @@
               <!-- Parent Order Selection Card -->
               <div class="exchange-parent-selection mb-4">
                 <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label"
+                      >{{ $t("orders.form.fromCompanyId") }}
+                      <span class="text-danger">*</span></label
+                    >
+                    <select
+                      v-model="formData.from_company_id"
+                      class="form-select"
+                      :class="{ 'is-invalid': getFieldError('from_company_id') }"
+                      required
+                      @change="clearFieldError('from_company_id')"
+                    >
+                      <option value="">{{ $t("orders.form.selectFromCompany") }}</option>
+                      <option
+                        v-for="(company, index) in fromCompanyOptions"
+                        :key="getCompanyValue(company) || index"
+                        :value="getCompanyValue(company)"
+                      >
+                        {{ getCompanyLabel(company) }}
+                      </option>
+                    </select>
+                    <div v-if="getFieldError('from_company_id')" class="invalid-feedback d-block">
+                      {{ getFieldError("from_company_id") }}
+                    </div>
+                  </div>
+
                   <div class="col-md-6">
                     <label class="form-label"
                       >{{ $t("orders.form.customerId") }}
@@ -639,7 +717,13 @@
                 "
                 class="row g-3"
               >
-                <div class="col-md-6">
+                <div
+                  v-if="
+                    wizardMode === 'exchange' ||
+                    (wizardMode !== 'exchange' && formData.pricing_mode === 'detailed')
+                  "
+                  class="col-md-6"
+                >
                   <label class="form-label"
                     >{{ $t("orders.form.linepriceId") }}
                     <span class="text-danger">*</span></label
@@ -664,6 +748,33 @@
                   </select>
                   <div v-if="getFieldError('lineprice_id')" class="invalid-feedback d-block">
                     {{ getFieldError("lineprice_id") }}
+                  </div>
+                </div>
+                <div v-else class="col-md-6">
+                  <label class="form-label"
+                    >{{ $t("orders.form.lineId") }}
+                    <span class="text-danger">*</span></label
+                  >
+                  <select
+                    v-model="formData.line_id"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('line_id') }"
+                    required
+                    @change="clearFieldError('line_id')"
+                  >
+                    <option value="">
+                      {{ $t("orders.form.selectLine") }}
+                    </option>
+                    <option
+                      v-for="(line, index) in props.lines"
+                      :key="getLineValue(line) || index"
+                      :value="getLineValue(line)"
+                    >
+                      {{ getLineLabel(line) }}
+                    </option>
+                  </select>
+                  <div v-if="getFieldError('line_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("line_id") }}
                   </div>
                 </div>
 
@@ -1125,7 +1236,7 @@ import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 
 const { t } = useI18n();
-const { companyId, currencyId } = useAuthDefaults();
+const { companyId, currencyId, companyOption } = useAuthDefaults();
 
 const fieldErrors = reactive({});
 const itemErrors = ref([]);
@@ -1204,8 +1315,33 @@ const getEntityId = (entity, fallbackKey) => {
   return "";
 };
 
+const getCompanyValue = (company) => {
+  if (!company) return "";
+  if (Array.isArray(company)) return company[0] ?? "";
+  if (company.id !== undefined && company.id !== null) return company.id;
+  if (company.company_id !== undefined && company.company_id !== null) {
+    return company.company_id;
+  }
+  if (company.value !== undefined && company.value !== null) return company.value;
+  return "";
+};
+
+const getCompanyLabel = (company) => {
+  if (!company) return "";
+  if (Array.isArray(company)) {
+    return company[1] || (company[0] ? `Company ${company[0]}` : "");
+  }
+  return (
+    company.name ||
+    company.label ||
+    company.company_name ||
+    (getCompanyValue(company) ? `Company ${getCompanyValue(company)}` : "")
+  );
+};
+
 const getCustomerValue = (customer) => getEntityId(customer, "customer_id");
 const getCurrencyValue = (currency) => getEntityId(currency, "currency_id");
+const getLineValue = (line) => getEntityId(line, "line_id");
 const getLinePriceValue = (linePrice) => getEntityId(linePrice, "lineprice_id");
 const getDiscountValue = (discount) => getEntityId(discount, "discount_id");
 const getCompanyPriceValue = (price) =>
@@ -1260,6 +1396,21 @@ const getOrderCustomerId = (order) => {
   );
 };
 
+const getOrderLineId = (order) => {
+  if (!order) return "";
+  return order.line_id ?? order.line?.id ?? order.line_price?.line_id?.id ?? "";
+};
+
+const getOrderFromCompanyId = (order) => {
+  if (!order) return "";
+  return (
+    order.from_company_id?.id ??
+    order.from_company_id ??
+    order.from_company?.id ??
+    ""
+  );
+};
+
 const getCustomerLabel = (customer) => {
   if (!customer) return "";
   if (Array.isArray(customer)) {
@@ -1287,6 +1438,14 @@ const getCurrencyLabel = (currency) => {
   const symbol = currency.symbol || "";
   if (name && symbol) return `${name} (${symbol})`;
   return name || symbol || (currency.id ? `Currency ${currency.id}` : "");
+};
+
+const getLineLabel = (line) => {
+  if (!line) return "";
+  if (Array.isArray(line)) {
+    return line[1] || (line[0] ? `Line ${line[0]}` : "");
+  }
+  return line.name || line.line_name || (line.id ? `Line ${line.id}` : "");
 };
 
 const getLinePriceName = (linePrice) => {
@@ -1409,6 +1568,13 @@ const props = defineProps({
   },
 });
 
+const fromCompanyOptions = computed(() => {
+  if (Array.isArray(props.companies) && props.companies.length > 0) {
+    return props.companies;
+  }
+  return companyOption.value;
+});
+
 const emit = defineEmits(["close", "submit"]);
 
 const currentStep = ref(0);
@@ -1466,6 +1632,8 @@ const buildDefaultFormData = () => ({
   total_price: "",
   delivery_price: "",
   currency_id: toSelectValue(currencyId.value),
+  from_company_id: toSelectValue(companyId.value),
+  line_id: "",
   lineprice_id: "",
   discount_id: "",
   company_item_price_id: "",
@@ -1561,6 +1729,13 @@ const isMultiDisabled = computed(() => {
   );
 });
 
+const isPartOrFastCaseDisabled = computed(() => {
+  return (
+    wizardMode.value === "delivery" &&
+    formData.value.package === "multi"
+  );
+});
+
 // Disable add item button when single package already has 1 item
 const isAddItemDisabled = computed(() => {
   return formData.value.package === "one" && orderItems.value.length >= 1;
@@ -1651,6 +1826,14 @@ const validateStepBasics = () => {
     isValid = false;
   }
 
+  if (isEmptyValue(formData.value.from_company_id)) {
+    setFieldError(
+      "from_company_id",
+      requiredFieldMessage(t("orders.form.fromCompanyId"))
+    );
+    isValid = false;
+  }
+
   return isValid;
 };
 
@@ -1692,10 +1875,10 @@ const validateStepPricing = () => {
         );
         isValid = false;
       }
-      if (isEmptyValue(formData.value.lineprice_id)) {
+      if (isEmptyValue(formData.value.line_id)) {
         setFieldError(
-          "lineprice_id",
-          requiredFieldMessage(t("orders.form.linepriceId"))
+          "line_id",
+          requiredFieldMessage(t("orders.form.lineId"))
         );
         isValid = false;
       }
@@ -1856,6 +2039,8 @@ const submitOrder = () => {
   // Build order data matching API format
   const resolvedCompanyId =
     toNumericId(companyId.value) ?? toNumericId(formData.value.company_id);
+  const resolvedFromCompanyId =
+    toNumericId(formData.value.from_company_id) ?? resolvedCompanyId;
   const resolvedCurrencyId = isExchange.value
     ? null
     : toNumericId(formData.value.currency_id) ?? toNumericId(currencyId.value);
@@ -1879,7 +2064,10 @@ const submitOrder = () => {
       ? parseFloat(formData.value.delivery_price)
       : undefined,
     currency_id: resolvedCurrencyId,
-    lineprice_id: !isEmptyValue(formData.value.lineprice_id)
+    line_id: isTotalPricing && !isEmptyValue(formData.value.line_id)
+      ? parseInt(formData.value.line_id)
+      : undefined,
+    lineprice_id: !isTotalPricing && !isEmptyValue(formData.value.lineprice_id)
       ? parseInt(formData.value.lineprice_id)
       : undefined,
     discount_id: !isTotalPricing && formData.value.discount_id
@@ -1906,8 +2094,8 @@ const submitOrder = () => {
   };
 
   // Add from_company_id if set
-  if (resolvedCompanyId) {
-    baseOrderData.from_company_id = resolvedCompanyId;
+  if (resolvedFromCompanyId) {
+    baseOrderData.from_company_id = resolvedFromCompanyId;
   }
 
   if (isExchange.value) {
@@ -1961,10 +2149,12 @@ watch(
     clearAllErrors();
     if (mode === "total") {
       formData.value.price = "";
+      formData.value.lineprice_id = "";
       formData.value.company_item_price_id = "";
       formData.value.discount_id = "";
     } else {
       formData.value.total_price = "";
+      formData.value.line_id = "";
     }
   }
 );
@@ -1989,10 +2179,21 @@ watch(
       clearFieldError("currency_id");
     }
 
+    if (isEmptyValue(formData.value.from_company_id)) {
+      const parentFromCompanyId = getOrderFromCompanyId(selected);
+      if (!isEmptyValue(parentFromCompanyId)) {
+        formData.value.from_company_id = String(parentFromCompanyId);
+        clearFieldError("from_company_id");
+      }
+    }
+
     if (formData.value.pricing_mode === "detailed") {
-      if (isEmptyValue(formData.value.lineprice_id) && selected.lineprice_id) {
-        formData.value.lineprice_id = String(selected.lineprice_id);
-        clearFieldError("lineprice_id");
+      if (isEmptyValue(formData.value.lineprice_id)) {
+        const parentLinePriceId = selected.lineprice_id ?? selected.line_price?.id;
+        if (!isEmptyValue(parentLinePriceId)) {
+          formData.value.lineprice_id = String(parentLinePriceId);
+          clearFieldError("lineprice_id");
+        }
       }
 
       if (
@@ -2031,12 +2232,12 @@ watch(
     if (
       wizardMode.value === "return" &&
       formData.value.pricing_mode === "total" &&
-      isEmptyValue(formData.value.lineprice_id)
+      isEmptyValue(formData.value.line_id)
     ) {
-      const parentLinePriceId = selected.lineprice_id ?? selected.line_price?.id;
-      if (!isEmptyValue(parentLinePriceId)) {
-        formData.value.lineprice_id = String(parentLinePriceId);
-        clearFieldError("lineprice_id");
+      const parentLineId = getOrderLineId(selected);
+      if (!isEmptyValue(parentLineId)) {
+        formData.value.line_id = String(parentLineId);
+        clearFieldError("line_id");
       }
     }
 

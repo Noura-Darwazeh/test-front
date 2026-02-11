@@ -43,6 +43,32 @@ const toFormData = (data) => {
   return formData;
 };
 
+const normalizeQueryParams = (params = {}) => {
+  return Object.entries(params || {}).reduce((acc, [key, value]) => {
+    if (value === null || value === undefined || value === "") {
+      return acc;
+    }
+
+    if (Array.isArray(value)) {
+      const normalizedValues = value
+        .map((item) => {
+          if (item === null || item === undefined) return "";
+          if (typeof item === "string") return item.trim();
+          return String(item);
+        })
+        .filter((item) => item !== "");
+
+      if (normalizedValues.length > 0) {
+        acc[key] = normalizedValues.join(",");
+      }
+      return acc;
+    }
+
+    acc[key] = value;
+    return acc;
+  }, {});
+};
+
 // ===== API Services Singleton =====
 class ApiServices {
   constructor() {
@@ -217,14 +243,14 @@ class ApiServices {
   // ===== User Services =====
   async getUsers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/users", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "users:list",
     });
   }
 
   async getTrashedUsers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/trashed/users", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "users:list",
     });
   }
@@ -256,14 +282,14 @@ class ApiServices {
   // ===== Driver Services =====
   async getDrivers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/drivers", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "drivers:list",
     });
   }
 
   async getTrashedDrivers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/trashed/drivers", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "drivers:list",
     });
   }
@@ -375,14 +401,14 @@ class ApiServices {
   // ===== Customer Services =====
   async getCustomers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/customers", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "customers:list",
     });
   }
 
   async getTrashedCustomers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/trashed/customers", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "customers:list",
     });
   }
@@ -724,7 +750,7 @@ class ApiServices {
   // ===== Orders Services =====
   async getOrders({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/orders", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "orders:list",
     });
   }
@@ -735,7 +761,7 @@ class ApiServices {
 
   async getTrashedOrders({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/trashed/orders", {
-      params: { page, per_page: perPage, ...filters },
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "orders:list",
     });
   }
@@ -791,14 +817,11 @@ class ApiServices {
   // ✅ Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
     const params = new URLSearchParams();
+    const normalizedFilters = normalizeQueryParams(filters);
 
-    if (filters.line_name) {
-      params.append('line_name', filters.line_name);
-    }
-
-    if (filters.case) {
-      params.append('case', filters.case);
-    }
+    Object.entries(normalizedFilters).forEach(([key, value]) => {
+      params.append(key, value);
+    });
 
     const queryString = params.toString();
     const url = queryString ? `/orders_with_items?${queryString}` : '/orders_with_items';

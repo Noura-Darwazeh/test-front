@@ -144,10 +144,10 @@ const changeLanguage = (lang, closeDropdown) => {
   currentLanguage.value = lang;
   setLocale(lang);
   closeDropdown();
-  window.location.reload();
+ 
 };
 
-// ✅ Clear errors when user types
+
 const clearErrors = () => {
     emailError.value = ''
     sent.value = false
