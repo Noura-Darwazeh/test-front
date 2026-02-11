@@ -142,7 +142,254 @@ modules/<module-name>/
 ```
 
 ---
+### Login
 
+**Route:** `/login` | **Access:** Guest users only
+
+Handles user authentication and access control with support for both username and email login.
+
+**Main View (`login.vue`):**
+- Full-page layout with split design: login form (left) and animated carousel (right)
+- Auto-rotating carousel showcasing delivery service features with manual navigation controls
+- Language switcher in the top-right corner with persistent preference storage
+- Automatic browser language detection on first visit
+- Responsive design: carousel hidden on mobile devices (< 992px)
+
+**Form Fields:**
+- **Username / Email** (required) — Accepts either username or email address for flexible login
+- **Password** (required, min 6 characters) — Secure password input with visibility toggle
+
+**Features:**
+- Client-side validation with real-time error messages
+- Server-side error handling with user-friendly feedback
+- "Forgot Password?" link redirecting to password recovery
+- Loading state with spinner during authentication
+- Auto-redirect to user's default page or landing page after successful login
+- Automatic language synchronization with user's saved preference in database
+- Session persistence via localStorage (`auth_token`, `auth_user`)
+
+**Components Used:**
+- `FormLabel` — Field labels with required indicators
+- `TextField` — Text/password input with show/hide toggle for password field
+- `PrimaryButton` — Submit button with loading state
+- `BaseDropdown` — Language selector dropdown (English/Arabic)
+
+**Carousel System:**
+- 4 slides with images, titles, and descriptions
+- Auto-advance every 5 seconds
+- Manual navigation: previous/next arrows and dot indicators
+- Smooth slide transitions with fade and translate animations
+- Overlay gradient for better text readability
+
+**Store Integration (`auth.js`):**
+- **State:** `user`, `token`, `loading`, `error`
+- **Actions:**
+  - `login(credentials)` — POST `/auth/login` with username/email and password
+  - `updateUserLanguage(language)` — Syncs UI language with backend user preference
+  - `clearError()` — Resets error state
+- **Computed Getters:** 
+  - `isAuthenticated` — Boolean auth status
+  - `userRole` — Current user role (SuperAdmin/Admin/Driver)
+  - `userName` — Display name
+
+**API Endpoints:**
+- `POST /login` — Authenticate with `{login, password}`, returns `{user, token, device}`
+- `GET /auth/me` — Validate token and retrieve current user data
+
+**Error Handling:**
+- 401 Unauthorized → "Invalid username/email or password"
+- 422 Validation Error → "Please check your input and try again"
+- Network errors → "Network error. Please check your connection."
+- Generic fallback → "Login failed. Please try again."
+
+**Language Support:**
+- Browser language auto-detection (Arabic if browser lang starts with 'ar', English otherwise)
+- Persistent storage in localStorage (`lang`)
+- Page reload on language change for complete UI sync
+- User language preference saved in database during login
+
+**Validation Rules:**
+- Email/Username: required, trimmed whitespace
+- Password: required, minimum 6 characters
+- Form cannot be submitted if validation fails
+
+**Security:**
+- Password masking with optional visibility toggle
+- CSRF token handling via Axios interceptors
+- Automatic token attachment to authenticated requests
+- Session timeout handling with redirect to login
+
+**Navigation Guards:**
+- Authenticated users accessing `/login` are redirected to their default page
+- Unauthenticated users are redirected to `/login` from protected routes
+- Query parameter `?redirect=` preserves intended destination
+
+---
+
+### Forgot Password
+
+**Route:** `/forgot-password` | **Access:** Guest users only
+
+Password recovery flow allowing users to request a password reset link via email.
+
+**Main View (`forgetPassword.vue`):**
+- Centered card layout with branding icon and clear instructions
+- Language switcher in top-right corner
+- Single-field form focused on email submission
+- Success message displayed inline after successful submission
+- "Back to Login" link for easy navigation
+
+**Form Fields:**
+- **Email** (required, validated) — Email address associated with the user account
+
+**Features:**
+- Client-side email format validation (regex: `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`)
+- Real-time error clearing as user types
+- Server-side validation with detailed error messages
+- Success state with animated checkmark and confirmation message
+- Auto-storage of email and token in localStorage for reset flow
+- Error display directly under email input (not in alert box)
+
+**Components Used:**
+- `FormLabel` — Email field label with required indicator
+- `TextField` — Email input with placeholder
+- `PrimaryButton` — Submit button with loading state ("Sending...")
+- `BaseDropdown` — Language selector
+
+**Workflow:**
+1. User enters their email address
+2. Client validates email format
+3. API request sent to backend
+4. On success:
+   - Token saved to localStorage (`reset_token`)
+   - Email saved to localStorage (`reset_email`)
+   - Success message displayed with green alert box
+   - User can manually navigate to reset password or wait for email
+5. On error:
+   - Error message displayed under email input field
+   - 404 → "Email address not found"
+   - 422 → Validation error message from server
+   - 500 → "Server error. Please try again later."
+
+**API Endpoints:**
+- `POST /forgot_password` — Request reset token with `{email}`
+- Returns: `{success: true, message: string, token: string}`
+
+**Error Handling:**
+- 404 Not Found → `forgotPassword.errors.emailNotFound`
+- 422 Validation Error → Display first validation message from `errors.email` array
+- 500 Server Error → `forgotPassword.errors.serverError`
+- Network Error → Generic error message
+- All errors shown inline under email field with warning icon (⚠)
+
+**Validation Rules:**
+- Email required
+- Valid email format
+- Errors cleared on input change
+
+**Storage:**
+- `reset_email` → Stored for use in reset password page
+- `reset_token` → Token received from server for verification
+
+**Navigation:**
+- "Back to Login" link → `/login`
+- No auto-redirect; user controls next step
+
+---
+
+### Reset Password
+
+**Route:** `/reset-password` | **Access:** Guest users only (with valid token)
+
+Secure password reset interface with token validation and confirmation.
+
+**Main View (`resetPassword.vue`):**
+- Split layout: reset form (left, 50%) and informational panel (right, 50%, hidden on mobile)
+- Three states: Loading (validating token), Invalid Token (error state), Valid Token (form state)
+- Token validation runs immediately on page load
+- Auto-redirect to `/forgot-password` after 5 seconds if token is invalid
+
+**Token Validation:**
+- Token and email extracted from URL query parameters (`?token=...&email=...`) or localStorage fallback
+- Validation API call: `GET /password/reset/validate?token=...&email=...`
+- If validation fails, displays error message and auto-redirects
+- If successful, displays password reset form
+
+**Form Fields (Valid Token State):**
+- **New Password** (required, min 6 characters) — Password input with visibility toggle
+- **Confirm Password** (required, must match) — Confirmation password input with visibility toggle
+
+**Features:**
+- Real-time password match validation
+- Client-side validation before submission
+- Server-side error handling with field-specific messages
+- Success state with animated alert and auto-redirect to login
+- Loading spinner during token validation
+- Invalid token state with red alert and "Request New Link" button
+
+**Components Used:**
+- `FormLabel` — Field labels with required indicators
+- `TextField` — Password inputs with show/hide toggle
+- `PrimaryButton` — Submit and action buttons with loading states
+
+**Workflow:**
+1. **Token Validation Phase:**
+   - Loading spinner displayed
+   - Token validated via API
+   - If invalid: error state with redirect countdown
+   - If valid: form displayed
+
+2. **Password Reset Phase:**
+   - User enters new password (min 6 chars)
+   - User confirms password (must match)
+   - Form submitted to API
+   - On success: green alert + redirect to `/login` after 3 seconds
+   - On error: error alert displayed
+
+**API Endpoints:**
+- `GET /password/reset/validate` — Validate token before showing form
+  - Params: `{token, email}`
+  - Returns: `{success: boolean, message: string}`
+- `POST /reset_password` — Reset password
+  - Body: `{token, email, password, password_confirmation}`
+  - Returns: `{success: boolean, message: string}`
+
+**Error Handling:**
+- **Token Validation Errors:**
+  - 400/404 → `resetPassword.errors.expiredLink`
+  - Generic → `resetPassword.errors.invalidLink`
+  - Missing token/email → `resetPassword.errors.missingToken`
+
+- **Password Reset Errors:**
+  - 400 → "Invalid or expired reset link"
+  - 422 Validation → Field-specific errors (`errors.password`, `errors.password_confirmation`)
+  - 500 → "Server error. Please try again later."
+
+**Validation Rules:**
+- Password: required, minimum 6 characters
+- Confirm Password: required, must match password field
+- Form disabled until both fields pass validation
+
+**Storage Management:**
+- Reads `reset_token` and `reset_email` from localStorage
+- Clears both values on successful password reset
+- Fallback to URL query parameters if localStorage is empty
+
+**Navigation:**
+- "Back to Login" link → `/login`
+- "Request New Link" button (invalid token state) → `/forgot-password`
+- Auto-redirect on success → `/login` (3 seconds)
+- Auto-redirect on invalid token → `/forgot-password` (5 seconds)
+
+**Security Features:**
+- Token-based authentication
+- Single-use tokens (cleared after successful reset)
+- Server-side validation
+- Password visibility toggle
+- Minimum password length enforcement
+- HTTPS recommended for production
+
+---
 ## Modules Overview
 
 ---
@@ -390,47 +637,120 @@ Dashboard displaying analytical data and KPIs.
 **Store:** Uses the existing `ordersStore` and other module stores to fetch aggregated statistics data.
 
 ---
-
 ### Work Plans
 
-**Route:** `/work-plans` | **Access:** All authenticated users
+**Route:** `/work-plans` | **Access:** All authenticated users (View), Admin/SuperAdmin (Create/Edit/Delete)
 
-Manages driver work schedules and delivery planning.
+Manages driver delivery schedules and order assignments with advanced filtering, calendar visualization, and real-time progress tracking.
 
 **Main View (`workPlans.vue`):**
-- Two view modes: **Calendar View** tab and **Table View** tab
-- Search and filter by company
-- Calendar view uses FullCalendar for visual scheduling
-- Table columns: Index, Name, Company, Date, Driver, Orders
-- Role-based permissions: Add/Edit/Delete only available to authorized users
-- Bulk actions are filtered to only allow operations on plans the current user can modify
+- **Dual View Modes:** 
+  - **Calendar View** — FullCalendar integration showing work plans as interactive events on day/week/month views
+  - **Table View** — Paginated data table with search, company filtering, and bulk operations
+- **Smart Filtering System:**
+  - Search by plan name or driver
+  - Filter by company (SuperAdmin sees all, Admin sees only own company)
+  - **Line Filter** — Filter orders by delivery line/route
+  - **Case Filter** — Filter orders by type (Full/Part/Fast)
+- **Role-Based Permissions:**
+  - **Driver** — Read-only access, can only view assigned plans
+  - **Admin** — Can create/edit/delete plans for their company
+  - **SuperAdmin** — Can create/edit/delete only their own company's plans
+- **Table Columns:** Index, Name, Date, Driver Name, Company Name
+- **Bulk Actions:** Available only for plans the current user can modify (respects permissions)
 
 **Components Used:**
-- `workPlansHeader.vue` — Wraps `TableHeader` with company filter and view toggle buttons
-- `calender.vue` — FullCalendar integration component rendering work plans on a day/week/month calendar. Plans are displayed as events that can be clicked for details
-- `DataTable` — Table view with sortable columns and row selection
-- `FormModal` — Add/Edit work plan form with fields: name, company (select), date, driver (select), and a dynamic **work plan orders** section for assigning orders with items and processing steps
-- `DetailsModal` — Shows work plan details including assigned driver and orders
+- `workPlansHeader.vue` — Wraps `TableHeader` with company filter
+- `calender.vue` — **Advanced FullCalendar Implementation:**
+  - Displays work plans as calendar events with color-coded status
+  - Shows order count per plan on event badge
+  - **Multiple Plans Per Day:** Shows first plan + "+N" button for additional plans
+  - **Interactive Tooltips:** Hover over events to see plan details (driver, orders, company)
+  - **Plan Details Card:** Click event to view full plan info with orders list in side panel
+  - Supports RTL layout and Arabic locale
+  - Event grouping by date with visual ordering
+- `DataTable` — Table view with sortable columns, row selection, and role-based row disabling
+- `FormModal` — **Complex Multi-Section Form:**
+  1. Basic Info: Plan name, driver (select), date, company (locked to user's company)
+  2. **Filter Controls:** Line filter (dropdown), Case filter (Full/Part/Fast)
+  3. **Dynamic Order Assignment:** 
+     - `orderRows` field type with add/remove rows
+     - Each row: Order dropdown → Auto-populated Items checkboxes
+     - Filter-aware: Shows only orders matching selected Line/Case
+     - Multi-item selection per order
+- `DetailsModal` — Shows plan details with fields: ID, Name, Date, Driver, Company
+- `OrderItemProgress` — **Expandable stepper component** showing work plan execution status:
+  - Displays order item progress through workflow steps (pending → start → pickup → done/failed)
+  - Visual timeline with color-coded status indicators
+  - Shows timestamps for each completed step
+  - Expandable/collapsible card view with step-by-step breakdown
 - `ConfirmationModal` — Delete confirmation
-- `TrashedItemsModal` — Restore or permanently remove
-- `BulkActionsBar` — Bulk operations with role-based filtering
+- `BulkActionsBar` — Bulk delete (filtered to only modifiable plans)
 - `SuccessModal` — Post-action notification
-- `Pagination` — Page controls (table view)
-- `Actions` — Per-row Edit, Details, Delete
+- `Pagination` — Page controls (table view only)
+- `Actions` — Per-row Edit, Details, Delete (conditionally shown based on `canModifyPlan()`)
 
 **Store (`workPlansStore.js`):**
 - **State:** `workPlans`, `trashedWorkPlans`, `loading`, `trashedLoading`, `workPlansPagination`, `trashedPagination`
-- **Normalization:** Extracts driver info from nested `workplanorder` steps, transforms order items arrays, and parses dates from first step if not explicitly provided
+- **Complex Data Normalization:** 
+  - Extracts driver info from nested `workplanorder.steps` array
+  - Parses date from first step if not explicitly provided
+  - Groups order items by order code
+  - Resolves driver names from driver store if missing
+  - Transforms nested `workplanorder` structure into flat `orders` array
 - **API Endpoints:**
-  - `GET /workplans` — Fetch with pagination and driver name resolution
-  - `GET /workplans/trashed` — Fetch deleted work plans
-  - `POST /workplans` — Create work plan with orders and steps
-  - `PATCH /workplans/{id}` — Update
-  - `DELETE /workplans/{id}` — Soft-delete
-  - `POST /workplans/{id}/restore` — Restore
+  - `GET /work_plans` — Fetch with pagination, returns nested structure with `workplanorder`
+  - `GET /trashed/work_plans` — Fetch deleted plans
+  - `POST /work_plans` — Create with payload: `{name, driver_id, date?, company_id, Orderitems: [item_ids]}`
+  - `PATCH /work_plans/{id}` — Update (same payload structure)
+  - `DELETE /work_plans/{id}` — Soft-delete
+  - `POST /restore/work_plans/{id}` — Restore
+  - `DELETE /bulk-delete/work_plan/work_plans` — Bulk delete
+  - `POST /bulk-restore/work_plan/work_plans` — Bulk restore
+  - `GET /work_plans/{id}` — Fetch single plan with full `workplanorder` details for progress tracking
+
+**Advanced Features:**
+- **Orders with Items API Integration:** 
+  - Calls `/orders_with_items?line_name=X&case=Y` to fetch filtered orders
+  - Dynamically populates order dropdowns based on Line/Case selection
+  - Extracts order items per order for checkbox selection
+- **Permission-Based Bulk Actions:**
+  - `canModifyPlan(plan)` checks if user can edit/delete based on role and company ownership
+  - Bulk operations automatically filter out non-modifiable plans
+  - Disabled rows appear greyed out in table with no checkbox
+- **Calendar Event Details:**
+  - Plans grouped by date with visual indicators
+  - First plan shows as colored event with order count badge
+  - Additional plans accessible via "+N" button → opens modal with all plans for that date
+  - Click-to-select from modal updates details panel
+- **Form State Persistence:**
+  - Maintains filter state (Line/Case) during form editing
+  - Re-fetches orders when filters change
+  - Pre-populates edit form with existing order assignments
+- **Progress Tracking:**
+  - Fetches detailed work plan on Details modal open
+  - Displays each order item's workflow progression
+  - Shows status, timestamps, and current step for each item
+  - Supports failed status with red styling
+
+**Data Flow:**
+1. User opens Add/Edit modal
+2. Selects Line/Case filters (optional)
+3. System calls `/orders_with_items` with filter params
+4. Form populates order dropdown with matching orders
+5. User selects order → Items checkboxes appear for that order
+6. User selects items → System collects all selected item IDs
+7. On submit → Sends `{name, driver_id, date, company_id, Orderitems: [ids]}`
+8. Backend creates `workplan` + links to `order_items` via `workplanorder` table
+
+**Calendar Data Flow:**
+1. Store normalizes `workplans` → extracts date, driver, orders from nested structure
+2. `calender.vue` groups plans by date
+3. Creates calendar events: first plan = main event, rest = "+N" button
+4. User clicks event → Updates `selectedPlan` ref → Shows in details card
+5. User clicks "+N" → Opens modal with all plans for that date → Select to view
 
 ---
-
 ### Collections & Payments
 
 **Route:** `/collections` | **Access:** Admin, Driver
@@ -840,41 +1160,6 @@ Routes are defined in `src/router/index.js` with the following features:
 | 20    | `/permissions`  | Permissions      | SuperAdmin, Admin    |
 
 ---
-## Login
-
-**Route:** `/login` | **Access:** Guest users only
-
-Handles user authentication and access to the system.
-
-**Main View (`Login.vue`):**
-- Simple form with fields: **Username / Email** and **Password**
-- Login button with **loading state**
-- Error message on failed login (invalid credentials)
-- **Forgot Password** link opens the reset password page
-- Language switch support via navbar or on-page toggle
-- Validation:
-  - Username / Email: required
-  - Password: required, min 6 characters
-
-**Components Used:**
-- `TextField.vue` — Input with password visibility toggle
-- `PrimaryButton.vue` — Login button with loading state
-- `ErrorAlert.vue` — Displays login errors
-- `FormLabel.vue` — Labels with required indicators
-
-**Store (`auth.js`):**
-- **State:** `user`, `token`, `loading`, `error`
-- **Actions:**
-  - `login(credentials)` — POST `/auth/login`, stores `token` and `user` in state/localStorage
-  - `logout()` — clears `token` and `user` from state/localStorage
-  - `checkAuth()` — validates token on page load
-- **Computed Getters:** `isAuthenticated`, `userRole`, `hasAnyRole()`
-
-**API Endpoints:**
-- `POST /auth/login` — Login with `username/email` and `password`
-- `POST /auth/logout` — Logout
-- `GET /auth/me` — Get current user data using the token
-
 ## Role-Based Access Control
 
 The application supports three user roles:
