@@ -17,7 +17,6 @@
 
     <div class="card border-0">
       <div class="card-body p-0">
-        <!-- Bulk Actions Bar -->
         <BulkActionsBar 
           :selectedCount="selectedRows.length" 
           entityName="collection" 
@@ -26,7 +25,6 @@
           @action="handleBulkAction" 
         />
 
-        <!-- Loading State -->
         <div v-if="collectionsStore.loading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">{{ $t('common.loading') }}</span>
@@ -34,13 +32,11 @@
           <p class="mt-2">{{ $t('common.loading') }}</p>
         </div>
 
-        <!-- Error State -->
         <div v-else-if="collectionsStore.error" class="alert alert-danger m-3">
           <i class="fas fa-exclamation-triangle me-2"></i>
           {{ collectionsStore.error }}
         </div>
 
-        <!-- Data Table -->
         <div v-else>
           <DataTable 
             :columns="filteredColumns" 
@@ -73,7 +69,6 @@
       </div>
     </div>
 
-    <!-- Details Modal -->
     <DetailsModal 
       :isOpen="isDetailsModalOpen" 
       :title="$t('collection.details')" 
@@ -82,17 +77,6 @@
       @close="closeDetailsModal" 
     />
 
-    <!-- Payment Method Modal -->
-    <PaymentMethodModal 
-      :isOpen="isPaymentMethodModalOpen" 
-      :selectedCount="selectedRows.length" 
-      :drivers="drivers"
-      :loading="paymentMethodLoading" 
-      @close="closePaymentMethodModal" 
-      @submit="handlePaymentMethodSubmit" 
-    />
-
-    <!-- Confirmation Modal for Invoice Creation -->
     <ConfirmationModal
       :isOpen="isInvoiceConfirmOpen"
       :title="t('collection.createInvoiceTitle')"
@@ -104,7 +88,18 @@
       @close="closeInvoiceConfirm"
     />
 
-        <SuccessModal
+    <ConfirmationModal
+      :isOpen="isPaidConfirmOpen"
+      :title="t('collection.markAsPaidTitle')"
+      :message="t('collection.markAsPaidConfirm', { count: selectedRows.length })"
+      :confirmText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
+      confirmColor="var(--color-success)"
+      @confirm="confirmMarkAsPaid"
+      @close="closePaidConfirm"
+    />
+
+    <SuccessModal
       :isOpen="isSuccessModalOpen"
       :title="$t('common.success')"
       :message="successMessage"
@@ -121,18 +116,16 @@ import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import TableHeader from "../../../components/shared/TableHeader.vue";
-import PaymentMethodModal from "../components/PaymentMethodModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCollectionsManagementStore } from "../store/collectionsManagement.js";
 import apiServices from "@/services/apiServices.js";
-import SuccessModal from "../../../components/shared/SuccessModal.vue";
 
 const { t } = useI18n();
 const collectionsStore = useCollectionsManagementStore();
 
-// State
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
@@ -141,39 +134,19 @@ const isDetailsModalOpen = ref(false);
 const selectedCollection = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
-const isPaymentMethodModalOpen = ref(false);
-const paymentMethodLoading = ref(false);
 const isInvoiceConfirmOpen = ref(false);
+const isPaidConfirmOpen = ref(false);
+const isSuccessModalOpen = ref(false);
+const successMessage = ref('');
 
-// Data
-const drivers = ref([]);
-
-// Fetch drivers
-const fetchDrivers = async () => {
-  try {
-    const driversResponse = await apiServices.getDrivers();
-    drivers.value = driversResponse.data.data.map(driver => ({
-      value: String(driver.id),
-      label: driver.name || driver.user?.name || `Driver #${driver.id}`
-    }));
-  } catch (error) {
-    console.error("❌ Failed to load drivers:", error);
-  }
-};
-
-// Mount
 onMounted(async () => {
   try {
-    await Promise.all([
-      collectionsStore.fetchCollections(),
-      fetchDrivers()
-    ]);
+    await collectionsStore.fetchCollections();
   } catch (error) {
     console.error("❌ Failed to load data:", error);
   }
 });
 
-// Computed
 const collections = computed(() => collectionsStore.collections);
 
 const collectionColumns = computed(() => [
@@ -262,12 +235,10 @@ const bulkActions = computed(() => {
   }
 });
 
-// Watchers
 watch([searchText, selectedGroups], () => {
   currentPage.value = 1;
 });
 
-// Methods
 const hasInvoiceId = (row) => {
   return !!row.invoice_id;
 };
@@ -293,49 +264,42 @@ const closeDetailsModal = () => {
 
 const handleBulkAction = ({ actionId }) => {
   if (actionId === 'paid') {
-    isPaymentMethodModalOpen.value = true;
+    isPaidConfirmOpen.value = true;
   } else if (actionId === 'makeInvoice') {
     isInvoiceConfirmOpen.value = true;
   }
 };
 
-const closePaymentMethodModal = () => {
-  isPaymentMethodModalOpen.value = false;
+const closePaidConfirm = () => {
+  isPaidConfirmOpen.value = false;
 };
 
-const handlePaymentMethodSubmit = async (paymentMethodData) => {
-  paymentMethodLoading.value = true;
+const confirmMarkAsPaid = async () => {
+  bulkActionLoading.value = true;
   try {
     const collectionData = {
       collection_ids: selectedRows.value,
-      status: paymentMethodData.status || 'completed'
+      status: 'completed'
     };
-
-    if (paymentMethodData.paid_by_driver_id) {
-      collectionData.paid_by_driver_id = paymentMethodData.paid_by_driver_id;
-    }
 
     await apiServices.markCollectionsAsPaid(collectionData);
     await collectionsStore.fetchCollections();
 
     selectedRows.value = [];
-    closePaymentMethodModal();
+    closePaidConfirm();
+    showSuccessModal(t('collection.markedAsPaidSuccess'));
   } catch (error) {
     console.error("❌ Failed to mark collections as paid:", error);
     alert(error.message || "Failed to process collection. Please try again.");
   } finally {
-    paymentMethodLoading.value = false;
+    bulkActionLoading.value = false;
   }
 };
 
 const closeInvoiceConfirm = () => {
   isInvoiceConfirmOpen.value = false;
 };
-// Success Modal State
-const isSuccessModalOpen = ref(false);
-const successMessage = ref('');
 
-// Success Modal Methods
 const showSuccessModal = (message) => {
   successMessage.value = message;
   isSuccessModalOpen.value = true;
@@ -345,6 +309,7 @@ const closeSuccessModal = () => {
   isSuccessModalOpen.value = false;
   successMessage.value = '';
 };
+
 const confirmCreateInvoice = async () => {
   bulkActionLoading.value = true;
   try {
@@ -352,9 +317,7 @@ const confirmCreateInvoice = async () => {
     await collectionsStore.fetchCollections();
     selectedRows.value = [];
     closeInvoiceConfirm();
-
-        showSuccessModal(t('collection.invoiceCreatedSuccess'));
-
+    showSuccessModal(t('collection.invoiceCreatedSuccess'));
   } catch (error) {
     console.error("❌ Failed to create invoice:", error);
     alert(error.response?.data?.message || error.message || "Failed to create invoice. Please try again.");
