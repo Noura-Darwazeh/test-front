@@ -186,7 +186,6 @@ import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../store/workPlansStore.js";
 import { useDriverStore } from "../../driver/stores/driverStore.js";
 import apiServices from "@/services/apiServices.js";
-import { normalizeServerErrors } from "@/utils/formErrors.js";
 
 const { t } = useI18n();
 const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
@@ -555,7 +554,6 @@ const paginatedTableData = computed(() => {
 
 const currentPagination = computed(() => workPlansStore.workPlansPagination);
 
-// ✅ Only delete action
 const bulkActions = computed(() => {
     return [
         {
@@ -772,7 +770,6 @@ const handleSubmitworkPlan = async (workPlanData) => {
     }
 };
 
-// ✅ Force delete
 const handleDeleteWorkPlan = async (workPlan) => {
     if (!canModifyPlan(workPlan)) {
         alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
@@ -808,7 +805,6 @@ const handleBulkAction = ({ actionId }) => {
     isBulkConfirmOpen.value = true;
 };
 
-// ✅ Execute bulk force delete
 const executeBulkAction = async () => {
     if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
     bulkActionLoading.value = true;

@@ -4,19 +4,11 @@ import apiServices from "@/services/apiServices.js";
 
 export const useWorkPlansStore = defineStore("workPlans", () => {
   const workPlans = ref([]);
-  const trashedWorkPlans = ref([]);
   const loading = ref(false);
-  const trashedLoading = ref(false);
   const error = ref(null);
 
   // Pagination state
   const workPlansPagination = ref({
-    currentPage: 1,
-    perPage: 10,
-    total: 0,
-    lastPage: 1,
-  });
-  const trashedPagination = ref({
     currentPage: 1,
     perPage: 10,
     total: 0,
@@ -95,8 +87,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     };
   };
 
-
-
   const fetchWorkPlans = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
     loading.value = true;
     error.value = null;
@@ -107,7 +97,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
         : [];
       workPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
 
-      // Update pagination metadata from response
       if (response.data.meta) {
         workPlansPagination.value = {
           currentPage: response.data.meta.current_page,
@@ -124,36 +113,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       throw err;
     } finally {
       loading.value = false;
-    }
-  };
-
-  const fetchTrashedWorkPlans = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
-    trashedLoading.value = true;
-    error.value = null;
-    try {
-      const response = await apiServices.getTrashedWorkPlans({ page, perPage });
-      const data = Array.isArray(response.data.data)
-        ? response.data.data
-        : [];
-      trashedWorkPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
-
-      // Update pagination metadata from response
-      if (response.data.meta) {
-        trashedPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
-        };
-      }
-
-      return response.data;
-    } catch (err) {
-      error.value = err.message || "Failed to fetch trashed work plans";
-      console.error("Error fetching trashed work plans:", err);
-      throw err;
-    } finally {
-      trashedLoading.value = false;
     }
   };
 
@@ -212,23 +171,12 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
-  const deleteWorkPlan = async (planId, force = false) => {
+  const deleteWorkPlan = async (planId) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.deleteWorkPlan(planId, force);
-
-      if (force) {
-        trashedWorkPlans.value = trashedWorkPlans.value.filter(
-          (plan) => plan.id !== planId
-        );
-      } else {
-        const index = workPlans.value.findIndex((p) => p.id === planId);
-        if (index > -1) {
-          const plan = workPlans.value.splice(index, 1)[0];
-          trashedWorkPlans.value.push(plan);
-        }
-      }
+      await apiServices.deleteWorkPlan(planId, true);
+      workPlans.value = workPlans.value.filter((plan) => plan.id !== planId);
     } catch (err) {
       error.value = err.message || "Failed to delete work plan";
       console.error("Error deleting work plan:", err);
@@ -238,45 +186,14 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
-  const restoreWorkPlan = async (planId) => {
+  const bulkDeleteWorkPlans = async (planIds) => {
     loading.value = true;
     error.value = null;
     try {
-      await apiServices.restoreWorkPlan(planId);
-
-      const index = trashedWorkPlans.value.findIndex((p) => p.id === planId);
-      if (index > -1) {
-        const plan = trashedWorkPlans.value.splice(index, 1)[0];
-        workPlans.value.push(plan);
-      }
-    } catch (err) {
-      error.value = err.message || "Failed to restore work plan";
-      console.error("Error restoring work plan:", err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  const bulkDeleteWorkPlans = async (planIds, force = false) => {
-    loading.value = true;
-    error.value = null;
-    try {
-      await apiServices.bulkDeleteWorkPlans(planIds, force);
-
-      if (force) {
-        trashedWorkPlans.value = trashedWorkPlans.value.filter(
-          (plan) => !planIds.includes(plan.id)
-        );
-      } else {
-        const deleted = workPlans.value.filter((plan) =>
-          planIds.includes(plan.id)
-        );
-        workPlans.value = workPlans.value.filter(
-          (plan) => !planIds.includes(plan.id)
-        );
-        trashedWorkPlans.value.push(...deleted);
-      }
+      await apiServices.bulkDeleteWorkPlans(planIds, true);
+      workPlans.value = workPlans.value.filter(
+        (plan) => !planIds.includes(plan.id)
+      );
     } catch (err) {
       error.value = err.message || "Failed to bulk delete work plans";
       console.error("Error bulk deleting work plans:", err);
@@ -286,45 +203,17 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
-  const bulkRestoreWorkPlans = async (planIds) => {
-    loading.value = true;
-    error.value = null;
-    try {
-      await apiServices.bulkRestoreWorkPlans(planIds);
-
-      const restored = trashedWorkPlans.value.filter((plan) =>
-        planIds.includes(plan.id)
-      );
-      trashedWorkPlans.value = trashedWorkPlans.value.filter(
-        (plan) => !planIds.includes(plan.id)
-      );
-      workPlans.value.push(...restored);
-    } catch (err) {
-      error.value = err.message || "Failed to bulk restore work plans";
-      console.error("Error bulk restoring work plans:", err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
   return {
     // State
     workPlans,
-    trashedWorkPlans,
     loading,
-    trashedLoading,
     error,
     workPlansPagination,
-    trashedPagination,
     // Actions
     fetchWorkPlans,
-    fetchTrashedWorkPlans,
     addWorkPlan,
     updateWorkPlan,
     deleteWorkPlan,
-    restoreWorkPlan,
     bulkDeleteWorkPlans,
-    bulkRestoreWorkPlans,
   };
 });
