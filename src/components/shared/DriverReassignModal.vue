@@ -201,7 +201,7 @@ const props = defineProps({
   },
   driver: {
     type: Object,
-    required: true
+    default: null
   },
   workPlans: {
     type: Array,

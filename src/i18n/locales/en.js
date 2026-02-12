@@ -786,6 +786,7 @@ export default {
 
     // Filters
     filterByRegion: "Filter by Region",
+    filterByCompany: "Filter by Company",
 
     // Form Fields
     form: {
@@ -1872,7 +1873,7 @@ export default {
     export: "Export",
     edit: "Edit",
     delete: "Delete",
-    details: "Currency Details",
+    detailsTitle: "Currency Details",
     actions: "Actions",
 
     // Table Columns
@@ -2076,6 +2077,7 @@ export default {
 
     // Filters
     filterByCompany: "Filter by Company",
+    totalPlans: "Plans",
 
     // Form Fields
     form: {

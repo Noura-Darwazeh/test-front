@@ -792,6 +792,7 @@
     showingEntries: "عرض {from} إلى {to} من {total} إدخال",
 
     filterByRegion: "تصفية حسب المنطقة",
+    filterByCompany: "تصفية حسب الشركة",
 
     form: {
       name: "اسم الخط",
@@ -1874,7 +1875,7 @@
     export: "تصدير",
     edit: "تعديل",
     delete: "حذف",
-    details: "تفاصيل العملة",
+    detailsTitle: "تفاصيل العملة",
     actions: "الإجراءات",
 
     // أعمدة الجدول
@@ -2005,6 +2006,7 @@
 
     // الفلاتر
     filterByCompany: "تصفية حسب الشركة",
+    totalPlans: "خطط",
 
     // حقول النموذج
     form: {

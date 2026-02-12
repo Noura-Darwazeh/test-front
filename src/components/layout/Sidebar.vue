@@ -5,7 +5,7 @@
   <!-- Mobile menu toggle button (positioned on left edge) -->
   <button v-if="isMobile && !isMobileMenuOpen" @click="toggleSidebar"
     class="btn btn-sm btn-light mobile-toggle-btn shadow-sm" :class="{ rtl: isRTL }" type="button">
-    <img src="/src/assets/SelectorLines.svg" alt="Menu" width="16" height="16" />
+    <img :src="selectorLinesIcon" alt="Menu" width="16" height="16" />
   </button>
 
   <aside class="sidebar bg-white border-end" :class="{
@@ -21,7 +21,7 @@
       </div>
 
       <button @click="toggleSidebar" class="btn btn-sm btn-light toggle-btn" type="button">
-        <img src="/src/assets/SelectorLines.svg" alt="Toggle" width="16" height="16" />
+        <img :src="selectorLinesIcon" alt="Toggle" width="16" height="16" />
       </button>
     </div>
 
@@ -44,6 +44,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useSidebar } from "@/composables/useSidebar";
 import { useAuthStore } from "@/stores/auth.js";
+import selectorLinesIcon from "@/assets/SelectorLines.svg";
 
 const { isCollapsed, isMobile } = useSidebar();
 const isMobileMenuOpen = ref(false);

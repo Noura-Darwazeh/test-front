@@ -36,21 +36,21 @@
                 <span v-if="col.sortable" class="sort-icon">
                   <img
                     v-if="sortKey !== col.key"
-                    src="/src/assets/table/arrowsBothWays.svg"
+                    :src="arrowsBothWaysIcon"
                     alt="Sort"
                     width="14"
                     height="14"
                   />
                   <img
                     v-else-if="sortDirection === 'asc'"
-                    src="/src/assets/table/arrowUp.svg"
+                    :src="arrowUpIcon"
                     alt="Sort ascending"
                     width="14"
                     height="14"
                   />
                   <img
                     v-else
-                    src="/src/assets/table/arrowDown.svg"
+                    :src="arrowDownIcon"
                     alt="Sort descending"
                     width="14"
                     height="14"
@@ -242,6 +242,9 @@ import { ref, computed, watch, useSlots } from "vue";
 import { sortData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import StatusBadge from "./StatusBadge.vue";
+import arrowsBothWaysIcon from "@/assets/table/arrowsBothWays.svg";
+import arrowUpIcon from "@/assets/table/arrowUp.svg";
+import arrowDownIcon from "@/assets/table/arrowDown.svg";
 
 const { t, locale } = useI18n();
 const isRTL = computed(() => locale.value === "ar");

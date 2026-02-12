@@ -16,12 +16,42 @@ const api = axios.create({
   },
 });
 
+const shouldLogApi = import.meta.env.DEV;
+
+const toQueryString = (params) => {
+  if (!params || typeof params !== "object") return "";
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === "") return;
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (entry !== null && entry !== undefined && entry !== "") {
+          query.append(key, String(entry));
+        }
+      });
+      return;
+    }
+    query.append(key, String(value));
+  });
+  return query.toString();
+};
+
 // ---- Request Interceptor ----
 api.interceptors.request.use(
   (config) => {
     const token = getItem("auth_token", null);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (shouldLogApi) {
+      const method = String(config.method || "get").toUpperCase();
+      const queryString = toQueryString(config.params);
+      const fullUrl = queryString ? `${config.url}?${queryString}` : config.url;
+      console.log(`🚀 API Request: ${method} ${fullUrl}`, {
+        params: config.params,
+        data: config.data,
+      });
     }
 
     return config;
@@ -39,6 +69,13 @@ api.interceptors.response.use(
       const error = new Error(response.data.message || "API request failed");
       error.response = response;
       throw error;
+    }
+
+    if (shouldLogApi) {
+      console.log(`✅ API Response: ${String(response.config?.method || "get").toUpperCase()} ${response.config?.url}`, {
+        status: response.status,
+        data: response.data,
+      });
     }
 
     return response;

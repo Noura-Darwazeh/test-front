@@ -2,9 +2,9 @@
   <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" menuClass="custom-dropdown" :class="{ rtl: isRTL }">
     <template #trigger>
       <button class="btn  d-flex align-items-center gap-2 shadow-sm" type="button">
-        <img src="/src/assets/SelectorLines.svg" alt="Columns" width="16" height="16" />
+        <img :src="selectorLinesIcon" alt="Columns" width="16" height="16" />
         {{ $t("user.columns") }}
-        <img src="/src/assets/dropdown.svg" alt="Dropdown" width="12" height="12" />
+        <img :src="dropdownIcon" alt="Dropdown" width="12" height="12" />
       </button>
     </template>
 
@@ -40,6 +40,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
+import selectorLinesIcon from "@/assets/SelectorLines.svg";
+import dropdownIcon from "@/assets/dropdown.svg";
 
 const { locale } = useI18n();
 const isRTL = computed(() => locale.value === "ar");

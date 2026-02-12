@@ -6,7 +6,7 @@
         type="button"
       >
         <img
-          src="/src/assets/currency/currency.svg"
+          :src="currencySvg"
           alt="Currency"
           width="25"
           height="25"
@@ -43,6 +43,7 @@
 import { computed } from "vue";
 import { useCurrencyStore } from "@/stores/currency.js";
 import BaseDropdown from "./BaseDropdown.vue";
+import currencySvg from "@/assets/currency/currency.svg";
 
 const props = defineProps({
   position: {

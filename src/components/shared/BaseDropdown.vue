@@ -37,7 +37,7 @@ import { useI18n } from "vue-i18n";
 const props = defineProps({
   menuPosition: {
     type: String,
-    default: "end", // 'start' or 'end'
+    default: "end",
     validator: (value) => ["start", "end"].includes(value),
   },
   dropdownClass: {
@@ -50,7 +50,15 @@ const props = defineProps({
   },
   closeOnScroll: {
     type: Boolean,
-    default: true,
+    default: true, 
+  },
+  maxHeight: {
+    type: String,
+    default: "300px",
+  },
+  minWidth: {
+    type: String,
+    default: "250px", 
   },
 });
 
@@ -116,14 +124,21 @@ const handleScroll = () => {
 const updateMenuPosition = () => {
   if (!triggerRef.value || !menuRef.value) return;
 
+  // Reset stale inline positioning before measuring so the menu
+  // returns to its natural content width instead of the stretched
+  // width from a previous open (caused by CSS right:0 + inline left conflicting).
+  const el = menuRef.value;
+  el.style.left = "";
+  el.style.right = "auto";
+  el.style.width = "";
+
   const triggerRect = triggerRef.value.getBoundingClientRect();
-  const menuRect = menuRef.value.getBoundingClientRect();
   const padding = 8;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
 
-  const maxMenuWidth = viewportWidth - (padding * 2);
-  const menuWidth = Math.min(menuRect.width, maxMenuWidth);
+  const menuWidth = Math.max(220, parseInt(props.minWidth));
+  const menuMaxHeight = parseInt(props.maxHeight);
 
   let left;
   if (props.menuPosition === "start") {
@@ -137,30 +152,30 @@ const updateMenuPosition = () => {
   let top;
   const spaceBelow = viewportHeight - triggerRect.bottom;
   const spaceAbove = triggerRect.top;
-  const menuHeight = menuRect.height;
 
-  if (spaceBelow >= menuHeight + padding) {
+  if (spaceBelow >= menuMaxHeight + padding) {
     top = triggerRect.bottom + 2;
-  } else if (spaceAbove >= menuHeight + padding) {
-    top = triggerRect.top - menuHeight - 2;
+  } else if (spaceAbove >= menuMaxHeight + padding) {
+    top = triggerRect.top - menuMaxHeight - 2;
   } else {
-    if (spaceBelow > spaceAbove) {
-      top = triggerRect.bottom + 2;
-    } else {
-      top = Math.max(padding, triggerRect.top - menuHeight - 2);
-    }
+    // لو ما في مساحة كافية، خليها تحت
+    top = triggerRect.bottom + 2;
   }
 
-  top = Math.max(padding, Math.min(top, viewportHeight - menuHeight - padding));
+  top = Math.max(padding, Math.min(top, viewportHeight - padding));
 
   menuStyles.value = {
     position: "fixed",
     top: `${top}px`,
     left: `${left}px`,
+    right: "auto",
     zIndex: 2000,
-    maxWidth: `${maxMenuWidth}px`,
-    maxHeight: `${viewportHeight - padding * 2}px`,
+    width: `${menuWidth}px`, 
+    minWidth: props.minWidth, 
+    maxWidth: `${viewportWidth - padding * 2}px`,
+    maxHeight: props.maxHeight, 
     overflowY: "auto",
+    overflowX: "hidden",
   };
 };
 
@@ -174,7 +189,9 @@ const handleWindowChange = () => {
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
   window.addEventListener("resize", handleWindowChange);
-  window.addEventListener("scroll", handleScroll, true);
+  if (props.closeOnScroll) {
+    window.addEventListener("scroll", handleScroll, true);
+  }
 });
 
 onUnmounted(() => {
@@ -191,13 +208,15 @@ defineExpose({
 });
 </script>
 
-<style>
+<style scoped>
 .dropdown-menu {
   position: fixed;
   z-index: 2000;
   display: none;
-  min-width: 10rem;
   margin: 0.125rem 0 0;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0.375rem;
 }
 
 .dropdown-menu.show {
@@ -226,5 +245,18 @@ defineExpose({
 .dropdown-menu[dir="rtl"] .list-unstyled {
   padding-right: 0;
   padding-left: 0;
+}
+
+.dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <div class="search-filter position-relative shadow-sm" style="max-width: 300px">
     <span class="search-icon position-absolute" :class="isRTL ? 'end-0' : 'start-0'">
-      <img src="/src/assets/search.svg" alt="Search" width="16" height="16" />
+      <img :src="searchIcon" alt="Search" width="16" height="16" />
     </span>
     <input type="search" class="form-control" :class="isRTL ? 'pe-5' : 'ps-5'" :placeholder="placeholder"
       :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" :dir="isRTL ? 'rtl' : 'ltr'" />
@@ -10,6 +10,7 @@
 <script setup>
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import searchIcon from "@/assets/search.svg";
 
 const { locale } = useI18n();
 const isRTL = computed(() => locale.value === "ar");

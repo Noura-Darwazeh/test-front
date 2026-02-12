@@ -1,5 +1,6 @@
 <template>
-    <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" :class="{ rtl: isRTL }">
+    <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'" :class="{ rtl: isRTL }"
+     :maxHeight="'150px'">
         <template #trigger>
             <PrimaryButton :iconBefore="actionsIcon" bg-color=#ffffff iconColor="black" />
         </template>

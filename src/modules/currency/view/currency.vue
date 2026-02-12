@@ -117,7 +117,7 @@
     <!-- Details Modal -->
     <DetailsModal
       :isOpen="isDetailsModalOpen"
-      :title="$t('currency.details')"
+      :title="$t('currency.detailsTitle')"
       :data="selectedCurrency"
       :fields="detailsFields"
       @close="closeDetailsModal"

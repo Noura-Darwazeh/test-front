@@ -16,7 +16,7 @@
 
           <!-- Notifications Button -->
           <button class="btn btn-link p-0 position-relative" type="button">
-            <img src="/src/assets/Navbar/Bell.svg" alt="Notifications" width="25" height="25" />
+            <img :src="bellIcon" alt="Notifications" width="25" height="25" />
             <span v-if="notificationCount > 0"
               class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
               {{ notificationCount }}
@@ -27,7 +27,7 @@
           <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
             <template #trigger>
               <button class="btn btn-link p-0" type="button">
-                <img src="/src/assets/Navbar/Globe.svg" alt="Language" width="25" height="25" />
+                <img :src="globeIcon" alt="Language" width="25" height="25" />
               </button>
             </template>
             <template #menu="{ close }">
@@ -55,7 +55,7 @@
                   <i class="fas fa-user"></i>
                 </div>
                 <span class="d-none d-md-inline text-dark">{{ authStore.userName || 'User' }}</span>
-                <img src="/src/assets/Navbar/DropDown.svg" alt="Dropdown" width="16" height="16" />
+                <img :src="dropDownIcon" alt="Dropdown" width="16" height="16" />
               </button>
             </template>
             <template #menu="{ close }">
@@ -140,6 +140,9 @@ import { useAuthStore } from "@/stores/auth.js";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
 import SwitchUserModal from "@/components/shared/SwitchUserModal.vue";
 import ConfirmationModal from "@/components/shared/ConfirmationModal.vue";
+import bellIcon from "@/assets/Navbar/Bell.svg";
+import globeIcon from "@/assets/Navbar/Globe.svg";
+import dropDownIcon from "@/assets/Navbar/DropDown.svg";
 
 const props = defineProps({
   pageTitle: {

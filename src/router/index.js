@@ -29,6 +29,26 @@ import invoices from "../modules/invoices/view/invoices.vue";
 import permissions from "../modules/permissions/view/permissions.vue";
 import statistics from "../modules/statistics/view/statistics.vue";
 
+// Import sidebar icons so Vite includes them in the production build
+import userIcon from "@/assets/sidebar/userIcon.svg";
+import driverIcon from "@/assets/sidebar/driverIcon.svg";
+import customerIcon from "@/assets/sidebar/customerIcon.svg";
+import companyIcon from "@/assets/sidebar/companyIcon.svg";
+import branchIcon from "@/assets/sidebar/branchIcon.svg";
+import linesIcon from "@/assets/sidebar/linesIcon.svg";
+import priceIcon from "@/assets/sidebar/priceIcon.svg";
+import regionsIcon from "@/assets/sidebar/regionsIcon.svg";
+import orderIcon from "@/assets/order/order.svg";
+import statisticsIcon from "@/assets/sidebar/statistics.svg";
+import discountIcon from "@/assets/discount/discount.svg";
+import currencyIcon from "@/assets/currency/currency.svg";
+import itemPriceIcon from "@/assets/itemprice/price.svg";
+import driverlineIcon from "@/assets/driverline/driverline.svg";
+import mapGlobeIcon from "@/assets/map/mapGlobe.svg";
+import planIcon from "@/assets/sidebar/planIcon.svg";
+import invoiceIcon from "@/assets/sidebar/invoiceIcon.svg";
+import permissionIcon from "@/assets/sidebar/permission.svg";
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -90,7 +110,7 @@ const router = createRouter({
         titleKey: "user.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/userIcon.svg",
+        icon: userIcon,
         order: 1,
         roles: ["SuperAdmin", "Admin"],
       },
@@ -103,7 +123,7 @@ const router = createRouter({
         titleKey: "driver.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/driverIcon.svg",
+        icon: driverIcon,
         order: 2,
       },
     },
@@ -115,7 +135,7 @@ const router = createRouter({
         titleKey: "customer.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/customerIcon.svg",
+        icon: customerIcon,
         order: 4,
       },
     },
@@ -127,7 +147,7 @@ const router = createRouter({
         titleKey: "company.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/companyIcon.svg",
+        icon: companyIcon,
         order: 3,
         roles: ["SuperAdmin"],
       },
@@ -140,7 +160,7 @@ const router = createRouter({
         titleKey: "branch.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/branchIcon.svg",
+        icon: branchIcon,
         order: 16,
       },
     },
@@ -152,7 +172,7 @@ const router = createRouter({
         titleKey: "lines.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/linesIcon.svg",
+        icon: linesIcon,
         order: 12,
       },
     },
@@ -164,7 +184,7 @@ const router = createRouter({
         titleKey: "lineWork.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/linesIcon.svg",
+        icon: linesIcon,
         order: 11,
       },
     },
@@ -176,7 +196,7 @@ const router = createRouter({
         titleKey: "linePrice.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/priceIcon.svg",
+        icon: priceIcon,
         order: 13,
       },
     },
@@ -188,7 +208,7 @@ const router = createRouter({
         titleKey: "regions.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/regionsIcon.svg",
+        icon: regionsIcon,
         order: 17,
       },
     },
@@ -200,7 +220,7 @@ const router = createRouter({
         titleKey: "orders.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/order/order.svg",
+        icon: orderIcon,
         order: 5,
       },
     },
@@ -212,7 +232,7 @@ const router = createRouter({
         titleKey: "statistics.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/statistics.svg",
+        icon: statisticsIcon,
         order: 6,
       },
     },
@@ -224,7 +244,7 @@ const router = createRouter({
         titleKey: "discount.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/discount/discount.svg",
+        icon: discountIcon,
         order: 15,
       },
     },
@@ -236,7 +256,7 @@ const router = createRouter({
         titleKey: "currency.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/currency/currency.svg",
+        icon: currencyIcon,
         order: 18,
       },
     },
@@ -248,7 +268,7 @@ const router = createRouter({
         titleKey: "companyPrice.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/itemprice/price.svg",
+        icon: itemPriceIcon,
         order: 14,
       },
     },
@@ -260,7 +280,7 @@ const router = createRouter({
         titleKey: "driverLine.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/driverline/driverline.svg",
+        icon: driverlineIcon,
         order: 10,
       },
     },
@@ -272,7 +292,7 @@ const router = createRouter({
         titleKey: "map.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/map/mapGlobe.svg",
+        icon: mapGlobeIcon,
         order: 19,
       },
     },
@@ -284,7 +304,7 @@ const router = createRouter({
         titleKey: "workPlan.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/planIcon.svg",
+        icon: planIcon,
         order: 7,
       },
     },
@@ -309,7 +329,7 @@ const router = createRouter({
         titleKey: "collection.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/priceIcon.svg",
+        icon: priceIcon,
         order: 8,
         roles: ["Admin", "Driver"],
       },
@@ -323,7 +343,7 @@ const router = createRouter({
         titleKey: "invoice.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/invoiceIcon.svg",
+        icon: invoiceIcon,
         order: 9,
       },
     },
@@ -335,7 +355,7 @@ const router = createRouter({
         titleKey: "permissions.title",
         requireAuth: true,
         showInSidebar: true,
-        icon: "/src/assets/sidebar/permission.svg",
+        icon: permissionIcon,
         order: 20,
         roles: ["SuperAdmin", "Admin"],
       },

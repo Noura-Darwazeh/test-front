@@ -1,111 +1,82 @@
 # Delivery Management System
 
-A comprehensive delivery and logistics management web application built with Vue 3. The system provides end-to-end management of delivery operations including orders, drivers, customers, invoicing, route lines, pricing, work scheduling, and real-time map visualization.
+A delivery and logistics management web application built with **Vue 3**. It covers orders, drivers, customers, invoicing, delivery routes, pricing, work scheduling, and interactive map visualization.
 
 ---
 
 ## Table of Contents
 
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Project Structure](#project-structure)
-- [Modules Overview](#modules-overview)
-  - [User Management](#user-management)
-  - [Driver Management](#driver-management)
-  - [Company Management](#company-management)
-  - [Customer Management](#customer-management)
-  - [Orders](#orders)
-  - [Statistics](#statistics)
-  - [Work Plans](#work-plans)
-  - [Collections & Payments](#collections--payments)
-  - [Invoices](#invoices)
-  - [Driver Lines](#driver-lines)
-  - [Line Work](#line-work)
-  - [Lines](#lines)
-  - [Line Pricing](#line-pricing)
-  - [Company Pricing](#company-pricing)
-  - [Discounts](#discounts)
-  - [Branches](#branches)
-  - [Regions](#regions)
-  - [Currency](#currency)
-  - [Map](#map)
-  - [Permissions](#permissions)
-  - [Profile](#profile)
-- [Routing & Navigation](#routing--navigation)
-- [Role-Based Access Control](#role-based-access-control)
-- [State Management](#state-management)
-- [API Services Layer](#api-services-layer)
-- [Internationalization (i18n)](#internationalization-i18n)
-- [Shared Components](#shared-components)
-  - [Data Display Components](#data-display-components)
-  - [Modal Components](#modal-components)
-  - [Form Components](#form-components)
-  - [Action & Interaction Components](#action--interaction-components)
-  - [Filter Components](#filter-components)
-  - [Layout Components](#layout-components)
-- [Composables](#composables)
-- [Utilities](#utilities)
-- [Running Tests](#running-tests)
-- [Build & Deployment](#build--deployment)
+1. [Tech Stack](#tech-stack)
+2. [Getting Started](#getting-started)
+3. [Project Structure](#project-structure)
+4. [Common Module Pattern](#common-module-pattern)
+5. [Modules](#modules)
+   - [User Management](#user-management)
+   - [Driver Management](#driver-management)
+   - [Company Management](#company-management)
+   - [Customer Management](#customer-management)
+   - [Orders](#orders)
+   - [Statistics](#statistics)
+   - [Work Plans](#work-plans)
+   - [Collections & Payments](#collections--payments)
+   - [Invoices](#invoices)
+   - [Driver Lines](#driver-lines)
+   - [Line Work](#line-work)
+   - [Lines](#lines)
+   - [Line Pricing](#line-pricing)
+   - [Company Pricing](#company-pricing)
+   - [Discounts](#discounts)
+   - [Branches](#branches)
+   - [Regions](#regions)
+   - [Currency](#currency)
+   - [Map](#map)
+   - [Permissions](#permissions)
+   - [Profile](#profile)
+6. [Entity Relationships](#entity-relationships)
+7. [Shared Components Reference](#shared-components-reference)
+8. [Routing & Access Control](#routing--access-control)
+9. [State Management](#state-management)
+10. [API Layer](#api-layer)
+11. [Internationalization](#internationalization)
+12. [Composables & Utilities](#composables--utilities)
+13. [Testing, Building & Deployment](#testing-building--deployment)
 
 ---
 
 ## Tech Stack
 
-| Category             | Technology                          |
-| -------------------- | ----------------------------------- |
-| Framework            | Vue 3 (Composition API)             |
-| Build Tool           | Vite                                |
-| CSS Framework        | Bootstrap 5                         |
-| State Management     | Pinia                               |
-| Routing              | Vue Router 4                        |
-| HTTP Client          | Axios                               |
-| Internationalization | vue-i18n                            |
-| Mapping              | OpenLayers / vue3-openlayers        |
-| Calendar             | FullCalendar 6 (Vue 3 plugin)       |
-| PDF Generation       | html2pdf.js                         |
-| Testing              | Vitest + Vue Test Utils + fast-check|
+| Category       | Technology                   |
+| -------------- | ---------------------------- |
+| Framework      | Vue 3 (Composition API)      |
+| Build Tool     | Vite                         |
+| CSS            | Bootstrap 5                  |
+| State          | Pinia                        |
+| Routing        | Vue Router 4                 |
+| HTTP           | Axios                        |
+| i18n           | vue-i18n (English + Arabic)  |
+| Maps           | OpenLayers / vue3-openlayers |
+| Calendar       | FullCalendar 6               |
+| PDF            | html2pdf.js                  |
+| Testing        | Vitest + Vue Test Utils      |
 
 ---
 
-## Prerequisites
+## Getting Started
 
-- **Node.js** `^20.19.0` or `>=22.12.0`
-- **npm** (comes with Node.js)
-
----
-
-## Installation
+**Prerequisites:** Node.js `^20.19.0` or `>=22.12.0`
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd front-end
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-The development server will start with Hot Module Replacement (HMR) enabled.
-
----
-
-## Environment Variables
-
-Create a `.env` file in the project root:
+**Environment:** Create a `.env` file in the project root:
 
 ```env
 VITE_API_BASE_URL=http://your-api-server/api
 ```
-
-| Variable             | Description                  | Default                            |
-| -------------------- | ---------------------------- | ---------------------------------- |
-| `VITE_API_BASE_URL`  | Base URL for the backend API | `http://192.168.100.35/api`        |
 
 ---
 
@@ -113,32 +84,30 @@ VITE_API_BASE_URL=http://your-api-server/api
 
 ```
 src/
-├── App.vue                    # Root component with layout routing
-├── main.js                    # Application entry point
-├── assets/                    # Static assets (images, stylesheets)
+├── App.vue                       # Root component
+├── main.js                       # Entry point
+├── assets/                       # Images, stylesheets
 ├── components/
-│   ├── layout/                # AppLayout, Navbar, Sidebar
-│   ├── shared/                # Reusable UI components
-│   ├── filters/               # Filter components
-│   └── unique/                # Module-specific components
-├── composables/               # Reusable Vue composables
-├── i18n/                      # Localization (en.js, ar.js)
-├── modules/                   # Feature modules (see below)
-├── router/                    # Route definitions & guards
-├── services/                  # Axios instance & API service layer
-├── stores/                    # Global Pinia stores
-└── utils/                     # Utility functions
+│   ├── layout/                   # AppLayout, Navbar, Sidebar
+│   ├── shared/                   # Reusable components (tables, modals, buttons)
+│   └── filters/                  # Search, group, and time-period filters
+├── composables/                  # Shared reactive logic
+├── i18n/                         # en.js and ar.js translation files
+├── modules/                      # Feature modules (one folder per feature)
+├── router/                       # Routes and navigation guards
+├── services/                     # Axios setup and API service helpers
+├── stores/                       # Global Pinia stores
+└── utils/                        # Helper functions
 ```
 
-Each feature module follows a consistent structure:
+Every feature module follows the same layout:
 
 ```
-modules/<module-name>/
-├── view/
-│   └── <ModuleName>.vue       # Main view component
-├── components/                # Module-specific components
-├── store/                     # Pinia store for the module
-└── constants/                 # Module constants (if needed)
+modules/<name>/
+├── view/<Name>.vue               # Main page
+├── components/                   # Module-specific components
+├── store/                        # Pinia store
+└── constants/                    # Validation limits, etc.
 ```
 
 ---
@@ -396,250 +365,380 @@ Secure password reset interface with token validation and confirmation.
 
 ### User Management
 
-**Route:** `/user` | **Access:** SuperAdmin, Admin
+> **Route:** `/user` | **Roles:** SuperAdmin, Admin
 
-Manages system user accounts with full CRUD operations.
+#### What it does
 
-**Main View (`user.vue`):**
-- Renders a paginated data table with **Active** and **Trashed** tabs for managing the user lifecycle
-- Supports search by name, username, or email
-- Provides a role-based group filter with grouped display (e.g. Admin, SuperAdmin, Employee, Supervisor)
-- Table columns: Index, Full Name, Username, Email, Phone Number, User Role, Company
-- Automatically filters out SuperAdmin users and the currently logged-in user from the list
+Manages system user accounts. Users are the people who log in and operate the system — admins, employees, supervisors. This module handles creating accounts, assigning roles, managing profile images, and soft-deleting users.
 
-**Components Used:**
-- `usersHeader.vue` — Wraps the shared `TableHeader` component, passing search placeholder, role filter config, column selector options, and action buttons
-- `DataTable` — Displays users with sortable columns, row checkboxes for bulk selection, and per-row action dropdown
-- `FormModal` — Handles Add/Edit user forms with fields: name, username, email, phone, password, role (select), company (select), and profile image upload
-- `DetailsModal` — Shows user details in a grid layout with profile image display
-- `ConfirmationModal` — Confirms delete and permanent delete actions
-- `TrashedItemsModal` — Lists soft-deleted users with restore and permanent delete options
-- `BulkActionsBar` — Appears when rows are selected, offering bulk delete (active tab) or bulk restore/delete (trashed tab)
-- `SuccessModal` — Animated success notification after create/update/delete operations
-- `Pagination` — Page navigation controls below the table
-- `StatusBadge` — Renders the user role as a colored badge
-- `Actions` — Per-row dropdown with Edit, Details, and Delete buttons
+#### What it connects to
 
-**Store (`usersManagement.js`):**
-- **State:** `users`, `trashedUsers`, `loading`, `trashedLoading`, `error`, `usersPagination`, `trashedPagination`
-- **API Endpoints:**
-  - `GET /users` — Fetch paginated users with search and role filters
-  - `GET /users/trashed` — Fetch soft-deleted users
-  - `POST /users` — Create a new user
-  - `PATCH /users/{id}` — Update user details
-  - `DELETE /users/{id}` — Soft-delete a user
-  - `POST /users/{id}/restore` — Restore a soft-deleted user
-  - `DELETE /users/bulk` — Bulk soft-delete
-  - `POST /users/bulk/restore` — Bulk restore
+- **Companies** — Every user belongs to a company. The company field appears as a select dropdown for SuperAdmin or is auto-assigned for Admin.
+- **Permissions** — User IDs are used in the Permissions module to build the permission matrix.
+- **Profile** — The logged-in user's data from this module is displayed on the Profile page.
 
-**Constants (`userConstants.js`):**
-- `NAME_MAX_LENGTH`: 255
-- `USERNAME_MAX_LENGTH`: 255
-- `EMAIL_MAX_LENGTH`: 255
-- `PHONE_MAX_LENGTH`: 20
-- `PASSWORD_MIN_LENGTH`: 6
-- `IMAGE_MAX_SIZE`: 200 KB
+#### How it works
+
+**Table Columns:** Index, Full Name, Username, Email, Phone Number, User Role, Company
+
+**Search & Filters:** Text search by name/username/email. Group filter by role (Admin, Employee, Supervisor, etc.).
+
+**Form Fields:**
+
+| Field    | Type        | Validation                 |
+| -------- | ----------- | -------------------------- |
+| Name     | text        | Required, max 255          |
+| Username | text        | Required, max 255          |
+| Email    | text        | Required, max 255          |
+| Phone    | text        | Max 20 characters          |
+| Password | password    | Required on create, min 6  |
+| Role     | select      | Admin, Employee, Supervisor, etc. |
+| Company  | select      | SuperAdmin only            |
+| Image    | file upload | Max 200 KB, with preview   |
+
+**Special behavior:**
+- SuperAdmin users and the currently logged-in user are automatically hidden from the list
+- Roles are shown as colored `StatusBadge` components in the table
+
+**Soft-delete:** Yes — Active / Trashed tabs with bulk delete and restore.
+
+**Store Endpoints:**
+
+| Method | Endpoint               | Purpose          |
+| ------ | ---------------------- | ---------------- |
+| GET    | `/users`               | List (paginated) |
+| GET    | `/users/trashed`       | List deleted     |
+| POST   | `/users`               | Create           |
+| PATCH  | `/users/{id}`          | Update           |
+| DELETE | `/users/{id}`          | Soft-delete      |
+| POST   | `/users/{id}/restore`  | Restore          |
+| DELETE | `/users/bulk`          | Bulk delete      |
+| POST   | `/users/bulk/restore`  | Bulk restore     |
 
 ---
 
 ### Driver Management
 
-**Route:** `/driver` | **Access:** All authenticated users
+> **Route:** `/driver` | **Roles:** All
 
-Manages delivery drivers with status tracking.
+#### What it does
 
-**Main View (`driver.vue`):**
-- Paginated data table with **Active** and **Trashed** tabs
-- Search by name/username and filter by driver status (available, busy, in_holiday, offline)
-- Table columns: Index, Name, Username, Status, Type, Branch Name, Vehicle Number, Phone
-- When deleting a driver who has assigned work plans, a reassignment modal appears to transfer those plans to another driver
+Manages delivery drivers — the people who physically transport goods. Each driver has a status (available, busy, in_holiday, offline), a vehicle, and belongs to a branch. The system tracks driver availability for assignment to delivery orders and work plans.
 
-**Components Used:**
-- `driversHeader.vue` — Wraps `TableHeader` with driver-specific search and status filter configuration
-- `DataTable` — Renders drivers with sortable columns and row selection checkboxes
-- `FormModal` — Add/Edit driver form with fields: name, username, email, password, phone number, type (custom/delivery), vehicle number, branch (select), company (select), status (select)
-- `DetailsModal` — Displays full driver profile with image
-- `ConfirmationModal` — Delete confirmation
-- `DriverReassignModal` — When a driver with active work plans is being deleted, this modal shows the list of assigned work plans and lets the admin either delete them or reassign them to a different driver from a searchable driver list
-- `TrashedItemsModal` — Restore or permanently remove deleted drivers
-- `BulkActionsBar` — Bulk delete/restore operations
-- `SuccessModal` — Post-action success notification
-- `Pagination` — Page navigation
-- `StatusBadge` — Color-coded driver status display (green for available, yellow for busy, grey for offline, blue for in_holiday)
-- `Actions` — Per-row dropdown with Edit, Details, Delete
+#### What it connects to
 
-**Store (`driverStore.js`):**
-- **State:** `drivers`, `trashedDrivers`, `loading`, `trashedLoading`, `driversPagination`, `trashedPagination`
-- **Computed Getters:** `activeDrivers`, `busyDrivers`, `offlineDrivers` (filtered by status)
-- **API Endpoints:**
-  - `GET /drivers` — Fetch with pagination and status filter
-  - `GET /drivers/trashed` — Fetch soft-deleted drivers
-  - `POST /drivers` — Create driver (requires company_id, branch_id)
-  - `PATCH /drivers/{id}` — Update driver
-  - `DELETE /drivers/{id}` — Soft-delete with optional force flag
-  - `POST /drivers/{id}/restore` — Restore driver
-  - `DELETE /drivers/bulk` — Bulk delete
-  - `POST /drivers/bulk/restore` — Bulk restore
-  - `GET /drivers/{id}/workplans` — Fetch assigned work plans before deletion
-  - `POST /drivers/reassign-workplans` — Reassign work plans to another driver
+- **Branches** — Every driver belongs to a branch (physical location).
+- **Companies** — Every driver belongs to a company.
+- **Work Plans** — Drivers are assigned to work plans for scheduling. When deleting a driver, the system checks for active work plans and offers reassignment.
+- **Driver Lines** — Drivers are mapped to delivery lines through the Driver Lines module.
+- **Orders** — Drivers are assigned to orders during the order creation wizard.
+- **Collections** — Payments track which driver received/paid.
+
+#### How it works
+
+**Table Columns:** Index, Name, Username, Status, Type, Branch Name, Vehicle Number, Phone
+
+**Search & Filters:** Text search by name/username. Group filter by status.
+
+**Form Fields:**
+
+| Field          | Type     | Validation                      |
+| -------------- | -------- | ------------------------------- |
+| Name           | text     | Required                        |
+| Username       | text     | Required                        |
+| Email          | text     | Optional                        |
+| Password       | password | Required on create              |
+| Phone          | text     | Optional                        |
+| Type           | select   | Custom driver / Delivery driver |
+| Vehicle Number | text     | Optional                        |
+| Branch         | select   | Required                        |
+| Company        | select   | SuperAdmin only                 |
+| Status         | select   | available / busy / in_holiday / offline |
+
+**Status Colors:** green = available, yellow = busy, grey = offline, blue = in_holiday
+
+**Unique component — `DriverReassignModal`:** When deleting a driver who has active work plans, this modal appears instead of a simple confirmation. It shows the affected work plans and offers two choices:
+1. Delete the work plans along with the driver
+2. Reassign the work plans to a different driver (selected from a dropdown)
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Endpoints:**
+
+| Method | Endpoint                      | Purpose                        |
+| ------ | ----------------------------- | ------------------------------ |
+| GET    | `/drivers`                    | List (paginated)               |
+| GET    | `/drivers/trashed`            | List deleted                   |
+| POST   | `/drivers`                    | Create                         |
+| PATCH  | `/drivers/{id}`               | Update                         |
+| DELETE | `/drivers/{id}`               | Soft-delete (optional force)   |
+| POST   | `/drivers/{id}/restore`       | Restore                        |
+| DELETE | `/drivers/bulk`               | Bulk delete                    |
+| POST   | `/drivers/bulk/restore`       | Bulk restore                   |
+| GET    | `/drivers/{id}/workplans`     | Check work plans before delete |
+| POST   | `/drivers/reassign-workplans` | Move plans to another driver   |
+
+**Store Getters:** `activeDrivers`, `busyDrivers`, `offlineDrivers` — filter the driver list by status.
 
 ---
 
 ### Company Management
 
-**Route:** `/company` | **Access:** SuperAdmin only
+> **Route:** `/company` | **Roles:** SuperAdmin only
 
-Manages companies in the system.
+#### What it does
 
-**Main View (`company.vue`):**
-- Paginated data table with **Active** and **Trashed** tabs
-- Search and filter by company type (delivery company, admin company, customer company)
-- Table columns: Index, Name, Type, Shared Line (inline toggle)
-- The Shared Line column features an inline toggle switch that SuperAdmins can flip directly in the table
-- Details modal displays company information along with associated branches and lines as card sections
+Manages the companies that participate in the delivery platform. Companies can be of three types: delivery company, admin company, or customer company. Each company can have multiple branches (physical locations) and can enable or disable line sharing.
 
-**Components Used:**
-- `companyHeader.vue` — Wraps `TableHeader` with company type filter
-- `DataTable` — Renders companies with inline `SharedLineToggle` in the Shared Line column
-- `SharedLineToggle` — An inline switch component that calls the API to update a company's `shared_line` setting. Only SuperAdmin can toggle it; on API failure it reverts the checkbox
-- `FormModal` — Add/Edit company form with fields: name, type (select). Includes a **dynamic branch rows** section where users can add/remove branch entries, each with name, latitude, and longitude fields, plus an embedded map location picker
-- `DetailsModal` — Shows company details with branches displayed as cards (name + location) and associated lines displayed as cards
-- `ConfirmationModal` — Delete confirmation
-- `TrashedItemsModal` — Restore or permanently remove deleted companies
-- `BulkActionsBar` — Bulk operations
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`companyManagement.js`):**
-- **State:** `companies`, `trashedCompanies`, `loading`, `trashedLoading`, `companiesPagination`, `trashedPagination`
-- **Computed:** `activeCompanies`, `inactiveCompanies`
-- **API Endpoints:**
-  - `GET /companies` — Fetch with pagination and type filter
-  - `GET /companies/trashed` — Fetch deleted companies
-  - `POST /companies` — Create with name, type, and branches array
-  - `PATCH /companies/{id}` — Update company and branches
-  - `DELETE /companies/{id}` — Soft-delete or force delete
-  - `POST /companies/{id}/restore` — Restore
-  - `DELETE /companies/bulk` — Bulk delete
-  - `POST /companies/bulk/restore` — Bulk restore
+- **Branches** — Companies contain branches. When creating a company, you add branch rows directly in the form.
+- **Lines** — Lines belong to companies.
+- **Users** — Users belong to companies.
+- **Drivers** — Drivers belong to companies.
+- **Customers** — Customers belong to companies.
+- **All pricing modules** — Line Pricing, Company Pricing, and Discounts are scoped to companies.
+
+#### How it works
+
+**Table Columns:** Index, Name, Type, Shared Line (inline toggle)
+
+**Search & Filters:** Group filter by company type (delivery / admin / customer).
+
+**Form Fields:**
+
+| Field    | Type                | Validation                                               |
+| -------- | ------------------- | -------------------------------------------------------- |
+| Name     | text                | Required, max 255                                        |
+| Type     | select              | delivery / admin / customer company                      |
+| Branches | dynamic row builder | Each row has: branch name + latitude + longitude + map picker. Add/remove rows dynamically. |
+
+**Unique components:**
+
+- **`SharedLineToggle`** — Rendered directly inside the table's "Shared Line" column as an inline on/off switch. When toggled, it immediately calls the API. Only SuperAdmin can toggle it. If the API call fails, the checkbox reverts automatically.
+- **`FormModal` with branch rows** — The form includes a dynamic section where you add/remove branch entries. Each branch row has a name field and an embedded map location picker for choosing latitude/longitude visually.
+- **`DetailsModal`** — Enhanced to display company info plus branches as cards and associated lines as cards below.
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Endpoints:**
+
+| Method | Endpoint                  | Purpose           |
+| ------ | ------------------------- | ----------------- |
+| GET    | `/companies`              | List              |
+| GET    | `/companies/trashed`      | List deleted      |
+| POST   | `/companies`              | Create            |
+| PATCH  | `/companies/{id}`         | Update            |
+| DELETE | `/companies/{id}`         | Soft / force delete |
+| POST   | `/companies/{id}/restore` | Restore           |
+| DELETE | `/companies/bulk`         | Bulk delete       |
+| POST   | `/companies/bulk/restore` | Bulk restore      |
 
 ---
 
 ### Customer Management
 
-**Route:** `/customer` | **Access:** All authenticated users
+> **Route:** `/customer` | **Roles:** All
 
-Manages customer records with optional geolocation data.
+#### What it does
 
-**Main View (`customer.vue`):**
-- Paginated data table with **Active** and **Trashed** tabs
-- Search by customer name or phone
-- Company filter visible only to SuperAdmin users
-- Table columns vary by role: Admin sees (Index, Name, Phone), SuperAdmin sees (Index, Name, Phone, Company)
+Manages the customers who place delivery orders. Each customer has a name, phone number, belongs to a company, and optionally has geographic coordinates. The coordinates allow the Map module to display customer locations and help with route planning.
 
-**Components Used:**
-- `customerHeader.vue` — Wraps `TableHeader` with role-conditional company filter
-- `DataTable` — Customer list with row selection
-- `FormModal` — Add/Edit customer form with fields: name (required, min 3, max 255), phone number (required, max 20), company (select, locked for Admin role), latitude (-90 to 90), longitude (-180 to 180), and an embedded **map location picker** for visual coordinate selection
-- `DetailsModal` — Displays customer info including latitude/longitude
-- `ConfirmationModal` — Delete confirmation
-- `TrashedItemsModal` — Restore or permanently remove
-- `BulkActionsBar` — Bulk delete/restore
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`customerStore.js`):**
-- **State:** `customers`, `trashedCustomers`, `loading`, `trashedLoading`, `customersPagination`, `trashedPagination`
-- **Computed:** `customersByCompany` (grouped)
-- **API Endpoints:**
-  - `GET /customers` — Fetch with pagination and company filter
-  - `GET /customers/trashed` — Fetch deleted customers
-  - `POST /customers` — Create with name, phone, company_id, latitude, longitude
-  - `PATCH /customers/{id}` — Update customer
-  - `DELETE /customers/{id}` — Soft-delete
-  - `POST /customers/{id}/restore` — Restore
-  - `DELETE /customers/bulk` — Bulk delete
-  - `POST /customers/bulk/restore` — Bulk restore
+- **Companies** — Every customer belongs to a company. SuperAdmin can filter by company; Admin sees only their own company's customers.
+- **Orders** — Customers are selected during order creation in the Order Wizard.
+- **Discounts** — Discounts of type "Customer" target specific customers.
+- **Map** — Customer locations are displayed on the interactive map.
+- **Statistics** — Customer counts and top-customer data appear on the Statistics dashboard.
+
+#### How it works
+
+**Table Columns:** Vary by role.
+- Admin sees: Index, Name, Phone
+- SuperAdmin sees: Index, Name, Phone, Company
+
+**Search & Filters:** Text search by name/phone. Company filter (SuperAdmin only).
+
+**Form Fields:**
+
+| Field     | Type       | Validation                            |
+| --------- | ---------- | ------------------------------------- |
+| Name      | text       | Required, min 3, max 255              |
+| Phone     | text       | Required, max 20                      |
+| Company   | select     | Required. Locked/hidden for Admin.    |
+| Latitude  | number     | Optional, -90 to 90                   |
+| Longitude | number     | Optional, -180 to 180                 |
+| Location  | map picker | Visual coordinate selector on an embedded map |
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Endpoints:**
+
+| Method | Endpoint                   | Purpose      |
+| ------ | -------------------------- | ------------ |
+| GET    | `/customers`               | List         |
+| GET    | `/customers/trashed`       | List deleted |
+| POST   | `/customers`               | Create       |
+| PATCH  | `/customers/{id}`          | Update       |
+| DELETE | `/customers/{id}`          | Soft-delete  |
+| POST   | `/customers/{id}/restore`  | Restore      |
+| DELETE | `/customers/bulk`          | Bulk delete  |
+| POST   | `/customers/bulk/restore`  | Bulk restore |
 
 ---
 
 ### Orders
 
-**Route:** `/orders` | **Access:** All authenticated users
+> **Route:** `/orders` | **Roles:** All
 
-The core module of the application managing the full order lifecycle.
+#### What it does
 
-**Main View (`orderPage.vue`):**
-- Paginated data table with **Active** and **Trashed** tabs
-- Search by order code, customer name, or other fields
-- Filter by order status (pending, inprocess, completed, cancelled, etc.)
-- Time period filter (all, today, month, year)
-- Expandable table rows that reveal child/related orders
-- Table columns: Index, Order Code, Customer, Order Items, Status, Line, Driver, Price, Currency, Date
+The core module of the application. Manages delivery orders through their full lifecycle: creation, status tracking, driver assignment, and completion. Supports three order types — delivery, return, and exchange — each created through a multi-step wizard. Parent orders can have child orders (e.g. an exchange creates a return child + a delivery child).
 
-**Components Used:**
-- `ordersHeader.vue` — Wraps `TableHeader` with order status group filter and time period filter (all/today/month/year)
-- `OrdersTableCard.vue` — The main table rendering component with custom cell rendering for order items (name + quantity), status badges, pricing display, and expandable child order rows
-- `OrderWizard.vue` — A multi-step wizard modal supporting three order modes: **delivery**, **return**, and **exchange**. Steps include:
-  1. Date selection
-  2. Customer selection
-  3. Order items entry (name, quantity, price per item)
-  4. Line selection
-  5. Driver assignment
-  6. Summary review and confirmation
-- `OrdersModals.vue` — Container component that manages the visibility state of all order-related modals (wizard, form, details, progress, confirmation)
-- `OrderDetailsTabs.vue` — Tabbed details view with a **Details** tab (order info, customer, driver, pricing) and an **Exchanged Orders** tab (showing related exchange orders)
-- `OrderChildOrders.vue` — Renders child/related orders within an expanded parent row, displaying their items and statuses
-- `FormModal` — Used for editing existing orders with fields for status, driver, line, pricing
-- `DetailsModal` — Order details display
-- `OrderItemProgress` — Stepper component showing the status progression of each order item through work plan steps (pending → start → pickup → done/failed), with timestamps and color-coded status indicators
-- `ConfirmationModal` — Delete and status change confirmation
-- `TrashedItemsModal` — Restore or permanently remove deleted orders
-- `BulkActionsBar` — Bulk status changes, bulk delete, bulk restore
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `StatusBadge` — Color-coded order status (type: "order")
-- `Actions` — Per-row dropdown with Edit, Details, Progress, Delete
+#### What it connects to
+
+- **Customers** — Each order is placed by a customer (selected in wizard step 2).
+- **Lines** — Each order is assigned to a delivery line (wizard step 4).
+- **Drivers** — Each order is assigned to a driver (wizard step 5).
+- **Line Pricing** — The order's price comes from the line price configuration.
+- **Discounts** — Discounts can reduce the order price.
+- **Companies** — Orders belong to a company.
+- **Currencies** — Order prices are displayed in the associated currency.
+- **Work Plans** — Orders are grouped into work plans for scheduling.
+- **Collections & Payments** — Payments are generated from completed orders.
+- **Statistics** — Order counts and status breakdowns power the Statistics dashboard.
+
+#### How it works
+
+**Table Columns:** Index, Order Code, Customer, Order Items, Status, Line, Driver, Price, Currency, Date
+
+**Search & Filters:**
+- Text search by order code or customer name
+- Group filter by status (pending, inprocess, completed, cancelled, etc.)
+- Time period filter: all / today / month / year
+
+**Expandable rows:** Parent orders can be expanded to reveal child orders.
+
+**Unique components:**
+
+| Component              | What it does                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `OrderWizard.vue`      | Multi-step creation wizard with 3 modes (**delivery**, **return**, **exchange**). Steps: (1) Date (2) Customer (3) Items — name, quantity, price per item (4) Line (5) Driver (6) Summary + confirm |
+| `OrdersTableCard.vue`  | Custom table rendering: order-item cells show name + quantity, statuses use `StatusBadge`, pricing is formatted, and rows expand to show child orders |
+| `OrdersModals.vue`     | Container component managing the open/close state of all order modals — wizard, form, details, progress, confirmation |
+| `OrderDetailsTabs.vue` | Tabbed detail view: **Details** tab (order info, customer, driver, pricing) + **Exchanged Orders** tab (related exchange orders) |
+| `OrderChildOrders.vue` | Renders child orders inside an expanded parent row with their items and statuses    |
+| `OrderItemProgress`    | Stepper showing each order item's journey through work plan steps: pending -> start -> pickup -> done/failed, with timestamps at each step |
+
+**Soft-delete:** Yes — with bulk operations and bulk status changes.
 
 **Store (`ordersStore.js`):**
-- **State:** `orders`, `trashedOrders`, `statistics`, `loading`, `trashedLoading`, `statisticsLoading`, `ordersPagination`, `trashedPagination`
-- **Normalization:** `transformOrder` function maps API response to frontend format, extracting nested customer, company, currency, line, line price, and discount data. `normalizeOrderStatus` converts "in_progress" to "inprocess" for consistent status handling
-- **API Endpoints:**
-  - `GET /orders` — Fetch with pagination, status filter, and time period filter
-  - `GET /orders/trashed` — Fetch deleted orders
-  - `POST /orders` — Create order (delivery/return/exchange)
-  - `PATCH /orders/{id}` — Update order
-  - `DELETE /orders/{id}` — Soft-delete
-  - `GET /orders/{id}` — Fetch single order details
+
+Includes `transformOrder()` for normalizing deeply nested API responses (customer, company, currency, line, line price, discount objects) and `normalizeOrderStatus()` which converts "in_progress" to "inprocess" for consistent UI handling.
+
+| Method | Endpoint          | Purpose                           |
+| ------ | ----------------- | --------------------------------- |
+| GET    | `/orders`         | List with status + time filters   |
+| GET    | `/orders/trashed` | List deleted                      |
+| POST   | `/orders`         | Create (delivery/return/exchange) |
+| PATCH  | `/orders/{id}`    | Update                            |
+| DELETE | `/orders/{id}`    | Soft-delete                       |
+| GET    | `/orders/{id}`    | Single order details              |
 
 ---
 
 ### Statistics
 
-**Route:** `/statistics` | **Access:** All authenticated users
+> **Route:** `/statistics` | **Roles:** All
 
-Dashboard displaying analytical data and KPIs.
+#### What it does
 
-**Main View (`statistics.vue`):**
-- Tabbed interface with tabs: **Orders**, **Drivers**, **Customers**, **LineWork**, **Lines**
-- The Orders tab displays multiple `StatCard` components in a responsive 3-column grid layout (lg-4, md-6)
-- Each stat card is clickable and shows a count, label, icon, and styling
-- Below the stat cards, an `OrdersTableCard` renders a filtered table of orders for the selected statistic
-- Other tabs display relevant metrics for drivers, customers, line work, and lines
+A read-only analytics dashboard showing aggregated KPIs across the system. It provides a high-level view of operational health — how many orders are pending, which drivers are active, which lines are most used, and which customers generate the most volume.
 
-**Components Used:**
-- `StatCard` — Displays a single statistic with icon, formatted value (number/currency/percentage), label, optional subtitle, and optional trend arrow (up/down). Clickable cards emit a click event to filter the table below
-- `OrdersTableCard` — Reused from the Orders module to display a detailed data table, including a "Go to Order" action button for navigating to specific orders
-- `StatusBadge` — Status display for filtered data
+#### What it connects to
 
-**Store:** Uses the existing `ordersStore` and other module stores to fetch aggregated statistics data.
+- **Orders** — Status counts (pending, completed, cancelled), order volume over time.
+- **Drivers** — Active/inactive counts, delivery time stats.
+- **Customers** — Total count, top customers by order volume.
+- **Line Work** — Total/active counts, driver-to-line-work mappings.
+- **Lines** — Most-used lines with usage counts.
+
+#### How it works
+
+**No data table or forms.** This module is purely a dashboard.
+
+**Layout — 5 tabs:**
+
+| Tab       | What it shows                                                                      |
+| --------- | ---------------------------------------------------------------------------------- |
+| Orders    | `StatCard` components for pending/completed/cancelled counts. Clicking a card filters the `OrdersTableCard` below to show matching orders. |
+| Drivers   | `StatCard` for active/inactive/on-delivery counts. Min/max delivery time stats.    |
+| Customers | `StatCard` for total/active counts. Best customers list (top by order volume).     |
+| LineWork  | `StatCard` for total/active counts. Line-work-to-drivers mapping table.            |
+| Lines     | `StatCard` for total/active counts. Most-used lines list with usage counts.        |
+
+**Unique components:**
+
+- **`StatCard`** — Displays a formatted value (number / currency / percentage), label, icon, optional trend arrow (up/down). Clickable cards emit a click event.
+- **`OrdersTableCard`** — Reused from Orders module. Shows a filtered data table with a "Go to Order" navigation button.
+
+**Store:** Does not have its own store. Reuses `ordersStore`, `driverStore`, `customerStore`, `lineworkStore`, and `linesStore` for aggregated data. Each tab loads data independently.
 
 ---
 ### Work Plans
 
 **Route:** `/work-plans` | **Access:** All authenticated users (View), Admin/SuperAdmin (Create/Edit/Delete)
+
+Manages driver work schedules — the daily plans that define which driver handles which orders on which date. Work plans are the bridge between orders and drivers: they bundle multiple orders together and assign them to a specific driver on a specific day.
+
+#### What it connects to
+
+- **Drivers** — Each work plan is assigned to a driver. The driver selection dropdown fetches from the driver store.
+- **Orders** — Work plans contain order assignments with items and processing steps.
+- **Companies** — Work plans belong to a company.
+- **Driver Management** — When deleting a driver, the system checks for active work plans via this module's data.
+
+#### How it works
+
+**Two view modes:**
+1. **Calendar View** — FullCalendar integration with day/week/month views. Work plans appear as clickable calendar events.
+2. **Table View** — Standard data table.
+
+**Table Columns:** Index, Name, Company, Date, Driver, Orders
+
+**Search & Filters:** Company group filter.
+
+**Unique component — `calender.vue`:** Wraps FullCalendar, rendering work plans as events. Click an event to open the details modal.
+
+**Form Fields:**
+
+| Field   | Type               | Validation                                      |
+| ------- | ------------------ | ----------------------------------------------- |
+| Name    | text               | Required                                        |
+| Company | select             | Required, SuperAdmin only                       |
+| Date    | date               | Required                                        |
+| Driver  | select             | Required                                        |
+| Orders  | dynamic order rows | Each row assigns an order with items and processing steps |
+
+**Special behavior:** Bulk actions are filtered to only allow operations on plans the current user's role can modify.
+
+**Soft-delete:** Yes.
+
+**Store normalization:** Extracts driver info from nested `workplanorder` steps, transforms order items arrays, and parses dates from the first step when not explicitly provided.
+
+**Store Endpoints:**
+
+| Method | Endpoint                  | Purpose      |
+| ------ | ------------------------- | ------------ |
+| GET    | `/workplans`              | List         |
+| GET    | `/workplans/trashed`      | List deleted |
+| POST   | `/workplans`              | Create       |
+| PATCH  | `/workplans/{id}`         | Update       |
+| DELETE | `/workplans/{id}`         | Soft-delete  |
+| POST   | `/workplans/{id}/restore` | Restore      |
+
+---
 
 Manages driver delivery schedules and order assignments with advanced filtering, calendar visualization, and real-time progress tracking.
 
@@ -859,280 +958,543 @@ Read-only invoice management with advanced PDF export and bulk payment processin
 
 ### Driver Lines
 
-**Route:** `/driver-line` | **Access:** All authenticated users
+> **Route:** `/driver-line` | **Roles:** All
 
-Maps drivers to delivery lines (routes).
+#### What it does
 
-**Main View (`driverLine.vue`):**
-- Search and filter capabilities
-- Table displaying driver-to-line associations with priority/ordering
-- Add/Edit modal for creating and modifying assignments
+Maps drivers to line work assignments. A driver-line record means "Driver X is authorized to handle Line Work Y." This is the assignment that connects the driver workforce to the operational line work types.
 
-**Components Used:**
-- `driverLineHeader.vue` — Wraps `TableHeader` with module-specific filters
-- `DataTable` — Displays driver-line relationships
-- `FormModal` — Add/Edit form with fields: driver (select), line (select), priority/order
-- `DetailsModal` — Shows assignment details
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`driverLineStore.js`):** Standard CRUD operations for driver-line relationships.
+- **Drivers** — Via `driver_id`. The driver dropdown fetches options from `driverStore`.
+- **Line Work** — Via `line_work_id`. The line work dropdown fetches options from `lineworkStore`.
+- **Statistics** — Driver-line assignments are used to calculate driver utilization stats.
+
+#### How it works
+
+**Table Columns:** Index, Driver Name (sortable), Line Work Name (sortable), Created At (sortable)
+
+**Search & Filters:** Text search. Status group filter.
+
+**Form Fields:**
+
+| Field     | Type   | Validation                                                            |
+| --------- | ------ | --------------------------------------------------------------------- |
+| Driver    | select | Required. Options loaded dynamically from driver store. Validates against known IDs. |
+| Line Work | select | Required. Options loaded dynamically from line work store. Validates against known IDs. |
+
+**Special behavior:**
+- **Duplicate prevention:** Server-side validation returns an error if the driver-line combination already exists.
+- **Custom header:** Shows an informational banner with a link to the Lines management page.
+- **Pagination:** Uses 5 items per page (smaller page size than most modules).
+
+**Soft-delete:** Yes.
+
+**Store normalization:** Extracts driver and line work IDs/names from nested relationship objects. Handles `created_by` field normalization.
+
+**Store Endpoints:**
+
+| Method | Endpoint                      | Purpose      |
+| ------ | ----------------------------- | ------------ |
+| GET    | `/driver-lines`               | List         |
+| POST   | `/driver-lines`               | Create       |
+| PUT    | `/driver-lines/{id}`          | Update       |
+| DELETE | `/driver-lines/{id}`          | Soft/force delete |
+| GET    | `/driver-lines/trashed`       | List deleted |
+| POST   | `/driver-lines/{id}/restore`  | Restore      |
 
 ---
 
 ### Line Work
 
-**Route:** `/line-work` | **Access:** All authenticated users
+> **Route:** `/line-work` | **Roles:** All
 
-Manages work assignments on delivery lines.
+#### What it does
 
-**Main View (`lineWork.vue`):**
-- Search and filter capabilities
-- Table displaying line work items with associated data
+Defines the types of work that can be performed on delivery lines. Examples: "Standard Delivery", "Express Delivery", "COD Collection". These are company-specific operational classifications that categorize what kind of task a driver performs on a line.
 
-**Components Used:**
-- `lineWorkHeader.vue` — Wraps `TableHeader`
-- `DataTable` — Line work item list
-- `FormModal` — Add/Edit form
-- `DetailsModal` — Work assignment details
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`lineworkStore.js`):** Standard CRUD operations.
+- **Companies** — Each line work type belongs to a company.
+- **Driver Lines** — Drivers are assigned to specific line work types through the Driver Lines module.
+- **Discounts** — Discounts can target specific line work types.
+- **Statistics** — Line work usage data appears on the Statistics dashboard.
+
+#### How it works
+
+**Table Columns:** Index, Name (sortable), Company (SuperAdmin only)
+
+**Search & Filters:** Text search by name.
+
+**Form Fields:**
+
+| Field   | Type   | Validation              |
+| ------- | ------ | ----------------------- |
+| Name    | text   | Required, max 255       |
+| Company | select | Required, auto-assigned for Admin, SuperAdmin only |
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Endpoints:**
+
+| Method | Endpoint                     | Purpose           |
+| ------ | ---------------------------- | ----------------- |
+| GET    | `/line-works`                | List              |
+| POST   | `/line-works`                | Create            |
+| PUT    | `/line-works/{id}`           | Update            |
+| DELETE | `/line-works/{id}`           | Soft / force delete |
+| GET    | `/line-works/trashed`        | List deleted      |
+| POST   | `/line-works/{id}/restore`   | Restore           |
+| DELETE | `/line-works/bulk`           | Bulk delete       |
+| POST   | `/line-works/bulk/restore`   | Bulk restore      |
 
 ---
 
 ### Lines
 
-**Route:** `/lines` | **Access:** All authenticated users
+> **Route:** `/lines` | **Roles:** All
 
-Defines and manages delivery lines (routes).
+#### What it does
 
-**Main View (`lines.vue`):**
-- Search and filter by line status
-- Table columns: Index, Name, Status, Region, Company
+Defines delivery lines — the fundamental geographic or service-based delivery routes in the system. A line represents a path like "Amman -> Zarqa" or a service area. Lines are the backbone that connects regions, drivers, pricing, and orders.
 
-**Components Used:**
-- `linesHeader.vue` — Wraps `TableHeader` with status filter
-- `DataTable` — Line list with sortable columns
-- `FormModal` — Add/Edit form for line definition with metadata
-- `DetailsModal` — Full line details
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `StatusBadge` — Line status display
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`linesStore.js`):** Standard CRUD operations with pagination.
+- **Regions** — Every line belongs to a region (geographic area).
+- **Companies** — Every line belongs to a company.
+- **Line Pricing** — Each line can have multiple price entries (per currency, per type).
+- **Driver Lines** — Drivers are mapped to lines through line work assignments.
+- **Orders** — Orders are assigned to a specific line during creation.
+- **Discounts** — Discounts of type "Line" target specific lines.
+- **Statistics** — Line usage counts appear on the Statistics dashboard.
+
+#### How it works
+
+**Table Columns:** Index, Name (sortable), Region, Company (SuperAdmin only)
+
+**Search & Filters:** Text search by name.
+
+**Form Fields:**
+
+| Field   | Type   | Validation                                     |
+| ------- | ------ | ---------------------------------------------- |
+| Name    | text   | Required, max 255                              |
+| Region  | select | Required, options from regions store            |
+| Company | select | Required, auto-assigned for Admin, SuperAdmin only |
+
+**Special behavior:**
+- **No server-side pagination:** Loads all records (up to 1000) and paginates in memory using `paginateData()`.
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Getters:** `linesByRegion` (grouped by region ID), `linesByCompany` (grouped by company ID).
+
+**Store Endpoints:**
+
+| Method | Endpoint                 | Purpose           |
+| ------ | ------------------------ | ----------------- |
+| GET    | `/lines`                 | List              |
+| POST   | `/lines`                 | Create            |
+| PUT    | `/lines/{id}`            | Update            |
+| DELETE | `/lines/{id}`            | Soft / force delete |
+| GET    | `/lines/trashed`         | List deleted      |
+| POST   | `/lines/{id}/restore`    | Restore           |
+| DELETE | `/lines/bulk`            | Bulk delete       |
+| POST   | `/lines/bulk/restore`    | Bulk restore      |
 
 ---
 
 ### Line Pricing
 
-**Route:** `/line_price` | **Access:** All authenticated users
+> **Route:** `/line_price` | **Roles:** All
 
-Configures pricing for delivery lines.
+#### What it does
 
-**Main View (`linePrice.vue`):**
-- Search and filter capabilities
-- Table displaying price, currency, line, and company information
+Defines how much a delivery costs on a specific line, in a specific currency, for a specific type of service. Supports two types: "delivery" and "return". This allows different pricing per line, per currency, and per direction — for example, delivering on Line A might cost $10 but returning costs $7.
 
-**Components Used:**
-- `linePriceHeader.vue` — Wraps `TableHeader`
-- `DataTable` — Price list display
-- `FormModal` — Add/Edit form with fields: price, currency (select), line (select), company (select)
-- `DetailsModal` — Pricing details
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`linespriceStore.js`):** Standard CRUD operations.
+- **Lines** — Each price entry references a line via `line_id`.
+- **Currencies** — Each price entry is in a specific currency via `currency_id`.
+- **Companies** — Each price entry belongs to a company.
+- **Orders** — When creating an order on a line, the order price is pulled from the matching line price entry.
+
+#### How it works
+
+**Table Columns:** Index, Line Name, Price (sortable), Currency Code, Company (SuperAdmin only), Type
+
+**Search & Filters:** Text search.
+
+**Form Fields:**
+
+| Field    | Type   | Validation                        |
+| -------- | ------ | --------------------------------- |
+| Line     | select | Required, options from lines store |
+| Price    | number | Required, must be > 0, step 0.01 |
+| Currency | select | Required, options from currencies store |
+| Company  | select | Required, auto-assigned for Admin |
+| Type     | select | Required, "delivery" or "return"  |
+
+**Details modal fields:** ID, Line Name, Price, Currency Code, Company (SuperAdmin only), Type (translated), Created/Updated dates.
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Getters:** `pricesByLine`, `pricesByCompany`, `pricesByType` ("delivery"/"return"), `pricesByCurrency` — each groups the data by the respective key.
+
+**Store Endpoints:**
+
+| Method | Endpoint                      | Purpose           |
+| ------ | ----------------------------- | ----------------- |
+| GET    | `/line-prices`                | List              |
+| POST   | `/line-prices`                | Create            |
+| PUT    | `/line-prices/{id}`           | Update            |
+| DELETE | `/line-prices/{id}`           | Soft / force delete |
+| GET    | `/line-prices/trashed`        | List deleted      |
+| POST   | `/line-prices/{id}/restore`   | Restore           |
+| DELETE | `/line-prices/bulk`           | Bulk delete       |
+| POST   | `/line-prices/bulk/restore`   | Bulk restore      |
 
 ---
 
 ### Company Pricing
 
-**Route:** `/company-price` | **Access:** All authenticated users
+> **Route:** `/company-price` | **Roles:** All
 
-Manages company-specific pricing configurations.
+#### What it does
 
-**Main View (`companyPrice.vue`):**
-- Search and filter capabilities
-- Table displaying company pricing entries
+Defines delivery pricing by company based on item characteristics. Items are classified into four size/weight categories, and each category can have a different price. This allows companies to charge differently for a small light package vs. a big heavy one.
 
-**Components Used:**
-- `companyPriceHeader.vue` — Wraps `TableHeader`
-- `DataTable` — Company price list
-- `FormModal` — Add/Edit form for company-specific pricing
-- `DetailsModal` — Pricing details
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`companyPriceStore.js`):** Standard CRUD operations.
+- **Companies** — Each price entry belongs to a company.
+- **Currencies** — Prices reference the company's default currency via `useAuthDefaults()`.
+
+#### How it works
+
+**Table Columns:** Index, Company Name (sortable), Item Type (sortable, localized), Price (sortable, formatted with currency symbol), Created At (sortable)
+
+**Search & Filters:** Text search.
+
+**Form Fields:**
+
+| Field     | Type   | Validation                                                 |
+| --------- | ------ | ---------------------------------------------------------- |
+| Price     | number | Required, min 0.01                                         |
+| Item Type | select | Required. Four options: Small & Light, Small & Heavy, Big & Light, Big & Heavy |
+| Company   | select | Required, auto-assigned for Admin                          |
+
+**Special behavior:**
+- **Price formatting:** Displays as `$1,234.56` using the currency symbol from the company's currency.
+- **Localized item types:** Item type labels use i18n translation keys (e.g. `companyPrice.itemTypes.smallLight`).
+
+**Soft-delete:** Yes.
+
+**Store Endpoints:**
+
+| Method | Endpoint                        | Purpose           |
+| ------ | ------------------------------- | ----------------- |
+| GET    | `/company-prices`               | List              |
+| POST   | `/company-prices`               | Create            |
+| PUT    | `/company-prices/{id}`          | Update            |
+| DELETE | `/company-prices/{id}`          | Soft / force delete |
+| GET    | `/company-prices/trashed`       | List deleted      |
+| POST   | `/company-prices/{id}/restore`  | Restore           |
 
 ---
 
 ### Discounts
 
-**Route:** `/discount` | **Access:** All authenticated users
+> **Route:** `/discount` | **Roles:** All
 
-Manages discount rules and promotional offers.
+#### What it does
 
-**Main View (`discountPage.vue`):**
-- Search and filter by discount status
-- Table displaying discount name, percentage, valid dates, and applicable items
+Manages discount rules that reduce order prices. Discounts are flexible — they can target a specific customer, a geographic region, a delivery line, or apply as a flat price reduction. Each discount has a percentage, an optional value, and a validity period (start/end dates).
 
-**Components Used:**
-- `discountHeader.vue` — Wraps `TableHeader` with status filter
-- `DataTable` — Discount list
-- `FormModal` — Add/Edit form with fields: discount name, percentage, start date, end date, applicable items
-- `DetailsModal` — Full discount details including validity period and applicable items
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `StatusBadge` — Discount status display (type: "discount")
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`discountStore.js`):** Standard CRUD operations with status filtering.
+- **Companies** — Each discount belongs to a company.
+- **Customers** — Discounts of type "Customer" target a specific customer via `target_id`.
+- **Regions** — Discounts of type "Region" target a specific region via `target_id`.
+- **Lines** — Discounts of type "Line" target a specific line via `target_id`.
+- **Orders** — When creating an order, applicable discounts are applied to reduce the price.
+
+#### How it works
+
+**Table Columns:** Index, Type (sortable), Discount % (sortable, formatted as `X%`), Value (sortable, formatted as currency for "Price" type), Start Date (sortable), End Date (sortable), Company (sortable), Usage Count (sortable)
+
+**Search & Filters:** Text search. Status group filter.
+
+**Form Fields:**
+
+| Field       | Type           | Validation                                                    |
+| ----------- | -------------- | ------------------------------------------------------------- |
+| Type        | select         | Required. Options: Customer, Region, Line, Price. Changing the type clears the target and value fields. |
+| Discount %  | number         | Required, 0–100, step 0.1                                    |
+| Start Date  | datetime-local | Required, format `YYYY-MM-DDTHH:MM`                          |
+| End Date    | datetime-local | Optional, must be after start date                            |
+| Company     | select         | Required, auto-assigned for Admin                             |
+| Target      | select         | **Conditional** — required if type is Customer, Region, or Line. Options change dynamically based on type. Hidden if type is "Price". |
+| Value       | number         | **Conditional** — required if type is "Price". Min > 0, step 0.01. Hidden if type is not "Price". |
+
+**Special behavior:**
+- **Dynamic field visibility:** The Target and Value fields toggle on/off based on the selected discount type.
+- **Dynamic target options:** When type changes, the Target dropdown options are reloaded — customer list for "Customer", region list for "Region", line list for "Line".
+- **Date normalization:** Converts between `YYYY-MM-DD HH:MM:SS` (API format) and `YYYY-MM-DDTHH:MM` (datetime-local input format).
+- **Server-side pagination:** Uses pagination metadata from the API response (unlike Lines which paginates in memory).
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Endpoints:**
+
+| Method | Endpoint                    | Purpose           |
+| ------ | --------------------------- | ----------------- |
+| GET    | `/discounts`                | List (paginated)  |
+| POST   | `/discounts`                | Create            |
+| PUT    | `/discounts/{id}`           | Update            |
+| DELETE | `/discounts/{id}`           | Soft / force delete |
+| GET    | `/discounts/trashed`        | List deleted      |
+| POST   | `/discounts/{id}/restore`   | Restore           |
+| DELETE | `/discounts/bulk`           | Bulk delete       |
+| POST   | `/discounts/bulk/restore`   | Bulk restore      |
 
 ---
 
 ### Branches
 
-**Route:** `/branches` | **Access:** All authenticated users
+> **Route:** `/branches` | **Roles:** All
 
-Manages physical branch/office locations.
+#### What it does
 
-**Main View (`branches.vue`):**
-- Paginated data table with **Active** and **Trashed** tabs
-- Search and filter capabilities
-- Table columns: Index, Name, Location, Manager, Contact
+Manages the physical locations (offices, warehouses, distribution centers) of companies. Each branch has a name and geographic coordinates (latitude/longitude). These coordinates are used by the Map module to display branch locations visually and by the routing system for delivery planning.
 
-**Components Used:**
-- `branchesHeader.vue` — Wraps `TableHeader`
-- `DataTable` — Branch list with row selection
-- `FormModal` — Add/Edit form with location fields (name, latitude, longitude) and map location picker
-- `DetailsModal` — Branch details with geographic coordinates
-- `ConfirmationModal` — Delete confirmation
-- `TrashedItemsModal` — Restore or permanently remove
-- `BulkActionsBar` — Bulk delete/restore
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`branchesStore.js`):** Standard CRUD operations with soft-delete/restore support.
+- **Companies** — Every branch belongs to a company. Branches can also be created inline when creating a company.
+- **Drivers** — Drivers are assigned to a branch (their home base).
+- **Map** — Branch coordinates are rendered as markers on the interactive map.
+
+#### How it works
+
+**Table Columns:** Name (sortable), Company Name (sortable, SuperAdmin only)
+
+**Search & Filters:** Text search by name.
+
+**Form Fields:**
+
+| Field     | Type       | Validation                                    |
+| --------- | ---------- | --------------------------------------------- |
+| Name      | text       | Required, max 255                             |
+| Company   | select     | Required, auto-assigned for Admin             |
+| Latitude  | text       | Required, -90 to 90                           |
+| Longitude | text       | Required, -180 to 180                         |
+| Location  | map picker | Interactive map for visual coordinate selection. Linked to the latitude/longitude fields — clicking the map updates both. |
+
+**Details modal fields:** ID, Name, Company (SuperAdmin only), Latitude, Longitude.
+
+**Special behavior:**
+- **Location flattening:** The store handles both flat fields (`latitude`, `longitude`) and nested structures (`location.latitude`, `location.longitude`) from the API.
+- **Company enrichment:** The store makes a separate API call to fetch company names and maps `company_id` to `company_name`.
+
+**Soft-delete:** Yes — with bulk operations.
+
+**Store Endpoints:**
+
+| Method | Endpoint                    | Purpose           |
+| ------ | --------------------------- | ----------------- |
+| GET    | `/branches`                 | List (paginated)  |
+| POST   | `/branches`                 | Create            |
+| PUT    | `/branches/{id}`            | Update            |
+| DELETE | `/branches/{id}`            | Soft / force delete |
+| GET    | `/branches/trashed`         | List deleted      |
+| POST   | `/branches/{id}/restore`    | Restore           |
+| DELETE | `/branches/bulk`            | Bulk delete       |
+| POST   | `/branches/bulk/restore`    | Bulk restore      |
 
 ---
 
 ### Regions
 
-**Route:** `/regions` | **Access:** All authenticated users
+> **Route:** `/regions` | **Roles:** All (but editing is **SuperAdmin only**)
 
-Manages geographic regions for delivery coverage.
+#### What it does
 
-**Main View (`regions.vue`):**
-- SuperAdmin has full Create/Edit/Delete access
-- Admin users have **read-only** access — they can only view region details
-- Active/Trashed tabs available only to SuperAdmin
-- Search functionality
-- Bulk actions restricted to SuperAdmin
+Defines geographic regions for organizing delivery areas. Regions are the top-level geographic grouping — lines belong to regions. Each region has bilingual names (English and Arabic) and an optional timezone.
 
-**Components Used:**
-- `regionsHeader.vue` — Wraps `TableHeader` with role-conditional Add button visibility
-- `DataTable` — Region list
-- `FormModal` — Add/Edit form (SuperAdmin only)
-- `DetailsModal` — Region details (all roles)
-- `ConfirmationModal` — Delete confirmation (SuperAdmin only)
-- `TrashedItemsModal` — Restore/permanent delete (SuperAdmin only)
-- `BulkActionsBar` — Bulk operations (SuperAdmin only)
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `Actions` — Per-row actions with role-based button visibility
+#### What it connects to
 
-**Store (`regionsManagement.js`):** Standard CRUD operations.
+- **Lines** — Lines belong to a region. The region determines the geographic scope of its lines.
+- **Discounts** — Discounts of type "Region" target a specific region.
+
+#### How it works
+
+**Table Columns:** Index, Name (localized — shows Arabic or English based on current language), Timezone
+
+**Search & Filters:** Text search.
+
+**Form Fields:**
+
+| Field        | Type | Validation       |
+| ------------ | ---- | ---------------- |
+| Key          | text | Required (unique identifier, e.g. "reg-001") |
+| Name English | text | Required, max 255 |
+| Name Arabic  | text | Required, max 255 |
+| Timezone     | text | Optional, max 50 (e.g. "UTC+3") |
+
+**Role Differences:**
+- **SuperAdmin:** Full CRUD access, Active/Trashed tabs, bulk actions, Add button visible.
+- **Admin:** Read-only. Can view details but cannot add, edit, or delete. Add button and action menu items are hidden.
+
+**Special behavior:**
+- **Localized display name:** The table automatically shows `namearabic` or `nameenglish` based on the current i18n locale.
+- **No normalization:** Uses raw backend data directly without transformation.
+
+**Soft-delete:** Yes (SuperAdmin only).
+
+**Store Endpoints:**
+
+| Method | Endpoint                   | Purpose           |
+| ------ | -------------------------- | ----------------- |
+| GET    | `/regions`                 | List (paginated)  |
+| POST   | `/regions`                 | Create            |
+| PUT    | `/regions/{id}`            | Update            |
+| DELETE | `/regions/{id}`            | Soft / force delete |
+| GET    | `/regions/trashed`         | List deleted      |
+| POST   | `/regions/{id}/restore`    | Restore           |
+| DELETE | `/regions/bulk`            | Bulk delete       |
+| POST   | `/regions/bulk/restore`    | Bulk restore      |
 
 ---
 
 ### Currency
 
-**Route:** `/currency` | **Access:** All authenticated users
+> **Route:** `/currency` | **Roles:** All (but editing is **SuperAdmin only**)
 
-Manages currencies and exchange rates for multi-currency operations.
+#### What it does
 
-**Main View (`currency.vue`):**
-- Search and filter capabilities
-- Table displaying currency symbol, code, name, and exchange rate information
+Manages the currencies used throughout the platform for pricing and payments. Each currency has a code (e.g. "USD"), bilingual names, a symbol (e.g. "$"), and an active/inactive status. Currencies are referenced by Line Pricing, Company Pricing, Payments, and user preferences.
 
-**Components Used:**
-- `currencyHeader.vue` — Wraps `TableHeader`
-- `DataTable` — Currency list
-- `FormModal` — Add/Edit form with fields: currency name, symbol, code, exchange rate
-- `DetailsModal` — Full currency details
-- `ConfirmationModal` — Delete confirmation
-- `SuccessModal` — Post-action notification
-- `Pagination` — Page controls
-- `StatusBadge` — Currency status display (type: "currency")
-- `Actions` — Per-row Edit, Details, Delete
+#### What it connects to
 
-**Store (`currenciesManagement.js`):** Standard CRUD operations.
+- **Line Pricing** — Prices are defined in a specific currency.
+- **Company Pricing** — Company prices reference currencies.
+- **Payments** — Payment amounts are displayed with currency info.
+- **Profile** — Users can select their preferred display currency.
+- **Orders** — Order prices are displayed in the associated currency.
+
+#### How it works
+
+**Table Columns:** Index, Name (localized), Symbol (sortable), Key (sortable)
+
+**Search & Filters:** Text search.
+
+**Form Fields:**
+
+| Field        | Type     | Validation                    |
+| ------------ | -------- | ----------------------------- |
+| Key          | text     | Required (code like "USD", "AED") |
+| Name English | text     | Required                      |
+| Name Arabic  | text     | Required                      |
+| Symbol       | text     | Required (e.g. "$", "د.إ")   |
+| Is Active    | checkbox | Active/inactive toggle        |
+
+**Role Differences:**
+- **SuperAdmin:** Full CRUD access.
+- **Other roles:** Read-only — can only view currency details.
+
+**Special behavior:**
+- **Localized display name:** Shows `namearabic` or `nameenglish` based on current locale.
+
+**Soft-delete:** Yes (SuperAdmin only).
+
+**Store Endpoints:**
+
+| Method | Endpoint                     | Purpose           |
+| ------ | ---------------------------- | ----------------- |
+| GET    | `/currencies`                | List (paginated)  |
+| POST   | `/currencies`                | Create            |
+| PUT    | `/currencies/{id}`           | Update            |
+| DELETE | `/currencies/{id}`           | Soft / force delete |
+| GET    | `/currencies/trashed`        | List deleted      |
+| POST   | `/currencies/{id}/restore`   | Restore           |
 
 ---
 
 ### Map
 
-**Route:** `/map` | **Access:** All authenticated users
+> **Route:** `/map` | **Roles:** All
 
-Interactive mapping module powered by OpenLayers for visualizing drivers, branches, and delivery points.
+#### What it does
 
-**Main View (`mapPage.vue`):**
-- Full-width map display (no content padding) using vue3-openlayers
-- Renders driver locations, customer/delivery points, and branch markers on an interactive map
-- Supports multiple map layers and overlay controls
+An interactive full-screen map powered by OpenLayers for visualizing the geographic state of the delivery operation — where drivers are, where branches are located, and where delivery points are. This module has no data table or forms — it is purely a visual tool.
 
-**Components:**
-- `displayDrivers.vue` — Renders driver markers on the map at their current or last-known GPS coordinates. Each marker shows the driver's name and status
-- `focusOnDriver.vue` — A control that centers and zooms the map view on a specific selected driver's location
-- `fullScreenMode.vue` — Toggle button that switches the map between normal and full-screen display mode
-- `layerSwitcher.vue` — UI control for switching between different map tile layers (e.g. street view, satellite)
-- `resetDirection.vue` — Button that resets the map orientation and zoom level to the default view
-- `zoomCustom.vue` — Custom zoom in/out controls replacing the default OpenLayers zoom buttons
-- `displayPoints.vue` — Renders customer and delivery point markers on the map with associated data popups
+#### What it connects to
 
-**Store:** Module-specific state management for map layer visibility, currently focused driver, and map bounds/viewport.
+- **Drivers** — Driver GPS coordinates are displayed as markers.
+- **Branches** — Branch locations (from latitude/longitude) are shown as markers.
+- **Customers** — Customer delivery/pickup point locations are rendered on the map.
+
+#### How it works
+
+**No table, no forms, no CRUD.** The entire view is a full-width, full-height map.
+
+**Custom components — each adds a layer or control to the map:**
+
+| Component            | What it does                                                                |
+| -------------------- | --------------------------------------------------------------------------- |
+| `displayDrivers.vue` | Renders driver markers at their GPS coordinates. Each shows name and status |
+| `displayPoints.vue`  | Renders customer/delivery point markers with data popups on click           |
+| `focusOnDriver.vue`  | A control button that centers and zooms the map on a selected driver        |
+| `fullScreenMode.vue` | Toggle button for full-screen map display                                   |
+| `layerSwitcher.vue`  | Dropdown for switching map tile layers (street view, satellite, etc.)       |
+| `zoomCustom.vue`     | Custom zoom in/out buttons replacing the default OpenLayers controls        |
+| `resetDirection.vue` | Button that resets map orientation and zoom to the default view             |
+
+**Store:** Module-specific state for map layer visibility, currently focused driver, and viewport bounds.
 
 ---
 
 ### Permissions
 
-**Route:** `/permissions` | **Access:** SuperAdmin, Admin
+> **Route:** `/permissions` | **Roles:** SuperAdmin, Admin
 
-Role and permission management through a visual permission matrix.
+#### What it does
 
-**Main View (`permissions.vue`):**
-- Displays a matrix grid with users as rows and permissions as columns
-- Each cell contains a toggle switch for granting or revoking a specific permission for a specific user
-- Search functionality to filter users by name
-- Loading state indicators during toggle operations
+Provides a visual permission matrix for managing which users have which permissions. Instead of a table-and-form pattern, this module renders a grid where each row is a user and each column is a permission, with toggle switches in every cell.
 
-**Components Used:**
-- Custom permission matrix table (built directly in the view)
-- Toggle switches for each user-permission combination
+#### What it connects to
+
+- **Users** — The user list is fetched from `usersManagementStore`.
+- **Auth** — Permission checks (like `hasPermission()`) are used throughout the app for conditional UI rendering.
+
+#### How it works
+
+**Layout — Permission matrix:**
+- **Rows:** Each row shows a user's avatar (or initials), name, @username, and role.
+- **Columns:** Each column is a system permission.
+- **Cells:** Each cell has a toggle switch. Flipping it immediately calls the API to grant or revoke the permission.
+
+**Features:**
+- Search to filter users by name, username, email, or role.
+- Loading spinner on each toggle during the API call.
+- **Optimistic UI:** The toggle flips immediately, then reverts if the API call fails.
+- Pagination for large user lists (reuses user store pagination).
 
 **Store (`permissionsStore.js`):**
-- **State:** `permissions` (all available permissions), `userPermissions` (map of user ID to granted permission IDs)
-- **Methods:** `hasPermission()`, `grantPermission()`, `revokePermission()`
-- **API Endpoints:**
-  - `GET /permissions` — Fetch all available permissions
-  - `GET /user-permissions/{userId}` — Get a user's granted permissions
-  - `POST /user-permissions` — Grant a permission to a user
-  - `DELETE /user-permissions` — Revoke a permission from a user
+
+| State              | Type          | Purpose                                      |
+| ------------------ | ------------- | -------------------------------------------- |
+| `permissions`      | `ref([])`     | All available system permissions              |
+| `userPermissionsMap` | `ref({})` | Map of user ID to array of granted permission IDs |
+| `loading`          | `ref(false)`  | Loading state                                |
+
+**Store Endpoints:**
+
+| Method | Endpoint                                       | Purpose          |
+| ------ | ---------------------------------------------- | ---------------- |
+| GET    | `/permissions`                                 | List all permissions |
+| GET    | `/user-permissions`                            | Get all user-permission mappings |
+| POST   | `/user-permissions/{userId}/assign/{permId}`   | Grant permission |
+| DELETE | `/user-permissions/{userId}/revoke/{permId}`   | Revoke permission |
 
 ---
 
@@ -1215,315 +1577,239 @@ Access control is enforced at two levels:
 
 ---
 
+## Shared Components Reference
+
+All located in `src/components/shared/`. See the [Common Module Pattern](#common-module-pattern) section for how these fit together.
+
+### Data Display
+
+| Component           | Purpose                               | Key Props                                                            |
+| ------------------- | ------------------------------------- | -------------------------------------------------------------------- |
+| `DataTable`         | Main data table for all modules       | `columns`, `data`, `showCheckbox`, `disableRowWhen`, `isExpandable`  |
+| `TrashedDataTable`  | Table for soft-deleted items          | `columns`, `data`, `showCheckbox`                                    |
+| `Pagination`        | Page controls ("Showing X-Y of Z")    | `totalItems`, `itemsPerPage`, `currentPage`                          |
+| `StatusBadge`       | Colored status pill                   | `status`, `type` (order / driver / discount / user / invoice / etc.) |
+| `StatCard`          | Statistic card with icon and trend    | `value`, `label`, `formatType`, `clickable`, `trendValue`            |
+| `OrderItemProgress` | Step-by-step order item tracker       | `orderItem` (with `steps` array)                                     |
+| `ColumnSelector`    | Show/hide table columns               | `columns`, `modelValue`                                              |
+
+`DataTable` provides 3 slots: `cell-{colKey}` (custom column rendering), `actions` (per-row buttons), `expand` (expanded row content).
+
+### Modals
+
+| Component             | Purpose                                      | Key Props                                          |
+| --------------------- | -------------------------------------------- | -------------------------------------------------- |
+| `FormModal`           | Create/edit form for all modules             | `fields`, `isOpen`, `serverErrors`, `showImageUpload` |
+| `DetailsModal`        | Read-only detail view                        | `data`, `fields`, `isOpen`                         |
+| `ConfirmationModal`   | "Are you sure?" dialog                       | `message`, `isOpen`, `confirmColor`                |
+| `SuccessModal`        | Animated success checkmark                   | `message`, `isOpen`, `autoCloseDelay` (3s default) |
+| `TrashedItemsModal`   | Manage deleted items (restore / perm-delete) | `trashedItems`, `columns`, `isOpen`                |
+| `SwitchUserModal`     | SuperAdmin impersonates another user         | `isOpen`                                           |
+| `DriverReassignModal` | Reassign work plans before driver deletion   | `driver`, `workPlans`, `availableDrivers`          |
+
+**`FormModal` supports these field types:**
+
+| Type             | Description                                               |
+| ---------------- | --------------------------------------------------------- |
+| `text`           | Standard text input                                       |
+| `select`         | Single-value dropdown                                     |
+| `multiselect`    | Multi-value selection                                     |
+| `checkbox`       | Boolean toggle                                            |
+| `date`           | Date picker                                               |
+| `file`           | File upload                                               |
+| `orderRows`      | Dynamic rows for order items (name, qty, price)           |
+| `branchRows`     | Dynamic rows for branches with embedded map picker        |
+| `locationPicker` | Interactive map for selecting lat/lng coordinates          |
+
+Additional features: image upload (5 MB limit, preview), password visibility toggle, dynamic select options via async functions, per-field server error display, body scroll lock.
+
+### Form Inputs
+
+| Component       | Purpose                        | Key Props                                         |
+| --------------- | ------------------------------ | ------------------------------------------------- |
+| `TextField`     | Text input with password toggle | `modelValue`, `type`, `placeholder`, `maxlength` |
+| `FormLabel`     | Label with red asterisk         | `label`, `required`                              |
+| `PrimaryButton` | Button with loading state       | `text`, `loading`, `iconBefore`, `bgColor`       |
+
+### Actions & Controls
+
+| Component          | Purpose                                | Key Props                                        |
+| ------------------ | -------------------------------------- | ------------------------------------------------ |
+| `Actions`          | Per-row dropdown (Edit/Details/Delete) | `row`, `showEdit`, `showDelete`, `showProgress`  |
+| `BulkActionsBar`   | Toolbar for selected rows              | `selectedCount`, `entityName`, `actions`          |
+| `TableHeader`      | Search + filters + Add button          | `modelValue`, `columns`, `showAddButton`          |
+| `SharedLineToggle` | Inline on/off switch (companies)       | `companyId`, `sharedLine`                         |
+| `CurrencySelector` | Currency picker dropdown               | `position`                                        |
+| `BaseDropdown`     | Generic dropdown wrapper               | `menuPosition`, `closeOnScroll`                   |
+
+### Filters (`src/components/filters/`)
+
+| Component          | Purpose                            | Key Props                           |
+| ------------------ | ---------------------------------- | ----------------------------------- |
+| `SearchFilter`     | Text search input with icon        | `modelValue`, `placeholder`         |
+| `GroupFilter`      | Multi-select category checkboxes   | `data`, `groupKey`, `modelValue`    |
+| `TimePeriodFilter` | Button group: all/today/month/year | `modelValue`, `options`             |
+| `MainFilters`      | Combines all three filters above   | All props from the three above      |
+
+### Layout (`src/components/layout/`)
+
+**`AppLayout.vue`** — Main wrapper. Sidebar on the left, Navbar at the top, page content in the center. RTL support. Removes padding for the map page.
+
+**`Navbar.vue`** — Top bar with: page title, "Return to Admin" button (during user impersonation), language switcher (EN/AR), profile dropdown with avatar, "Switch User" option (SuperAdmin only), logout with confirmation.
+
+**`Sidebar.vue`** — Left navigation: menu items auto-generated from routes and filtered by role, icons + labels, collapse toggle (70px icon-only mode with tooltips), active route highlighting, RTL support, mobile drawer at < 770px.
+
+---
+
+## Routing & Access Control
+
+Routes are defined in `src/router/index.js`.
+
+**Features:**
+- Navigation guards enforce authentication and role checks on every transition
+- Unauthenticated users are redirected to login
+- Authenticated users on guest-only pages are redirected to their default page
+- Routes with `showInSidebar: true` appear in the sidebar, ordered by `sidebarOrder`
+
+**Route Table:**
+
+| #  | Route            | Module          | Allowed Roles     |
+| -- | ---------------- | --------------- | ----------------- |
+| 1  | `/user`          | User Management | SuperAdmin, Admin |
+| 2  | `/driver`        | Drivers         | All               |
+| 3  | `/company`       | Companies       | SuperAdmin        |
+| 4  | `/customer`      | Customers       | All               |
+| 5  | `/orders`        | Orders          | All               |
+| 6  | `/statistics`    | Statistics      | All               |
+| 7  | `/work-plans`    | Work Plans      | All               |
+| 8  | `/collections`   | Payments        | Admin, Driver     |
+| 9  | `/invoices`      | Invoices        | All               |
+| 10 | `/driver-line`   | Driver Lines    | All               |
+| 11 | `/line-work`     | Line Work       | All               |
+| 12 | `/lines`         | Lines           | All               |
+| 13 | `/line_price`    | Line Pricing    | All               |
+| 14 | `/company-price` | Company Pricing | All               |
+| 15 | `/discount`      | Discounts       | All               |
+| 16 | `/branches`      | Branches        | All               |
+| 17 | `/regions`       | Regions         | All               |
+| 18 | `/currency`      | Currency        | All               |
+| 19 | `/map`           | Map             | All               |
+| 20 | `/permissions`   | Permissions     | SuperAdmin, Admin |
+
+**Three roles:**
+
+| Role         | Access                                                   |
+| ------------ | -------------------------------------------------------- |
+| `SuperAdmin` | Everything, including company management and configuration modules |
+| `Admin`      | Everything except company management. Read-only on Regions and Currency. |
+| `Driver`     | Operational modules (orders, collections, etc.)          |
+
+Access is enforced at two levels:
+1. **Route guards** block unauthorized navigation
+2. **UI-level** hides buttons/actions based on role
+
+---
+
 ## State Management
 
-State is managed through **Pinia** stores organized in two tiers:
+Uses **Pinia** stores in two tiers.
 
 ### Global Stores (`src/stores/`)
 
-| Store           | Purpose                                                                       |
-| --------------- | ----------------------------------------------------------------------------- |
-| `auth.js`       | Authentication state, token management, user data, role helpers (`hasAnyRole`, `userRole`, `isAuthenticated`), company/currency preferences, user switching |
-| `user.js`       | User-related global state                                                     |
-| `currency.js`   | Active currency selection and available currencies                            |
+| Store         | Purpose                                                                           |
+| ------------- | --------------------------------------------------------------------------------- |
+| `auth.js`     | Token, user data, `isAuthenticated`, `userRole`, `hasAnyRole()`, company/currency prefs, user switching |
+| `user.js`     | User-related global state                                                         |
+| `currency.js` | Active currency and available currencies list                                     |
 
 ### Module Stores (`src/modules/*/store/`)
 
-Each module has its own Pinia store following a consistent pattern:
+Every module store follows the same Pinia Composition API pattern:
 
-- **State:** Managed with `ref()` and `computed()`
-- **Actions:** Async functions that call `apiServices` methods
-- **Pagination:** Standard pagination support with meta data extraction (`current_page`, `per_page`, `total`, `last_page`)
-- **Soft Deletes:** Most stores support active/trashed data toggling with separate arrays and pagination
-- **Normalization:** Each store includes data transformation logic to map API responses to the frontend data format, handling nested objects, arrays, and inconsistent field naming
+```
+State:     items, trashedItems, loading, trashedLoading, pagination, error
+Actions:   fetch(), create(), update(), delete(), restore(), bulkDelete(), bulkRestore()
+Normalize: Flattens nested API objects into flat key/value pairs
+```
 
----
-
-## API Services Layer
-
-Located in `src/services/`:
-
-### `api.js` - Axios Instance
-
-- Configures base URL from `VITE_API_BASE_URL`
-- Sets a 30-second request timeout
-- **Request Interceptor:** Automatically attaches the Bearer token from localStorage (`auth_token`) to every outgoing request as an `Authorization: Bearer <token>` header
-- **Response Interceptor:** Handles HTTP errors:
-  - `401` — Token expired or invalid: clears auth and redirects to login
-  - `403` — Forbidden: logs and redirects
-  - `404` — Not found: logs error
-  - `422` — Validation error: passes error data through for form display
-  - `429` — Rate limited: logs warning
-  - `500` — Server error: logs error
-
-### `apiServices.js` - Service Singleton
-
-Provides a centralized API service with:
-
-- Generic request method with `AbortController` cancellation support
-- Helper methods: `get()`, `post()`, `put()`, `delete()`, `patch()`
-- **Request deduplication:** Cancels in-flight requests to the same endpoint before issuing a new one, preventing race conditions during rapid navigation
-- **Automatic `FormData` support:** When the request body contains file uploads, the service automatically converts the payload to `FormData`
+**Two pagination strategies:**
+- **Server-side:** Discounts, Invoices, Branches, Regions — API returns `meta.current_page`, `per_page`, `total`, `last_page`
+- **Client-side:** Lines, Line Work, Line Prices — loads all data (up to 1000 records), paginates in memory using `paginateData()` utility
 
 ---
 
-## Internationalization (i18n)
+## API Layer
 
-The application supports two languages with full RTL support:
+Located in `src/services/`.
 
-| Language | File       | Direction |
-| -------- | ---------- | --------- |
-| English  | `en.js`    | LTR       |
-| Arabic   | `ar.js`    | RTL       |
+### `api.js` — Axios Instance
 
-### Features
+- Base URL from `VITE_API_BASE_URL`, 30-second timeout
+- **Request interceptor:** Adds `Authorization: Bearer <token>` from localStorage
+- **Response interceptor:**
 
-- **Auto-Detection:** Detects the browser's language preference on first visit
-- **Persistence:** Language selection is saved to `localStorage`
-- **RTL Support:** The document `dir` attribute is dynamically set based on the active language; all components and layouts adapt accordingly
-- **Dynamic Switching:** Users can switch languages at any time from the Navbar without reloading the page
-- **Comprehensive Coverage:** Translation keys cover all modules, form labels, error messages, status values, button text, modal titles, and validation messages
+| Status | Handling                                         |
+| ------ | ------------------------------------------------ |
+| 401    | Clear auth, redirect to login                    |
+| 403    | Log, redirect                                    |
+| 404    | Log error                                        |
+| 422    | Pass validation errors through for form display  |
+| 429    | Log rate-limit warning                           |
+| 500    | Log server error                                 |
 
----
+### `apiServices.js` — Request Helper
 
-## Shared Components
+- Methods: `get()`, `post()`, `put()`, `delete()`, `patch()`
+- **Deduplication:** Cancels in-flight requests to the same endpoint before sending a new one (uses `AbortController`)
+- **Auto FormData:** Converts payloads to `FormData` when file uploads are detected
 
-Located in `src/components/shared/`, these reusable components form the UI building blocks used across all modules.
+### Standard Endpoint Pattern
 
-### Data Display Components
+Every CRUD module follows this REST pattern:
 
-#### `DataTable.vue`
-The primary data table component used by nearly every module.
-- **Props:** `columns` (array of column definitions), `data` (row data array), `showCheckbox` (enable row selection), `actionsLabel`, `modelValue` (selected row IDs), `isExpandable` (function to determine if a row can expand), `disableRowWhen` (function to grey-out specific rows)
-- **Events:** `update:modelValue` (emits selected IDs)
-- **Slots:** `cell-{colKey}` (custom column cell rendering), `actions` (per-row action buttons), `expand` (expanded row content)
-- **Features:** Sortable column headers (click to sort ascending/descending), expand/collapse rows, checkbox selection with select-all, disabled row styling, responsive design with mobile card view, RTL support
-
-#### `TrashedDataTable.vue`
-Table variant specifically for displaying soft-deleted items.
-- **Props:** `columns`, `data`, `actionsLabel`, `showCheckbox`, `modelValue`
-- **Events:** `update:modelValue`
-- **Slots:** `actions` (row-scoped slot)
-- **Features:** Same responsive layout as DataTable with desktop table and mobile card views, StatusBadge integration for status columns
-
-#### `Pagination.vue`
-Table pagination controls.
-- **Props:** `totalItems`, `itemsPerPage`, `currentPage`, `totalPages` (optional)
-- **Events:** `update:currentPage`
-- **Features:** Displays "Showing X-Y of Z" text, smart page number display with ellipsis (1, 2, 3 ... n-2, n-1, n), disabled state for boundary pages, previous/next navigation arrows
-
-#### `StatusBadge.vue`
-Color-coded status indicator badge.
-- **Props:** `status` (string), `type` ("default" | "order" | "driver" | "discount" | "currency" | "driverLine" | "user")
-- **Features:** Uses i18n translation based on type prefix, maps statuses to Bootstrap badge colors (success = green, warning = yellow, danger = red, info = blue, secondary = grey)
-
-#### `StatCard.vue`
-Statistics display card used in the Statistics module.
-- **Props:** `value`, `label`, `subtitle`, `icon`, `iconComponent`, `iconClass`, `clickable`, `formatType` ("number" | "currency" | "percentage"), `currency`, `showTrend`, `trendValue`
-- **Events:** `click`
-- **Features:** Formats values based on type, shows trend arrow (up/down) with color, hover effects when clickable
-
-#### `OrderItemProgress.vue`
-Stepper component showing order item status progression.
-- **Props:** `orderItem` (object with `steps` array)
-- **Features:** Collapsible card showing chronological step progression (pending → start → pickup → done/failed), timestamps per step, red styling for failed status, connected step line visualization
-
-#### `ColumnSelector.vue`
-Dropdown for toggling table column visibility.
-- **Props:** `columns` (array of available columns), `modelValue` (array of visible column keys)
-- **Events:** `update:modelValue`
-- **Features:** Checkbox list of columns with "Select All" toggle, RTL support, dropdown positioning
-
-### Modal Components
-
-#### `FormModal.vue`
-The primary modal for all create/edit operations across the application.
-- **Props:** `isOpen`, `title`, `fields` (array of field definitions), `showImageUpload`, `imageUploadLabel`, `imageRequired`, `initialImage`, `serverErrors`
-- **Events:** `close`, `submit` (emits form data with optional image file)
-- **Field Types Supported:**
-  - `text` — Standard text input
-  - `select` — Single-value dropdown with options
-  - `multiselect` — Multi-value selection
-  - `checkbox` — Boolean toggle
-  - `date` — Date picker
-  - `file` — File upload
-  - `orderRows` — Dynamic row entry for order items with linked sub-items
-  - `branchRows` — Dynamic row entry for branches with embedded map location picker
-  - `locationPicker` — Interactive map for selecting latitude/longitude coordinates
-- **Features:** Dynamic field validation, image upload with 5 MB limit and preview, password visibility toggle, dynamic select options via async functions, server error display per field, body scroll lock when open
-
-#### `DetailsModal.vue`
-Modal for displaying item details in a grid layout.
-- **Props:** `isOpen`, `title`, `data` (object), `fields` (array of field definitions)
-- **Events:** `close`
-- **Slots:** `before-details`, `after-details`
-- **Features:** Filters out fields with no data, normalizes display values (handles arrays, objects, nested properties), supports field translator functions and i18n translation keys, optional image display
-
-#### `ConfirmationModal.vue`
-Generic confirmation dialog for destructive actions.
-- **Props:** `isOpen`, `title`, `message`, `confirmText`, `cancelText`, `confirmColor` (default: red)
-- **Events:** `close`, `confirm`
-- **Features:** Backdrop overlay, body scroll lock, customizable button colors
-
-#### `SuccessModal.vue`
-Animated success notification modal.
-- **Props:** `isOpen`, `title` (default: "Success!"), `message`, `autoClose` (default: true), `autoCloseDelay` (default: 3000ms)
-- **Events:** `close`
-- **Features:** Animated checkmark SVG, animated background circles, auto-closes after configurable delay
-
-#### `TrashedItemsModal.vue`
-Modal for managing soft-deleted items.
-- **Props:** `isOpen`, `title`, `emptyMessage`, `columns`, `trashedItems`, `showDeleteButton`, `actionsLabel`, `restoreLabel`, `deleteLabel`, `confirmDelete`, `bulkActions`, `bulkLoading`, `entityName`
-- **Events:** `close`, `restore`, `delete`, `bulk-action`
-- **Features:** Embeds `TrashedDataTable` with restore/delete actions per row, dual confirmation modals for single and bulk delete, `BulkActionsBar` integration, selection state management
-
-#### `SwitchUserModal.vue`
-Admin user-switching modal for impersonation.
-- **Props:** `isOpen`
-- **Events:** `close`
-- **Features:** Fetches user list via API, filters out SuperAdmin and current user, searchable by name/username/email/company, shows avatar or initials fallback, switches user session on selection
-
-#### `DriverReassignModal.vue`
-Modal for handling driver deletion when work plans exist.
-- **Props:** `isOpen`, `driver` (object), `workPlans` (array), `availableDrivers` (array), `canDelete`
-- **Events:** `close`, `delete`, `reassign`
-- **Features:** Two-option workflow (delete work plans or reassign to another driver), driver selection dropdown, validation, processing state indicator
-
-### Form Components
-
-#### `TextField.vue`
-Text input component with password toggle.
-- **Props:** `id`, `modelValue`, `type`, `placeholder`, `required`, `minlength`, `maxlength`, `disabled`
-- **Events:** `update:modelValue`
-- **Features:** Password type shows/hides visibility eye icon toggle
-
-#### `FormLabel.vue`
-Form field label with required indicator.
-- **Props:** `label`, `forId`, `required`
-- **Features:** Displays red asterisk for required fields
-
-#### `PrimaryButton.vue`
-Styled action button with loading state.
-- **Props:** `text`, `loadingText` (default: "Loading..."), `loading`, `disabled`, `type`, `iconBefore`, `iconAfter`, `bgColor`, `textColor`, `iconColor`
-- **Events:** `click`
-- **Features:** Custom color support, loading text swap, icon rendering with color filtering
-
-### Action & Interaction Components
-
-#### `Actions.vue`
-Per-row action dropdown used in every data table.
-- **Props:** `row`, `editLabel`, `detailsLabel`, `deleteLabel`, `confirmDelete`, `confirmTitle`, `confirmMessage`, `confirmText`, `cancelText`, `showDelete`, `showEdit`, `showDetails`, `showProgress`, `showRestore`, `showPermanentDelete`
-- **Events:** `edit`, `details`, `delete`, `restore`, `permanent-delete`, `progress`
-- **Features:** Dropdown menu with configurable action items, built-in `ConfirmationModal` for delete operations, auto-close after action
-
-#### `BulkActionsBar.vue`
-Toolbar that appears when table rows are selected.
-- **Props:** `selectedCount`, `entityName`, `actions` (array of action definitions), `loading`, `position` ("sticky"), `showCount`
-- **Events:** `action` (emits `{actionId, selectedCount}`)
-- **Features:** Slide-in animation, smart pluralization via i18n, configurable action buttons
-
-#### `SharedLineToggle.vue`
-Inline toggle for company shared-line setting.
-- **Props:** `companyId`, `sharedLine`
-- **Events:** `updated` (emits `{companyId, sharedLine}`)
-- **Features:** SuperAdmin-only editing, API call on toggle, reverts state on error
-
-#### `CurrencySelector.vue`
-Currency picker dropdown.
-- **Props:** `position` ("start" | "end")
-- **Events:** `currencyChanged`
-- **Features:** Integrates with currency store, displays symbol + code + name per currency option
-
-#### `BaseDropdown.vue`
-Generic dropdown wrapper used by other components.
-- **Props:** `menuPosition` ("start" | "end"), `dropdownClass`, `menuClass`, `closeOnScroll`
-- **Events:** `open`, `close`, `toggle`
-- **Slots:** `trigger`, `menu` (receives `close` function)
-- **Features:** Teleported menu with fixed positioning, dynamic position calculation based on available viewport space, click-outside to close, scroll auto-close, RTL aware
-
-#### `TableHeader.vue`
-Composed header component used by every module.
-- **Props:** `modelValue` (search text), `searchPlaceholder`, `data`, `groupKey`, `groupModelValue`, `groupLabel`, `translationKey`, `showTimeFilter`, `timeModelValue`, `timeOptions`, `columns`, `visibleColumns`, `showAddButton`, `addButtonText`, `showTrashedButton`
-- **Events:** `update:modelValue`, `update:groupModelValue`, `update:timeModelValue`, `update:visibleColumns`, `add-click`, `trashed-click`, `refresh-click`
-- **Features:** Composes `MainFilters` and `ColumnSelector` into a single header bar with Add and Trashed buttons
-
-### Filter Components
-
-Located in `src/components/filters/`:
-
-#### `SearchFilter.vue`
-Text search input with icon.
-- **Props:** `modelValue`, `placeholder` (default: "Search...")
-- **Events:** `update:modelValue`
-- **Features:** RTL aware, search icon
-
-#### `GroupFilter.vue`
-Multi-select group/category filter dropdown.
-- **Props:** `data` (array), `groupKey`, `modelValue` (array of selected values), `label`, `translationKey`
-- **Events:** `update:modelValue`
-- **Features:** Dynamic menu positioning, checkbox list of available groups, "Clear All" button, selected count chips
-
-#### `TimePeriodFilter.vue`
-Button group for time period selection.
-- **Props:** `modelValue` (default: "all"), `options` (array)
-- **Events:** `update:modelValue`
-- **Features:** Default options: all / today / month / year, highlighted active selection
-
-#### `MainFilters.vue`
-Composed container combining all filter types.
-- **Props:** `modelValue`, `placeholder`, `data`, `groupKey`, `groupModelValue`, `groupLabel`, `translationKey`, `timeModelValue`, `timeOptions`, `showTimeFilter`
-- **Events:** `update:modelValue`, `update:groupModelValue`, `update:timeModelValue`
-- **Features:** Conditionally renders SearchFilter, GroupFilter, and TimePeriodFilter based on provided props, responsive layout
-
-### Layout Components
-
-Located in `src/components/layout/`:
-
-#### `AppLayout.vue`
-Main application layout wrapper.
-- **Renders:** Sidebar on the left, Navbar at the top, main content area in the center
-- **Features:** RTL direction binding based on locale, sidebar collapse state integration via `useSidebar` composable, removes content padding for the map page
-
-#### `Navbar.vue`
-Top navigation bar.
-- **Props:** `pageTitle`
-- **Features:**
-  - Page title display
-  - "Return to Admin" button visible only when an admin is impersonating another user (switched user mode)
-  - Language selector for switching between English and Arabic
-  - User profile dropdown with avatar (fallback to initials), name display
-  - "Switch User" option (SuperAdmin only) opening `SwitchUserModal`
-  - Logout button with `ConfirmationModal` confirmation dialog
-  - Notification area
-
-#### `Sidebar.vue`
-Collapsible left navigation panel.
-- **Features:**
-  - Dynamic menu items generated from the router configuration, filtered by user role
-  - Each menu item displays an icon and label, derived from route metadata
-  - Collapse/expand toggle button — collapsed mode shows 70px-wide icon-only sidebar with hover tooltips
-  - Active route highlighting
-  - Full RTL support (sidebar moves to the right side in Arabic)
-  - Mobile responsive: drawer mode with overlay backdrop at < 770px breakpoint
+```
+GET    /resource              → List (paginated or all)
+POST   /resource              → Create
+PUT    /resource/{id}         → Update
+DELETE /resource/{id}         → Soft-delete
+DELETE /resource/{id}?force=1 → Permanent delete
+GET    /resource/trashed      → List deleted
+POST   /resource/{id}/restore → Restore
+DELETE /resource/bulk         → Bulk delete
+POST   /resource/bulk/restore → Bulk restore
+```
 
 ---
 
-## Composables
+## Internationalization
 
-Located in `src/composables/`:
+Two languages with full **RTL** support:
 
-| Composable             | Purpose                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `useAuthDefaults.js`   | Provides current company ID, user role, and permission helpers for form defaults  |
-| `useCurrency.js`       | Currency formatting, symbol lookup, and conversion utilities                      |
-| `useSidebar.js`        | Sidebar collapse/expand state management shared between AppLayout and Sidebar     |
-| `useSuccessModal.js`   | Success notification modal state — provides `showSuccess()` and `isOpen` reactive state |
+| Language | File     | Direction |
+| -------- | -------- | --------- |
+| English  | `en.js`  | LTR       |
+| Arabic   | `ar.js`  | RTL       |
+
+- Auto-detects browser language on first visit
+- Persists choice in `localStorage`
+- Sets `dir="rtl"` / `dir="ltr"` on the document element
+- Switch languages anytime from the Navbar (no reload)
+- Covers all modules: labels, buttons, errors, statuses, modals, form placeholders
 
 ---
 
-## Utilities
+## Composables & Utilities
 
-Located in `src/utils/`:
+### Composables (`src/composables/`)
+
+| Name               | Purpose                                                          |
+| ------------------ | ---------------------------------------------------------------- |
+| `useAuthDefaults`  | Returns current company ID, user role, currency, and permission helpers. Used by forms to auto-fill company and currency. |
+| `useCurrency`      | Currency formatting, symbol lookup, and conversion utilities     |
+| `useSidebar`       | Sidebar expand/collapse state shared between AppLayout and Sidebar |
+| `useSuccessModal`  | Provides `showSuccess()` and `isOpen` for the success modal      |
+
+### Utilities (`src/utils/`)
 
 | Utility              | Purpose                                                                          |
 | -------------------- | -------------------------------------------------------------------------------- |
@@ -1548,31 +1834,34 @@ The project uses **Vitest** as the test runner alongside **Vue Test Utils** for 
 
 ---
 
-## Build & Deployment
+## Testing, Building & Deployment
 
 ```bash
 # Build for production
 npm run build
 
-# Preview the production build locally
+# Preview production build locally
 npm run preview
 ```
 
-The production build is output to the `dist/` directory, ready for deployment to any static hosting service.
+- Test runner: **Vitest** with **Vue Test Utils** and **fast-check** (property-based testing)
+- Production output: `dist/` directory
 
 ---
 
-## Key Features Summary
+## Key Features at a Glance
 
-- **Multi-language** — Full English and Arabic support with RTL layout
-- **Role-based access** — SuperAdmin, Admin, and Driver roles with route and UI-level enforcement
-- **Interactive maps** — OpenLayers-powered map visualization with driver tracking, branch locations, and delivery points
-- **Calendar scheduling** — FullCalendar integration for work plan management with day/week/month views
-- **Order wizard** — Multi-step order creation supporting delivery, return, and exchange workflows
-- **PDF export** — Generate PDF documents for orders and invoices via html2pdf.js
-- **Soft deletes** — Recover or permanently remove deleted records across all modules via Active/Trashed tabs
-- **Bulk operations** — Perform actions on multiple selected items simultaneously (delete, restore, status change)
-- **Request management** — Automatic request deduplication and cancellation via AbortController
-- **Responsive design** — Bootstrap 5 based responsive layout with collapsible sidebar and mobile card views
-- **Real-time validation** — Client-side form validation with server-side error display per field
-- **User impersonation** — SuperAdmin can switch to another user's session and return to their own
+| Feature               | Description                                                                |
+| --------------------- | -------------------------------------------------------------------------- |
+| Multi-language        | English + Arabic with full RTL layout support                              |
+| Role-based access     | SuperAdmin / Admin / Driver with route guards and UI-level enforcement     |
+| Interactive maps      | OpenLayers with driver tracking, branch markers, delivery points           |
+| Calendar scheduling   | FullCalendar with day / week / month views for work plans                  |
+| Order wizard          | Multi-step creation for delivery, return, and exchange orders              |
+| PDF export            | Download invoices as PDF via html2pdf.js                                   |
+| Soft deletes          | Active / Trashed tabs with restore and permanent delete across all modules |
+| Bulk operations       | Select multiple rows for bulk delete, restore, or status change            |
+| Request deduplication | Auto-cancels in-flight requests to prevent race conditions                 |
+| Responsive design     | Bootstrap 5, collapsible sidebar, mobile card views                        |
+| Form validation       | Client-side + server-side 422 error display per field                      |
+| User impersonation    | SuperAdmin can switch to another user's session and return                 |
