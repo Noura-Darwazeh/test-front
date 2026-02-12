@@ -5,9 +5,7 @@ import apiServices from "@/services/apiServices.js";
 export const useInvoicesManagementStore = defineStore("invoicesManagement", () => {
     // State
     const invoices = ref([]);
-    const trashedInvoices = ref([]);
     const loading = ref(false);
-    const trashedLoading = ref(false);
     const error = ref(null);
 
     // Pagination state
@@ -16,10 +14,9 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
         perPage: 20,
         total: 0,
         lastPage: 1,
-    });
+    });xx
 
     const normalizeInvoice = (invoice) => {
-
         const deliveryCompany = invoice.delivery_company;
         const clientCompany = invoice.client_company;
 
@@ -83,100 +80,10 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
         }
     };
 
-    const fetchTrashedInvoices = async () => {
-        trashedLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiServices.getTrashedInvoices();
-            trashedInvoices.value = response.data.data.map(normalizeInvoice);
-            return response.data;
-        } catch (err) {
-            error.value = err.message || "Failed to fetch trashed invoices";
-            console.error("❌ Error fetching trashed invoices:", err);
-            throw err;
-        } finally {
-            trashedLoading.value = false;
-        }
-    };
-
-    const deleteInvoice = async (invoiceId, force = false) => {
-        loading.value = true;
-        error.value = null;
-        try {
-            await apiServices.deleteEntity('invoices', invoiceId, force);
-            const index = invoices.value.findIndex((i) => i.id === invoiceId);
-            if (index > -1) {
-                invoices.value.splice(index, 1);
-            }
-        } catch (err) {
-            error.value = err.message || "Failed to delete invoice";
-            console.error("❌ Error deleting invoice:", err);
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const restoreInvoice = async (invoiceId) => {
-        loading.value = true;
-        error.value = null;
-        try {
-            const response = await apiServices.restoreEntity('invoices', invoiceId);
-            const index = trashedInvoices.value.findIndex((i) => i.id === invoiceId);
-            if (index > -1) {
-                trashedInvoices.value.splice(index, 1);
-            }
-            if (response.data?.data) {
-                invoices.value.push(normalizeInvoice(response.data.data));
-            }
-        } catch (err) {
-            error.value = err.message || "Failed to restore invoice";
-            console.error("❌ Error restoring invoice:", err);
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const bulkDeleteInvoices = async (invoiceIds, force = false) => {
-        loading.value = true;
-        error.value = null;
-        try {
-            await apiServices.bulkDeleteEntities('invoice', 'invoices', invoiceIds, force);
-            invoices.value = invoices.value.filter((i) => !invoiceIds.includes(i.id));
-        } catch (err) {
-            error.value = err.message || "Failed to bulk delete invoices";
-            console.error("❌ Error bulk deleting invoices:", err);
-            throw err;
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const bulkRestoreInvoices = async (invoiceIds) => {
-        trashedLoading.value = true;
-        error.value = null;
-        try {
-            const response = await apiServices.bulkRestoreEntities('invoice', 'invoices', invoiceIds);
-            trashedInvoices.value = trashedInvoices.value.filter((i) => !invoiceIds.includes(i.id));
-            if (response.data?.data) {
-                invoices.value.push(...response.data.data.map(normalizeInvoice));
-            }
-        } catch (err) {
-            error.value = err.message || "Failed to bulk restore invoices";
-            console.error("❌ Error bulk restoring invoices:", err);
-            throw err;
-        } finally {
-            trashedLoading.value = false;
-        }
-    };
-
     return {
         // State
         invoices,
-        trashedInvoices,
         loading,
-        trashedLoading,
         error,
         invoicesPagination,
         // Getters
@@ -184,10 +91,5 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
         pendingInvoices,
         // Actions
         fetchInvoices,
-        fetchTrashedInvoices,
-        deleteInvoice,
-        restoreInvoice,
-        bulkDeleteInvoices,
-        bulkRestoreInvoices,
     };
 });

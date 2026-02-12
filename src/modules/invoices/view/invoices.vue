@@ -1,15 +1,30 @@
 <template>
   <div class="invoices-page-container bg-light">
-    <InvoiceHeader v-model="searchText" :searchPlaceholder="$t('invoice.searchPlaceholder')" :data="invoices"
-      groupKey="status" v-model:groupModelValue="selectedGroups" :groupLabel="$t('invoice.filterByStatus')"
-      translationKey="invoiceStatus" :columns="invoiceColumns" v-model:visibleColumns="visibleColumns"
-      @refresh-click="handleRefresh" @trashed-click="openTrashedModal" :showAddButton="false" />
+    <InvoiceHeader 
+      v-model="searchText" 
+      :searchPlaceholder="$t('invoice.searchPlaceholder')" 
+      :data="invoices"
+      groupKey="status" 
+      v-model:groupModelValue="selectedGroups" 
+      :groupLabel="$t('invoice.filterByStatus')"
+      translationKey="invoiceStatus" 
+      :columns="invoiceColumns" 
+      v-model:visibleColumns="visibleColumns"
+      @refresh-click="handleRefresh" 
+      :showAddButton="false"
+      :showTrashedButton="false"
+    />
 
     <div class="card border-0">
       <div class="card-body p-0">
         <!-- Bulk Actions Bar -->
-        <BulkActionsBar :selectedCount="selectedRows.length" entityName="invoice" :actions="bulkActions"
-          :loading="bulkActionLoading" @action="handleBulkAction" />
+        <BulkActionsBar 
+          :selectedCount="selectedRows.length" 
+          entityName="invoice" 
+          :actions="bulkActions"
+          :loading="bulkActionLoading" 
+          @action="handleBulkAction" 
+        />
 
         <!-- Loading State -->
         <div v-if="invoicesStore.loading" class="text-center py-5">
@@ -27,32 +42,43 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('invoice.actions')"
-            v-model="selectedRows">
+          <DataTable 
+            :columns="filteredColumns" 
+            :data="paginatedData" 
+            :actionsLabel="$t('invoice.actions')"
+            v-model="selectedRows"
+          >
             <template #actions="{ row }">
-              <ActionsDropdown :row="row" :detailsLabel="$t('invoice.details')" :showEdit="false" :showDelete="false"
-                @details="openDetailsModal" />
+              <ActionsDropdown 
+                :row="row" 
+                :detailsLabel="$t('invoice.details')" 
+                :showEdit="false" 
+                :showDelete="false"
+                @details="openDetailsModal" 
+              />
             </template>
           </DataTable>
 
           <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination :totalItems="currentFilteredData.length" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
-              @update:currentPage="(page) => (currentPage = page)" />
+            <Pagination 
+              :totalItems="currentFilteredData.length" 
+              :itemsPerPage="itemsPerPage" 
+              :currentPage="currentPage"
+              @update:currentPage="(page) => (currentPage = page)" 
+            />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Details Modal -->
-    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('invoice.details')" :data="selectedInvoice"
-      :fields="detailsFields" @close="closeDetailsModal" />
-
-    <!-- Trashed Items Modal -->
-    <TrashedItemsModal :isOpen="isTrashedModalOpen" :title="$t('invoice.trashedInvoices')"
-      :emptyMessage="$t('invoice.noTrashedInvoices')" :columns="trashedColumns"
-      :trashedItems="invoicesStore.trashedInvoices" :showDeleteButton="true" entityName="invoice"
-      :bulkActions="trashedBulkActions" :bulkLoading="bulkActionLoading" @close="closeTrashedModal"
-      @restore="handleRestore" @delete="handlePermanentDelete" @bulk-action="handleTrashedBulkAction" />
+    <DetailsModal 
+      :isOpen="isDetailsModalOpen" 
+      :title="$t('invoice.details')" 
+      :data="selectedInvoice"
+      :fields="detailsFields" 
+      @close="closeDetailsModal" 
+    />
   </div>
 </template>
 
@@ -63,7 +89,6 @@ import Pagination from "@/components/shared/Pagination.vue";
 import ActionsDropdown from "@/components/shared/Actions.vue";
 import DetailsModal from "@/components/shared/DetailsModal.vue";
 import BulkActionsBar from "@/components/shared/BulkActionsBar.vue";
-import TrashedItemsModal from "@/components/shared/TrashedItemsModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useInvoicesManagementStore } from "../store/invoicesManagement.js";
@@ -85,7 +110,6 @@ const isDetailsModalOpen = ref(false);
 const selectedInvoice = ref({});
 const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
-const isTrashedModalOpen = ref(false);
 const exportingInvoiceId = ref(null);
 
 // Mount
@@ -112,19 +136,6 @@ const invoiceColumns = computed(() => [
     key: "status",
     label: t("invoice.status"),
     sortable: true,
-    component: "StatusBadge",
-    componentProps: { type: "invoice" }
-  },
-]);
-
-const trashedColumns = computed(() => [
-  { key: "__index", label: "#", sortable: false, isIndex: true },
-  { key: "invoice_code", label: t("invoice.invoiceCode") },
-  { key: "delivery_company_name", label: t("invoice.deliveryCompany") },
-  { key: "client_company_name", label: t("invoice.clientCompany") },
-  {
-    key: "status",
-    label: t("invoice.status"),
     component: "StatusBadge",
     componentProps: { type: "invoice" }
   },
@@ -212,19 +223,6 @@ const bulkActions = computed(() => {
   return actions;
 });
 
-const trashedBulkActions = computed(() => [
-  {
-    id: 'restore',
-    label: t('common.restore'),
-    bgColor: 'var(--color-success)',
-  },
-  {
-    id: 'forceDelete',
-    label: t('common.permanentDelete'),
-    bgColor: 'var(--color-danger)',
-  },
-]);
-
 // Watchers
 watch([searchText, selectedGroups], () => {
   currentPage.value = 1;
@@ -248,42 +246,6 @@ const openDetailsModal = (invoice) => {
 const closeDetailsModal = () => {
   isDetailsModalOpen.value = false;
   selectedInvoice.value = {};
-};
-
-const openTrashedModal = async () => {
-  try {
-    await invoicesStore.fetchTrashedInvoices();
-    isTrashedModalOpen.value = true;
-  } catch (error) {
-    console.error("❌ Failed to fetch trashed invoices:", error);
-  }
-};
-
-const closeTrashedModal = () => {
-  isTrashedModalOpen.value = false;
-};
-
-const handleRestore = async (invoice) => {
-  try {
-    await invoicesStore.restoreInvoice(invoice.id);
-    await invoicesStore.fetchTrashedInvoices();
-    await invoicesStore.fetchInvoices();
-  } catch (error) {
-    console.error("❌ Failed to restore invoice:", error);
-    alert(error.message || "Failed to restore invoice. Please try again.");
-  }
-};
-
-const handlePermanentDelete = async (invoice) => {
-  if (!confirm(t('invoice.permanentDeleteConfirm'))) return;
-
-  try {
-    await invoicesStore.deleteInvoice(invoice.id, true);
-    await invoicesStore.fetchTrashedInvoices();
-  } catch (error) {
-    console.error("❌ Failed to permanently delete invoice:", error);
-    alert(error.message || "Failed to delete invoice. Please try again.");
-  }
 };
 
 const handleBulkAction = ({ actionId }) => {
@@ -338,32 +300,6 @@ const exportSelectedInvoice = async () => {
 
   if (invoice) {
     await exportInvoicePDF(invoice);
-  }
-};
-
-const handleTrashedBulkAction = async ({ actionId, selectedIds }) => {
-  bulkActionLoading.value = true;
-  try {
-    if (actionId === 'restore') {
-      await invoicesStore.bulkRestoreInvoices(selectedIds);
-    } else if (actionId === 'forceDelete') {
-      if (!confirm(t('common.bulkPermanentDeleteConfirm', {
-        count: selectedIds.length,
-        entity: t('invoice.entityPlural')
-      }))) {
-        bulkActionLoading.value = false;
-        return;
-      }
-      await invoicesStore.bulkDeleteInvoices(selectedIds, true);
-    }
-
-    await invoicesStore.fetchTrashedInvoices();
-    await invoicesStore.fetchInvoices();
-  } catch (error) {
-    console.error("❌ Bulk action failed:", error);
-    alert(error.message || "Failed to process invoices. Please try again.");
-  } finally {
-    bulkActionLoading.value = false;
   }
 };
 
