@@ -113,85 +113,249 @@ modules/<name>/
 ---
 ### Login
 
+### Login
+
 **Route:** `/login` | **Access:** Guest users only
 
-Handles user authentication and access control with support for both username and email login.
+Handles user authentication with support for both username and email login.
 
-**Main View (`login.vue`):**
-- Full-page layout with split design: login form (left) and animated carousel (right)
-- Auto-rotating carousel showcasing delivery service features with manual navigation controls
-- Language switcher in the top-right corner with persistent preference storage
-- Automatic browser language detection on first visit
-- Responsive design: carousel hidden on mobile devices (< 992px)
+#### Main View (`login.vue`)
 
-**Form Fields:**
-- **Username / Email** (required) — Accepts either username or email address for flexible login
-- **Password** (required, min 6 characters) — Secure password input with visibility toggle
+**Layout Structure:**
+- **Split Design:** Form section (left 50%) + Animated carousel (right 50%)
+- **Language Switcher:** Top-right corner with persistent preference storage
+- **Responsive:** Carousel hidden on screens < 992px (mobile)
 
-**Features:**
-- Client-side validation with real-time error messages
-- Server-side error handling with user-friendly feedback
-- "Forgot Password?" link redirecting to password recovery
-- Loading state with spinner during authentication
-- Auto-redirect to user's default page or landing page after successful login
-- Automatic language synchronization with user's saved preference in database
-- Session persistence via localStorage (`auth_token`, `auth_user`)
+**Visual Design:**
+- **Color Scheme:**
+  - Primary Color: CSS variable `--primary-color`
+  - Background: White for form section, gradient overlay on carousel
+  - Error States: Red (#dc3545) with inline validation messages
+  - Success States: Green accents (#28a745)
+- **Typography:** System font stack with fallbacks, responsive sizing
+- **Spacing:** Bootstrap 5 utilities (mb-3, mt-4, etc.)
+
+**Form Schema:**
+- **Login Field:** Username or email (required, trimmed, single input)
+- **Password Field:** Minimum 6 characters (required, with visibility toggle)
+
+**Key Features:**
+- Dual login system accepting username OR email
+- Real-time client-side validation with immediate feedback
+- Server-side validation with field-specific error display
+- Auto-redirect to user's default page after successful login
+- Language synchronization with user's database preference
+- Session persistence via localStorage (token, user, device)
+- Browser language auto-detection on first visit
 
 **Components Used:**
 - `FormLabel` — Field labels with required indicators
-- `TextField` — Text/password input with show/hide toggle for password field
+- `TextField` — Text/password inputs with show/hide toggle
 - `PrimaryButton` — Submit button with loading state
-- `BaseDropdown` — Language selector dropdown (English/Arabic)
+- `BaseDropdown` — Language selector (English/Arabic)
 
 **Carousel System:**
+- Custom implementation (no external library)
 - 4 slides with images, titles, and descriptions
-- Auto-advance every 5 seconds
-- Manual navigation: previous/next arrows and dot indicators
-- Smooth slide transitions with fade and translate animations
-- Overlay gradient for better text readability
+- Auto-advance every 5 seconds with auto-play timer
+- Manual controls: previous/next arrows + dot indicators
+- Smooth transitions with fade and horizontal slide effects
+- Gradient overlay for text readability
+- Pause on hover functionality
 
-**Store Integration (`auth.js`):**
-- **State:** `user`, `token`, `loading`, `error`
-- **Actions:**
-  - `login(credentials)` — POST `/auth/login` with username/email and password
-  - `updateUserLanguage(language)` — Syncs UI language with backend user preference
-  - `clearError()` — Resets error state
-- **Computed Getters:** 
-  - `isAuthenticated` — Boolean auth status
-  - `userRole` — Current user role (SuperAdmin/Admin/Driver)
-  - `userName` — Display name
+**Styling Framework:**
+- **Bootstrap 5** for grid, spacing, and form controls
+- **Custom CSS Variables** for theming (primary color, text colors, borders)
+- **Scoped Styles** for component-specific design
+- **Animations:** CSS transitions for hover, focus, and slide changes
 
-**API Endpoints:**
-- `POST /login` — Authenticate with `{login, password}`, returns `{user, token, device}`
-- `GET /auth/me` — Validate token and retrieve current user data
+#### Component Functions
 
-**Error Handling:**
-- 401 Unauthorized → "Invalid username/email or password"
-- 422 Validation Error → "Please check your input and try again"
-- Network errors → "Network error. Please check your connection."
-- Generic fallback → "Login failed. Please try again."
+**Lifecycle Hooks:**
+- `onMounted()` — Initializes browser language detection, starts carousel auto-play timer
+- `onUnmounted()` — Cleans up carousel interval to prevent memory leaks
 
-**Language Support:**
-- Browser language auto-detection (Arabic if browser lang starts with 'ar', English otherwise)
-- Persistent storage in localStorage (`lang`)
-- Page reload on language change for complete UI sync
-- User language preference saved in database during login
+**Form Handling:**
+- `handleSubmit()` — Main form submission handler
+  - Validates form inputs (login and password)
+  - Calls auth store login action
+  - Handles success: extracts redirect path from query params or uses default_page
+  - Handles errors: maps API errors to user-friendly messages
+  - Updates UI state (loading, errors)
 
-**Validation Rules:**
-- Email/Username: required, trimmed whitespace
-- Password: required, minimum 6 characters
-- Form cannot be submitted if validation fails
+**Validation Functions:**
+- `validateForm()` — Client-side validation before submission
+  - Checks login field is not empty
+  - Validates password length (minimum 6 characters)
+  - Returns boolean validation result
+- `clearErrors()` — Resets all error messages
+  - Called on input change for real-time error clearing
 
-**Security:**
+**Carousel Functions:**
+- `nextSlide()` — Advances to next slide (wraps to first after last)
+- `prevSlide()` — Goes to previous slide (wraps to last from first)
+- `goToSlide(index)` — Jumps to specific slide by index (dot navigation)
+- `startAutoPlay()` — Initializes 5-second interval for automatic slide advancement
+- `stopAutoPlay()` — Pauses carousel (called on user interaction)
+- `resetAutoPlay()` — Restarts auto-play timer after manual navigation
+
+**Language Functions:**
+- `detectBrowserLanguage()` — Auto-detects browser language on first visit
+  - Checks localStorage for saved preference
+  - Falls back to browser language (navigator.language)
+  - Sets 'ar' if browser language starts with 'ar', else 'en'
+- `changeLanguage(lang, closeDropdown)` — Handles language switching
+  - Updates current language reactive state
+  - Calls i18n setLocale() to change UI language
+  - Persists choice to localStorage
+  - Closes language dropdown menu
+  - Triggers reactive UI update
+
+**Error Handling Functions:**
+- `handleLoginError(error)` — Processes API error responses
+  - Maps 401 to "Invalid credentials"
+  - Maps 422 to field-specific validation errors
+  - Handles network errors
+  - Sets generic fallback message for unknown errors
+
+**Utility Functions:**
+- `extractRedirectPath()` — Determines post-login navigation target
+  - Priority: query param `redirect` > user.default_page > user.landing_page > '/user'
+- `isValidEmail(email)` — Email format validation using regex
+- `trimFormData()` — Removes whitespace from login field before submission
+
+#### Validation Rules
+
+**Client-side Validation:**
+- Login field: Required, non-empty after trim
+- Password field: Required, minimum 6 characters
+- Real-time error display below each field
+
+**Server-side Error Mapping:**
+- **401** → Invalid credentials message
+- **422** → Validation errors mapped to specific fields
+- **Network Error** → Connection failure message
+- **Generic** → Fallback error message
+
+#### Store Integration (`stores/auth.js`)
+
+**State Management:**
+- User object with profile data (name, email, company, currency, role)
+- JWT authentication token
+- Device identifier (web/mobile)
+- Loading and error states
+- User switching flag (SuperAdmin feature)
+
+**Computed Getters:**
+- `isAuthenticated` — Boolean authentication status
+- `userRole` — Current user role (handles array or string format)
+- `userName` — Display name
+- `userCompanyId` / `userCompanyName` — Company information
+- `userCurrencyId` / `userCurrencyName` — Currency preferences
+
+**Key Actions:**
+- `login(credentials)` — Authenticates user, processes response, updates state, persists to localStorage
+  - Validates input credentials
+  - Makes POST request to /login endpoint
+  - Processes user data (converts image path to full URL)
+  - Restores default_page from localStorage if exists
+  - Updates reactive state (user, token, device)
+  - Persists to localStorage (auth_token, auth_user, auth_device)
+  - Syncs language preference (arabic → 'ar', english → 'en')
+- `updateUserLanguage(language)` — Syncs UI language with backend preference
+  - Sends PATCH request to update user language
+  - Updates user object in state
+- `logout()` — Clears authentication state and redirects to login
+- `checkAuth()` — Validates existing token on app initialization
+
+**State Persistence:**
+- Stores token, user object, and device in localStorage
+- Restores default_page preference from previous session
+- Syncs language setting (arabic → 'ar', english → 'en')
+
+#### API Integration
+
+**Endpoint:** `POST /login`
+
+**Request Body:**
+```
+{
+  login: string,     // Username or email
+  password: string
+}
+```
+
+**Success Response (200):**
+Returns user object with: id, name, username, email, phone, role, language, image, company (id, name), currency (id, name, symbol), default_page, landing_page, plus authentication token and device identifier.
+
+**Error Responses:**
+- **401 Unauthorized:** Invalid credentials
+- **422 Validation Error:** Field-specific validation failures
+
+#### Language System
+
+**Features:**
+- Auto-detection from browser language on first visit
+- Persistent storage in localStorage (`lang` key)
+- Sync with user's database language preference after login
+- Reactive UI updates without page reload
+- RTL support for Arabic
+
+**Language Flow:**
+1. Check localStorage for saved preference
+2. If none, detect browser language (Arabic if starts with 'ar', else English)
+3. After login, sync with user.language from database
+4. User can manually switch languages via dropdown
+
+#### Navigation Guards
+
+**Route Protection:**
+- Authenticated users on `/login` redirect to their default_page
+- Unauthenticated users redirect to `/login` with return URL preserved
+- Post-login redirect respects query parameter or defaults to user's landing page
+
+**Guard Implementation:**
+- `beforeEach()` guard in router checks authentication state
+- Validates token presence and expiration
+- Preserves intended destination in query params
+- Handles session timeout gracefully
+
+#### Security Features
+
 - Password masking with optional visibility toggle
 - CSRF token handling via Axios interceptors
 - Automatic token attachment to authenticated requests
-- Session timeout handling with redirect to login
+- Session timeout handling (401 → clear state → redirect to login)
+- Secure localStorage for sensitive data
+- Input sanitization (trim whitespace, prevent XSS)
+- Rate limiting on login attempts (backend enforced)
+- HTTPS recommended for production
 
-**Navigation Guards:**
-- Authenticated users accessing `/login` are redirected to their default page
-- Unauthenticated users are redirected to `/login` from protected routes
-- Query parameter `?redirect=` preserves intended destination
+#### Technical Stack
+
+**Core Dependencies:**
+- Vue 3 (Composition API)
+- Vue Router 4 (navigation and guards)
+- Pinia (state management)
+- vue-i18n (internationalization)
+- Axios (HTTP client)
+- Bootstrap 5 (CSS framework)
+
+**Asset Management:**
+- Carousel images: `/src/assets/images/login/`
+- Brand logo: `/src/assets/icons/`
+- Component-scoped styles
+
+**Browser Support:**
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+- RTL layout support for Arabic
+- Responsive breakpoints: Mobile (< 768px), Tablet (768-992px), Desktop (> 992px)
+
+**Performance Considerations:**
+- Lazy-loaded carousel images
+- Debounced input validation
+- Optimized re-renders with Vue reactivity
+- Minimal bundle size with tree-shaking
 
 ---
 
