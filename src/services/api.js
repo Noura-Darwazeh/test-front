@@ -1,6 +1,5 @@
 import axios from "axios";
 import { getItem, removeItem } from "@/utils/shared/storageUtils";
-import { useAuthStore } from "@/stores/auth.js";
 
 const rawBaseUrl =
   import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35:80/api";
@@ -44,9 +43,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // ✅ إضافة Headers للـ Driver
-    const authStore = useAuthStore();
-    if (authStore.userRole === 'Driver') {
+    // ✅ استخدام الـ role المحفوظ في localStorage
+    const userRole = getItem("user_role");
+    
+    if (userRole === 'Driver') {
       config.headers['X-Client'] = 'mobile-app';
       config.headers['User-Agent'] = 'iphone';
     }

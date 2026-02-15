@@ -86,11 +86,10 @@ export const useAuthStore = defineStore("auth", () => {
 
   const userCurrencyName = computed(() => userCurrency.value.name || "");
 
-  // ✅ دالة جديدة لتحديد الصفحة الافتراضية حسب الـ role
   const getDefaultPageByRole = (role) => {
     switch (role) {
       case 'Driver':
-        return '/work-plans'; // ✅ الصفحة الافتراضية للـ Driver
+        return '/work-plans';
       case 'Admin':
         return '/statistics';
       case 'SuperAdmin':
@@ -127,7 +126,6 @@ export const useAuthStore = defineStore("auth", () => {
 
         const role = Array.isArray(data.user.role) ? data.user.role[0] : data.user.role;
 
-        // ✅ استخدم landing_page من الـ API أو حدد صفحة حسب الـ role
         data.user.default_page = data.user.landing_page || getDefaultPageByRole(role);
 
         user.value = data.user;
@@ -138,6 +136,9 @@ export const useAuthStore = defineStore("auth", () => {
         setItem("auth_token", data.token);
         setItem("auth_user", data.user);
         setItem("auth_device", data.device);
+        
+        // ✅ حفظ الـ role لاستخدامه في الـ API interceptor
+        setItem("user_role", role);
 
         if (data.user?.language) {
           const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
@@ -209,15 +210,15 @@ export const useAuthStore = defineStore("auth", () => {
     const savedUser = getItem("auth_user");
     const savedDevice = getItem("auth_device");
     const savedIsSwitched = getItem("is_switched_user");
+    const savedRole = getItem("user_role");
 
     if (savedToken && savedUser) {
       if (savedUser.image && !savedUser.image.startsWith('http')) {
         savedUser.image = getFullImageUrl(savedUser.image);
       }
 
-      // ✅ تأكد من وجود default_page
       if (!savedUser.default_page) {
-        const role = Array.isArray(savedUser.role) ? savedUser.role[0] : savedUser.role;
+        const role = savedRole || (Array.isArray(savedUser.role) ? savedUser.role[0] : savedUser.role);
         savedUser.default_page = getDefaultPageByRole(role);
       }
 
@@ -239,6 +240,7 @@ export const useAuthStore = defineStore("auth", () => {
     removeItem("auth_user");
     removeItem("auth_device");
     removeItem("user_language");
+    removeItem("user_role"); // ✅ إضافة
     removeItem("original_admin_token");
     removeItem("original_admin_user");
     removeItem("is_switched_user");
@@ -261,6 +263,12 @@ export const useAuthStore = defineStore("auth", () => {
 
     user.value = { ...user.value, ...userData };
     setItem("auth_user", user.value);
+    
+    // ✅ تحديث الـ role إذا تغير
+    const role = Array.isArray(userData.role) ? userData.role[0] : userData.role;
+    if (role) {
+      setItem("user_role", role);
+    }
   }
 
   async function updateUserLanguage(language) {
@@ -300,17 +308,21 @@ export const useAuthStore = defineStore("auth", () => {
     if (!getItem("original_admin_token")) {
       setItem("original_admin_token", token.value);
       setItem("original_admin_user", user.value);
+      setItem("original_user_role", userRole.value); // ✅ حفظ الـ role الأصلي
     }
 
     if (userData.image) {
       userData.image = getFullImageUrl(userData.image);
     }
 
+    const newRole = Array.isArray(userData.role) ? userData.role[0] : userData.role;
+
     user.value = userData;
     token.value = loginAsToken;
 
     setItem("auth_token", loginAsToken);
     setItem("auth_user", userData);
+    setItem("user_role", newRole); // ✅ تحديث الـ role
     setItem("is_switched_user", true);
 
     isSwitchedUser.value = true;
@@ -319,6 +331,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function returnToAdmin() {
     const originalToken = getItem("original_admin_token");
     const originalUser = getItem("original_admin_user");
+    const originalRole = getItem("original_user_role");
 
     if (!originalToken || !originalUser) {
       console.warn("⚠️ No original admin session found");
@@ -337,9 +350,11 @@ export const useAuthStore = defineStore("auth", () => {
 
         setItem("auth_token", originalToken);
         setItem("auth_user", originalUser);
+        setItem("user_role", originalRole); // ✅ استرجاع الـ role الأصلي
 
         removeItem("original_admin_token");
         removeItem("original_admin_user");
+        removeItem("original_user_role");
         removeItem("is_switched_user");
 
         isSwitchedUser.value = false;
@@ -353,8 +368,11 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = originalToken;
       setItem("auth_token", originalToken);
       setItem("auth_user", originalUser);
+      setItem("user_role", originalRole); // ✅ استرجاع الـ role الأصلي
+      
       removeItem("original_admin_token");
       removeItem("original_admin_user");
+      removeItem("original_user_role");
       removeItem("is_switched_user");
       
       isSwitchedUser.value = false;
@@ -394,6 +412,6 @@ export const useAuthStore = defineStore("auth", () => {
     hasAnyRole,
     switchUser,
     returnToAdmin,
-    getDefaultPageByRole, // ✅ إضافة الدالة للـ export
+    getDefaultPageByRole,
   };
 });
