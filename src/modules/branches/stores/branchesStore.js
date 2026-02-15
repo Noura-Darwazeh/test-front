@@ -17,6 +17,7 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     lastPage: 1,
   });
 
+
   const trashedPagination = ref({
     currentPage: 1,
     perPage: 10,
