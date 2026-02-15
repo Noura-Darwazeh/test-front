@@ -184,7 +184,7 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import WorkPlanCalendar from "../components/calender.vue"
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../store/workPlansStore.js";
-import { useDriverStore } from "../../driver/stores/driverStore.js";
+import { useDriverStore } from "../../drivers/stores/driversStore.js";
 import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();

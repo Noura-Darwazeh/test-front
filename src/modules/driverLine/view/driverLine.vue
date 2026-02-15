@@ -189,7 +189,7 @@ import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
 import { useDriverLineStore } from "../stores/driverLineStore.js";
-import { useDriverStore } from "@/modules/driver/stores/driverStore.js";
+import { useDriverStore } from "@/modules/drivers/stores/driversStore.js";
 import { useLineWorkStore } from "@/modules/lineWork/stores/lineworkStore.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 

@@ -5,7 +5,7 @@ import apiServices from "../services/apiServices.js";
 
 // Import views
 import user from "../modules/user/view/user.vue";
-import driver from "../modules/driver/view/driver.vue";
+import driver from "../modules/drivers/view/drivers.vue";
 import customer from "../modules/customer/view/customer.vue";
 import company from "../modules/company/view/company.vue";
 import branches from "../modules/branches/view/branches.vue";
