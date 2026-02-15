@@ -112,10 +112,34 @@ export const useAuthStore = defineStore("auth", () => {
         throw new Error("Password is required");
       }
 
-      const response = await api.post("/login", {
-        login: credentials.login.trim(),
-        password: credentials.password,
-      });
+      // ✅ أول محاولة - بدون headers
+      let response;
+      try {
+        response = await api.post("/login", {
+          login: credentials.login.trim(),
+          password: credentials.password,
+        });
+      } catch (firstError) {
+        // ✅ لو فشل بسبب 403 "not allowed via web"
+        // نحاول مرة تانية مع headers السائق
+        if (firstError.response?.status === 403 && 
+            firstError.response?.data?.message?.includes('not allowed to login via web')) {
+          
+          console.log('🔄 Retrying login with driver headers...');
+          
+          response = await api.post("/login", 
+            {
+              login: credentials.login.trim(),
+              password: credentials.password,
+            },
+            {
+              driverLogin: true // ✅ علامة للـ interceptor
+            }
+          );
+        } else {
+          throw firstError;
+        }
+      }
 
       const data = response.data;
 
@@ -133,12 +157,11 @@ export const useAuthStore = defineStore("auth", () => {
         device.value = data.device;
         isSwitchedUser.value = false;
 
+        // ✅ احفظ الـ role أولاً
+        setItem("user_role", role);
         setItem("auth_token", data.token);
         setItem("auth_user", data.user);
         setItem("auth_device", data.device);
-        
-        // ✅ حفظ الـ role لاستخدامه في الـ API interceptor
-        setItem("user_role", role);
 
         if (data.user?.language) {
           const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
@@ -240,7 +263,7 @@ export const useAuthStore = defineStore("auth", () => {
     removeItem("auth_user");
     removeItem("auth_device");
     removeItem("user_language");
-    removeItem("user_role"); // ✅ إضافة
+    removeItem("user_role");
     removeItem("original_admin_token");
     removeItem("original_admin_user");
     removeItem("is_switched_user");
@@ -264,7 +287,6 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = { ...user.value, ...userData };
     setItem("auth_user", user.value);
     
-    // ✅ تحديث الـ role إذا تغير
     const role = Array.isArray(userData.role) ? userData.role[0] : userData.role;
     if (role) {
       setItem("user_role", role);
@@ -308,7 +330,7 @@ export const useAuthStore = defineStore("auth", () => {
     if (!getItem("original_admin_token")) {
       setItem("original_admin_token", token.value);
       setItem("original_admin_user", user.value);
-      setItem("original_user_role", userRole.value); // ✅ حفظ الـ role الأصلي
+      setItem("original_user_role", userRole.value);
     }
 
     if (userData.image) {
@@ -322,7 +344,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     setItem("auth_token", loginAsToken);
     setItem("auth_user", userData);
-    setItem("user_role", newRole); // ✅ تحديث الـ role
+    setItem("user_role", newRole);
     setItem("is_switched_user", true);
 
     isSwitchedUser.value = true;
@@ -350,7 +372,7 @@ export const useAuthStore = defineStore("auth", () => {
 
         setItem("auth_token", originalToken);
         setItem("auth_user", originalUser);
-        setItem("user_role", originalRole); // ✅ استرجاع الـ role الأصلي
+        setItem("user_role", originalRole);
 
         removeItem("original_admin_token");
         removeItem("original_admin_user");
@@ -368,7 +390,7 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = originalToken;
       setItem("auth_token", originalToken);
       setItem("auth_user", originalUser);
-      setItem("user_role", originalRole); // ✅ استرجاع الـ role الأصلي
+      setItem("user_role", originalRole);
       
       removeItem("original_admin_token");
       removeItem("original_admin_user");

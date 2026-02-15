@@ -43,10 +43,17 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // ✅ استخدام الـ role المحفوظ في localStorage
+    // ✅ للـ requests العادية (مش login)
     const userRole = getItem("user_role");
     
     if (userRole === 'Driver') {
+      config.headers['X-Client'] = 'mobile-app';
+      config.headers['User-Agent'] = 'iphone';
+    }
+
+    // ✅ حالة خاصة: لو كان login request للسائق
+    // نضيف headers مباشرة من الـ config
+    if (config.url === '/login' && config.driverLogin === true) {
       config.headers['X-Client'] = 'mobile-app';
       config.headers['User-Agent'] = 'iphone';
     }
