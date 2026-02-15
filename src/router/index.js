@@ -28,6 +28,7 @@ import collections from "../modules/payment/view/collections.vue";
 import invoices from "../modules/invoices/view/invoices.vue";
 import permissions from "../modules/permissions/view/permissions.vue";
 import statistics from "../modules/statistics/view/statistics.vue";
+import driverSteps from "../modules/driver/view/driverSteps.vue";
 
 // Import sidebar icons so Vite includes them in the production build
 import userIcon from "@/assets/sidebar/userIcon.svg";
@@ -308,6 +309,19 @@ const router = createRouter({
         order: 7,
       },
     },
+    {
+  path: "/driver-steps",
+  name: "DriverSteps",
+  component: driverSteps,
+  meta: {
+    titleKey: "driverSteps.title",
+    requireAuth: true,
+    showInSidebar: true,
+    icon: planIcon,
+    order: 21,
+    roles: ["SuperAdmin", "Admin", "Driver"], // حدد الأدوار المسموحة
+  },
+},
     {
       path: "/:pathMatch(.*)*",
       redirect: (to) => {

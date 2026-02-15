@@ -41,6 +41,8 @@ const getTranslationKey = () => {
       return `driverLine.status.${props.status}`;
     case "user":
       return `user.${props.status}`;
+    case "workPlan": 
+      return `driverSteps.status.${props.status}`;
     default:
       return props.status;
   }
