@@ -113,8 +113,6 @@ modules/<name>/
 ---
 ### Login
 
-### Login
-
 **Route:** `/login` | **Access:** Guest users only
 
 Handles user authentication with support for both username and email login.
@@ -427,6 +425,42 @@ Password recovery flow allowing users to request a password reset link via email
 **Navigation:**
 - "Back to Login" link → `/login`
 - No auto-redirect; user controls next step
+---
+
+**(Expanded - Login-style docs)**
+
+**Form Schema:**
+- `email`: string — required, trimmed, must pass email regex
+
+**Visual & UX:**
+- Focused card with clear instructions and inline validation
+- Success state with animated checkmark and neutral success copy (to avoid account enumeration)
+
+**Key Features:**
+- Client-side validation + server-side mapping of 422 errors
+- Debounced submit to prevent accidental multiple requests
+- Stores `reset_email` (and `reset_token` only if backend returns a token) in `localStorage` for convenience
+
+**Lifecycle Hooks:**
+- `onMounted()` — Autofocus email input, restore `reset_email` if present
+- `onUnmounted()` — Clear timers
+
+**Form Handling (suggested functions):**
+- `validateForm()` — checks non-empty + email regex
+- `handleSubmit()` — validates, posts to `POST /forgot_password`, handles loading state and server responses
+- `clearErrors()` — clears per-field errors on input
+- `handleForgotError(error)` — maps HTTP errors (404/422/500) to user-friendly messages
+
+**API Contract:**
+- `POST /forgot_password`
+  - Request: `{ email }`
+  - Success: `200 { success: true, message: string, token?: string }`
+  - Notes: Prefer backend to return a neutral message regardless of whether email exists
+
+**Security & Accessibility:**
+- Avoid revealing whether an email exists in the system; show neutral confirmation message
+- Announce success/failure via ARIA live regions
+- Use HTTPS and backend rate limiting
 
 ---
 
@@ -521,6 +555,69 @@ Secure password reset interface with token validation and confirmation.
 - Password visibility toggle
 - Minimum password length enforcement
 - HTTPS recommended for production
+---
+
+**(Expanded - Login-style docs)**
+
+**Main View (`resetPassword.vue`) — UX & States:**
+- Split layout: form (left) + informational panel (right; hidden on small screens)
+- Three primary states: `loading` (validating token), `invalidToken` (error), `valid` (show form)
+- Token validation runs immediately on mount
+
+**Form Schema:**
+- `token`: string — required (from query or localStorage)
+- `email`: string — required (from query or localStorage)
+- `password`: string — required, min 6
+- `password_confirmation`: string — required, must match `password`
+
+**Visual & UX:**
+- Clear inline validation and focused password inputs
+- Accessible labels and ARIA announcements for token validation failures
+
+**Components Used:**
+- `FormLabel`, `TextField`, `PrimaryButton`, `SuccessModal`, `ConfirmationModal`
+
+**Lifecycle Hooks:**
+- `onMounted()` — Extract `token`/`email` from URL or `localStorage`, call `validateToken()`
+- `onUnmounted()` — Clear redirect timers
+
+**Key Functions:**
+- `validateToken(token, email)` — Calls `GET /password/reset/validate?token=...&email=...` and sets `valid`/`invalidToken` states
+- `validateForm()` — Client-side checks: password length and confirmation match
+- `handleSubmit()` —
+  - Runs `validateForm()`
+  - Posts `{ token, email, password, password_confirmation }` to `POST /reset_password`
+  - On success: clears stored reset values, shows success UI, redirects to `/login`
+  - On error: maps API errors to field errors via `handleResetError(error)`
+- `clearErrors()` — Clears per-field errors on input
+
+**API Integration & Contract:**
+- `GET /password/reset/validate`
+  - Params: `token`, `email`
+  - Success: `200 { success: true }`
+  - Errors: `400/404` (expired/invalid token)
+- `POST /reset_password`
+  - Body: `{ token, email, password, password_confirmation }`
+  - Success: `200 { success: true, message: string }`
+  - `422`: field validation errors
+
+**Error Mapping:**
+- `400/404` → `resetPassword.errors.expiredLink` / `resetPassword.errors.invalidLink`
+- `422` → map `errors.password` and `errors.password_confirmation` to fields
+- `500` → `resetPassword.errors.serverError`
+
+**Storage & Flow:**
+- Prefer short-lived tokens returned only by backend email links; store `reset_token`/`reset_email` temporarily when strictly required
+- Clear stored tokens after successful reset
+
+**Security & Accessibility:**
+- Do not expose whether a token/email pair is valid in verbose messages; show friendly guidance instead
+- Announce validation failures via ARIA live regions
+- Enforce HTTPS and server-side rate limiting
+
+**Developer Notes:**
+- Use `formErrors.normalizeServerErrors()` to map 422 responses to form fields
+- Debounce submit and protect against replay by disabling submit after first click
 
 ---
 ## Modules Overview
