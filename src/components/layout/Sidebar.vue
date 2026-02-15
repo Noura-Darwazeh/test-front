@@ -1,8 +1,6 @@
 <template>
-  <!-- Overlay for mobile -->
   <div v-if="isMobileMenuOpen" class="sidebar-overlay" @click="closeMobileMenu"></div>
 
-  <!-- Mobile menu toggle button (positioned on left edge) -->
   <button v-if="isMobile && !isMobileMenuOpen" @click="toggleSidebar"
     class="btn btn-sm btn-light mobile-toggle-btn shadow-sm" :class="{ rtl: isRTL }" type="button">
     <img :src="selectorLinesIcon" alt="Menu" width="16" height="16" />
@@ -32,12 +30,12 @@
         <img v-if="item.icon" :src="item.icon" :alt="item.label" width="25" height="25" class="nav-icon" />
         <span v-if="!isCollapsed" class="nav-text">{{ item.label }}</span>
 
-        <!-- Tooltip for collapsed state -->
         <span v-if="isCollapsed" class="nav-tooltip">{{ item.label }}</span>
       </router-link>
     </nav>
   </aside>
 </template>
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -59,15 +57,12 @@ const menuItems = computed(() => {
   const routes = router
     .getRoutes()
     .filter((r) => {
-      // Check if route should show in sidebar
       if (!r.meta?.showInSidebar) return false;
 
-      // ? Check if route has role restrictions
       if (r.meta.roles && r.meta.roles.length > 0) {
-        // Check if user has required role
         return authStore.hasAnyRole(r.meta.roles);
       }
-      // If no role restrictions, show to everyone
+      
       return true;
     })
     .sort((a, b) => {
@@ -200,8 +195,6 @@ onUnmounted(() => {
   .text-primary {
     color: var(--primary-color) !important;
   }
-
-
 }
 
 .nav-tooltip {

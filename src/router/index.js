@@ -1,9 +1,7 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth.js";
 import apiServices from "../services/apiServices.js";
 
-// Import views
 import user from "../modules/user/view/user.vue";
 import driver from "../modules/drivers/view/drivers.vue";
 import customer from "../modules/customer/view/customer.vue";
@@ -30,7 +28,6 @@ import permissions from "../modules/permissions/view/permissions.vue";
 import statistics from "../modules/statistics/view/statistics.vue";
 import driverSteps from "../modules/driver/view/driverSteps.vue";
 
-// Import sidebar icons so Vite includes them in the production build
 import userIcon from "@/assets/sidebar/userIcon.svg";
 import driverIcon from "@/assets/sidebar/driverIcon.svg";
 import customerIcon from "@/assets/sidebar/customerIcon.svg";
@@ -56,7 +53,6 @@ const router = createRouter({
     {
       path: "/",
       redirect: (to) => {
-        // Redirect to user's default page or /user
         const authStore = useAuthStore();
         const defaultPage = authStore.user?.default_page || "/user";
         if (authStore.isAuthenticated && defaultPage) {
@@ -74,7 +70,6 @@ const router = createRouter({
         requiresGuest: true,
       },
     },
-
     {
       path: "/forgot-password",
       name: "forgetPassword",
@@ -126,6 +121,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: driverIcon,
         order: 2,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -138,6 +134,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: customerIcon,
         order: 4,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -163,6 +160,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: branchIcon,
         order: 16,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -175,6 +173,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: linesIcon,
         order: 12,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -187,6 +186,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: linesIcon,
         order: 11,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -199,6 +199,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: priceIcon,
         order: 13,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -211,6 +212,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: regionsIcon,
         order: 17,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -223,6 +225,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: orderIcon,
         order: 5,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -235,6 +238,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: statisticsIcon,
         order: 6,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -247,6 +251,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: discountIcon,
         order: 15,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -259,6 +264,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: currencyIcon,
         order: 18,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -271,6 +277,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: itemPriceIcon,
         order: 14,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -283,6 +290,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: driverlineIcon,
         order: 10,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -295,6 +303,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: mapGlobeIcon,
         order: 19,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -307,34 +316,22 @@ const router = createRouter({
         showInSidebar: true,
         icon: planIcon,
         order: 7,
+        roles: ["SuperAdmin", "Admin", "Driver"],
       },
     },
     {
-  path: "/driver-steps",
-  name: "DriverSteps",
-  component: driverSteps,
-  meta: {
-    titleKey: "driverSteps.title",
-    requireAuth: true,
-    showInSidebar: true,
-    icon: planIcon,
-    order: 21,
-    roles: ["SuperAdmin", "Admin", "Driver"], // حدد الأدوار المسموحة
-  },
-},
-    {
-      path: "/:pathMatch(.*)*",
-      redirect: (to) => {
-        const authStore = useAuthStore();
-        const defaultPage =
-          authStore.user?.default_page || authStore.user?.landing_page;
-        if (authStore.isAuthenticated && defaultPage) {
-          return defaultPage;
-        }
-        return "/user";
+      path: "/driver-steps",
+      name: "DriverSteps",
+      component: driverSteps,
+      meta: {
+        titleKey: "driverSteps.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: planIcon,
+        order: 21,
+        roles: ["SuperAdmin", "Admin", "Driver"],
       },
     },
-
     {
       path: "/collections",
       name: "Collections",
@@ -348,7 +345,6 @@ const router = createRouter({
         roles: ["Admin", "Driver"],
       },
     },
-
     {
       path: "/invoices",
       name: "Invoices",
@@ -359,6 +355,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: invoiceIcon,
         order: 9,
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -374,10 +371,20 @@ const router = createRouter({
         roles: ["SuperAdmin", "Admin"],
       },
     },
+    {
+      path: "/:pathMatch(.*)*",
+      redirect: (to) => {
+        const authStore = useAuthStore();
+        const defaultPage =
+          authStore.user?.default_page || authStore.user?.landing_page;
+        if (authStore.isAuthenticated && defaultPage) {
+          return defaultPage;
+        }
+        return "/user";
+      },
+    },
   ],
 });
-
-// ===== Navigation Guards =====
 
 router.beforeEach((to, from, next) => {
   apiServices.cancelAllRequests();
@@ -386,7 +393,6 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated;
   const userRole = authStore.userRole;
 
-  // Check if route requires authentication
   if (to.meta.requireAuth && !isAuthenticated) {
     return next({
       name: "Login",
@@ -394,30 +400,25 @@ router.beforeEach((to, from, next) => {
     });
   }
 
-  // Check if route requires guest (logged out) access
   if (to.meta.requiresGuest && isAuthenticated) {
-    // Redirect to user's default page
-    const defaultPage =
-      authStore.user?.default_page || authStore.user?.landing_page || "/user";
+    const defaultPage = authStore.user?.default_page || 
+                        authStore.getDefaultPageByRole(userRole);
     return next(defaultPage);
   }
 
-  // Check role-based access
   if (to.meta.roles && to.meta.roles.length > 0) {
     if (!authStore.hasAnyRole(to.meta.roles)) {
-      const defaultPage =
-        authStore.user?.default_page || authStore.user?.landing_page;
+            const defaultPage = authStore.getDefaultPageByRole(userRole);
 
-      // Prevent infinite redirect if default page is the restricted page
+
       if (defaultPage === to.path) {
-        return next("/driver");
+        return next("/work-plans");
       }
 
-      return next(defaultPage || "/driver");
+      return next(defaultPage);
     }
   }
 
-  // Allow navigation
   next();
 });
 

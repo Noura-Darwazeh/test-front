@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getItem, removeItem } from "@/utils/shared/storageUtils";
-// ---- axios instance ----
+import { useAuthStore } from "@/stores/auth.js";
+
 const rawBaseUrl =
   import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35:80/api";
 const normalizedBaseUrl = rawBaseUrl.replace(/\/+$/, "");
@@ -36,12 +37,18 @@ const toQueryString = (params) => {
   return query.toString();
 };
 
-// ---- Request Interceptor ----
 api.interceptors.request.use(
   (config) => {
     const token = getItem("auth_token", null);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // ✅ إضافة Headers للـ Driver
+    const authStore = useAuthStore();
+    if (authStore.userRole === 'Driver') {
+      config.headers['X-Client'] = 'mobile-app';
+      config.headers['User-Agent'] = 'iphone';
     }
 
     if (shouldLogApi) {
@@ -51,6 +58,7 @@ api.interceptors.request.use(
       console.log(`🚀 API Request: ${method} ${fullUrl}`, {
         params: config.params,
         data: config.data,
+        headers: config.headers,
       });
     }
 
@@ -62,7 +70,6 @@ api.interceptors.request.use(
   }
 );
 
-// ---- Response Interceptor ----
 api.interceptors.response.use(
   (response) => {
     if (response.data?.status === "failed") {
@@ -81,23 +88,19 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle different types of errors
     if (error.name === "AbortError" || error.code === "ERR_CANCELED") {
       return Promise.reject(error);
     }
 
-    // Handle network errors
     if (!error.response) {
       console.error("🌐 Network Error:", error.message);
       error.message = "Network error. Please check your connection.";
       return Promise.reject(error);
     }
 
-    // Handle HTTP errors
     const { status, data } = error.response;
-
-    // Don't log errors for optional endpoints (exchange-rates)
     const isOptionalEndpoint = error.config?.url?.includes("/exchange-rates");
+    
     if (!isOptionalEndpoint) {
       console.error(`❌ API Error: ${status}`, {
         url: error.config?.url,
@@ -106,26 +109,18 @@ api.interceptors.response.use(
       });
     }
 
-    // Handle specific status codes
     switch (status) {
       case 401:
-        // Unauthorized - clear token and redirect to login
         removeItem("auth_token");
         error.message = "Session expired. Please login again.";
-        // You can add router redirect here if needed
         break;
-
       case 403:
-        error.message =
-          "Access denied. You don't have permission for this action.";
+        error.message = "Access denied. You don't have permission for this action.";
         break;
-
       case 404:
         error.message = "Resource not found.";
         break;
-
       case 422:
-        // Validation errors
         if (data?.errors) {
           const validationErrors = Object.values(data.errors).flat();
           error.message = validationErrors.join(", ");
@@ -133,15 +128,12 @@ api.interceptors.response.use(
           error.message = data?.message || "Validation failed.";
         }
         break;
-
       case 429:
         error.message = "Too many requests. Please try again later.";
         break;
-
       case 500:
         error.message = "Server error. Please try again later.";
         break;
-
       default:
         error.message = data?.message || `Request failed with status ${status}`;
     }
