@@ -49,6 +49,17 @@
             <template #cell-created_at="{ row }">
               {{ formatDateTime(row.created_at) }}
             </template>
+
+            <template #actions="{ row }">
+              <ActionsDropdown
+                :row="row"
+                :detailsLabel="$t('driverSteps.details')"
+                :showEdit="false"
+                :showDelete="false"
+                :showDetails="true"
+                @details="openDetailsModal"
+              />
+            </template>
           </DataTable>
           
           <div class="px-3 pt-1 pb-2 bg-light">
@@ -63,6 +74,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Details Modal -->
+    <DetailsModal
+      :isOpen="isDetailsModalOpen"
+      :title="$t('driverSteps.stepDetails')"
+      :data="selectedStep"
+      :fields="detailsFields"
+      @close="closeDetailsModal"
+    />
   </div>
 </template>
 
@@ -71,9 +91,12 @@ import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
 import StatusBadge from "../../../components/shared/StatusBadge.vue";
+import ActionsDropdown from "../../../components/shared/Actions.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import { useI18n } from "vue-i18n";
 import DriverStepsHeader from "../components/driverStepsHeader.vue";
 import { useDriverStepsStore } from "../stores/driverStepsStore.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t, locale } = useI18n();
 const stepsStore = useDriverStepsStore();
@@ -82,6 +105,8 @@ const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
 const skipNextPageWatch = ref(false);
+const isDetailsModalOpen = ref(false);
+const selectedStep = ref({});
 
 const itemsPerPage = computed(() => stepsStore.pagination.perPage || 10);
 
@@ -95,10 +120,20 @@ const stepsColumns = computed(() => [
   { key: "status", label: t("driverSteps.status"), sortable: true },
   { key: "date", label: t("driverSteps.date"), sortable: true },
   { key: "created_at", label: t("driverSteps.createdAt"), sortable: true },
-  { key: "notes", label: t("driverSteps.notes"), sortable: false },
 ]);
 
 const visibleColumns = ref([]);
+
+// Details fields for modal
+const detailsFields = computed(() => [
+  { key: "id", label: t("driverSteps.id"), colClass: "col-md-6" },
+  { key: "name", label: t("driverSteps.name"), colClass: "col-md-6" },
+  { key: "driver_name", label: t("driverSteps.driver"), colClass: "col-md-6" },
+  { key: "status", label: t("driverSteps.status"), colClass: "col-md-6", translationKey: "driverSteps.status" },
+  { key: "date", label: t("driverSteps.date"), colClass: "col-md-6" },
+  { key: "created_at", label: t("driverSteps.createdAt"), colClass: "col-md-6" },
+  { key: "notes", label: t("driverSteps.notes"), colClass: "col-md-12" },
+]);
 
 // Fetch data on component mount
 onMounted(async () => {
@@ -193,6 +228,38 @@ const formatDateTime = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// Open details modal and fetch step details
+const openDetailsModal = async (row) => {
+  try {
+    const response = await apiServices.getWorkPlanStepById(row.id);
+    
+    if (response.data?.data) {
+      const stepData = response.data.data;
+      
+      // Format the data for display
+      selectedStep.value = {
+        id: stepData.id,
+        name: stepData.name || 'N/A',
+        driver_name: stepData.driver_name || stepData.driver?.[1] || 'N/A',
+        status: stepData.status || 'N/A',
+        date: formatDate(stepData.date),
+        created_at: formatDateTime(stepData.created_at),
+        notes: stepData.notes || t('driverSteps.noNotes'),
+      };
+      
+      isDetailsModalOpen.value = true;
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch step details:", error);
+    alert(error.message || t('common.errorLoadingData'));
+  }
+};
+
+const closeDetailsModal = () => {
+  isDetailsModalOpen.value = false;
+  selectedStep.value = {};
 };
 </script>
 

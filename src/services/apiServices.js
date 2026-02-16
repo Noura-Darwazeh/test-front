@@ -1136,6 +1136,9 @@ async getWorkPlanSteps({ page = 1, perPage = 10, filters = {}, cancelKey } = {})
     cancelKey: cancelKey ?? "work_plan_steps:list",
   });
 }
+async getWorkPlanStepById(stepId) {
+  return this.get(`/work_plan_steps/${stepId}`);
+}
 }
 
 // Create and freeze the singleton instance
