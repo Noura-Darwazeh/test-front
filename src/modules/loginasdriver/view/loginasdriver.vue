@@ -1,4 +1,3 @@
-<!-- src/modules/loginasdriver/view/loginasdriver.vue -->
 <template>
   <div class="driver-login-container">
     <!-- Mobile Header -->
@@ -115,14 +114,6 @@
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="driver-footer">
-      <div class="container">
-        <p class="text-center text-muted mb-0">
-          © 2024 {{ $t('login.companyName') }}. {{ $t('login.allRightsReserved') }}
-        </p>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -174,7 +165,11 @@ async function onSubmit() {
   }
 
   try {
-    await authStore.login({ login: form.username, password: form.password });
+    // ✅ Driver login - send username and password directly
+    await authStore.loginAsDriver({
+      username: form.username,
+      password: form.password
+    });
     
     // Check if user is actually a driver
     if (authStore.userRole !== 'Driver') {
@@ -201,7 +196,7 @@ async function onSubmit() {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
 }
 
 /* Mobile Header */

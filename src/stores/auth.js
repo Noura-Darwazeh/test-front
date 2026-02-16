@@ -92,13 +92,13 @@ export const useAuthStore = defineStore("auth", () => {
   const userCurrencyName = computed(() => userCurrency.value.name || "");
 
   // ===== Actions =====
-
-  /**
-   * Login user with username or email
-   * @param {Object} credentials - Login credentials {login, password}
-   * @returns {Promise<Object>} User data
-   */
- async function login(credentials) {
+/**
+ * Login user with username or email
+ * @param {Object} credentials - Login credentials {login, password}
+ * @param {Object} options - Login options {isDriverLogin: boolean}
+ * @returns {Promise<Object>} User data
+ */
+async function login(credentials, options = {}) {
   isLoading.value = true;
   error.value = null;
 
@@ -111,10 +111,18 @@ export const useAuthStore = defineStore("auth", () => {
       throw new Error("Password is required");
     }
 
+    // ✅ Special headers for driver login
+    const config = options.isDriverLogin ? {
+      headers: {
+        'X-Client': 'mobile-app',
+        'User-Agent': 'iphone'
+      }
+    } : {};
+
     const response = await api.post("/login", {
       login: credentials.login.trim(),
       password: credentials.password,
-    });
+    }, config);
 
     const data = response.data;
 
@@ -169,7 +177,88 @@ export const useAuthStore = defineStore("auth", () => {
     isLoading.value = false;
   }
 }
+/**
+ * Login as driver with username
+ * @param {Object} credentials - Driver credentials {username, password}
+ * @returns {Promise<Object>} User data
+ */
+async function loginAsDriver(credentials) {
+  isLoading.value = true;
+  error.value = null;
 
+  try {
+    if (!credentials.username || !credentials.username.trim()) {
+      throw new Error("Username is required");
+    }
+
+    if (!credentials.password) {
+      throw new Error("Password is required");
+    }
+
+    // ✅ Driver login with special headers and username field
+    const response = await api.post("/login", {
+      username: credentials.username.trim(),
+      password: credentials.password,
+    }, {
+      headers: {
+        'X-Client': 'mobile-app',
+        // 'User-Agent': 'iphone'
+      }
+    });
+
+    const data = response.data;
+
+    if (data.success === true) {
+      // ✅ Convert image path to full URL
+      if (data.user?.image) {
+        data.user.image = getFullImageUrl(data.user.image);
+      }
+
+      const savedUser = getItem("auth_user");
+      if (savedUser?.default_page && data.user.id === savedUser.id) {
+        data.user.default_page = savedUser.default_page;
+      } else {
+        data.user.default_page = data.user.landing_page || '/work-plans';
+      }
+
+      // Save auth data
+      user.value = data.user;
+      token.value = data.token;
+      device.value = data.device;
+      isSwitchedUser.value = false;
+
+      // Persist to localStorage
+      setItem("auth_token", data.token);
+      setItem("auth_user", data.user);
+      setItem("auth_device", data.device);
+
+      // Set user's preferred language
+      if (data.user?.language) {
+        const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
+        setItem("user_language", uiLang);
+      }
+
+      return data;
+    } else {
+      throw new Error(data.message || "Login failed");
+    }
+  } catch (err) {
+    if (err.response?.data?.success === false) {
+      error.value = err.response.data.message || "Invalid credentials";
+    } else if (err.response?.status === 401) {
+      error.value = "Invalid username or password";
+    } else if (err.response?.status === 422) {
+      error.value = "Please check your input and try again";
+    } else {
+      error.value = err.message || "Login failed. Please try again.";
+    }
+
+    console.error("❌ Driver login error:", err);
+    throw err;
+  } finally {
+    isLoading.value = false;
+  }
+}
 
     
    
@@ -446,6 +535,7 @@ function updateUser(userData) {
     // Actions
     login,
     logout,
+     loginAsDriver,
     initializeAuth,
     clearAuthData,
     clearError,
