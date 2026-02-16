@@ -42,8 +42,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    config.headers["X-Client"] = 'mobile-app';
-    // config.headers['User-Agent'] = 'iphone';
+    // ✅ Default header (بيتم override إذا في headers مخصصة بالـ request)
+    if (!config.headers['X-Client']) {
+      config.headers["X-Client"] = 'desktop-browser';
+    }
 
     if (shouldLogApi) {
       const method = String(config.method || "get").toUpperCase();
@@ -63,6 +65,8 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+
 
 api.interceptors.response.use(
   (response) => {

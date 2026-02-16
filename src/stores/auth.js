@@ -188,14 +188,14 @@ async function loginAsDriver(credentials) {
       throw new Error("Password is required");
     }
 
-    // ✅ Driver login with special headers and username field
+    // ✅ Driver login - send username and password with mobile-app headers
     const response = await api.post("/login", {
       username: credentials.username.trim(),
       password: credentials.password,
     }, {
       headers: {
         'X-Client': 'mobile-app',
-        'User-Agent': 'iphone'
+        // 'User-Agent': 'iphone'  // ممكن تحذفي هاد السطر إذا مش مطلوب
       }
     });
 
@@ -207,6 +207,7 @@ async function loginAsDriver(credentials) {
         data.user.image = getFullImageUrl(data.user.image);
       }
 
+      // Set default page for driver
       const savedUser = getItem("auth_user");
       if (savedUser?.default_page && data.user.id === savedUser.id) {
         data.user.default_page = savedUser.default_page;
