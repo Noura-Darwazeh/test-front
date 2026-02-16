@@ -24,7 +24,14 @@
     forgotPassword: "نسيت كلمة المرور؟",
     signIn: "تسجيل الدخول",
     signingIn: "جاري تسجيل الدخول...",
-
+driverPortal: 'بوابة السائقين',
+  driverLogin: 'تسجيل دخول السائق',
+  driverSubtitle: 'الوصول إلى لوحة التحكم الخاصة بك',
+  usernameLabel: 'اسم المستخدم',
+  usernamePlaceholder: 'أدخل اسم المستخدم',
+  backToMainLogin: 'العودة لتسجيل الدخول الرئيسي',
+  companyName: 'شركتك',
+  allRightsReserved: 'جميع الحقوق محفوظة',
     // Validation
     validation: {
       emailRequired: 'البريد الإلكتروني أو اسم المستخدم مطلوب',
@@ -34,6 +41,8 @@
       invalidUsername: 'اسم المستخدم غير صحيح',
       invalidPassword: 'كلمة المرور غير صحيحة',
       invalidCredentials: 'البريد الإلكتروني/اسم المستخدم أو كلمة المرور غير صحيحة',
+       usernameRequired: 'اسم المستخدم مطلوب',
+    notADriver: 'هذا الحساب غير مصرح له كسائق',
     },
 
     // Success messages

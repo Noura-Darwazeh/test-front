@@ -27,7 +27,14 @@ export default {
     forgotPassword: "Forgot Password?",
     signIn: "Sign In",
     signingIn: "Signing In...",
-
+driverPortal: 'Driver Portal',
+  driverLogin: 'Driver Login',
+  driverSubtitle: 'Access your delivery dashboard',
+  usernameLabel: 'Username',
+  usernamePlaceholder: 'Enter your username',
+  backToMainLogin: 'Back to Main Login',
+  companyName: 'Your Company',
+  allRightsReserved: 'All rights reserved',
     // Validation
     validation: {
       emailRequired: 'Email or username is required',
@@ -37,6 +44,8 @@ export default {
       invalidUsername: 'Invalid username',
       invalidPassword: 'Incorrect password',
       invalidCredentials: 'Invalid email/username or password',
+       usernameRequired: 'Username is required',
+    notADriver: 'This account is not authorized as a driver',
     },
 
     // Success messages

@@ -71,6 +71,14 @@
 
             <PrimaryButton :text="$t('login.signIn')" :loading-text="$t('login.signingIn')"
               :loading="authStore.isLoading" type="submit" class="w-100" />
+
+               <div class="text-center mt-4">
+      <p class="text-muted mb-2">{{ $t('login.areYouDriver') }}</p>
+      <router-link to="/driver-login" class="btn btn-outline-primary">
+        <i class="fas fa-truck me-2"></i>
+        {{ $t('login.driverLogin') }}
+      </router-link>
+    </div>
           </form>
         </div>
       </div>

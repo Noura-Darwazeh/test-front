@@ -17,6 +17,7 @@ import companyPrice from "../modules/companyPrice/view/companyPrice.vue";
 import driverLine from "../modules/driverLine/view/driverLine.vue";
 import map from "../modules/map/view/mapPage.vue";
 import Login from "../modules/login/view/login.vue";
+import loginAsDriver from "../modules/loginasdriver/view/loginasdriver.vue";
 import forgetPassword from "../modules/forgetPassword/view/forgetPassword.vue";
 import resetPassword from "../modules/resetPassword/view/resetPassword.vue";
 import regions from "../modules/regions/view/regions.vue";
@@ -70,6 +71,15 @@ const router = createRouter({
         requiresGuest: true,
       },
     },
+     {
+    path: "/driver-login",
+    name: "DriverLogin",
+    component: loginAsDriver,
+    meta: {
+      hiddenLayout: true,
+      requiresGuest: true,
+    },
+  },
     {
       path: "/forgot-password",
       name: "forgetPassword",

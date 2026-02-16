@@ -20,7 +20,7 @@ export const useAuthStore = defineStore("auth", () => {
   const device = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
-  const isSwitchedUser = ref(false); 
+  const isSwitchedUser = ref(false); // ✅ غيّرناها من computed لـ ref
 
   // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -98,7 +98,7 @@ export const useAuthStore = defineStore("auth", () => {
    * @param {Object} credentials - Login credentials {login, password}
    * @returns {Promise<Object>} User data
    */
-async function login(credentials) {
+ async function login(credentials) {
   isLoading.value = true;
   error.value = null;
 
@@ -111,9 +111,8 @@ async function login(credentials) {
       throw new Error("Password is required");
     }
 
-  
     const response = await api.post("/login", {
-      username: credentials.login.trim(), 
+      login: credentials.login.trim(),
       password: credentials.password,
     });
 
@@ -170,21 +169,12 @@ async function login(credentials) {
     isLoading.value = false;
   }
 }
-/**
- * Get default page based on user role
- * @param {string} role - User role
- * @returns {string} Default page path
- */
-function getDefaultPageByRole(role) {
-  const rolePages = {
-    'SuperAdmin': '/user',
-    'Admin': '/user',
-    'Driver': '/work-plans',
-    'Customer': '/orders',
-  };
-  
-  return rolePages[role] || '/user';
-}
+
+
+    
+   
+
+
   async function logout() {
     isLoading.value = true;
     error.value = null;
@@ -240,7 +230,7 @@ function getDefaultPageByRole(role) {
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
-      isSwitchedUser.value = !!savedIsSwitched; 
+      isSwitchedUser.value = !!savedIsSwitched; // ✅ حدّثي الـ state
     }
   }
 
@@ -249,7 +239,7 @@ function getDefaultPageByRole(role) {
     token.value = null;
     device.value = null;
     error.value = null;
-    isSwitchedUser.value = false;
+    isSwitchedUser.value = false; // ✅ امسحي الـ state
 
     removeItem("auth_token");
     removeItem("auth_user");
@@ -268,7 +258,12 @@ function getDefaultPageByRole(role) {
    * Update user data
    * @param {Object} userData - Updated user data
    */
+  // في src/stores/auth.js
 
+/**
+ * Update user data
+ * @param {Object} userData - Updated user data
+ */
 function updateUser(userData) {
   // ✅ Convert image path to full URL with cache busting
   if (userData.image) {
@@ -281,8 +276,10 @@ function updateUser(userData) {
     }
   }
 
+  // ✅ دمج البيانات الجديدة مع القديمة
   user.value = { ...user.value, ...userData };
 
+  // ✅ خزّني كل شي بالـ localStorage
   setItem("auth_user", user.value);
 }
 
@@ -361,7 +358,7 @@ function updateUser(userData) {
     setItem("auth_user", userData);
     setItem("is_switched_user", true);
 
-    isSwitchedUser.value = true; 
+    isSwitchedUser.value = true; // ✅ حدّثي الـ state
   }
 
   /**
@@ -377,8 +374,10 @@ function updateUser(userData) {
     }
 
     try {
+      // استخدمي الـ login_as_token للرجوع
       const currentToken = token.value;
       
+      // استرجعي الـ token الأصلي مؤقتًا لعمل الـ API call
       token.value = originalToken;
       
       const response = await api.post("/return_to_original");
@@ -397,13 +396,14 @@ function updateUser(userData) {
         removeItem("original_admin_user");
         removeItem("is_switched_user");
 
-        isSwitchedUser.value = false;
+        isSwitchedUser.value = false; // ✅ حدّثي الـ state
 
         return true;
       }
     } catch (error) {
       console.error("❌ Error returning to admin:", error);
       
+      // حتى لو فشل الـ API، ارجعي للـ admin محليًا
       user.value = originalUser;
       token.value = originalToken;
       setItem("auth_token", originalToken);
@@ -412,7 +412,7 @@ function updateUser(userData) {
       removeItem("original_admin_user");
       removeItem("is_switched_user");
       
-      isSwitchedUser.value = false; 
+      isSwitchedUser.value = false; // ✅ حدّثي الـ state
       
       return true;
     }
@@ -430,7 +430,7 @@ function updateUser(userData) {
     device,
     isLoading,
     error,
-    isSwitchedUser, 
+    isSwitchedUser, // ✅ هسا reactive ref
 
     // Getters
     isAuthenticated,
