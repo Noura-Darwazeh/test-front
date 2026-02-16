@@ -122,8 +122,7 @@ export const useAuthStore = defineStore("auth", () => {
       } catch (firstError) {
         // ✅ لو فشل بسبب 403 "not allowed via web"
         // نحاول مرة تانية مع headers السائق
-        if (firstError.response?.status === 403 && 
-            firstError.response?.data?.message?.includes('not allowed to login via web')) {
+        if (firstError.response?.status === 403) {
           
           console.log('🔄 Retrying login with driver headers...');
           
