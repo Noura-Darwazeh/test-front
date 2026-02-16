@@ -43,7 +43,7 @@ api.interceptors.request.use(
     }
 
     config.headers["X-Client"] = 'mobile-app';
-    config.headers['User-Agent'] = 'iphone';
+    // config.headers['User-Agent'] = 'iphone';
 
     if (shouldLogApi) {
       const method = String(config.method || "get").toUpperCase();
