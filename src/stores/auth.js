@@ -195,7 +195,7 @@ async function loginAsDriver(credentials) {
     }, {
       headers: {
         'X-Client': 'mobile-app',
-        // 'User-Agent': 'iphone'
+        'User-Agent': 'iphone'
       }
     });
 
@@ -252,6 +252,13 @@ async function loginAsDriver(credentials) {
     isLoading.value = false;
   }
 }
+
+    
+   
+
+    
+   
+
 
   async function logout() {
     isLoading.value = true;
