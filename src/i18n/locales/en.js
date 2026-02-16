@@ -434,6 +434,10 @@ export default {
       pickup: "Picked Up",
       done: "Completed",
       failed: "Failed"
+    },
+      tabs: {
+      ongoing: "Ongoing Tasks",
+      all: "All Tasks"
     }
   },
 

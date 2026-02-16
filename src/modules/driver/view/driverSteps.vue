@@ -14,6 +14,35 @@
       @refresh-click="handleRefresh"
     />
 
+    <!-- Tabs Navigation -->
+    <div class="card border-0 mb-3">
+      <div class="card-body p-0">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <button 
+              class="nav-link" 
+              :class="{ active: activeTab === 'ongoing' }"
+              @click="switchTab('ongoing')"
+            >
+              <i class="bi bi-hourglass-split me-2"></i> 
+              {{ $t('driverSteps.tabs.ongoing') }}
+              <span v-if="ongoingCount > 0" class="badge bg-primary ms-2">{{ ongoingCount }}</span>
+            </button>
+          </li>
+          <li class="nav-item">
+            <button 
+              class="nav-link" 
+              :class="{ active: activeTab === 'all' }" 
+              @click="switchTab('all')"
+            >
+              <i class="bi bi-list-task me-2"></i> 
+              {{ $t('driverSteps.tabs.all') }}
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <div class="card border-0">
       <div class="card-body p-0">
         <!-- Loading State -->
@@ -107,11 +136,29 @@ const currentPage = ref(1);
 const skipNextPageWatch = ref(false);
 const isDetailsModalOpen = ref(false);
 const selectedStep = ref({});
+const activeTab = ref('ongoing'); // Default to ongoing tab
 
 const itemsPerPage = computed(() => stepsStore.pagination.perPage || 10);
 
 // Get steps from store
 const steps = computed(() => stepsStore.steps);
+
+// Filter steps based on active tab - FRONTEND FILTERING
+const filteredSteps = computed(() => {
+  if (activeTab.value === 'ongoing') {
+    // Exclude done and failed
+    return steps.value.filter(step => 
+      !['done', 'failed'].includes(step.status)
+    );
+  }
+  // All tab - show everything
+  return steps.value;
+});
+
+// Calculate ongoing count (exclude done and failed)
+const ongoingCount = computed(() => {
+  return filteredSteps.value.length;
+});
 
 const stepsColumns = computed(() => [
   { key: "__index", label: "#", sortable: false, isIndex: true },
@@ -157,6 +204,19 @@ watch(currentPage, async (newPage) => {
   }
 });
 
+// Switch tab function
+const switchTab = async (tab) => {
+  activeTab.value = tab;
+  skipNextPageWatch.value = true;
+  currentPage.value = 1;
+  
+  try {
+    await fetchStepsPage(1);
+  } catch (error) {
+    console.error("Failed to switch tabs:", error);
+  }
+};
+
 const handleRefresh = async () => {
   try {
     await fetchStepsPage(currentPage.value);
@@ -175,12 +235,15 @@ const buildStepsFilters = () => {
   if (trimmedSearch) {
     filters.search = trimmedSearch;
   }
-  if (selectedGroups.value.length > 0) {
+  
+  // Apply status filter only in 'all' tab when manually selected
+  if (activeTab.value === 'all' && selectedGroups.value.length > 0) {
     filters.status =
       selectedGroups.value.length === 1
         ? selectedGroups.value[0]
         : selectedGroups.value.join(",");
   }
+  
   return filters;
 };
 
@@ -193,8 +256,8 @@ const fetchStepsPage = async (page = 1) => {
   });
 };
 
-// Server returns paginated data
-const paginatedData = computed(() => steps.value);
+// Server returns paginated data, then filter on frontend
+const paginatedData = computed(() => filteredSteps.value);
 
 watch([searchText, selectedGroups], async () => {
   if (currentPage.value !== 1) {
@@ -266,5 +329,30 @@ const closeDetailsModal = () => {
 <style scoped>
 .driver-steps-container {
   max-width: 100%;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #6c757d;
+  padding: 1rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  border-bottom-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  background-color: transparent;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
 }
 </style>

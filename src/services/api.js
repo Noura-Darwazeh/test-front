@@ -42,7 +42,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // ✅ أضيفي الـ headers لكل الـ requests (بما فيهم login)
     config.headers["X-Client"] = 'mobile-app';
     config.headers['User-Agent'] = 'iphone';
 
