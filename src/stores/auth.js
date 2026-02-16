@@ -3,8 +3,10 @@ import { ref, computed } from "vue";
 import api from "@/services/api.js";
 import { setItem, getItem, removeItem } from "@/utils/shared/storageUtils.js";
 
+// API Base URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
 
+// Helper function to convert relative image path to full URL
 const getFullImageUrl = (imagePath) => {
   if (!imagePath) return null;
   if (imagePath.startsWith('http')) return imagePath;
@@ -12,17 +14,20 @@ const getFullImageUrl = (imagePath) => {
 };
 
 export const useAuthStore = defineStore("auth", () => {
+  // ===== State =====
   const user = ref(null);
   const token = ref(null);
   const device = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
-  const isSwitchedUser = ref(false);
+  const isSwitchedUser = ref(false); // ✅ غيّرناها من computed لـ ref
 
+  // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
 
   const userRole = computed(() => {
     const role = user.value?.role;
+    // Handle if backend returns role as array
     if (Array.isArray(role)) {
       return role[0] || null;
     }
@@ -86,108 +91,89 @@ export const useAuthStore = defineStore("auth", () => {
 
   const userCurrencyName = computed(() => userCurrency.value.name || "");
 
-  const getDefaultPageByRole = (role) => {
-    switch (role) {
-      case 'Driver':
-        return '/work-plans';
-      case 'Admin':
-        return '/statistics';
-      case 'SuperAdmin':
-        return '/user';
-      default:
-        return '/work-plans';
+  // ===== Actions =====
+
+  /**
+   * Login user with username or email
+   * @param {Object} credentials - Login credentials {login, password}
+   * @returns {Promise<Object>} User data
+   */
+ async function login(credentials) {
+  isLoading.value = true;
+  error.value = null;
+
+  try {
+    if (!credentials.login || !credentials.login.trim()) {
+      throw new Error("Email or username is required");
     }
-  };
 
-  async function login(credentials) {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      if (!credentials.login || !credentials.login.trim()) {
-        throw new Error("Email or username is required");
-      }
-
-      if (!credentials.password) {
-        throw new Error("Password is required");
-      }
-
-      // ✅ أول محاولة - بدون headers
-      let response;
-      try {
-        response = await api.post("/login", {
-          login: credentials.login.trim(),
-          password: credentials.password,
-        });
-      } catch (firstError) {
-        // ✅ لو فشل بسبب 403 "not allowed via web"
-        // نحاول مرة تانية مع headers السائق
-        if (firstError.response?.status === 403) {
-          
-          console.log('🔄 Retrying login with driver headers...');
-          
-          response = await api.post("/login", 
-            {
-              login: credentials.login.trim(),
-              password: credentials.password,
-            },
-            {
-              driverLogin: true // ✅ علامة للـ interceptor
-            }
-          );
-        } else {
-          throw firstError;
-        }
-      }
-
-      const data = response.data;
-
-      if (data.success === true) {
-        if (data.user?.image) {
-          data.user.image = getFullImageUrl(data.user.image);
-        }
-
-        const role = Array.isArray(data.user.role) ? data.user.role[0] : data.user.role;
-
-        data.user.default_page = data.user.landing_page || getDefaultPageByRole(role);
-
-        user.value = data.user;
-        token.value = data.token;
-        device.value = data.device;
-        isSwitchedUser.value = false;
-
-        // ✅ احفظ الـ role أولاً
-        setItem("user_role", role);
-        setItem("auth_token", data.token);
-        setItem("auth_user", data.user);
-        setItem("auth_device", data.device);
-
-        if (data.user?.language) {
-          const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
-          setItem("user_language", uiLang);
-        }
-
-        return data;
-      } else {
-        throw new Error(data.message || "Login failed");
-      }
-    } catch (err) {
-      if (err.response?.data?.success === false) {
-        error.value = err.response.data.message || "Invalid credentials";
-      } else if (err.response?.status === 401) {
-        error.value = "Invalid username/email or password";
-      } else if (err.response?.status === 422) {
-        error.value = "Please check your input and try again";
-      } else {
-        error.value = err.message || "Login failed. Please try again.";
-      }
-
-      console.error("❌ Login error:", err);
-      throw err;
-    } finally {
-      isLoading.value = false;
+    if (!credentials.password) {
+      throw new Error("Password is required");
     }
+
+    const response = await api.post("/login", {
+      login: credentials.login.trim(),
+      password: credentials.password,
+    });
+
+    const data = response.data;
+
+    if (data.success === true) {
+      // ✅ Convert image path to full URL
+      if (data.user?.image) {
+        data.user.image = getFullImageUrl(data.user.image);
+      }
+
+      const savedUser = getItem("auth_user");
+      if (savedUser?.default_page && data.user.id === savedUser.id) {
+        data.user.default_page = savedUser.default_page;
+      } else {
+        data.user.default_page = data.user.landing_page || '/user';
+      }
+
+      // Save auth data
+      user.value = data.user;
+      token.value = data.token;
+      device.value = data.device;
+      isSwitchedUser.value = false;
+
+      // Persist to localStorage
+      setItem("auth_token", data.token);
+      setItem("auth_user", data.user);
+      setItem("auth_device", data.device);
+
+      // Set user's preferred language
+      if (data.user?.language) {
+        const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
+        setItem("user_language", uiLang);
+      }
+
+      return data;
+    } else {
+      throw new Error(data.message || "Login failed");
+    }
+  } catch (err) {
+    if (err.response?.data?.success === false) {
+      error.value = err.response.data.message || "Invalid credentials";
+    } else if (err.response?.status === 401) {
+      error.value = "Invalid username/email or password";
+    } else if (err.response?.status === 422) {
+      error.value = "Please check your input and try again";
+    } else {
+      error.value = err.message || "Login failed. Please try again.";
+    }
+
+    console.error("❌ Login error:", err);
+    throw err;
+  } finally {
+    isLoading.value = false;
   }
+}
+
+
+    
+   
+
 
   async function logout() {
     isLoading.value = true;
@@ -231,23 +217,20 @@ export const useAuthStore = defineStore("auth", () => {
     const savedToken = getItem("auth_token");
     const savedUser = getItem("auth_user");
     const savedDevice = getItem("auth_device");
-    const savedIsSwitched = getItem("is_switched_user");
-    const savedRole = getItem("user_role");
+    const savedIsSwitched = getItem("is_switched_user");  
 
     if (savedToken && savedUser) {
+      // ✅ Convert image path to full URL if needed
       if (savedUser.image && !savedUser.image.startsWith('http')) {
         savedUser.image = getFullImageUrl(savedUser.image);
       }
-
-      if (!savedUser.default_page) {
-        const role = savedRole || (Array.isArray(savedUser.role) ? savedUser.role[0] : savedUser.role);
-        savedUser.default_page = getDefaultPageByRole(role);
-      }
-
+  if (!savedUser.default_page) {
+      savedUser.default_page = '/user';
+    }
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
-      isSwitchedUser.value = !!savedIsSwitched;
+      isSwitchedUser.value = !!savedIsSwitched; // ✅ حدّثي الـ state
     }
   }
 
@@ -256,13 +239,12 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = null;
     device.value = null;
     error.value = null;
-    isSwitchedUser.value = false;
+    isSwitchedUser.value = false; // ✅ امسحي الـ state
 
     removeItem("auth_token");
     removeItem("auth_user");
     removeItem("auth_device");
     removeItem("user_language");
-    removeItem("user_role");
     removeItem("original_admin_token");
     removeItem("original_admin_user");
     removeItem("is_switched_user");
@@ -272,26 +254,40 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
   }
 
-  function updateUser(userData) {
-    if (userData.image) {
-      if (!userData.image.startsWith('http')) {
-        userData.image = getFullImageUrl(userData.image);
-      }
-      const hasTimestamp = userData.image.includes('?t=');
-      if (!hasTimestamp) {
-        userData.image = `${userData.image}?t=${Date.now()}`;
-      }
-    }
+  /**
+   * Update user data
+   * @param {Object} userData - Updated user data
+   */
+  // في src/stores/auth.js
 
-    user.value = { ...user.value, ...userData };
-    setItem("auth_user", user.value);
-    
-    const role = Array.isArray(userData.role) ? userData.role[0] : userData.role;
-    if (role) {
-      setItem("user_role", role);
+/**
+ * Update user data
+ * @param {Object} userData - Updated user data
+ */
+function updateUser(userData) {
+  // ✅ Convert image path to full URL with cache busting
+  if (userData.image) {
+    if (!userData.image.startsWith('http')) {
+      userData.image = getFullImageUrl(userData.image);
+    }
+    const hasTimestamp = userData.image.includes('?t=');
+    if (!hasTimestamp) {
+      userData.image = `${userData.image}?t=${Date.now()}`;
     }
   }
 
+  // ✅ دمج البيانات الجديدة مع القديمة
+  user.value = { ...user.value, ...userData };
+
+  // ✅ خزّني كل شي بالـ localStorage
+  setItem("auth_user", user.value);
+}
+
+  /**
+   * Update user language in backend and locally
+   * @param {string} language - Language to set (english or arabic)
+   * @returns {Promise<Object>} Updated user data
+   */
   async function updateUserLanguage(language) {
     try {
       if (!user.value?.id) {
@@ -317,42 +313,60 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  /**
+   * Check if user has specific role
+   * @param {string} role - Role to check
+   * @returns {boolean}
+   */
   function hasRole(role) {
     return userRole.value === role;
   }
 
+  /**
+   * Check if user has any of the specified roles
+   * @param {Array<string>} roles - Array of roles to check
+   * @returns {boolean}
+   */
   function hasAnyRole(roles) {
     return roles.includes(userRole.value);
   }
 
+  /**
+   * Switch to another user (SuperAdmin only)
+   * @param {Object} userData - New user data
+   * @param {string} loginAsToken - Login-as token
+   * @param {string} originalToken - Original SuperAdmin token
+   */
   function switchUser(userData, loginAsToken, originalToken) {
+    // Save original token to return later
     if (!getItem("original_admin_token")) {
       setItem("original_admin_token", token.value);
       setItem("original_admin_user", user.value);
-      setItem("original_user_role", userRole.value);
     }
 
+    // Convert image path to full URL
     if (userData.image) {
       userData.image = getFullImageUrl(userData.image);
     }
 
-    const newRole = Array.isArray(userData.role) ? userData.role[0] : userData.role;
-
+    // Update current session with switched user
     user.value = userData;
     token.value = loginAsToken;
 
+    // Save to localStorage
     setItem("auth_token", loginAsToken);
     setItem("auth_user", userData);
-    setItem("user_role", newRole);
     setItem("is_switched_user", true);
 
-    isSwitchedUser.value = true;
+    isSwitchedUser.value = true; // ✅ حدّثي الـ state
   }
 
+  /**
+   * Return to original SuperAdmin account
+   */
   async function returnToAdmin() {
     const originalToken = getItem("original_admin_token");
     const originalUser = getItem("original_admin_user");
-    const originalRole = getItem("original_user_role");
 
     if (!originalToken || !originalUser) {
       console.warn("⚠️ No original admin session found");
@@ -360,43 +374,45 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
+      // استخدمي الـ login_as_token للرجوع
       const currentToken = token.value;
+      
+      // استرجعي الـ token الأصلي مؤقتًا لعمل الـ API call
       token.value = originalToken;
       
       const response = await api.post("/return_to_original");
       
       if (response.data?.status === 'success') {
+        // Restore original admin session
         user.value = originalUser;
         token.value = originalToken;
 
+        // Update localStorage
         setItem("auth_token", originalToken);
         setItem("auth_user", originalUser);
-        setItem("user_role", originalRole);
 
+        // Clear switch session data
         removeItem("original_admin_token");
         removeItem("original_admin_user");
-        removeItem("original_user_role");
         removeItem("is_switched_user");
 
-        isSwitchedUser.value = false;
+        isSwitchedUser.value = false; // ✅ حدّثي الـ state
 
         return true;
       }
     } catch (error) {
       console.error("❌ Error returning to admin:", error);
       
+      // حتى لو فشل الـ API، ارجعي للـ admin محليًا
       user.value = originalUser;
       token.value = originalToken;
       setItem("auth_token", originalToken);
       setItem("auth_user", originalUser);
-      setItem("user_role", originalRole);
-      
       removeItem("original_admin_token");
       removeItem("original_admin_user");
-      removeItem("original_user_role");
       removeItem("is_switched_user");
       
-      isSwitchedUser.value = false;
+      isSwitchedUser.value = false; // ✅ حدّثي الـ state
       
       return true;
     }
@@ -404,15 +420,19 @@ export const useAuthStore = defineStore("auth", () => {
     return false;
   }
 
+  // Initialize auth on store creation
   initializeAuth();
 
   return {
+    // State
     user,
     token,
     device,
     isLoading,
     error,
-    isSwitchedUser,
+    isSwitchedUser, // ✅ هسا reactive ref
+
+    // Getters
     isAuthenticated,
     userRole,
     userName,
@@ -422,6 +442,8 @@ export const useAuthStore = defineStore("auth", () => {
     userCurrency,
     userCurrencyId,
     userCurrencyName,
+
+    // Actions
     login,
     logout,
     initializeAuth,
@@ -433,6 +455,5 @@ export const useAuthStore = defineStore("auth", () => {
     hasAnyRole,
     switchUser,
     returnToAdmin,
-    getDefaultPageByRole,
   };
 });

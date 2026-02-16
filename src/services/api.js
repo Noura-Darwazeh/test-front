@@ -35,27 +35,20 @@ const toQueryString = (params) => {
   });
   return query.toString();
 };
-
 api.interceptors.request.use(
   (config) => {
     const token = getItem("auth_token", null);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    // ✅ للـ requests العادية (مش login)
-    const userRole = getItem("user_role");
-    
-    if (userRole === 'Driver') {
-      config.headers['X-Client'] = 'mobile-app';
-      config.headers['User-Agent'] = 'iphone';
-    }
-
-    // ✅ حالة خاصة: لو كان login request للسائق
-    // نضيف headers مباشرة من الـ config
-    if (config.url === '/login' && config.driverLogin === true) {
-      config.headers['X-Client'] = 'mobile-app';
-      config.headers['User-Agent'] = 'iphone';
+      
+      // ✅ بس للـ requests بعد الـ login (مش للـ login نفسه)
+      if (config.url !== '/login') {
+        const userRole = getItem("user_role");
+        if (userRole === 'Driver') {
+          config.headers['X-Client'] = 'mobile-app';
+          config.headers['User-Agent'] = 'iphone';
+        }
+      }
     }
 
     if (shouldLogApi) {

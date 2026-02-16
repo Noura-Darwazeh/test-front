@@ -1129,14 +1129,6 @@ class ApiServices {
       collection_ids: collectionIds
     });
   }
-
-  // ===== Work Plan Steps Services =====
-async getWorkPlanSteps({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
-  return this.get("/work_plan_steps", {
-    params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
-    cancelKey: cancelKey ?? "work_plan_steps:list",
-  });
-}
 }
 
 // Create and freeze the singleton instance
