@@ -186,7 +186,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: linesIcon,
         order: 11,
-        roles: ["SuperAdmin", "Admin"],
+        roles: ["SuperAdmin", "Admin","Driver"],
       },
     },
     {
@@ -290,7 +290,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: driverlineIcon,
         order: 10,
-        roles: ["SuperAdmin", "Admin"],
+        roles: ["SuperAdmin", "Admin","Driver"],
       },
     },
     {
@@ -303,7 +303,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: mapGlobeIcon,
         order: 19,
-        roles: ["SuperAdmin", "Admin"],
+        roles: ["SuperAdmin", "Admin", "Driver"],
       },
     },
     {
@@ -342,7 +342,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: priceIcon,
         order: 8,
-        roles: ["Admin", "Driver"],
+        roles: ["Admin"],
       },
     },
     {
