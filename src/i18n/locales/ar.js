@@ -414,6 +414,31 @@
     edit: "تعديل",
     details: "تفاصيل ",
   },
+
+  driverSteps: {
+    title: "خطوات السائق",
+    searchPlaceholder: "ابحث بالاسم، السائق، أو الملاحظات...",
+    filterByStatus: "تصفية حسب الحالة",
+    name: "الاسم",
+    driver: "السائق",
+    status: "الحالة",
+    date: "التاريخ",
+    createdAt: "تاريخ الإنشاء",
+    notes: "الملاحظات",
+    actions: "الإجراءات",
+    noStepsFound: "لا توجد خطوات للسائق",
+    entitySingular: "خطوة سائق",
+    entityPlural: "خطوات السائق",
+    notCompleted: "غير مكتملة",
+    status: {
+      pending: "قيد الانتظار",
+      start: "بدأت",
+      pickup: "تم الاستلام",
+      done: "مكتملة",
+      failed: "فشلت"
+    }
+  },
+
   customer: {
     // عناوين الصفحة
     title: "جدول العملاء",

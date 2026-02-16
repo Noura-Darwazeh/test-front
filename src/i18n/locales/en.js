@@ -411,6 +411,32 @@ export default {
     edit: "Edit",
     details: "Details",
   },
+
+  
+  driverSteps: {
+    title: "Driver Steps",
+    searchPlaceholder: "Search by name, driver, or notes...",
+    filterByStatus: "Filter by Status",
+    name: "Name",
+    driver: "Driver",
+    status: "Status",
+    date: "Date",
+    createdAt: "Created At",
+    notes: "Notes",
+    actions: "Actions",
+    noStepsFound: "No driver steps found",
+    entitySingular: "driver step",
+    entityPlural: "driver steps",
+    notCompleted: "Not Completed",
+    status: {
+      pending: "Pending",
+      start: "Started",
+      pickup: "Picked Up",
+      done: "Completed",
+      failed: "Failed"
+    }
+  },
+
   customer: {
     // Page Headers
     title: "Customer Table",
