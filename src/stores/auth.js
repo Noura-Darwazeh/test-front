@@ -92,13 +92,13 @@ export const useAuthStore = defineStore("auth", () => {
   const userCurrencyName = computed(() => userCurrency.value.name || "");
 
   // ===== Actions =====
-/**
- * Login user with username or email
- * @param {Object} credentials - Login credentials {login, password}
- * @param {Object} options - Login options {isDriverLogin: boolean}
- * @returns {Promise<Object>} User data
- */
-async function login(credentials, options = {}) {
+
+  /**
+   * Login user with username or email
+   * @param {Object} credentials - Login credentials {login, password}
+   * @returns {Promise<Object>} User data
+   */
+ async function login(credentials) {
   isLoading.value = true;
   error.value = null;
 
@@ -111,18 +111,10 @@ async function login(credentials, options = {}) {
       throw new Error("Password is required");
     }
 
-    // ✅ Special headers for driver login
-    const config = options.isDriverLogin ? {
-      headers: {
-        'X-Client': 'mobile-app',
-        'User-Agent': 'iphone'
-      }
-    } : {};
-
     const response = await api.post("/login", {
       login: credentials.login.trim(),
       password: credentials.password,
-    }, config);
+    });
 
     const data = response.data;
 
@@ -177,6 +169,7 @@ async function login(credentials, options = {}) {
     isLoading.value = false;
   }
 }
+
 /**
  * Login as driver with username
  * @param {Object} credentials - Driver credentials {username, password}
@@ -259,10 +252,6 @@ async function loginAsDriver(credentials) {
     isLoading.value = false;
   }
 }
-
-    
-   
-
 
   async function logout() {
     isLoading.value = true;
@@ -535,7 +524,6 @@ function updateUser(userData) {
     // Actions
     login,
     logout,
-     loginAsDriver,
     initializeAuth,
     clearAuthData,
     clearError,
@@ -545,5 +533,6 @@ function updateUser(userData) {
     hasAnyRole,
     switchUser,
     returnToAdmin,
+    loginAsDriver
   };
 });
