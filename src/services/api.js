@@ -40,16 +40,11 @@ api.interceptors.request.use(
     const token = getItem("auth_token", null);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      
-      // ✅ بس للـ requests بعد الـ login (مش للـ login نفسه)
-      if (config.url !== '/login') {
-        const userRole = getItem("user_role");
-        if (userRole === 'Driver') {
-          config.headers['X-Client'] = 'mobile-app';
-          config.headers['User-Agent'] = 'iphone';
-        }
-      }
     }
+
+    // ✅ أضيفي الـ headers لكل الـ requests (بما فيهم login)
+    config.headers["X-Client"] = 'mobile-app';
+    config.headers['User-Agent'] = 'iphone';
 
     if (shouldLogApi) {
       const method = String(config.method || "get").toUpperCase();

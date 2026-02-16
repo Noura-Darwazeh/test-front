@@ -98,7 +98,7 @@ export const useAuthStore = defineStore("auth", () => {
    * @param {Object} credentials - Login credentials {login, password}
    * @returns {Promise<Object>} User data
    */
- async function login(credentials) {
+async function login(credentials) {
   isLoading.value = true;
   error.value = null;
 
@@ -111,8 +111,9 @@ export const useAuthStore = defineStore("auth", () => {
       throw new Error("Password is required");
     }
 
+    // ✅ غيّري من login إلى username
     const response = await api.post("/login", {
-      login: credentials.login.trim(),
+      username: credentials.login.trim(), // ✅ هون التغيير
       password: credentials.password,
     });
 
@@ -169,12 +170,21 @@ export const useAuthStore = defineStore("auth", () => {
     isLoading.value = false;
   }
 }
-
-
-    
-   
-
-
+/**
+ * Get default page based on user role
+ * @param {string} role - User role
+ * @returns {string} Default page path
+ */
+function getDefaultPageByRole(role) {
+  const rolePages = {
+    'SuperAdmin': '/user',
+    'Admin': '/user',
+    'Driver': '/work-plans',
+    'Customer': '/orders',
+  };
+  
+  return rolePages[role] || '/user';
+}
   async function logout() {
     isLoading.value = true;
     error.value = null;
