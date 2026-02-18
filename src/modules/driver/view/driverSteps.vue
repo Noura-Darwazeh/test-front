@@ -32,6 +32,16 @@
                             <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'today' }" @click="switchTab('today')">
+                            <i class="bi bi-sun me-2"></i> {{ $t('driverSteps.tabs.today') }}
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'ongoing' }" @click="switchTab('ongoing')">
+                            <i class="bi bi-play-circle me-2"></i> {{ $t('driverSteps.tabs.ongoing') }}
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -44,8 +54,12 @@
                 <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
             </div>
 
-            <!-- Table Tab -->
-            <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
+            <!-- Table + Today + Ongoing Tabs -->
+            <div
+                v-show="['table', 'today', 'ongoing'].includes(activeTab)"
+                class="tab-pane fade"
+                :class="{ 'show active': ['table', 'today', 'ongoing'].includes(activeTab) }"
+            >
                 <div class="card border-0">
                     <div class="card-body p-0">
                         <BulkActionsBar 
@@ -128,6 +142,7 @@
                         v-for="orderItem in workPlanOrderItems" 
                         :key="orderItem.id"
                         :orderItem="orderItem"
+                        @updated="handleOrderItemStepsUpdated"
                     />
                 </div>
                 
@@ -565,6 +580,35 @@ const filteredColumns = computed(() => {
 
 const filteredTableData = computed(() => {
     let result = workPlans.value;
+
+    // Filter by active tab (today / ongoing)
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10); // YYYY-MM-DD
+
+    if (activeTab.value === 'today') {
+        result = result.filter(plan => {
+            if (!plan.date) return false;
+            // API date already in YYYY-MM-DD
+            return String(plan.date).slice(0, 10) === todayStr;
+        });
+    }
+
+    if (activeTab.value === 'ongoing') {
+        const ongoingStatuses = ['pending', 'start', 'pickup'];
+        result = result.filter(plan => {
+            if (!Array.isArray(plan.workplanorder)) return false;
+            return plan.workplanorder.some(wo => {
+                const steps = Array.isArray(wo.steps) ? wo.steps : [];
+                if (steps.length === 0) return false;
+                // latest step by created_at
+                const latest = [...steps].sort((a, b) => {
+                    return new Date(a.created_at) - new Date(b.created_at);
+                })[steps.length - 1];
+                return ongoingStatuses.includes(latest.status);
+            });
+        });
+    }
+
     result = filterByGroups(result, selectedGroups.value, "company_name");
     result = filterData(result, searchText.value);
     return result;
@@ -715,6 +759,16 @@ const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
     selectedworkPlan.value = {};
     workPlanOrderItems.value = [];
+};
+
+const handleOrderItemStepsUpdated = ({ workPlanOrderId, steps }) => {
+    if (!workPlanOrderId) return;
+    const idx = workPlanOrderItems.value.findIndex((wo) => String(wo.id) === String(workPlanOrderId));
+    if (idx === -1) return;
+    workPlanOrderItems.value[idx] = {
+        ...workPlanOrderItems.value[idx],
+        steps: Array.isArray(steps) ? steps : workPlanOrderItems.value[idx].steps,
+    };
 };
 
 const handleSubmitworkPlan = async (workPlanData) => {
