@@ -10,11 +10,14 @@
             translationKey="" 
             :columns="workPlanColumns"
             v-model:visibleColumns="visibleColumns" 
-            :showAddButton="false"
+            :showAddButton="canAddWorkPlan"
+            :addButtonText="$t('workPlan.addNew')" 
             :showTrashedButton="false" 
+            @add-click="openAddModal"
             @refresh-click="handleRefresh" 
         />
 
+        <!-- Tabs Navigation -->
         <div class="card border-0 mb-3">
             <div class="card-body p-0">
                 <ul class="nav nav-tabs">
@@ -33,29 +36,52 @@
             </div>
         </div>
 
+        <!-- Tab Content -->
         <div class="tab-content">
+            <!-- Calendar Tab -->
             <div v-show="activeTab === 'calendar'" class="tab-pane fade"
                 :class="{ 'show active': activeTab === 'calendar' }">
-                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openDetailsModal" @view-details="openDetailsModal" />
+                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
             </div>
 
+            <!-- Table Tab -->
             <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
                 <div class="card border-0">
                     <div class="card-body p-0">
+                        <BulkActionsBar 
+                            v-if="canAddWorkPlan && selectedRows.some(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            })" 
+                            :selectedCount="selectedRows.filter(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            }).length" 
+                            entityName="workPlan"
+                            :actions="bulkActions" 
+                            :loading="bulkActionLoading" 
+                            @action="handleBulkAction" 
+                        />
                         <DataTable 
                             :columns="filteredColumns" 
                             :data="paginatedTableData"
                             :actionsLabel="$t('workPlan.actions')" 
                             v-model="selectedRows"
-                            :showCheckbox="false">
+                            :showCheckbox="canAddWorkPlan"
+                            :disableRowWhen="(row) => !canModifyPlan(row)">
                             <template #actions="{ row }">
                                 <ActionsDropdown 
                                     :row="row" 
-                                    :detailsLabel="$t('workPlan.details')"
-                                    :showEdit="false"
-                                    :showDelete="false"
+                                    :editLabel="$t('workPlan.edit')"
+                                    :detailsLabel="$t('workPlan.details')" 
+                                    :deleteLabel="$t('workPlan.delete')"
+                                    :confirmDelete="true"
+                                    :showEdit="canModifyPlan(row)"
+                                    :showDelete="canModifyPlan(row)"
                                     :showDetails="true"
+                                    @edit="openEditModal" 
                                     @details="openDetailsModal"
+                                    @delete="handleDeleteWorkPlan" 
                                 />
                             </template>
                         </DataTable>
@@ -73,7 +99,18 @@
             </div>
         </div>
 
-        <!-- Details Modal - نفس workPlans.vue بالظبط -->
+        <!-- Dynamic Form Modal for Add/Edit workPlan -->
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
+            :fields="workPlanFields" 
+            :showImageUpload="false" 
+            :serverErrors="formErrors"
+            @close="closeFormModal" 
+            @submit="handleSubmitworkPlan" 
+        />
+
+        <!-- Details Modal -->
         <DetailsModal 
             :isOpen="isDetailsModalOpen" 
             :title="$t('workPlan.details')" 
@@ -82,7 +119,6 @@
             @close="closeDetailsModal"
         >
             <template #after-details>
-                <!-- Order Items مع Status -->
                 <div v-if="workPlanOrderItems.length > 0" class="mt-4">
                     <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
                         <i class="bi bi-box-seam"></i>
@@ -109,6 +145,18 @@
             </template>
         </DetailsModal>
 
+        <!-- Bulk Action Confirmation Modal -->
+        <ConfirmationModal 
+            :isOpen="isBulkConfirmOpen" 
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage" 
+            :confirmText="$t('common.confirm')" 
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction" 
+            @close="cancelBulkAction" 
+        />
+
+        <!-- Success Modal -->
         <SuccessModal 
             :isOpen="isSuccessModalOpen" 
             :title="$t('common.success')"
@@ -125,19 +173,24 @@ import Pagination from "../../../components/shared/Pagination.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import OrderItemProgress from "../../../components/shared/OrderItemProgress.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import WorkPlansHeader from "../components/workPlansHeader.vue";
-import WorkPlanCalendar from "../components/calender.vue";
+import FormModal from "../../../components/shared/FormModal.vue";
+import WorkPlanCalendar from "../components/calender.vue"
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../stores/workPlansStore.js";
+import { useDriverStore } from "../../drivers/stores/driversStore.js";
 import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
-const { authStore } = useAuthDefaults();
+const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
 const workPlansStore = useWorkPlansStore();
+const driverStore = useDriverStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const searchText = ref("");
@@ -145,17 +198,326 @@ const selectedGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
+const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
+const isEditMode = ref(false);
 const selectedworkPlan = ref({});
+const formErrors = ref({});
 const activeTab = ref('calendar');
 const selectedRows = ref([]);
-
-// ✅ هاد هو الفرق - نفس workPlans.vue
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const ordersWithItems = ref([]);
+const loadingOrders = ref(false);
 const workPlanOrderItems = ref([]);
 const loadingDetails = ref(false);
 
-const currentDriverId = computed(() => authStore.user?.id);
-const workPlans = computed(() => workPlansStore.workPlans);
+// ✅ Permissions
+const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
+const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
+const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
+
+const canAddWorkPlan = computed(() => {
+  if (isDriver.value) return false;
+  return isAdmin.value || isSuperAdmin.value;
+});
+
+const isOwnCompanyPlan = (plan) => {
+  if (!companyId.value) return false;
+  const planCompanyId = String(plan.company_id);
+  return planCompanyId === String(companyId.value);
+};
+
+const canModifyPlan = (plan) => {
+  if (isDriver.value) return false;
+  if (isAdmin.value) return true;
+  if (isSuperAdmin.value) {
+    return isOwnCompanyPlan(plan);
+  }
+  return false;
+};
+
+const workPlans = computed(() => {
+    const allPlans = workPlansStore.workPlans;
+
+    if (isSuperAdmin.value) {
+        return allPlans;
+    }
+
+    if (isAdmin.value) {
+        if (companyId.value) {
+            const filtered = allPlans.filter(plan => {
+                const planCompanyId = String(plan.company_id);
+                return planCompanyId === String(companyId.value);
+            });
+            return filtered;
+        } else {
+            return allPlans;
+        }
+    }
+
+    return [];
+});
+
+const orderOptions = computed(() => {
+    const options = ordersWithItems.value.map(order => ({
+        value: order.order_code,
+        label: order.order_code
+    }));
+
+    if (isEditMode.value && selectedworkPlan.value.workplanorder) {
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+
+            if (orderCode && !options.find(opt => opt.value === orderCode)) {
+                options.push({
+                    value: orderCode,
+                    label: orderCode
+                });
+            }
+        });
+    }
+
+    return options;
+});
+
+const driverOptions = computed(() => {
+    const companyDrivers = driverStore.drivers.filter(driver =>
+        String(driver.company_id) === String(companyId.value)
+    );
+    return companyDrivers.map(driver => ({
+        value: driver.id,
+        label: driver.name || `Driver ${driver.id}`
+    }));
+});
+
+onMounted(async () => {
+    try {
+        await driverStore.fetchDrivers();
+        await workPlansStore.fetchWorkPlans({ page: 1, perPage: itemsPerPage.value, drivers: driverStore.drivers });
+        await fetchOrdersWithItems();
+    } catch (error) {
+        console.error("Failed to load initial data:", error);
+    }
+});
+
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: newPage,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+const switchTab = async (tab) => {
+    activeTab.value = tab;
+    skipNextPageWatch.value = true;
+    currentPage.value = 1;
+    selectedRows.value = [];
+
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: 1,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (error) {
+        console.error("Failed to switch tabs:", error);
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: currentPage.value,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (error) {
+        console.error("Failed to refresh work plans:", error);
+    }
+};
+
+const selectedLine = ref('');
+const selectedCase = ref('');
+const lineOptions = ref([]);
+
+const formData = ref({
+    name: '',
+    driver_id: '',
+    date: ''
+});
+
+const workPlanFields = computed(() => {
+    let defaultOrders = [{ order: '', items: [] }];
+
+    if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
+        const orderItemsMap = new Map();
+
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemId = wo.order_item?.id || wo.order_item_id;
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+
+            if (orderItemId && orderCode) {
+                if (!orderItemsMap.has(orderCode)) {
+                    orderItemsMap.set(orderCode, []);
+                }
+                orderItemsMap.get(orderCode).push(orderItemId);
+            }
+        });
+
+        defaultOrders = [];
+        orderItemsMap.forEach((itemIds, orderCode) => {
+            defaultOrders.push({
+                order: orderCode,
+                items: itemIds
+            });
+        });
+
+        if (defaultOrders.length === 0) {
+            defaultOrders = [{ order: '', items: [] }];
+        }
+    }
+
+    return [
+        {
+            name: 'name',
+            label: t('workPlan.form.name'),
+            type: 'text',
+            required: true,
+            placeholder: t('workPlan.form.namePlaceholder'),
+            colClass: 'col-md-6',
+            defaultValue: formData.value.name || selectedworkPlan.value.name || '',
+            validate: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return t('workPlan.validation.nameRequired');
+                }
+                if (value.length > 255) {
+                    return t('workPlan.validation.nameMax');
+                }
+                return null;
+            }
+        },
+        {
+            name: 'driver_id',
+            label: t('workPlan.form.driverName'),
+            type: 'select',
+            required: true,
+            options: driverOptions,
+            colClass: 'col-md-6',
+            defaultValue: formData.value.driver_id || selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
+        },
+        {
+            name: 'date',
+            label: t('workPlan.form.date'),
+            type: 'date',
+            required: false,
+            colClass: 'col-md-6',
+            defaultValue: formData.value.date || selectedworkPlan.value.date || '',
+        },
+        {
+            name: 'company_id',
+            label: t('workPlan.form.company'),
+            type: 'select',
+            required: true,
+            options: companyOption.value.length
+                ? companyOption.value
+                : [{ value: "", label: t("common.noCompanyAssigned") }],
+            colClass: 'col-md-6',
+            defaultValue: companyId.value || '',
+            locked: true,
+            hidden: true
+        },
+        {
+            name: 'line_filter',
+            label: t('workPlan.form.filterByLine'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                ...lineOptions.value
+            ],
+            colClass: 'col-md-6',
+            defaultValue: selectedLine.value,
+            onChange: (value, formDataFromModal) => {
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
+                selectedLine.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'case_filter',
+            label: t('workPlan.form.filterByCase'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                { value: 'Full', label: t('workPlan.cases.full') },
+                { value: 'Part', label: t('workPlan.cases.part') },
+                { value: 'Fast', label: t('workPlan.cases.fast') }
+            ],
+            colClass: 'col-md-6',
+            defaultValue: selectedCase.value,
+            onChange: (value, formDataFromModal) => {
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
+                selectedCase.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'orders',
+            label: t('workPlan.form.orders'),
+            type: 'orderRows',
+            required: false,
+            colClass: 'col-12',
+            orderLabel: t('workPlan.form.orderName'),
+            itemsLabel: t('workPlan.form.orderItems'),
+            orderOptions: orderOptions,
+            getItemsOptions: getItemsOptionsForOrder,
+            defaultValue: defaultOrders
+        }
+    ];
+});
+
+const getItemsOptionsForOrder = (orderCode) => {
+    if (!orderCode) {
+        return [];
+    }
+
+    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
+    if (!order || !order.order_items || order.order_items.length === 0) {
+        return [];
+    }
+
+    const items = order.order_items.map(item => ({
+        value: item.order_item_id,
+        label: item.orderitemname
+    }));
+
+    return items;
+};
 
 const detailsFields = computed(() => [
     { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
@@ -186,74 +548,143 @@ const filteredTableData = computed(() => {
     return result;
 });
 
-const paginatedTableData = computed(() => filteredTableData.value);
-const currentPagination = computed(() => workPlansStore.workPlansPagination);
-
-const loadWorkPlans = async (page = 1) => {
-    await workPlansStore.fetchWorkPlans({
-        page,
-        perPage: itemsPerPage.value,
-        drivers: [],
-        driverId: currentDriverId.value,
-    });
-};
-
-onMounted(async () => {
-    try {
-        await loadWorkPlans(1);
-    } catch (error) {
-        console.error("Failed to load initial data:", error);
-    }
+const paginatedTableData = computed(() => {
+    return filteredTableData.value;
 });
 
-watch(currentPage, async (newPage) => {
-    if (skipNextPageWatch.value) {
-        skipNextPageWatch.value = false;
-        return;
-    }
-    try {
-        await loadWorkPlans(newPage);
-    } catch (err) {
-        console.error("Failed to load page:", err);
-    }
+const currentPagination = computed(() => workPlansStore.workPlansPagination);
+
+const bulkActions = computed(() => {
+    return [
+        {
+            id: "delete",
+            label: t("workPlan.bulkDelete"),
+            bgColor: "var(--color-danger)",
+        },
+    ];
+});
+
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const count = selectedRows.value.length;
+    const entity = count === 1 ? t('workPlan.entitySingular') : t('workPlan.entityPlural');
+
+    return t('common.bulkPermanentDeleteConfirm', { count, entity });
 });
 
 watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
 
-const switchTab = async (tab) => {
-    activeTab.value = tab;
-    skipNextPageWatch.value = true;
-    currentPage.value = 1;
-    selectedRows.value = [];
+const fetchOrdersWithItems = async (filters = {}) => {
+    loadingOrders.value = true;
     try {
-        await loadWorkPlans(1);
+        const response = await apiServices.getOrdersWithItems(filters);
+
+        let data = [];
+        if (Array.isArray(response.data)) {
+            data = response.data;
+        } else if (Array.isArray(response.data?.data)) {
+            data = response.data.data;
+        }
+
+        ordersWithItems.value = data;
+
+        const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
+        lineOptions.value = uniqueLines.map(line => ({
+            value: line,
+            label: line
+        }));
     } catch (error) {
-        console.error("Failed to switch tabs:", error);
+        console.error("❌ Failed to fetch orders with items:", error);
+        ordersWithItems.value = [];
+    } finally {
+        loadingOrders.value = false;
     }
 };
 
-const handleRefresh = async () => {
-    selectedRows.value = [];
-    try {
-        await loadWorkPlans(currentPage.value);
-    } catch (error) {
-        console.error("Failed to refresh work plans:", error);
+const handleFilterOrders = async () => {
+    const filters = {};
+
+    if (selectedLine.value) {
+        filters.line_name = selectedLine.value;
     }
+
+    if (selectedCase.value) {
+        filters.case = selectedCase.value;
+    }
+    
+    await fetchOrdersWithItems(filters);
 };
 
-// ✅ نفس fetchWorkPlanDetails من workPlans.vue
+const openAddModal = async () => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+    formErrors.value = {};
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
+    await fetchOrdersWithItems();
+    isFormModalOpen.value = true;
+};
+
+const openEditModal = async (workPlan) => {
+    if (!canModifyPlan(workPlan)) {
+        alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
+        return;
+    }
+    
+    formErrors.value = {};
+    isEditMode.value = true;
+    selectedworkPlan.value = { ...workPlan };
+    
+    formData.value = {
+        name: workPlan.name,
+        driver_id: workPlan.driver_id,
+        date: workPlan.date
+    };
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    
+    await fetchOrdersWithItems();
+    isFormModalOpen.value = true;
+};
+
+const openDetailsModal = async (workPlan) => {
+    selectedworkPlan.value = { ...workPlan };
+    isDetailsModalOpen.value = true;
+    
+    await fetchWorkPlanDetails(workPlan.id);
+};
+
 const fetchWorkPlanDetails = async (workPlanId) => {
     loadingDetails.value = true;
     workPlanOrderItems.value = [];
+    
     try {
         const response = await apiServices.get(`/work_plans/${workPlanId}`);
         const data = response.data.data;
+        
         if (data.workplanorder && Array.isArray(data.workplanorder)) {
             workPlanOrderItems.value = data.workplanorder;
         }
-        selectedworkPlan.value = { ...selectedworkPlan.value, ...data };
+        
+        selectedworkPlan.value = {
+            ...selectedworkPlan.value,
+            ...data
+        };
+        
     } catch (error) {
         console.error("❌ Failed to fetch work plan details:", error);
     } finally {
@@ -261,17 +692,141 @@ const fetchWorkPlanDetails = async (workPlanId) => {
     }
 };
 
-// ✅ نفس openDetailsModal من workPlans.vue
-const openDetailsModal = async (workPlan) => {
-    selectedworkPlan.value = { ...workPlan };
-    isDetailsModalOpen.value = true;
-    await fetchWorkPlanDetails(workPlan.id);
+const closeFormModal = () => {
+    isFormModalOpen.value = false;
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
+    formErrors.value = {};
 };
 
 const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
     selectedworkPlan.value = {};
     workPlanOrderItems.value = [];
+};
+
+const handleSubmitworkPlan = async (workPlanData) => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+
+    const orderItems = [];
+    if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
+        workPlanData.orders.forEach(row => {
+            if (row.items && Array.isArray(row.items)) {
+                row.items.forEach(itemId => {
+                    if (itemId && !orderItems.includes(itemId)) {
+                        orderItems.push(itemId);
+                    }
+                });
+            } else if (row.items) {
+                if (!orderItems.includes(row.items)) {
+                    orderItems.push(row.items);
+                }
+            }
+        });
+    }
+
+    const payload = {
+        name: workPlanData.name,
+        driver_id: parseInt(workPlanData.driver_id),
+        date: workPlanData.date || null,
+        Orderitems: orderItems.map(id => parseInt(id))
+    };
+
+    if (!isEditMode.value) {
+        payload.company_id = parseInt(companyId.value || workPlanData.company_id);
+    }
+
+    try {
+        if (isEditMode.value) {
+            await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
+            showSuccess(t('workPlan.updateSuccess'));
+        } else {
+            await workPlansStore.addWorkPlan(payload, driverStore.drivers);
+            showSuccess(t('workPlan.addSuccess'));
+        }
+        closeFormModal();
+    } catch (error) {
+        console.error("❌ Failed to save work plan:", error);
+
+        if (error.response && error.response.data) {
+            if (error.response.data.errors) {
+                const errorMessages = Object.values(error.response.data.errors).flat();
+                alert(errorMessages.join("\n"));
+            } else if (error.response.data.message) {
+                alert(error.response.data.message);
+            }
+        }
+    }
+};
+
+const handleDeleteWorkPlan = async (workPlan) => {
+    if (!canModifyPlan(workPlan)) {
+        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
+        return;
+    }
+    
+    try {
+        await workPlansStore.deleteWorkPlan(workPlan.id);
+        showSuccess(t('workPlan.deleteSuccess'));
+    } catch (error) {
+        console.error("❌ Failed to delete work plan:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handleBulkAction = ({ actionId }) => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+    
+    const validRows = selectedRows.value.filter(id => {
+        const plan = paginatedTableData.value.find(p => p.id === id);
+        return plan && canModifyPlan(plan);
+    });
+    
+    if (validRows.length === 0) {
+        alert(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
+        return;
+    }
+    
+    selectedRows.value = validRows;
+    pendingBulkAction.value = actionId;
+    isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+    if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
+    bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
+
+    try {
+        await workPlansStore.bulkDeleteWorkPlans(selectedRows.value);
+        showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
+        selectedRows.value = [];
+        pendingBulkAction.value = null;
+        await handleRefresh();
+    } catch (error) {
+        console.error("❌ Bulk action failed:", error);
+    } finally {
+        bulkActionLoading.value = false;
+    }
+};
+
+const cancelBulkAction = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
 };
 </script>
 
