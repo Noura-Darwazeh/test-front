@@ -4,7 +4,7 @@
             v-model="searchText" 
             :searchPlaceholder="$t('workPlan.searchPlaceholder')" 
             :data="workPlans"
-            groupKey="company_name" 
+             
             v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('workPlan.filterByCompany')" 
             translationKey="" 
