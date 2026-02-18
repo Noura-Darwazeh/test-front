@@ -11,7 +11,6 @@
             :columns="workPlanColumns"
             v-model:visibleColumns="visibleColumns" 
             :showAddButton="false"
-            :addButtonText="$t('workPlan.addNew')" 
             :showTrashedButton="false" 
             @refresh-click="handleRefresh" 
         />
@@ -37,7 +36,7 @@
         <div class="tab-content">
             <div v-show="activeTab === 'calendar'" class="tab-pane fade"
                 :class="{ 'show active': activeTab === 'calendar' }">
-                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
+                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openDetailsModal" @view-details="openDetailsModal" />
             </div>
 
             <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
@@ -74,6 +73,7 @@
             </div>
         </div>
 
+        <!-- Details Modal - نفس workPlans.vue بالظبط -->
         <DetailsModal 
             :isOpen="isDetailsModalOpen" 
             :title="$t('workPlan.details')" 
@@ -82,6 +82,7 @@
             @close="closeDetailsModal"
         >
             <template #after-details>
+                <!-- Order Items مع Status -->
                 <div v-if="workPlanOrderItems.length > 0" class="mt-4">
                     <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
                         <i class="bi bi-box-seam"></i>
@@ -148,11 +149,12 @@ const isDetailsModalOpen = ref(false);
 const selectedworkPlan = ref({});
 const activeTab = ref('calendar');
 const selectedRows = ref([]);
+
+// ✅ هاد هو الفرق - نفس workPlans.vue
 const workPlanOrderItems = ref([]);
 const loadingDetails = ref(false);
 
 const currentDriverId = computed(() => authStore.user?.id);
-
 const workPlans = computed(() => workPlansStore.workPlans);
 
 const detailsFields = computed(() => [
@@ -241,12 +243,7 @@ const handleRefresh = async () => {
     }
 };
 
-const openDetailsModal = async (workPlan) => {
-    selectedworkPlan.value = { ...workPlan };
-    isDetailsModalOpen.value = true;
-    await fetchWorkPlanDetails(workPlan.id);
-};
-
+// ✅ نفس fetchWorkPlanDetails من workPlans.vue
 const fetchWorkPlanDetails = async (workPlanId) => {
     loadingDetails.value = true;
     workPlanOrderItems.value = [];
@@ -264,13 +261,18 @@ const fetchWorkPlanDetails = async (workPlanId) => {
     }
 };
 
+// ✅ نفس openDetailsModal من workPlans.vue
+const openDetailsModal = async (workPlan) => {
+    selectedworkPlan.value = { ...workPlan };
+    isDetailsModalOpen.value = true;
+    await fetchWorkPlanDetails(workPlan.id);
+};
+
 const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
     selectedworkPlan.value = {};
     workPlanOrderItems.value = [];
 };
-
-const openEditModal = () => {};
 </script>
 
 <style scoped>
