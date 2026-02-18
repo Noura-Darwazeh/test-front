@@ -16,7 +16,6 @@
             @refresh-click="handleRefresh" 
         />
 
-        <!-- Tabs Navigation -->
         <div class="card border-0 mb-3">
             <div class="card-body p-0">
                 <ul class="nav nav-tabs">
@@ -35,15 +34,12 @@
             </div>
         </div>
 
-        <!-- Tab Content -->
         <div class="tab-content">
-            <!-- Calendar Tab -->
             <div v-show="activeTab === 'calendar'" class="tab-pane fade"
                 :class="{ 'show active': activeTab === 'calendar' }">
                 <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
             </div>
 
-            <!-- Table Tab -->
             <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
                 <div class="card border-0">
                     <div class="card-body p-0">
@@ -78,7 +74,6 @@
             </div>
         </div>
 
-        <!-- Details Modal -->
         <DetailsModal 
             :isOpen="isDetailsModalOpen" 
             :title="$t('workPlan.details')" 
@@ -113,7 +108,6 @@
             </template>
         </DetailsModal>
 
-        <!-- Success Modal -->
         <SuccessModal 
             :isOpen="isSuccessModalOpen" 
             :title="$t('common.success')"
@@ -138,13 +132,11 @@ import WorkPlansHeader from "../components/workPlansHeader.vue";
 import WorkPlanCalendar from "../components/calender.vue";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useWorkPlansStore } from "../stores/workPlansStore.js";
-import { useDriverStore } from "../../drivers/stores/driversStore.js";
 import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const { authStore } = useAuthDefaults();
 const workPlansStore = useWorkPlansStore();
-const driverStore = useDriverStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const searchText = ref("");
@@ -159,7 +151,6 @@ const selectedRows = ref([]);
 const workPlanOrderItems = ref([]);
 const loadingDetails = ref(false);
 
-// الدرايفر الحالي
 const currentDriverId = computed(() => authStore.user?.id);
 
 const workPlans = computed(() => workPlansStore.workPlans);
@@ -194,18 +185,20 @@ const filteredTableData = computed(() => {
 });
 
 const paginatedTableData = computed(() => filteredTableData.value);
-
 const currentPagination = computed(() => workPlansStore.workPlansPagination);
+
+const loadWorkPlans = async (page = 1) => {
+    await workPlansStore.fetchWorkPlans({
+        page,
+        perPage: itemsPerPage.value,
+        drivers: [],
+        driverId: currentDriverId.value,
+    });
+};
 
 onMounted(async () => {
     try {
-        await driverStore.fetchDrivers();
-        await workPlansStore.fetchWorkPlans({
-            page: 1,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-            driverId: currentDriverId.value,
-        });
+        await loadWorkPlans(1);
     } catch (error) {
         console.error("Failed to load initial data:", error);
     }
@@ -217,12 +210,7 @@ watch(currentPage, async (newPage) => {
         return;
     }
     try {
-        await workPlansStore.fetchWorkPlans({
-            page: newPage,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-            driverId: currentDriverId.value,
-        });
+        await loadWorkPlans(newPage);
     } catch (err) {
         console.error("Failed to load page:", err);
     }
@@ -238,12 +226,7 @@ const switchTab = async (tab) => {
     currentPage.value = 1;
     selectedRows.value = [];
     try {
-        await workPlansStore.fetchWorkPlans({
-            page: 1,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-            driverId: currentDriverId.value,
-        });
+        await loadWorkPlans(1);
     } catch (error) {
         console.error("Failed to switch tabs:", error);
     }
@@ -252,12 +235,7 @@ const switchTab = async (tab) => {
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
-        await workPlansStore.fetchWorkPlans({
-            page: currentPage.value,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-            driverId: currentDriverId.value,
-        });
+        await loadWorkPlans(currentPage.value);
     } catch (error) {
         console.error("Failed to refresh work plans:", error);
     }
@@ -292,7 +270,6 @@ const closeDetailsModal = () => {
     workPlanOrderItems.value = [];
 };
 
-// دالة وهمية عشان الكاليندر ما يتعطل
 const openEditModal = () => {};
 </script>
 

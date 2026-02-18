@@ -42,10 +42,10 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (!config.headers['X-Client']) {
-      config.headers["X-Client"] = 'desktop-browser';
+    // if (!config.headers['X-Client']) {
+    //   config.headers["X-Client"] = 'desktop-browser';
       
-    }
+    // }
 
     if (shouldLogApi) {
       const method = String(config.method || "get").toUpperCase();

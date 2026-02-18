@@ -100,7 +100,7 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
           if (!plan.workplanorder) return false;
           return plan.workplanorder.some(wo =>
             Array.isArray(wo.steps) &&
-            wo.steps.some(step => String(step.driver_id) === String(driverId))
+            wo.steps.some(step =>{ return  String(step.driver_id) === String(driverId)})
           );
         });
       }
