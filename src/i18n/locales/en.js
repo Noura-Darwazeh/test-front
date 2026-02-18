@@ -445,8 +445,9 @@ driverPortal: 'Driver Portal',
       failed: "Failed"
     },
       tabs: {
-      ongoing: "Ongoing Tasks",
-      all: "All Tasks"
+      ongoing: "Ongoing ",
+      all: "All ",
+      today: "Today"
     }
   },
 

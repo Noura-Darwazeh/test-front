@@ -112,19 +112,21 @@ export const useDriverStore = defineStore("driver", () => {
       const response = await apiServices.getDrivers({ page, perPage, filters });
 
       // Transform API response to match frontend format
-      drivers.value = response.data.data.map(normalizeDriver);
+      const payload = response?.data;
+      const list = Array.isArray(payload?.data) ? payload.data : [];
+      drivers.value = list.map(normalizeDriver);
 
       // Update pagination metadata from response
-      if (response.data.meta) {
+      if (payload?.meta) {
         driversPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
+          currentPage: payload.meta.current_page,
+          perPage: payload.meta.per_page,
+          total: payload.meta.total,
+          lastPage: payload.meta.last_page,
         };
       }
 
-      return response.data;
+      return payload;
     } catch (err) {
       error.value = err.message || "Failed to fetch drivers";
       console.error("❌ Error fetching drivers:", err);
@@ -301,19 +303,21 @@ export const useDriverStore = defineStore("driver", () => {
       const response = await apiServices.getTrashedDrivers({ page, perPage, filters });
 
       // Transform API response to match frontend format
-      trashedDrivers.value = response.data.data.map(normalizeDriver);
+      const payload = response?.data;
+      const list = Array.isArray(payload?.data) ? payload.data : [];
+      trashedDrivers.value = list.map(normalizeDriver);
 
       // Update pagination metadata from response
-      if (response.data.meta) {
+      if (payload?.meta) {
         trashedPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
+          currentPage: payload.meta.current_page,
+          perPage: payload.meta.per_page,
+          total: payload.meta.total,
+          lastPage: payload.meta.last_page,
         };
       }
 
-      return response.data;
+      return payload;
     } catch (err) {
       error.value = err.message || "Failed to fetch trashed drivers";
       console.error("❌ Error fetching trashed drivers:", err);

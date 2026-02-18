@@ -85,38 +85,96 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     };
   };
 
-  const fetchWorkPlans = async ({ page = 1, perPage = 10, drivers = [], driverId = null } = {}) => {
+  const fetchWorkPlans = async ({
+    page = 1,
+    perPage = 10,
+    drivers = [],
+    driverId = null,
+    driverName = null,
+  } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getWorkPlans({ page, perPage });
-      const data = Array.isArray(response.data.data) ? response.data.data : [];
+      let allPlans = [];
+      let meta = null;
 
-      let normalized = data.map(plan => normalizeWorkPlan(plan, drivers));
+      // If we're filtering by a driver, we need to fetch all pages first
+      // because the backend endpoint doesn't accept driverId filters here.
+      if (driverId) {
+        const requestPerPage = 100;
+        let currentPage = 1;
+        let lastPage = 1;
+
+        while (currentPage <= lastPage) {
+          const resp = await apiServices.getWorkPlans({
+            page: currentPage,
+            perPage: requestPerPage,
+          });
+
+          const chunk = Array.isArray(resp.data?.data) ? resp.data.data : [];
+          allPlans.push(...chunk);
+
+          meta = resp.data?.meta ?? meta;
+          lastPage = meta?.last_page ?? currentPage;
+          currentPage += 1;
+
+          // Safety break if meta is missing/invalid
+          if (!Number.isFinite(lastPage) || lastPage < 1) break;
+        }
+      } else {
+        const response = await apiServices.getWorkPlans({ page, perPage });
+        meta = response.data?.meta ?? null;
+        allPlans = Array.isArray(response.data?.data) ? response.data.data : [];
+      }
+
+      let normalized = allPlans.map((plan) => normalizeWorkPlan(plan, drivers));
 
       // فلتر بس الوورك بلانز الخاصة بالدرايفر الحالي
-      if (driverId) {
+      if (driverId || driverName) {
+        const normalizedDriverName =
+          driverName !== null && driverName !== undefined
+            ? String(driverName).trim().toLowerCase()
+            : "";
         normalized = normalized.filter(plan => {
           if (!plan.workplanorder) return false;
           return plan.workplanorder.some(wo =>
             Array.isArray(wo.steps) &&
-            wo.steps.some(step =>{ return  String(step.driver_id) === String(driverId)})
+            wo.steps.some(step => {
+              const idMatch =
+                driverId !== null &&
+                driverId !== undefined &&
+                String(step.driver_id) === String(driverId);
+              const nameMatch =
+                normalizedDriverName &&
+                String(step.driver_name || "")
+                  .trim()
+                  .toLowerCase() === normalizedDriverName;
+              return idMatch || nameMatch;
+            })
           );
         });
       }
 
       workPlans.value = normalized;
 
-      if (response.data.meta) {
+      if (driverId) {
+        const total = normalized.length;
         workPlansPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
+          currentPage: page,
+          perPage: perPage,
+          total,
+          lastPage: Math.max(1, Math.ceil(total / Math.max(1, perPage))),
+        };
+      } else if (meta) {
+        workPlansPagination.value = {
+          currentPage: meta.current_page,
+          perPage: meta.per_page,
+          total: meta.total,
+          lastPage: meta.last_page,
         };
       }
 
-      return response.data;
+      return { data: normalized, meta: workPlansPagination.value };
     } catch (err) {
       error.value = err.message || "Failed to fetch work plans";
       console.error("Error fetching work plans:", err);

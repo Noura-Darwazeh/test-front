@@ -175,7 +175,11 @@ async function loginAsDriver(credentials) {
   error.value = null;
 
   try {
-    if (!credentials.username || !credentials.username.trim()) {
+    const loginValue = String(
+      credentials?.login ?? credentials?.username ?? ""
+    ).trim();
+
+    if (!loginValue) {
       throw new Error("Username is required");
     }
 
@@ -184,12 +188,12 @@ async function loginAsDriver(credentials) {
     }
 
     const response = await api.post("/login", {
-      username: credentials.username.trim(),  
+      username: loginValue,
       password: credentials.password,
     }, {
       headers: {
         'X-Client': 'mobile-app',
-        //  'User-Agent': 'iphone',
+        'User-Agent': 'iphone',
       }
     });
 
@@ -204,7 +208,7 @@ async function loginAsDriver(credentials) {
       if (savedUser?.default_page && data.user.id === savedUser.id) {
         data.user.default_page = savedUser.default_page;
       } else {
-        data.user.default_page = data.user.landing_page || '/work-plans';
+        data.user.default_page = data.user.landing_page || "/driver-steps";
       }
 
       user.value = data.user;
@@ -406,6 +410,12 @@ function updateUser(userData) {
     return roles.includes(userRole.value);
   }
 
+  function getDefaultPageByRole(role) {
+    if (role === "Driver") return "/driver-steps";
+    if (role === "Admin" || role === "SuperAdmin") return "/user";
+    return "/user";
+  }
+
   /**
    * Switch to another user (SuperAdmin only)
    * @param {Object} userData - New user data
@@ -528,6 +538,7 @@ function updateUser(userData) {
     updateUserLanguage,
     hasRole,
     hasAnyRole,
+    getDefaultPageByRole,
     switchUser,
     returnToAdmin,
     loginAsDriver

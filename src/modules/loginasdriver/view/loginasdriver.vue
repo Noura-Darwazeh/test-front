@@ -184,7 +184,7 @@ async function onSubmit() {
     setLocale(userLang);
     await nextTick();
 
-    router.push(authStore.user?.default_page || '/work-plans');
+    router.push(authStore.user?.default_page || '/driver-steps');
   } catch (error) {
     console.error('❌ Driver login failed:', error.message);
   }

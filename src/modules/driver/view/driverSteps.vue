@@ -218,24 +218,45 @@ const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() ===
 const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
 const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
 
+// ✅ Current driver ID (used to filter work plans for logged-in driver)
+const currentDriverId = computed(() => {
+    if (!isDriver.value) return null;
+    const u = authStore.user || {};
+    // backend work plan steps uses driver_id (driver entity id), not always the same as user.id
+    return (
+        u.driver_id ??
+        u.driverId ??
+        u.driver?.id ??
+        u.driver?.driver_id ??
+        u.id ??
+        null
+    );
+});
+
+const currentDriverName = computed(() => {
+    if (!isDriver.value) return null;
+    const u = authStore.user || {};
+    return u.name || u.username || u.login || null;
+});
+
 const canAddWorkPlan = computed(() => {
-  if (isDriver.value) return false;
-  return isAdmin.value || isSuperAdmin.value;
+    if (isDriver.value) return false;
+    return isAdmin.value || isSuperAdmin.value;
 });
 
 const isOwnCompanyPlan = (plan) => {
-  if (!companyId.value) return false;
-  const planCompanyId = String(plan.company_id);
-  return planCompanyId === String(companyId.value);
+    if (!companyId.value) return false;
+    const planCompanyId = String(plan.company_id);
+    return planCompanyId === String(companyId.value);
 };
 
 const canModifyPlan = (plan) => {
-  if (isDriver.value) return false;
-  if (isAdmin.value) return true;
-  if (isSuperAdmin.value) {
-    return isOwnCompanyPlan(plan);
-  }
-  return false;
+    if (isDriver.value) return false;
+    if (isAdmin.value) return true;
+    if (isSuperAdmin.value) {
+        return isOwnCompanyPlan(plan);
+    }
+    return false;
 };
 
 const workPlans = computed(() => {
@@ -247,14 +268,14 @@ const workPlans = computed(() => {
 
     if (isAdmin.value) {
         if (companyId.value) {
-            const filtered = allPlans.filter(plan => {
-                const planCompanyId = String(plan.company_id);
-                return planCompanyId === String(companyId.value);
-            });
-            return filtered;
-        } else {
-            return allPlans;
+            return allPlans.filter(plan => String(plan.company_id) === String(companyId.value));
         }
+        return allPlans;
+    }
+
+    // ✅ Driver sees only their own plans (already filtered in store)
+    if (isDriver.value) {
+        return allPlans;
     }
 
     return [];
@@ -270,12 +291,8 @@ const orderOptions = computed(() => {
         selectedworkPlan.value.workplanorder.forEach(wo => {
             const orderItemName = wo.order_item?.name || '';
             const orderCode = orderItemName.split(' - ')[0].trim();
-
             if (orderCode && !options.find(opt => opt.value === orderCode)) {
-                options.push({
-                    value: orderCode,
-                    label: orderCode
-                });
+                options.push({ value: orderCode, label: orderCode });
             }
         });
     }
@@ -293,19 +310,36 @@ const driverOptions = computed(() => {
     }));
 });
 
+// ✅ onMounted - pass driverId for driver role
 onMounted(async () => {
     try {
-        await driverStore.fetchDrivers();
-        await workPlansStore.fetchWorkPlans({ page: 1, perPage: itemsPerPage.value, drivers: driverStore.drivers });
-        await fetchOrdersWithItems();
+        if (!isDriver.value) {
+            await driverStore.fetchDrivers();
+        }
+
+        await workPlansStore.fetchWorkPlans({
+            page: 1,
+            perPage: itemsPerPage.value,
+            drivers: isDriver.value ? [] : driverStore.drivers,
+            driverId: currentDriverId.value,
+            driverName: currentDriverName.value,
+        });
+
+        // orders endpoint may be restricted for driver; don't block work plans rendering
+        fetchOrdersWithItems().catch(() => {});
     } catch (error) {
         console.error("Failed to load initial data:", error);
     }
 });
 
+// ✅ watch currentPage - pass driverId
 watch(currentPage, async (newPage) => {
     if (skipNextPageWatch.value) {
         skipNextPageWatch.value = false;
+        return;
+    }
+    if (isDriver.value) {
+        // driver uses the already-filtered list; pagination is handled locally
         return;
     }
     try {
@@ -313,12 +347,15 @@ watch(currentPage, async (newPage) => {
             page: newPage,
             perPage: itemsPerPage.value,
             drivers: driverStore.drivers,
+            driverId: currentDriverId.value,
+            driverName: currentDriverName.value,
         });
     } catch (err) {
         console.error("Failed to load page:", err);
     }
 });
 
+// ✅ switchTab - pass driverId
 const switchTab = async (tab) => {
     activeTab.value = tab;
     skipNextPageWatch.value = true;
@@ -329,20 +366,25 @@ const switchTab = async (tab) => {
         await workPlansStore.fetchWorkPlans({
             page: 1,
             perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
+            drivers: isDriver.value ? [] : driverStore.drivers,
+            driverId: currentDriverId.value,
+            driverName: currentDriverName.value,
         });
     } catch (error) {
         console.error("Failed to switch tabs:", error);
     }
 };
 
+// ✅ handleRefresh - pass driverId
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
         await workPlansStore.fetchWorkPlans({
-            page: currentPage.value,
+            page: isDriver.value ? 1 : currentPage.value,
             perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
+            drivers: isDriver.value ? [] : driverStore.drivers,
+            driverId: currentDriverId.value,
+            driverName: currentDriverName.value,
         });
     } catch (error) {
         console.error("Failed to refresh work plans:", error);
@@ -380,10 +422,7 @@ const workPlanFields = computed(() => {
 
         defaultOrders = [];
         orderItemsMap.forEach((itemIds, orderCode) => {
-            defaultOrders.push({
-                order: orderCode,
-                items: itemIds
-            });
+            defaultOrders.push({ order: orderCode, items: itemIds });
         });
 
         if (defaultOrders.length === 0) {
@@ -401,12 +440,8 @@ const workPlanFields = computed(() => {
             colClass: 'col-md-6',
             defaultValue: formData.value.name || selectedworkPlan.value.name || '',
             validate: (value) => {
-                if (!value || value.trim().length === 0) {
-                    return t('workPlan.validation.nameRequired');
-                }
-                if (value.length > 255) {
-                    return t('workPlan.validation.nameMax');
-                }
+                if (!value || value.trim().length === 0) return t('workPlan.validation.nameRequired');
+                if (value.length > 255) return t('workPlan.validation.nameMax');
                 return null;
             }
         },
@@ -445,10 +480,7 @@ const workPlanFields = computed(() => {
             label: t('workPlan.form.filterByLine'),
             type: 'select',
             required: false,
-            options: [
-                { value: '', label: t('common.all') },
-                ...lineOptions.value
-            ],
+            options: [{ value: '', label: t('common.all') }, ...lineOptions.value],
             colClass: 'col-md-6',
             defaultValue: selectedLine.value,
             onChange: (value, formDataFromModal) => {
@@ -457,7 +489,6 @@ const workPlanFields = computed(() => {
                     driver_id: formDataFromModal.driver_id || formData.value.driver_id,
                     date: formDataFromModal.date || formData.value.date
                 };
-                
                 selectedLine.value = value;
                 handleFilterOrders();
             }
@@ -481,7 +512,6 @@ const workPlanFields = computed(() => {
                     driver_id: formDataFromModal.driver_id || formData.value.driver_id,
                     date: formDataFromModal.date || formData.value.date
                 };
-                
                 selectedCase.value = value;
                 handleFilterOrders();
             }
@@ -502,21 +532,13 @@ const workPlanFields = computed(() => {
 });
 
 const getItemsOptionsForOrder = (orderCode) => {
-    if (!orderCode) {
-        return [];
-    }
-
+    if (!orderCode) return [];
     const order = ordersWithItems.value.find(o => o.order_code === orderCode);
-    if (!order || !order.order_items || order.order_items.length === 0) {
-        return [];
-    }
-
-    const items = order.order_items.map(item => ({
+    if (!order || !order.order_items || order.order_items.length === 0) return [];
+    return order.order_items.map(item => ({
         value: item.order_item_id,
         label: item.orderitemname
     }));
-
-    return items;
 };
 
 const detailsFields = computed(() => [
@@ -538,7 +560,7 @@ const workPlanColumns = ref([
 const visibleColumns = ref([]);
 
 const filteredColumns = computed(() => {
-    return workPlanColumns.value.filter((col) => visibleColumns.value.includes(col.key));
+    return workPlanColumns.value.filter(col => visibleColumns.value.includes(col.key));
 });
 
 const filteredTableData = computed(() => {
@@ -549,27 +571,34 @@ const filteredTableData = computed(() => {
 });
 
 const paginatedTableData = computed(() => {
-    return filteredTableData.value;
+    if (!isDriver.value) return filteredTableData.value;
+    const start = (currentPage.value - 1) * itemsPerPage.value;
+    return filteredTableData.value.slice(start, start + itemsPerPage.value);
 });
 
-const currentPagination = computed(() => workPlansStore.workPlansPagination);
-
-const bulkActions = computed(() => {
-    return [
-        {
-            id: "delete",
-            label: t("workPlan.bulkDelete"),
-            bgColor: "var(--color-danger)",
-        },
-    ];
+const currentPagination = computed(() => {
+    if (!isDriver.value) return workPlansStore.workPlansPagination;
+    const total = filteredTableData.value.length;
+    return {
+        currentPage: currentPage.value,
+        perPage: itemsPerPage.value,
+        total,
+        lastPage: Math.max(1, Math.ceil(total / Math.max(1, itemsPerPage.value))),
+    };
 });
+
+const bulkActions = computed(() => [
+    {
+        id: "delete",
+        label: t("workPlan.bulkDelete"),
+        bgColor: "var(--color-danger)",
+    },
+]);
 
 const bulkConfirmMessage = computed(() => {
     if (!pendingBulkAction.value) return '';
-
     const count = selectedRows.value.length;
     const entity = count === 1 ? t('workPlan.entitySingular') : t('workPlan.entityPlural');
-
     return t('common.bulkPermanentDeleteConfirm', { count, entity });
 });
 
@@ -581,21 +610,15 @@ const fetchOrdersWithItems = async (filters = {}) => {
     loadingOrders.value = true;
     try {
         const response = await apiServices.getOrdersWithItems(filters);
-
         let data = [];
         if (Array.isArray(response.data)) {
             data = response.data;
         } else if (Array.isArray(response.data?.data)) {
             data = response.data.data;
         }
-
         ordersWithItems.value = data;
-
         const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
-        lineOptions.value = uniqueLines.map(line => ({
-            value: line,
-            label: line
-        }));
+        lineOptions.value = uniqueLines.map(line => ({ value: line, label: line }));
     } catch (error) {
         console.error("❌ Failed to fetch orders with items:", error);
         ordersWithItems.value = [];
@@ -606,34 +629,19 @@ const fetchOrdersWithItems = async (filters = {}) => {
 
 const handleFilterOrders = async () => {
     const filters = {};
-
-    if (selectedLine.value) {
-        filters.line_name = selectedLine.value;
-    }
-
-    if (selectedCase.value) {
-        filters.case = selectedCase.value;
-    }
-    
+    if (selectedLine.value) filters.line_name = selectedLine.value;
+    if (selectedCase.value) filters.case = selectedCase.value;
     await fetchOrdersWithItems(filters);
 };
 
 const openAddModal = async () => {
-    if (!canAddWorkPlan.value) {
-        return;
-    }
+    if (!canAddWorkPlan.value) return;
     formErrors.value = {};
     isEditMode.value = false;
     selectedworkPlan.value = {};
-    
     selectedLine.value = '';
     selectedCase.value = '';
-    formData.value = {
-        name: '',
-        driver_id: '',
-        date: ''
-    };
-    
+    formData.value = { name: '', driver_id: '', date: '' };
     await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
@@ -643,20 +651,12 @@ const openEditModal = async (workPlan) => {
         alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
         return;
     }
-    
     formErrors.value = {};
     isEditMode.value = true;
     selectedworkPlan.value = { ...workPlan };
-    
-    formData.value = {
-        name: workPlan.name,
-        driver_id: workPlan.driver_id,
-        date: workPlan.date
-    };
-    
+    formData.value = { name: workPlan.name, driver_id: workPlan.driver_id, date: workPlan.date };
     selectedLine.value = '';
     selectedCase.value = '';
-    
     await fetchOrdersWithItems();
     isFormModalOpen.value = true;
 };
@@ -664,27 +664,36 @@ const openEditModal = async (workPlan) => {
 const openDetailsModal = async (workPlan) => {
     selectedworkPlan.value = { ...workPlan };
     isDetailsModalOpen.value = true;
-    
-    await fetchWorkPlanDetails(workPlan.id);
+
+    // ✅ Use already-loaded data first (driver list response includes workplanorder + steps)
+    const initialOrderItems = Array.isArray(workPlan?.workplanorder)
+        ? workPlan.workplanorder
+        : [];
+    workPlanOrderItems.value = initialOrderItems;
+
+    // Fetch more details only if missing/empty
+    const shouldFetch =
+        !workPlan?.id ||
+        initialOrderItems.length === 0 ||
+        initialOrderItems.some((wo) => !Array.isArray(wo?.steps));
+
+    if (shouldFetch) {
+        await fetchWorkPlanDetails(workPlan.id);
+    }
 };
 
 const fetchWorkPlanDetails = async (workPlanId) => {
     loadingDetails.value = true;
-    workPlanOrderItems.value = [];
-    
+    if (!Array.isArray(workPlanOrderItems.value) || workPlanOrderItems.value.length === 0) {
+        workPlanOrderItems.value = [];
+    }
     try {
         const response = await apiServices.get(`/work_plans/${workPlanId}`);
-        const data = response.data.data;
-        
+        const data = response?.data?.data ?? response?.data ?? {};
         if (data.workplanorder && Array.isArray(data.workplanorder)) {
             workPlanOrderItems.value = data.workplanorder;
         }
-        
-        selectedworkPlan.value = {
-            ...selectedworkPlan.value,
-            ...data
-        };
-        
+        selectedworkPlan.value = { ...selectedworkPlan.value, ...data };
     } catch (error) {
         console.error("❌ Failed to fetch work plan details:", error);
     } finally {
@@ -696,15 +705,9 @@ const closeFormModal = () => {
     isFormModalOpen.value = false;
     isEditMode.value = false;
     selectedworkPlan.value = {};
-    
     selectedLine.value = '';
     selectedCase.value = '';
-    formData.value = {
-        name: '',
-        driver_id: '',
-        date: ''
-    };
-    
+    formData.value = { name: '', driver_id: '', date: '' };
     formErrors.value = {};
 };
 
@@ -715,23 +718,17 @@ const closeDetailsModal = () => {
 };
 
 const handleSubmitworkPlan = async (workPlanData) => {
-    if (!canAddWorkPlan.value) {
-        return;
-    }
+    if (!canAddWorkPlan.value) return;
 
     const orderItems = [];
     if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
         workPlanData.orders.forEach(row => {
             if (row.items && Array.isArray(row.items)) {
                 row.items.forEach(itemId => {
-                    if (itemId && !orderItems.includes(itemId)) {
-                        orderItems.push(itemId);
-                    }
+                    if (itemId && !orderItems.includes(itemId)) orderItems.push(itemId);
                 });
             } else if (row.items) {
-                if (!orderItems.includes(row.items)) {
-                    orderItems.push(row.items);
-                }
+                if (!orderItems.includes(row.items)) orderItems.push(row.items);
             }
         });
     }
@@ -758,11 +755,9 @@ const handleSubmitworkPlan = async (workPlanData) => {
         closeFormModal();
     } catch (error) {
         console.error("❌ Failed to save work plan:", error);
-
-        if (error.response && error.response.data) {
+        if (error.response?.data) {
             if (error.response.data.errors) {
-                const errorMessages = Object.values(error.response.data.errors).flat();
-                alert(errorMessages.join("\n"));
+                alert(Object.values(error.response.data.errors).flat().join("\n"));
             } else if (error.response.data.message) {
                 alert(error.response.data.message);
             }
@@ -775,7 +770,6 @@ const handleDeleteWorkPlan = async (workPlan) => {
         alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
         return;
     }
-    
     try {
         await workPlansStore.deleteWorkPlan(workPlan.id);
         showSuccess(t('workPlan.deleteSuccess'));
@@ -786,20 +780,18 @@ const handleDeleteWorkPlan = async (workPlan) => {
 };
 
 const handleBulkAction = ({ actionId }) => {
-    if (!canAddWorkPlan.value) {
-        return;
-    }
-    
+    if (!canAddWorkPlan.value) return;
+
     const validRows = selectedRows.value.filter(id => {
         const plan = paginatedTableData.value.find(p => p.id === id);
         return plan && canModifyPlan(plan);
     });
-    
+
     if (validRows.length === 0) {
         alert(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
         return;
     }
-    
+
     selectedRows.value = validRows;
     pendingBulkAction.value = actionId;
     isBulkConfirmOpen.value = true;

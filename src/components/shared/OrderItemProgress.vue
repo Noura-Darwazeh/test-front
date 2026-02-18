@@ -1,11 +1,9 @@
 <template>
   <div class="order-item-card mb-3">
-    <div 
-      class="order-item-header p-3 d-flex align-items-center justify-content-between cursor-pointer"
-      @click="toggleExpanded"
-    >
+    <div class="order-item-header p-3 d-flex align-items-center justify-content-between cursor-pointer"
+      @click="toggleExpanded">
       <div class="d-flex align-items-center gap-3">
-       
+
         <div>
           <h6 class="mb-0 fw-semibold">{{ orderItem.order_item?.name }}</h6>
           <small class="text-muted">
@@ -14,7 +12,7 @@
           </small>
         </div>
       </div>
-      
+
       <div class="d-flex align-items-center gap-2">
         <span :class="getStatusBadgeClass(currentStatus)" class="badge">
           {{ t(`workPlan.status.${currentStatus}`) }}
@@ -23,33 +21,64 @@
       </div>
     </div>
 
-    <!-- Stepper -->
+    <!-- Next step actions + history -->
     <Transition name="slide-down">
       <div v-if="isExpanded" class="order-item-progress p-3 pt-0">
-        <div class="progress-stepper">
-          <div 
-            v-for="(stepDef, index) in stepDefinitions" 
-            :key="index"
-            class="stepper-item"
-            :class="getStepClass(stepDef.status)"
-          >
-            <div 
-              class="stepper-circle-wrapper" 
-              :title="getStepTooltip(stepDef.status)"
-            >
-              <div class="stepper-circle">
-                <i :class="getStepIcon(stepDef.status)"></i>
+        <div v-if="showNextAction" class="next-step-panel mt-3 p-3 rounded border bg-white">
+          <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+              <div class="fw-semibold mb-1">
+                {{ orderItem.order_item?.name }}
               </div>
-              <div class="stepper-label">
-                {{ t(`workPlan.status.${stepDef.status}`) }}
-              </div>
-              <!-- Date Label -->
-              <div v-if="hasStep(stepDef.status)" class="stepper-date">
-                {{ formatDateTime(getStepByStatus(stepDef.status)?.created_at) }}
+              <div class="text-muted small">
+                {{ formatDate(latestStep?.date) }}
               </div>
             </div>
-            <div v-if="index < stepDefinitions.length - 1" class="stepper-line" :class="getLineClass(index)"></div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <button v-if="nextAction.type === 'single'" class="btn btn-primary btn-sm next-step-btn"
+                :disabled="isSubmitting" @click.stop="submitNextStatus(nextAction.status)">
+                <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"
+                  aria-hidden="true"></span>
+                {{ t(`workPlan.status.${nextAction.status}`) }}
+              </button>
+
+              <template v-else-if="nextAction.type === 'final'">
+                <button class="btn btn-success btn-sm next-step-btn" :disabled="isSubmitting"
+                  @click.stop="submitNextStatus('done')">
+                  <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"
+                    aria-hidden="true"></span>
+                  {{ t('workPlan.status.done') }}
+                </button>
+                <button class="btn btn-outline-danger btn-sm next-step-btn" :disabled="isSubmitting"
+                  @click.stop="submitNextStatus('failed')">
+                  {{ t('workPlan.status.failed') }}
+                </button>
+              </template>
+
+              <span v-else class="text-muted small">
+                {{ t(`workPlan.status.${currentStatus}`) }}
+              </span>
+            </div>
           </div>
+
+          <div v-if="submitError" class="alert alert-danger py-2 px-3 mt-3 mb-0">
+            {{ submitError }}
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <div class="fw-semibold mb-2">{{ t('workPlan.orderItems') }}</div>
+          <div v-if="sortedSteps.length === 0" class="text-muted small">
+            {{ t('workPlan.noOrderItems') }}
+          </div>
+          <ul v-else class="steps-history list-unstyled mb-0">
+            <li v-for="step in sortedSteps" :key="step.id" class="d-flex align-items-center gap-2 py-2 border-bottom">
+              <span :class="getStatusDotClass(step.status)" class="status-dot"></span>
+              <span class="fw-semibold">{{ t(`workPlan.status.${step.status}`) }}</span>
+              <span class="text-muted small ms-auto">{{ formatDateTime(step.created_at) }}</span>
+            </li>
+          </ul>
         </div>
       </div>
     </Transition>
@@ -59,6 +88,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import apiServices from '@/services/apiServices.js';
 
 const { t, locale } = useI18n();
 
@@ -69,7 +99,11 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(["updated"]);
+
 const isExpanded = ref(false);
+const isSubmitting = ref(false);
+const submitError = ref("");
 
 // ✅ Step definitions in order - INCLUDING FAILED
 const stepDefinitions = [
@@ -101,6 +135,47 @@ const currentStatus = computed(() => {
   return latestStep.value?.status || 'pending';
 });
 
+const nextAction = computed(() => {
+  const status = currentStatus.value;
+  if (status === "failed" || status === "done") return { type: "none" };
+  if (status === "pending") return { type: "single", status: "start" };
+  if (status === "start") return { type: "single", status: "pickup" };
+  if (status === "pickup") return { type: "final" };
+  return { type: "none" };
+});
+
+const submitNextStatus = async (status) => {
+  if (!props.orderItem?.id) return;
+  submitError.value = "";
+  isSubmitting.value = true;
+  try {
+    const response = await apiServices.createWorkPlanSteps({
+      workPlanOrdersId: props.orderItem.id,
+      status,
+    });
+
+    // backend returns array of steps in response.data.data
+    const stepsArray = Array.isArray(response?.data?.data)
+      ? response.data.data
+      : Array.isArray(response?.data)
+        ? response.data
+        : [];
+
+    const stepsForThisOrder = stepsArray.filter(
+      (s) => String(s.work_plan_orders_id) === String(props.orderItem.id)
+    );
+
+    emit("updated", {
+      workPlanOrderId: props.orderItem.id,
+      steps: stepsForThisOrder.length > 0 ? stepsForThisOrder : stepsArray,
+    });
+  } catch (e) {
+    submitError.value = e?.message || "Failed to update status";
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
 // ✅ Check if a specific status exists in steps
 const hasStep = (status) => {
   return sortedSteps.value.some(step => step.status === status);
@@ -114,7 +189,7 @@ const getStepByStatus = (status) => {
 // ✅ Get step class based on status history
 const getStepClass = (status) => {
   const stepExists = hasStep(status);
-  
+
   // ✅ CRITICAL: If failed status exists, show it as current
   const failedStep = getStepByStatus('failed');
   if (failedStep) {
@@ -122,7 +197,7 @@ const getStepClass = (status) => {
     if (stepExists) return 'completed';
     return 'pending';
   }
-  
+
   // Normal flow without failed
   if (stepExists) {
     if (status === currentStatus.value) {
@@ -130,7 +205,7 @@ const getStepClass = (status) => {
     }
     return 'completed';
   }
-  
+
   return 'pending';
 };
 
@@ -138,7 +213,7 @@ const getStepClass = (status) => {
 const getLineClass = (index) => {
   const currentStepStatus = stepDefinitions[index].status;
   const nextStepStatus = stepDefinitions[index + 1]?.status;
-  
+
   // ✅ If failed exists, show red lines after failed
   const failedStep = getStepByStatus('failed');
   if (failedStep) {
@@ -147,15 +222,15 @@ const getLineClass = (index) => {
       return 'line-failed';
     }
   }
-  
+
   // Check if both current and next steps are completed
   const currentCompleted = hasStep(currentStepStatus);
   const nextCompleted = hasStep(nextStepStatus);
-  
+
   if (currentCompleted && nextCompleted) {
     return 'line-completed';
   }
-  
+
   return 'line-pending';
 };
 
@@ -204,6 +279,17 @@ const getStatusBadgeClass = (status) => {
   return classes[status] || 'bg-secondary';
 };
 
+const getStatusDotClass = (status) => {
+  const classes = {
+    pending: "dot-warning",
+    start: "dot-info",
+    pickup: "dot-primary",
+    done: "dot-success",
+    failed: "dot-danger",
+  };
+  return classes[status] || "dot-secondary";
+};
+
 const getStepIcon = (status) => {
   const icons = {
     'pending': 'bi-clock',
@@ -243,146 +329,46 @@ const getStepIcon = (status) => {
   cursor: pointer;
 }
 
-/* Stepper Styles */
-.progress-stepper {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2rem 1rem;
-  position: relative;
+.next-step-btn {
+  border-radius: 999px;
+  padding-left: 14px;
+  padding-right: 14px;
+  font-weight: 700;
 }
 
-.stepper-item {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  position: relative;
+.steps-history li:last-child {
+  border-bottom: 0 !important;
 }
 
-.stepper-circle-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  z-index: 2;
-  cursor: help;
-}
-
-.stepper-circle {
-  width: 48px;
-  height: 48px;
+.status-dot {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid #e0e0e0;
-  background: white;
-  transition: all 0.3s ease;
-  font-size: 1.25rem;
+  display: inline-block;
 }
 
-.stepper-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-align: center;
-  color: #6c757d;
-  max-width: 80px;
-  word-wrap: break-word;
+.dot-warning {
+  background: #ffc107;
 }
 
-.stepper-date {
-  font-size: 0.65rem;
-  color: #6c757d;
-  text-align: center;
-  margin-top: 0.25rem;
-  white-space: nowrap;
+.dot-info {
+  background: #0dcaf0;
 }
 
-.stepper-line {
-  flex: 1;
-  height: 3px;
-  background: #e0e0e0;
-  margin: 0 0.5rem;
-  transition: background 0.3s ease;
+.dot-primary {
+  background: #0d6efd;
 }
 
-/* Pending State */
-.stepper-item.pending .stepper-circle {
-  border-color: #e0e0e0;
-  color: #6c757d;
+.dot-success {
+  background: #198754;
 }
 
-/* Completed State */
-.stepper-item.completed .stepper-circle {
-  border-color: #28a745;
-  background: #28a745;
-  color: white;
-}
-
-.stepper-item.completed .stepper-label {
-  color: #28a745;
-  font-weight: 700;
-}
-
-.stepper-item.completed .stepper-date {
-  color: #28a745;
-}
-
-/* Current State */
-.stepper-item.current .stepper-circle {
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-  }
-  50% {
-    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
-  }
-}
-
-/* ✅ FAILED STATE - RED STYLING */
-.stepper-item.failed .stepper-circle {
-  border-color: #dc3545;
-  background: #dc3545;
-  color: white;
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-  animation: pulse-failed 2s ease-in-out infinite;
-}
-
-.stepper-item.failed .stepper-label {
-  color: #dc3545;
-  font-weight: 700;
-}
-
-.stepper-item.failed .stepper-date {
-  color: #dc3545;
-}
-
-@keyframes pulse-failed {
-  0%, 100% {
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
-  }
-  50% {
-    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.6);
-  }
-}
-
-/* Line States */
-.stepper-line.line-completed {
-  background: #28a745;
-}
-
-.stepper-line.line-failed {
+.dot-danger {
   background: #dc3545;
 }
 
-.stepper-line.line-pending {
-  background: #e0e0e0;
+.dot-secondary {
+  background: #6c757d;
 }
 
 /* Slide Down Animation */

@@ -1139,6 +1139,31 @@ async getWorkPlanSteps({ page = 1, perPage = 10, filters = {}, cancelKey } = {})
 async getWorkPlanStepById(stepId) {
   return this.get(`/work_plan_steps/${stepId}`);
 }
+
+async createWorkPlanSteps({ workPlanOrdersId, status, notes } = {}) {
+  const ids = Array.isArray(workPlanOrdersId)
+    ? workPlanOrdersId
+    : workPlanOrdersId !== null && workPlanOrdersId !== undefined
+      ? [workPlanOrdersId]
+      : [];
+
+  if (ids.length === 0) {
+    throw new Error("workPlanOrdersId is required");
+  }
+  if (!status) {
+    throw new Error("status is required");
+  }
+
+  const payload = {
+    work_plan_orders_id: ids,
+    status,
+  };
+
+  const cleanNotes = typeof notes === "string" ? notes.trim() : notes;
+  if (cleanNotes) payload.notes = cleanNotes;
+
+  return this.post("/work_plan_steps", payload);
+}
 }
 
 // Create and freeze the singleton instance
