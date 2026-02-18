@@ -29,7 +29,7 @@
                     </li>
                     <li class="nav-item">
                         <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="switchTab('table')">
-                            <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
+                            <i class="bi bi-table me-2"></i> {{ $t('driverSteps.tabs.all') }}
                         </button>
                     </li>
                     <li class="nav-item">
@@ -565,8 +565,7 @@ const workPlanColumns = ref([
     { key: "id", label: t("workPlan.id"), sortable: true },
     { key: "name", label: t("workPlan.name"), sortable: true },
     { key: 'date', label: t('workPlan.date'), sortable: true },
-    { key: 'driver_name', label: t('workPlan.driverName'), sortable: true },
-    { key: 'company_name', label: t('workPlan.companyName') },
+
 ]);
 
 const visibleColumns = ref([]);
