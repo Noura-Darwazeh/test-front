@@ -25,38 +25,40 @@
           {{ t(`workPlan.status.${currentStatus}`) }}
         </span>
 
-        <!-- Next Step Button -->
-        <template v-if="nextAction.type === 'single'">
-          <button
-            class="action-btn action-btn--primary"
-            :disabled="isSubmitting"
-            @click="submitNextStatus(nextAction.status)"
-          >
-            <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
-            <i v-else :class="getStatusIcon(nextAction.status)"></i>
-            {{ t(`workPlan.status.${nextAction.status}`) }}
-            <i class="bi bi-arrow-right"></i>
-          </button>
-        </template>
+        <!-- ✅ Next Step Buttons - only shown when showActions is true -->
+        <template v-if="showActions">
+          <template v-if="nextAction.type === 'single'">
+            <button
+              class="action-btn action-btn--primary"
+              :disabled="isSubmitting"
+              @click="submitNextStatus(nextAction.status)"
+            >
+              <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
+              <i v-else :class="getStatusIcon(nextAction.status)"></i>
+              {{ t(`workPlan.status.${nextAction.status}`) }}
+              <i class="bi bi-arrow-right"></i>
+            </button>
+          </template>
 
-        <template v-else-if="nextAction.type === 'final'">
-          <button
-            class="action-btn action-btn--success"
-            :disabled="isSubmitting"
-            @click="submitNextStatus('done')"
-          >
-            <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
-            <i v-else class="bi bi-check-circle-fill"></i>
-            {{ t('workPlan.status.done') }}
-          </button>
-          <button
-            class="action-btn action-btn--danger"
-            :disabled="isSubmitting"
-            @click="submitNextStatus('failed')"
-          >
-            <i class="bi bi-x-circle-fill"></i>
-            {{ t('workPlan.status.failed') }}
-          </button>
+          <template v-else-if="nextAction.type === 'final'">
+            <button
+              class="action-btn action-btn--success"
+              :disabled="isSubmitting"
+              @click="submitNextStatus('done')"
+            >
+              <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
+              <i v-else class="bi bi-check-circle-fill"></i>
+              {{ t('workPlan.status.done') }}
+            </button>
+            <button
+              class="action-btn action-btn--danger"
+              :disabled="isSubmitting"
+              @click="submitNextStatus('failed')"
+            >
+              <i class="bi bi-x-circle-fill"></i>
+              {{ t('workPlan.status.failed') }}
+            </button>
+          </template>
         </template>
 
         <!-- Expand toggle -->
@@ -131,7 +133,9 @@ import apiServices from '@/services/apiServices.js';
 const { t, locale } = useI18n();
 
 const props = defineProps({
-  orderItem: { type: Object, required: true }
+  orderItem: { type: Object, required: true },
+  // ✅ New prop - controls visibility of next step action buttons
+  showActions: { type: Boolean, default: true }
 });
 
 const emit = defineEmits(['updated']);

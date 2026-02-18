@@ -138,10 +138,12 @@
                         <i class="bi bi-box-seam"></i>
                         {{ $t('workPlan.orderItems') }} ({{ workPlanOrderItems.length }})
                     </h6>
+                    <!-- ✅ showActions is true ONLY when the details modal was opened from the ongoing tab -->
                     <OrderItemProgress 
                         v-for="orderItem in workPlanOrderItems" 
                         :key="orderItem.id"
                         :orderItem="orderItem"
+                        :showActions="detailsOpenedFromOngoing"
                         @updated="handleOrderItemStepsUpdated"
                     />
                 </div>
@@ -228,16 +230,18 @@ const loadingOrders = ref(false);
 const workPlanOrderItems = ref([]);
 const loadingDetails = ref(false);
 
+// ✅ Track which tab opened the details modal
+const detailsOpenedFromOngoing = ref(false);
+
 // ✅ Permissions
 const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
 const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
 const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
 
-// ✅ Current driver ID (used to filter work plans for logged-in driver)
+// ✅ Current driver ID
 const currentDriverId = computed(() => {
     if (!isDriver.value) return null;
     const u = authStore.user || {};
-    // backend work plan steps uses driver_id (driver entity id), not always the same as user.id
     return (
         u.driver_id ??
         u.driverId ??
@@ -288,7 +292,6 @@ const workPlans = computed(() => {
         return allPlans;
     }
 
-    // ✅ Driver sees only their own plans (already filtered in store)
     if (isDriver.value) {
         return allPlans;
     }
@@ -325,7 +328,6 @@ const driverOptions = computed(() => {
     }));
 });
 
-// ✅ onMounted - pass driverId for driver role
 onMounted(async () => {
     try {
         if (!isDriver.value) {
@@ -340,21 +342,18 @@ onMounted(async () => {
             driverName: currentDriverName.value,
         });
 
-        // orders endpoint may be restricted for driver; don't block work plans rendering
         fetchOrdersWithItems().catch(() => {});
     } catch (error) {
         console.error("Failed to load initial data:", error);
     }
 });
 
-// ✅ watch currentPage - pass driverId
 watch(currentPage, async (newPage) => {
     if (skipNextPageWatch.value) {
         skipNextPageWatch.value = false;
         return;
     }
     if (isDriver.value) {
-        // driver uses the already-filtered list; pagination is handled locally
         return;
     }
     try {
@@ -370,7 +369,6 @@ watch(currentPage, async (newPage) => {
     }
 });
 
-// ✅ switchTab - pass driverId
 const switchTab = async (tab) => {
     activeTab.value = tab;
     skipNextPageWatch.value = true;
@@ -390,7 +388,6 @@ const switchTab = async (tab) => {
     }
 };
 
-// ✅ handleRefresh - pass driverId
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
@@ -581,14 +578,12 @@ const filteredColumns = computed(() => {
 const filteredTableData = computed(() => {
     let result = workPlans.value;
 
-    // Filter by active tab (today / ongoing)
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10); // YYYY-MM-DD
+    const todayStr = today.toISOString().slice(0, 10);
 
     if (activeTab.value === 'today') {
         result = result.filter(plan => {
             if (!plan.date) return false;
-            // API date already in YYYY-MM-DD
             return String(plan.date).slice(0, 10) === todayStr;
         });
     }
@@ -600,7 +595,6 @@ const filteredTableData = computed(() => {
             return plan.workplanorder.some(wo => {
                 const steps = Array.isArray(wo.steps) ? wo.steps : [];
                 if (steps.length === 0) return false;
-                // latest step by created_at
                 const latest = [...steps].sort((a, b) => {
                     return new Date(a.created_at) - new Date(b.created_at);
                 })[steps.length - 1];
@@ -705,17 +699,18 @@ const openEditModal = async (workPlan) => {
     isFormModalOpen.value = true;
 };
 
+// ✅ openDetailsModal now saves which tab was active when details was opened
 const openDetailsModal = async (workPlan) => {
     selectedworkPlan.value = { ...workPlan };
+    // ✅ Only show action buttons if opened from 'ongoing' tab
+    detailsOpenedFromOngoing.value = activeTab.value === 'ongoing';
     isDetailsModalOpen.value = true;
 
-    // ✅ Use already-loaded data first (driver list response includes workplanorder + steps)
     const initialOrderItems = Array.isArray(workPlan?.workplanorder)
         ? workPlan.workplanorder
         : [];
     workPlanOrderItems.value = initialOrderItems;
 
-    // Fetch more details only if missing/empty
     const shouldFetch =
         !workPlan?.id ||
         initialOrderItems.length === 0 ||
@@ -759,6 +754,7 @@ const closeDetailsModal = () => {
     isDetailsModalOpen.value = false;
     selectedworkPlan.value = {};
     workPlanOrderItems.value = [];
+    detailsOpenedFromOngoing.value = false; // ✅ reset on close
 };
 
 const handleOrderItemStepsUpdated = ({ workPlanOrderId, steps }) => {

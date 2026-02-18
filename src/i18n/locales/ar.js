@@ -425,7 +425,7 @@ driverPortal: 'بوابة السائقين',
   },
 
   driverSteps: {
-    title: "خطوات السائق",
+    title: " خطط العمل ",
     searchPlaceholder: "ابحث بالاسم، السائق، أو الملاحظات...",
     filterByStatus: "تصفية حسب الحالة",
     name: "الاسم",
