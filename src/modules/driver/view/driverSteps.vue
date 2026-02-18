@@ -4,7 +4,6 @@
             v-model="searchText" 
             :searchPlaceholder="$t('workPlan.searchPlaceholder')" 
             :data="workPlans"
-             
             v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('workPlan.filterByCompany')" 
             translationKey="" 
@@ -13,7 +12,6 @@
             :showAddButton="canAddWorkPlan"
             :addButtonText="$t('workPlan.addNew')" 
             :showTrashedButton="false" 
-            @add-click="openAddModal"
             @refresh-click="handleRefresh" 
         />
 
@@ -138,7 +136,6 @@
                         <i class="bi bi-box-seam"></i>
                         {{ $t('workPlan.orderItems') }} ({{ workPlanOrderItems.length }})
                     </h6>
-                    <!-- ✅ showActions is true ONLY when the details modal was opened from the ongoing tab -->
                     <OrderItemProgress 
                         v-for="orderItem in workPlanOrderItems" 
                         :key="orderItem.id"

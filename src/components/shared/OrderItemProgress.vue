@@ -1,10 +1,18 @@
 <template>
   <div class="order-card" :class="`status--${currentStatus}`">
 
+    <!-- ✅ Action Hint Banner (shown only when showActions is true) -->
+    <Transition name="fade">
+      <div v-if="showActions && nextAction.type !== 'none'" class="action-hint-banner">
+        <span class="hint-pulse"></span>
+        <i class="bi bi-hand-index-thumb-fill me-1"></i>
+        {{ t('driverSteps.tapToUpdateStatus')}}
+      </div>
+    </Transition>
+
     <!-- ─── Header ─── -->
     <div class="order-card__header" @click="toggleExpanded">
       <div class="order-card__info">
-        <!-- Status icon -->
         <div class="status-icon" :class="`status-icon--${currentStatus}`">
           <i :class="getStatusIcon(currentStatus)"></i>
         </div>
@@ -15,49 +23,62 @@
             <i class="bi bi-calendar3"></i>
             {{ formatDate(latestStep?.date) }}
           </div>
+          <!-- ✅ Status badge moved here under date -->
+          <span class="status-badge mt-1" :class="`status-badge--${currentStatus}`">
+            <i :class="getStatusIcon(currentStatus)"></i>
+            {{ t(`workPlan.status.${currentStatus}`) }}
+          </span>
         </div>
       </div>
 
       <div class="order-card__actions" @click.stop>
-        <!-- Status badge -->
-        <span class="status-badge" :class="`status-badge--${currentStatus}`">
-          <i :class="getStatusIcon(currentStatus)"></i>
-          {{ t(`workPlan.status.${currentStatus}`) }}
-        </span>
 
-        <!-- ✅ Next Step Buttons - only shown when showActions is true -->
         <template v-if="showActions">
           <template v-if="nextAction.type === 'single'">
-            <button
-              class="action-btn action-btn--primary"
-              :disabled="isSubmitting"
-              @click="submitNextStatus(nextAction.status)"
-            >
-              <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
-              <i v-else :class="getStatusIcon(nextAction.status)"></i>
-              {{ t(`workPlan.status.${nextAction.status}`) }}
-              <i class="bi bi-arrow-right"></i>
-            </button>
+            <div class="action-btn-wrapper">
+              <div class="action-label">
+                <i class="bi bi-arrow-down-circle-fill"></i>
+                {{ t('driverSteps.nextStep') }}
+              </div>
+              <button
+                class="action-btn action-btn--primary action-btn--highlight"
+                :disabled="isSubmitting"
+                @click="submitNextStatus(nextAction.status)"
+              >
+                <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
+                <i v-else :class="getStatusIcon(nextAction.status)"></i>
+                {{ t(`workPlan.status.${nextAction.status}`) }}
+                <i class="bi bi-arrow-right ms-1"></i>
+              </button>
+            </div>
           </template>
 
           <template v-else-if="nextAction.type === 'final'">
-            <button
-              class="action-btn action-btn--success"
-              :disabled="isSubmitting"
-              @click="submitNextStatus('done')"
-            >
-              <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
-              <i v-else class="bi bi-check-circle-fill"></i>
-              {{ t('workPlan.status.done') }}
-            </button>
-            <button
-              class="action-btn action-btn--danger"
-              :disabled="isSubmitting"
-              @click="submitNextStatus('failed')"
-            >
-              <i class="bi bi-x-circle-fill"></i>
-              {{ t('workPlan.status.failed') }}
-            </button>
+            <div class="action-btn-wrapper">
+              <div class="action-label action-label--final">
+                <i class="bi bi-arrow-down-circle-fill"></i>
+                {{ t('driverSteps.finalStep')}}
+              </div>
+              <div class="d-flex gap-2">
+                <button
+                  class="action-btn action-btn--success action-btn--highlight"
+                  :disabled="isSubmitting"
+                  @click="submitNextStatus('done')"
+                >
+                  <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
+                  <i v-else class="bi bi-check-circle-fill"></i>
+                  {{ t('workPlan.status.done') }}
+                </button>
+                <button
+                  class="action-btn action-btn--danger"
+                  :disabled="isSubmitting"
+                  @click="submitNextStatus('failed')"
+                >
+                  <i class="bi bi-x-circle-fill"></i>
+                  {{ t('workPlan.status.failed') }}
+                </button>
+              </div>
+            </div>
           </template>
         </template>
 
@@ -74,7 +95,6 @@
       {{ submitError }}
     </div>
 
-    <!-- ─── Progress Track ─── -->
     <div class="progress-track">
       <div
         v-for="(step, idx) in stepFlow"
@@ -90,7 +110,6 @@
       </div>
     </div>
 
-    <!-- ─── History (expanded) ─── -->
     <Transition name="slide-down">
       <div v-if="isExpanded" class="order-card__history">
         <div class="history-title">
@@ -134,7 +153,6 @@ const { t, locale } = useI18n();
 
 const props = defineProps({
   orderItem: { type: Object, required: true },
-  // ✅ New prop - controls visibility of next step action buttons
   showActions: { type: Boolean, default: true }
 });
 
@@ -144,7 +162,6 @@ const isExpanded   = ref(false);
 const isSubmitting = ref(false);
 const submitError  = ref('');
 
-// ─── Step flow ──────────────────────────────────────────────────────────────
 const stepFlow = [
   { status: 'pending' },
   { status: 'start'   },
@@ -152,7 +169,6 @@ const stepFlow = [
   { status: 'done'    },
 ];
 
-// ─── Computed ───────────────────────────────────────────────────────────────
 const sortedSteps = computed(() => {
   if (!Array.isArray(props.orderItem.steps)) return [];
   return [...props.orderItem.steps].sort(
@@ -172,7 +188,6 @@ const nextAction = computed(() => {
   }
 });
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
 const statusIconMap = {
   pending : 'bi bi-hourglass-split',
   start   : 'bi bi-play-circle-fill',
@@ -198,7 +213,6 @@ const getStepClass = (status, idx) => {
   return 'progress-step--completed';
 };
 
-// ─── API ─────────────────────────────────────────────────────────────────────
 const submitNextStatus = async (status) => {
   if (!props.orderItem?.id) return;
   submitError.value = '';
@@ -249,12 +263,93 @@ const formatDateTime = (d) => {
 }
 .order-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
 
-/* left accent stripe */
 .order-card.status--pending { border-left: 4px solid #ffc107; }
 .order-card.status--start   { border-left: 4px solid #0dcaf0; }
 .order-card.status--pickup  { border-left: 4px solid #0d6efd; }
 .order-card.status--done    { border-left: 4px solid #198754; }
 .order-card.status--failed  { border-left: 4px solid #dc3545; }
+
+/* ─── Action Hint Banner ────────────────────────────────────────────────── */
+.action-hint-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.4rem 1rem;
+  background: linear-gradient(90deg, #e8f4ff, #f0f7ff);
+  border-bottom: 1px dashed #b8d4f0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0d6efd;
+  letter-spacing: 0.02em;
+}
+
+.hint-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0d6efd;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.6); opacity: 0.5; }
+}
+
+/* ─── Action Label (above button) ───────────────────────────────────────── */
+.action-btn-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.action-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0d6efd;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  animation: bounce-label 2s ease-in-out infinite;
+}
+
+.action-label--final {
+  color: #198754;
+}
+
+@keyframes bounce-label {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(3px); }
+}
+
+/* ─── Highlight Button (pulse glow) ─────────────────────────────────────── */
+.action-btn--highlight {
+  position: relative;
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(13, 110, 253, 0); }
+}
+
+.action-btn--success.action-btn--highlight {
+  animation: glow-pulse-success 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-success {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(25, 135, 84, 0); }
+}
+
+/* ─── Fade transition ───────────────────────────────────────────────────── */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to       { opacity: 0; }
 
 /* ─── Header ────────────────────────────────────────────────────────────── */
 .order-card__header {
@@ -419,7 +514,6 @@ const formatDateTime = (d) => {
   text-align: center;
   text-transform: capitalize;
 }
-/* connecting line */
 .progress-step__line {
   position: absolute;
   top: 14px;
@@ -430,20 +524,15 @@ const formatDateTime = (d) => {
   z-index: 0;
 }
 
-/* completed */
 .progress-step--completed .progress-step__dot  { background: #0d6efd; border-color: #0d6efd; color: #fff; }
 .progress-step--completed .progress-step__label{ color: #0d6efd; font-weight: 600; }
 .progress-step--completed .progress-step__line { background: #0d6efd; }
-
-/* current pulse */
 .progress-step--current .progress-step__dot { box-shadow: 0 0 0 5px rgba(13,110,253,0.18); transform: scale(1.1); }
 
-/* failed */
 .progress-step--failed .progress-step__dot  { background: #dc3545; border-color: #dc3545; color: #fff; }
 .progress-step--failed .progress-step__label{ color: #dc3545; font-weight: 600; }
 .progress-step--failed.progress-step--current .progress-step__dot { box-shadow: 0 0 0 5px rgba(220,53,69,0.18); }
 
-/* done overrides to green */
 .order-card.status--done .progress-step--completed .progress-step__dot  { background: #198754; border-color: #198754; }
 .order-card.status--done .progress-step--completed .progress-step__line { background: #198754; }
 .order-card.status--done .progress-step--completed .progress-step__label{ color: #198754; }
@@ -518,5 +607,6 @@ const formatDateTime = (d) => {
   .order-card__actions { width: 100%; justify-content: flex-end; }
   .order-card__name    { max-width: 100%; }
   .action-btn          { font-size: 0.75rem; padding: 0.35rem 0.7rem; }
+  .action-btn-wrapper  { align-items: flex-start; }
 }
 </style>

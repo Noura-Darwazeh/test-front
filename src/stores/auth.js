@@ -20,7 +20,7 @@ export const useAuthStore = defineStore("auth", () => {
   const device = ref(null);
   const isLoading = ref(false);
   const error = ref(null);
-  const isSwitchedUser = ref(false); // ✅ غيّرناها من computed لـ ref
+  const isSwitchedUser = ref(false); 
 
   // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -309,7 +309,7 @@ async function loginAsDriver(credentials) {
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
-      isSwitchedUser.value = !!savedIsSwitched; // ✅ حدّثي الـ state
+      isSwitchedUser.value = !!savedIsSwitched; 
     }
   }
 
@@ -318,8 +318,7 @@ async function loginAsDriver(credentials) {
     token.value = null;
     device.value = null;
     error.value = null;
-    isSwitchedUser.value = false; // ✅ امسحي الـ state
-
+    isSwitchedUser.value = false; 
     removeItem("auth_token");
     removeItem("auth_user");
     removeItem("auth_device");
@@ -333,16 +332,7 @@ async function loginAsDriver(credentials) {
     error.value = null;
   }
 
-  /**
-   * Update user data
-   * @param {Object} userData - Updated user data
-   */
-  // في src/stores/auth.js
 
-/**
- * Update user data
- * @param {Object} userData - Updated user data
- */
 function updateUser(userData) {
   // ✅ Convert image path to full URL with cache busting
   if (userData.image) {
@@ -355,10 +345,8 @@ function updateUser(userData) {
     }
   }
 
-  // ✅ دمج البيانات الجديدة مع القديمة
   user.value = { ...user.value, ...userData };
 
-  // ✅ خزّني كل شي بالـ localStorage
   setItem("auth_user", user.value);
 }
 
@@ -443,7 +431,7 @@ function updateUser(userData) {
     setItem("auth_user", userData);
     setItem("is_switched_user", true);
 
-    isSwitchedUser.value = true; // ✅ حدّثي الـ state
+    isSwitchedUser.value = true; 
   }
 
   /**
@@ -459,10 +447,8 @@ function updateUser(userData) {
     }
 
     try {
-      // استخدمي الـ login_as_token للرجوع
       const currentToken = token.value;
       
-      // استرجعي الـ token الأصلي مؤقتًا لعمل الـ API call
       token.value = originalToken;
       
       const response = await api.post("/return_to_original");
@@ -481,14 +467,13 @@ function updateUser(userData) {
         removeItem("original_admin_user");
         removeItem("is_switched_user");
 
-        isSwitchedUser.value = false; // ✅ حدّثي الـ state
+        isSwitchedUser.value = false; 
 
         return true;
       }
     } catch (error) {
       console.error("❌ Error returning to admin:", error);
       
-      // حتى لو فشل الـ API، ارجعي للـ admin محليًا
       user.value = originalUser;
       token.value = originalToken;
       setItem("auth_token", originalToken);
@@ -497,7 +482,7 @@ function updateUser(userData) {
       removeItem("original_admin_user");
       removeItem("is_switched_user");
       
-      isSwitchedUser.value = false; // ✅ حدّثي الـ state
+      isSwitchedUser.value = false;
       
       return true;
     }
@@ -515,7 +500,7 @@ function updateUser(userData) {
     device,
     isLoading,
     error,
-    isSwitchedUser, // ✅ هسا reactive ref
+    isSwitchedUser,
 
     // Getters
     isAuthenticated,

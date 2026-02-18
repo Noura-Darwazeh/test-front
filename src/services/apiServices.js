@@ -814,7 +814,7 @@ class ApiServices {
     return this.get("/statistics/lines");
   }
 
-  // ✅ Add new function for filtered orders
+  // Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
     const params = new URLSearchParams();
     const normalizedFilters = normalizeQueryParams(filters);
