@@ -7,7 +7,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
   const loading = ref(false);
   const error = ref(null);
 
-  // Pagination state
   const workPlansPagination = ref({
     currentPage: 1,
     perPage: 10,
@@ -42,7 +41,6 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       orders = plan.workplanorder.map(workplanOrder => {
         const orderItemId = workplanOrder.order_item?.id || workplanOrder.order_item_id;
         const orderItemName = workplanOrder.order_item?.name || `Order Item #${orderItemId}`;
-
         const orderCode = orderItemName.split(' - ')[0].trim();
 
         return {
@@ -87,15 +85,27 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     };
   };
 
-  const fetchWorkPlans = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
+  const fetchWorkPlans = async ({ page = 1, perPage = 10, drivers = [], driverId = null } = {}) => {
     loading.value = true;
     error.value = null;
     try {
       const response = await apiServices.getWorkPlans({ page, perPage });
-      const data = Array.isArray(response.data.data)
-        ? response.data.data
-        : [];
-      workPlans.value = data.map(plan => normalizeWorkPlan(plan, drivers));
+      const data = Array.isArray(response.data.data) ? response.data.data : [];
+
+      let normalized = data.map(plan => normalizeWorkPlan(plan, drivers));
+
+      // فلتر بس الوورك بلانز الخاصة بالدرايفر الحالي
+      if (driverId) {
+        normalized = normalized.filter(plan => {
+          if (!plan.workplanorder) return false;
+          return plan.workplanorder.some(wo =>
+            Array.isArray(wo.steps) &&
+            wo.steps.some(step => String(step.driver_id) === String(driverId))
+          );
+        });
+      }
+
+      workPlans.value = normalized;
 
       if (response.data.meta) {
         workPlansPagination.value = {
@@ -119,22 +129,14 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
   const addWorkPlan = async (workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
-
     try {
       const response = await apiServices.createWorkPlan(workPlanData);
       const newPlan = normalizeWorkPlan(response.data.data || response.data, drivers);
-
       workPlans.value.push(newPlan);
       return newPlan;
     } catch (err) {
       error.value = err.message || "Failed to add work plan";
       console.error("Error adding work plan:", err);
-
-      if (err.response) {
-        console.error("📋 Server Response Status:", err.response.status);
-        console.error("📋 Server Response Data:", err.response.data);
-      }
-
       throw err;
     } finally {
       loading.value = false;
@@ -144,27 +146,17 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
   const updateWorkPlan = async (planId, workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
-
     try {
       const response = await apiServices.updateWorkPlan(planId, workPlanData);
-
       const updated = normalizeWorkPlan(response.data.data || response.data, drivers);
-
       const index = workPlans.value.findIndex((p) => p.id === planId);
       if (index > -1) {
         workPlans.value[index] = updated;
       }
-
       return workPlans.value[index];
     } catch (err) {
       error.value = err.message || "Failed to update work plan";
       console.error("❌ Error updating work plan:", err);
-
-      if (err.response) {
-        console.error("📋 Server Response Status:", err.response.status);
-        console.error("📋 Server Response Data:", err.response.data);
-      }
-
       throw err;
     } finally {
       loading.value = false;
@@ -204,12 +196,10 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
   };
 
   return {
-    // State
     workPlans,
     loading,
     error,
     workPlansPagination,
-    // Actions
     fetchWorkPlans,
     addWorkPlan,
     updateWorkPlan,

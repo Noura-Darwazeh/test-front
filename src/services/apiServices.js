@@ -877,7 +877,7 @@ class ApiServices {
   }
 
   async getDriverWorkPlans(driverId) {
-    return this.get(`/work_plan/driver/${driverId}`);
+    return this.get(`/work_plans`);
   }
 
   async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
