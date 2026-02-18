@@ -170,11 +170,6 @@ export const useAuthStore = defineStore("auth", () => {
   }
 }
 
-/**
- * Login as driver with username
- * @param {Object} credentials - Driver credentials {username, password}
- * @returns {Promise<Object>} User data
- */
 async function loginAsDriver(credentials) {
   isLoading.value = true;
   error.value = null;
@@ -188,26 +183,23 @@ async function loginAsDriver(credentials) {
       throw new Error("Password is required");
     }
 
-    // ✅ Driver login - send username and password with mobile-app headers
+    // ✅ بعتي "login" مش "username"
     const response = await api.post("/login", {
-      username: credentials.username.trim(),
+      login: credentials.username.trim(),  // ← غيّرت من username لـ login
       password: credentials.password,
     }, {
       headers: {
         'X-Client': 'mobile-app',
-        // 'User-Agent': 'iphone'  // ممكن تحذفي هاد السطر إذا مش مطلوب
       }
     });
 
     const data = response.data;
 
     if (data.success === true) {
-      // ✅ Convert image path to full URL
       if (data.user?.image) {
         data.user.image = getFullImageUrl(data.user.image);
       }
 
-      // Set default page for driver
       const savedUser = getItem("auth_user");
       if (savedUser?.default_page && data.user.id === savedUser.id) {
         data.user.default_page = savedUser.default_page;
@@ -215,18 +207,15 @@ async function loginAsDriver(credentials) {
         data.user.default_page = data.user.landing_page || '/work-plans';
       }
 
-      // Save auth data
       user.value = data.user;
       token.value = data.token;
       device.value = data.device;
       isSwitchedUser.value = false;
 
-      // Persist to localStorage
       setItem("auth_token", data.token);
       setItem("auth_user", data.user);
       setItem("auth_device", data.device);
 
-      // Set user's preferred language
       if (data.user?.language) {
         const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
         setItem("user_language", uiLang);

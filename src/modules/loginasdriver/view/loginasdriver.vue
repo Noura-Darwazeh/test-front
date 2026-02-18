@@ -1,269 +1,857 @@
 <template>
-  <div class="driver-login-container">
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <div class="container-fluid">
-        <div class="d-flex align-items-center justify-content-between py-3">
-          <div class="logo-section d-flex align-items-center gap-2">
-            <img :src="packageIcon" alt="Logo" width="40" height="40" />
-            <h5 class="mb-0 fw-bold text-white">{{ $t('login.driverPortal') }}</h5>
-          </div>
-          
-          <!-- Language Selector -->
-          <BaseDropdown :menuPosition="isRTL ? 'start' : 'end'">
-            <template #trigger>
-              <button class="btn btn-light btn-sm" type="button">
-                <i class="fas fa-globe me-1"></i>
-                <span>{{ currentLanguageLabel }}</span>
-              </button>
-            </template>
-            <template #menu="{ close }">
-              <ul class="list-unstyled mb-0">
-                <li>
-                  <a class="dropdown-item" :class="{ active: currentLanguage === 'en' }"
-                    @click.prevent="changeLanguage('en', close)">
-                    English
-                  </a>
-                </li>
-                <li><hr class="dropdown-divider" /></li>
-                <li>
-                  <a class="dropdown-item" :class="{ active: currentLanguage === 'ar' }"
-                    @click.prevent="changeLanguage('ar', close)">
-                    العربية
-                  </a>
-                </li>
-              </ul>
-            </template>
-          </BaseDropdown>
-        </div>
-      </div>
-    </header>
+    <div class="user-page-container bg-light">
+        <WorkPlansHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('workPlan.searchPlaceholder')" 
+            :data="workPlans"
+            groupKey="company_name" 
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('workPlan.filterByCompany')" 
+            translationKey="" 
+            :columns="workPlanColumns"
+            v-model:visibleColumns="visibleColumns" 
+            :showAddButton="canAddWorkPlan"
+            :addButtonText="$t('workPlan.addNew')" 
+            :showTrashedButton="false" 
+            @add-click="openAddModal"
+            @refresh-click="handleRefresh" 
+        />
 
-    <!-- Login Form -->
-    <div class="login-content">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-lg-5 col-md-7">
-            <div class="login-card">
-              <!-- Icon -->
-              <div class="text-center mb-4">
-                <div class="driver-icon-wrapper mx-auto">
-                  <i class="fas fa-truck fa-3x text-primary"></i>
-                </div>
-                <h3 class="fw-bold mt-3 mb-2">{{ $t('login.driverLogin') }}</h3>
-                <p class="text-muted">{{ $t('login.driverSubtitle') }}</p>
-              </div>
-
-              <!-- Form -->
-              <form @submit.prevent="onSubmit">
-                <div class="mb-3">
-                  <FormLabel :label="$t('login.usernameLabel')" for-id="username" :required="true" />
-                  <TextField 
-                    id="username" 
-                    v-model="form.username" 
-                    type="text"
-                    :placeholder="$t('login.usernamePlaceholder')" 
-                    :required="true" 
-                  />
-                  <small v-if="errors.username" class="text-danger d-block mt-1">
-                    {{ errors.username }}
-                  </small>
-                </div>
-
-                <div class="mb-4">
-                  <FormLabel :label="$t('login.passwordLabel')" for-id="password" :required="true" />
-                  <TextField 
-                    id="password" 
-                    v-model="form.password" 
-                    type="password"
-                    :placeholder="$t('login.passwordPlaceholder')" 
-                    :minlength="6" 
-                    :required="true" 
-                  />
-                  <small v-if="errors.password" class="text-danger d-block mt-1">
-                    {{ errors.password }}
-                  </small>
-                </div>
-
-                <!-- Error Alert -->
-                <div v-if="authStore.error" class="alert alert-danger">
-                  <i class="fas fa-exclamation-triangle me-2"></i>
-                  {{ authStore.error }}
-                </div>
-
-                <!-- Submit Button -->
-                <PrimaryButton 
-                  :text="$t('login.signIn')" 
-                  :loading-text="$t('login.signingIn')"
-                  :loading="authStore.isLoading" 
-                  type="submit" 
-                  class="w-100 mb-3" 
-                />
-
-                <!-- Back to Main Login -->
-                <div class="text-center">
-                  <router-link to="/login" class="text-decoration-none">
-                    <i class="fas fa-arrow-left me-1"></i>
-                    {{ $t('login.backToMainLogin') }}
-                  </router-link>
-                </div>
-              </form>
+        <!-- Tabs Navigation -->
+        <div class="card border-0 mb-3">
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'calendar' }"
+                            @click="switchTab('calendar')">
+                            <i class="bi bi-calendar3 me-2"></i> {{ $t('workPlan.tabs.calendar') }}
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="switchTab('table')">
+                            <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
+                        </button>
+                    </li>
+                </ul>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
 
-  </div>
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Calendar Tab -->
+            <div v-show="activeTab === 'calendar'" class="tab-pane fade"
+                :class="{ 'show active': activeTab === 'calendar' }">
+                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
+            </div>
+
+            <!-- Table Tab -->
+            <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
+                <div class="card border-0">
+                    <div class="card-body p-0">
+                        <BulkActionsBar 
+                            v-if="canAddWorkPlan && selectedRows.some(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            })" 
+                            :selectedCount="selectedRows.filter(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            }).length" 
+                            entityName="workPlan"
+                            :actions="bulkActions" 
+                            :loading="bulkActionLoading" 
+                            @action="handleBulkAction" 
+                        />
+                        <DataTable 
+                            :columns="filteredColumns" 
+                            :data="paginatedTableData"
+                            :actionsLabel="$t('workPlan.actions')" 
+                            v-model="selectedRows"
+                            :showCheckbox="canAddWorkPlan"
+                            :disableRowWhen="(row) => !canModifyPlan(row)">
+                            <template #actions="{ row }">
+                                <ActionsDropdown 
+                                    :row="row" 
+                                    :editLabel="$t('workPlan.edit')"
+                                    :detailsLabel="$t('workPlan.details')" 
+                                    :deleteLabel="$t('workPlan.delete')"
+                                    :confirmDelete="true"
+                                    :showEdit="canModifyPlan(row)"
+                                    :showDelete="canModifyPlan(row)"
+                                    :showDetails="true"
+                                    @edit="openEditModal" 
+                                    @details="openDetailsModal"
+                                    @delete="handleDeleteWorkPlan" 
+                                />
+                            </template>
+                        </DataTable>
+                        <div class="px-3 pt-1 pb-2 bg-light">
+                            <Pagination 
+                                :totalItems="currentPagination.total" 
+                                :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" 
+                                :totalPages="currentPagination.lastPage"
+                                @update:currentPage="(page) => currentPage = page" 
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Form Modal for Add/Edit workPlan -->
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
+            :fields="workPlanFields" 
+            :showImageUpload="false" 
+            :serverErrors="formErrors"
+            @close="closeFormModal" 
+            @submit="handleSubmitworkPlan" 
+        />
+
+        <!-- Details Modal -->
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('workPlan.details')" 
+            :data="selectedworkPlan"
+            :fields="detailsFields" 
+            @close="closeDetailsModal"
+        >
+            <template #after-details>
+                <div v-if="workPlanOrderItems.length > 0" class="mt-4">
+                    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-box-seam"></i>
+                        {{ $t('workPlan.orderItems') }} ({{ workPlanOrderItems.length }})
+                    </h6>
+                    <OrderItemProgress 
+                        v-for="orderItem in workPlanOrderItems" 
+                        :key="orderItem.id"
+                        :orderItem="orderItem"
+                    />
+                </div>
+                
+                <div v-else-if="loadingDetails" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
+                    </div>
+                    <p class="text-muted mt-2">{{ $t('workPlan.loadingDetails') }}</p>
+                </div>
+                
+                <div v-else class="mt-4 text-center py-4 bg-light rounded">
+                    <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0 mt-2">{{ $t('workPlan.noOrderItems') }}</p>
+                </div>
+            </template>
+        </DetailsModal>
+
+        <!-- Bulk Action Confirmation Modal -->
+        <ConfirmationModal 
+            :isOpen="isBulkConfirmOpen" 
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage" 
+            :confirmText="$t('common.confirm')" 
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction" 
+            @close="cancelBulkAction" 
+        />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
+    </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
-import { useI18n } from 'vue-i18n';
-import { useAuthStore } from '@/stores/auth.js';
-import { setLocale } from '@/i18n/index';
-import FormLabel from '@/components/shared/FormLabel.vue';
-import TextField from '@/components/shared/TextField.vue';
-import PrimaryButton from '@/components/shared/PrimaryButton.vue';
-import BaseDropdown from '@/components/shared/BaseDropdown.vue';
-import packageIcon from '@/assets/login/package.svg';
+import { ref, computed, watch, onMounted } from "vue";
+import DataTable from "../../../components/shared/DataTable.vue";
+import Pagination from "../../../components/shared/Pagination.vue";
+import ActionsDropdown from "../../../components/shared/Actions.vue";
+import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import OrderItemProgress from "../../../components/shared/OrderItemProgress.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
+import { useI18n } from "vue-i18n";
+import WorkPlansHeader from "../components/workPlansHeader.vue";
+import FormModal from "../../../components/shared/FormModal.vue";
+import WorkPlanCalendar from "../components/calender.vue"
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { useWorkPlansStore } from "../store/workPlansStore.js";
+import { useDriverStore } from "../../drivers/stores/driversStore.js";
+import apiServices from "@/services/apiServices.js";
 
-const router = useRouter();
-const authStore = useAuthStore();
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
+const workPlansStore = useWorkPlansStore();
+const driverStore = useDriverStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
-const currentLanguage = ref(locale.value);
-const form = reactive({ username: '', password: '' });
-const errors = reactive({ username: '', password: '' });
+const searchText = ref("");
+const selectedGroups = ref([]);
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
+const skipNextPageWatch = ref(false);
+const isFormModalOpen = ref(false);
+const isDetailsModalOpen = ref(false);
+const isEditMode = ref(false);
+const selectedworkPlan = ref({});
+const formErrors = ref({});
+const activeTab = ref('calendar');
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const ordersWithItems = ref([]);
+const loadingOrders = ref(false);
+const workPlanOrderItems = ref([]);
+const loadingDetails = ref(false);
 
-const isRTL = computed(() => currentLanguage.value === 'ar');
-const currentLanguageLabel = computed(() => currentLanguage.value === 'ar' ? 'العربية' : 'English');
+// ✅ Permissions
+const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
+const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
+const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
 
-const changeLanguage = (lang, close) => {
-  currentLanguage.value = lang;
-  setLocale(lang);
-  close();
+const canAddWorkPlan = computed(() => {
+  if (isDriver.value) return false;
+  return isAdmin.value || isSuperAdmin.value;
+});
+
+const isOwnCompanyPlan = (plan) => {
+  if (!companyId.value) return false;
+  const planCompanyId = String(plan.company_id);
+  return planCompanyId === String(companyId.value);
 };
 
-async function onSubmit() {
-  errors.username = '';
-  errors.password = '';
-  authStore.clearError();
+const canModifyPlan = (plan) => {
+  if (isDriver.value) return false;
+  if (isAdmin.value) return true;
+  if (isSuperAdmin.value) {
+    return isOwnCompanyPlan(plan);
+  }
+  return false;
+};
 
-  if (!form.username) {
-    errors.username = t('login.validation.usernameRequired');
-    return;
-  }
-  if (!form.password) {
-    errors.password = t('login.validation.passwordRequired');
-    return;
-  }
-  if (form.password.length < 6) {
-    errors.password = t('login.validation.passwordMinLength');
-    return;
-  }
+const workPlans = computed(() => {
+    const allPlans = workPlansStore.workPlans;
 
-  try {
-    // ✅ Driver login - بيبعت username و password
-    await authStore.loginAsDriver({
-      username: form.username,
-      password: form.password
-    });
-    
-    // Check if user is actually a driver
-    if (authStore.userRole !== 'Driver') {
-      authStore.clearError();
-      errors.username = t('login.validation.notADriver');
-      await authStore.logout();
-      return;
+    if (isSuperAdmin.value) {
+        return allPlans;
     }
 
-    const userLang = authStore.user?.language?.toLowerCase() === 'arabic' || 
-                     authStore.user?.language === 'ar' ? 'ar' : 'en';
-    setLocale(userLang);
-    await nextTick();
+    if (isAdmin.value) {
+        if (companyId.value) {
+            const filtered = allPlans.filter(plan => {
+                const planCompanyId = String(plan.company_id);
+                return planCompanyId === String(companyId.value);
+            });
+            return filtered;
+        } else {
+            return allPlans;
+        }
+    }
 
-    router.push(authStore.user?.default_page || '/work-plans');
-  } catch (error) {
-    console.error('❌ Driver login failed:', error.message);
-  }
-}
+    return [];
+});
+
+const orderOptions = computed(() => {
+    const options = ordersWithItems.value.map(order => ({
+        value: order.order_code,
+        label: order.order_code
+    }));
+
+    if (isEditMode.value && selectedworkPlan.value.workplanorder) {
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+
+            if (orderCode && !options.find(opt => opt.value === orderCode)) {
+                options.push({
+                    value: orderCode,
+                    label: orderCode
+                });
+            }
+        });
+    }
+
+    return options;
+});
+
+const driverOptions = computed(() => {
+    const companyDrivers = driverStore.drivers.filter(driver =>
+        String(driver.company_id) === String(companyId.value)
+    );
+    return companyDrivers.map(driver => ({
+        value: driver.id,
+        label: driver.name || `Driver ${driver.id}`
+    }));
+});
+
+onMounted(async () => {
+    try {
+        await driverStore.fetchDrivers();
+        await workPlansStore.fetchWorkPlans({ page: 1, perPage: itemsPerPage.value, drivers: driverStore.drivers });
+        await fetchOrdersWithItems();
+    } catch (error) {
+        console.error("Failed to load initial data:", error);
+    }
+});
+
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: newPage,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+const switchTab = async (tab) => {
+    activeTab.value = tab;
+    skipNextPageWatch.value = true;
+    currentPage.value = 1;
+    selectedRows.value = [];
+
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: 1,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (error) {
+        console.error("Failed to switch tabs:", error);
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: currentPage.value,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (error) {
+        console.error("Failed to refresh work plans:", error);
+    }
+};
+
+const selectedLine = ref('');
+const selectedCase = ref('');
+const lineOptions = ref([]);
+
+const formData = ref({
+    name: '',
+    driver_id: '',
+    date: ''
+});
+
+const workPlanFields = computed(() => {
+    let defaultOrders = [{ order: '', items: [] }];
+
+    if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
+        const orderItemsMap = new Map();
+
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemId = wo.order_item?.id || wo.order_item_id;
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+
+            if (orderItemId && orderCode) {
+                if (!orderItemsMap.has(orderCode)) {
+                    orderItemsMap.set(orderCode, []);
+                }
+                orderItemsMap.get(orderCode).push(orderItemId);
+            }
+        });
+
+        defaultOrders = [];
+        orderItemsMap.forEach((itemIds, orderCode) => {
+            defaultOrders.push({
+                order: orderCode,
+                items: itemIds
+            });
+        });
+
+        if (defaultOrders.length === 0) {
+            defaultOrders = [{ order: '', items: [] }];
+        }
+    }
+
+    return [
+        {
+            name: 'name',
+            label: t('workPlan.form.name'),
+            type: 'text',
+            required: true,
+            placeholder: t('workPlan.form.namePlaceholder'),
+            colClass: 'col-md-6',
+            defaultValue: formData.value.name || selectedworkPlan.value.name || '',
+            validate: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return t('workPlan.validation.nameRequired');
+                }
+                if (value.length > 255) {
+                    return t('workPlan.validation.nameMax');
+                }
+                return null;
+            }
+        },
+        {
+            name: 'driver_id',
+            label: t('workPlan.form.driverName'),
+            type: 'select',
+            required: true,
+            options: driverOptions,
+            colClass: 'col-md-6',
+            defaultValue: formData.value.driver_id || selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
+        },
+        {
+            name: 'date',
+            label: t('workPlan.form.date'),
+            type: 'date',
+            required: false,
+            colClass: 'col-md-6',
+            defaultValue: formData.value.date || selectedworkPlan.value.date || '',
+        },
+        {
+            name: 'company_id',
+            label: t('workPlan.form.company'),
+            type: 'select',
+            required: true,
+            options: companyOption.value.length
+                ? companyOption.value
+                : [{ value: "", label: t("common.noCompanyAssigned") }],
+            colClass: 'col-md-6',
+            defaultValue: companyId.value || '',
+            locked: true,
+            hidden: true
+        },
+        {
+            name: 'line_filter',
+            label: t('workPlan.form.filterByLine'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                ...lineOptions.value
+            ],
+            colClass: 'col-md-6',
+            defaultValue: selectedLine.value,
+            onChange: (value, formDataFromModal) => {
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
+                selectedLine.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'case_filter',
+            label: t('workPlan.form.filterByCase'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                { value: 'Full', label: t('workPlan.cases.full') },
+                { value: 'Part', label: t('workPlan.cases.part') },
+                { value: 'Fast', label: t('workPlan.cases.fast') }
+            ],
+            colClass: 'col-md-6',
+            defaultValue: selectedCase.value,
+            onChange: (value, formDataFromModal) => {
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
+                selectedCase.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'orders',
+            label: t('workPlan.form.orders'),
+            type: 'orderRows',
+            required: false,
+            colClass: 'col-12',
+            orderLabel: t('workPlan.form.orderName'),
+            itemsLabel: t('workPlan.form.orderItems'),
+            orderOptions: orderOptions,
+            getItemsOptions: getItemsOptionsForOrder,
+            defaultValue: defaultOrders
+        }
+    ];
+});
+
+const getItemsOptionsForOrder = (orderCode) => {
+    if (!orderCode) {
+        return [];
+    }
+
+    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
+    if (!order || !order.order_items || order.order_items.length === 0) {
+        return [];
+    }
+
+    const items = order.order_items.map(item => ({
+        value: item.order_item_id,
+        label: item.orderitemname
+    }));
+
+    return items;
+};
+
+const detailsFields = computed(() => [
+    { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
+    { key: 'name', label: t('workPlan.name'), colClass: 'col-md-6' },
+    { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
+    { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
+    { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+]);
+
+const workPlanColumns = ref([
+    { key: "id", label: t("workPlan.id"), sortable: true },
+    { key: "name", label: t("workPlan.name"), sortable: true },
+    { key: 'date', label: t('workPlan.date'), sortable: true },
+    { key: 'driver_name', label: t('workPlan.driverName'), sortable: true },
+    { key: 'company_name', label: t('workPlan.companyName') },
+]);
+
+const visibleColumns = ref([]);
+
+const filteredColumns = computed(() => {
+    return workPlanColumns.value.filter((col) => visibleColumns.value.includes(col.key));
+});
+
+const filteredTableData = computed(() => {
+    let result = workPlans.value;
+    result = filterByGroups(result, selectedGroups.value, "company_name");
+    result = filterData(result, searchText.value);
+    return result;
+});
+
+const paginatedTableData = computed(() => {
+    return filteredTableData.value;
+});
+
+const currentPagination = computed(() => workPlansStore.workPlansPagination);
+
+const bulkActions = computed(() => {
+    return [
+        {
+            id: "delete",
+            label: t("workPlan.bulkDelete"),
+            bgColor: "var(--color-danger)",
+        },
+    ];
+});
+
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const count = selectedRows.value.length;
+    const entity = count === 1 ? t('workPlan.entitySingular') : t('workPlan.entityPlural');
+
+    return t('common.bulkPermanentDeleteConfirm', { count, entity });
+});
+
+watch([searchText, selectedGroups], () => {
+    currentPage.value = 1;
+});
+
+const fetchOrdersWithItems = async (filters = {}) => {
+    loadingOrders.value = true;
+    try {
+        const response = await apiServices.getOrdersWithItems(filters);
+
+        let data = [];
+        if (Array.isArray(response.data)) {
+            data = response.data;
+        } else if (Array.isArray(response.data?.data)) {
+            data = response.data.data;
+        }
+
+        ordersWithItems.value = data;
+
+        const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
+        lineOptions.value = uniqueLines.map(line => ({
+            value: line,
+            label: line
+        }));
+    } catch (error) {
+        console.error("❌ Failed to fetch orders with items:", error);
+        ordersWithItems.value = [];
+    } finally {
+        loadingOrders.value = false;
+    }
+};
+
+const handleFilterOrders = async () => {
+    const filters = {};
+
+    if (selectedLine.value) {
+        filters.line_name = selectedLine.value;
+    }
+
+    if (selectedCase.value) {
+        filters.case = selectedCase.value;
+    }
+    
+    await fetchOrdersWithItems(filters);
+};
+
+const openAddModal = async () => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+    formErrors.value = {};
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
+    await fetchOrdersWithItems();
+    isFormModalOpen.value = true;
+};
+
+const openEditModal = async (workPlan) => {
+    if (!canModifyPlan(workPlan)) {
+        alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
+        return;
+    }
+    
+    formErrors.value = {};
+    isEditMode.value = true;
+    selectedworkPlan.value = { ...workPlan };
+    
+    formData.value = {
+        name: workPlan.name,
+        driver_id: workPlan.driver_id,
+        date: workPlan.date
+    };
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    
+    await fetchOrdersWithItems();
+    isFormModalOpen.value = true;
+};
+
+const openDetailsModal = async (workPlan) => {
+    selectedworkPlan.value = { ...workPlan };
+    isDetailsModalOpen.value = true;
+    
+    await fetchWorkPlanDetails(workPlan.id);
+};
+
+const fetchWorkPlanDetails = async (workPlanId) => {
+    loadingDetails.value = true;
+    workPlanOrderItems.value = [];
+    
+    try {
+        const response = await apiServices.get(`/work_plans/${workPlanId}`);
+        const data = response.data.data;
+        
+        if (data.workplanorder && Array.isArray(data.workplanorder)) {
+            workPlanOrderItems.value = data.workplanorder;
+        }
+        
+        selectedworkPlan.value = {
+            ...selectedworkPlan.value,
+            ...data
+        };
+        
+    } catch (error) {
+        console.error("❌ Failed to fetch work plan details:", error);
+    } finally {
+        loadingDetails.value = false;
+    }
+};
+
+const closeFormModal = () => {
+    isFormModalOpen.value = false;
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
+    formErrors.value = {};
+};
+
+const closeDetailsModal = () => {
+    isDetailsModalOpen.value = false;
+    selectedworkPlan.value = {};
+    workPlanOrderItems.value = [];
+};
+
+const handleSubmitworkPlan = async (workPlanData) => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+
+    const orderItems = [];
+    if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
+        workPlanData.orders.forEach(row => {
+            if (row.items && Array.isArray(row.items)) {
+                row.items.forEach(itemId => {
+                    if (itemId && !orderItems.includes(itemId)) {
+                        orderItems.push(itemId);
+                    }
+                });
+            } else if (row.items) {
+                if (!orderItems.includes(row.items)) {
+                    orderItems.push(row.items);
+                }
+            }
+        });
+    }
+
+    const payload = {
+        name: workPlanData.name,
+        driver_id: parseInt(workPlanData.driver_id),
+        date: workPlanData.date || null,
+        Orderitems: orderItems.map(id => parseInt(id))
+    };
+
+    if (!isEditMode.value) {
+        payload.company_id = parseInt(companyId.value || workPlanData.company_id);
+    }
+
+    try {
+        if (isEditMode.value) {
+            await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
+            showSuccess(t('workPlan.updateSuccess'));
+        } else {
+            await workPlansStore.addWorkPlan(payload, driverStore.drivers);
+            showSuccess(t('workPlan.addSuccess'));
+        }
+        closeFormModal();
+    } catch (error) {
+        console.error("❌ Failed to save work plan:", error);
+
+        if (error.response && error.response.data) {
+            if (error.response.data.errors) {
+                const errorMessages = Object.values(error.response.data.errors).flat();
+                alert(errorMessages.join("\n"));
+            } else if (error.response.data.message) {
+                alert(error.response.data.message);
+            }
+        }
+    }
+};
+
+const handleDeleteWorkPlan = async (workPlan) => {
+    if (!canModifyPlan(workPlan)) {
+        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
+        return;
+    }
+    
+    try {
+        await workPlansStore.deleteWorkPlan(workPlan.id);
+        showSuccess(t('workPlan.deleteSuccess'));
+    } catch (error) {
+        console.error("❌ Failed to delete work plan:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handleBulkAction = ({ actionId }) => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+    
+    const validRows = selectedRows.value.filter(id => {
+        const plan = paginatedTableData.value.find(p => p.id === id);
+        return plan && canModifyPlan(plan);
+    });
+    
+    if (validRows.length === 0) {
+        alert(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
+        return;
+    }
+    
+    selectedRows.value = validRows;
+    pendingBulkAction.value = actionId;
+    isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+    if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
+    bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
+
+    try {
+        await workPlansStore.bulkDeleteWorkPlans(selectedRows.value);
+        showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
+        selectedRows.value = [];
+        pendingBulkAction.value = null;
+        await handleRefresh();
+    } catch (error) {
+        console.error("❌ Bulk action failed:", error);
+    } finally {
+        bulkActionLoading.value = false;
+    }
+};
+
+const cancelBulkAction = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
+};
 </script>
 
 <style scoped>
-.driver-login-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-
+.user-page-container {
+    max-width: 100%;
 }
 
-/* Mobile Header */
-.mobile-header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
 }
 
-.logo-section img {
-  filter: brightness(0) invert(1);
+.nav-tabs .nav-link:hover {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
-/* Login Content */
-.login-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  padding: 2rem 0;
-}
-
-.login-card {
-  background: white;
-  border-radius: 20px;
-  padding: 2.5rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-}
-
-.driver-icon-wrapper {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-/* Footer */
-.driver-footer {
-  padding: 1.5rem 0;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .login-card {
-    padding: 2rem 1.5rem;
-  }
-  
-  .driver-icon-wrapper {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .driver-icon-wrapper i {
-    font-size: 1.5rem !important;
-  }
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: transparent;
 }
 </style>
