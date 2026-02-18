@@ -1,358 +1,857 @@
 <template>
-  <div class="driver-steps-container bg-light">
-    <DriverStepsHeader
-      v-model="searchText"
-      :searchPlaceholder="$t('driverSteps.searchPlaceholder')"
-      :data="steps"
-      groupKey="status"
-      v-model:groupModelValue="selectedGroups"
-      :groupLabel="$t('driverSteps.filterByStatus')"
-      translationKey="driverSteps.status"
-      :columns="stepsColumns"
-      v-model:visibleColumns="visibleColumns"
-      :showAddButton="false"
-      @refresh-click="handleRefresh"
-    />
+    <div class="user-page-container bg-light">
+        <WorkPlansHeader 
+            v-model="searchText" 
+            :searchPlaceholder="$t('workPlan.searchPlaceholder')" 
+            :data="workPlans"
+            groupKey="company_name" 
+            v-model:groupModelValue="selectedGroups"
+            :groupLabel="$t('workPlan.filterByCompany')" 
+            translationKey="" 
+            :columns="workPlanColumns"
+            v-model:visibleColumns="visibleColumns" 
+            :showAddButton="canAddWorkPlan"
+            :addButtonText="$t('workPlan.addNew')" 
+            :showTrashedButton="false" 
+            @add-click="openAddModal"
+            @refresh-click="handleRefresh" 
+        />
 
-    <!-- Tabs Navigation -->
-    <div class="card border-0 mb-3">
-      <div class="card-body p-0">
-        <ul class="nav nav-tabs">
-          <li class="nav-item">
-            <button 
-              class="nav-link" 
-              :class="{ active: activeTab === 'ongoing' }"
-              @click="switchTab('ongoing')"
-            >
-              <i class="bi bi-hourglass-split me-2"></i> 
-              {{ $t('driverSteps.tabs.ongoing') }}
-              <span v-if="ongoingCount > 0" class="badge bg-primary ms-2">{{ ongoingCount }}</span>
-            </button>
-          </li>
-          <li class="nav-item">
-            <button 
-              class="nav-link" 
-              :class="{ active: activeTab === 'all' }" 
-              @click="switchTab('all')"
-            >
-              <i class="bi bi-list-task me-2"></i> 
-              {{ $t('driverSteps.tabs.all') }}
-            </button>
-          </li>
-        </ul>
-      </div>
+        <!-- Tabs Navigation -->
+        <div class="card border-0 mb-3">
+            <div class="card-body p-0">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'calendar' }"
+                            @click="switchTab('calendar')">
+                            <i class="bi bi-calendar3 me-2"></i> {{ $t('workPlan.tabs.calendar') }}
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'table' }" @click="switchTab('table')">
+                            <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Calendar Tab -->
+            <div v-show="activeTab === 'calendar'" class="tab-pane fade"
+                :class="{ 'show active': activeTab === 'calendar' }">
+                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
+            </div>
+
+            <!-- Table Tab -->
+            <div v-show="activeTab === 'table'" class="tab-pane fade" :class="{ 'show active': activeTab === 'table' }">
+                <div class="card border-0">
+                    <div class="card-body p-0">
+                        <BulkActionsBar 
+                            v-if="canAddWorkPlan && selectedRows.some(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            })" 
+                            :selectedCount="selectedRows.filter(id => {
+                                const plan = paginatedTableData.find(p => p.id === id);
+                                return plan && canModifyPlan(plan);
+                            }).length" 
+                            entityName="workPlan"
+                            :actions="bulkActions" 
+                            :loading="bulkActionLoading" 
+                            @action="handleBulkAction" 
+                        />
+                        <DataTable 
+                            :columns="filteredColumns" 
+                            :data="paginatedTableData"
+                            :actionsLabel="$t('workPlan.actions')" 
+                            v-model="selectedRows"
+                            :showCheckbox="canAddWorkPlan"
+                            :disableRowWhen="(row) => !canModifyPlan(row)">
+                            <template #actions="{ row }">
+                                <ActionsDropdown 
+                                    :row="row" 
+                                    :editLabel="$t('workPlan.edit')"
+                                    :detailsLabel="$t('workPlan.details')" 
+                                    :deleteLabel="$t('workPlan.delete')"
+                                    :confirmDelete="true"
+                                    :showEdit="canModifyPlan(row)"
+                                    :showDelete="canModifyPlan(row)"
+                                    :showDetails="true"
+                                    @edit="openEditModal" 
+                                    @details="openDetailsModal"
+                                    @delete="handleDeleteWorkPlan" 
+                                />
+                            </template>
+                        </DataTable>
+                        <div class="px-3 pt-1 pb-2 bg-light">
+                            <Pagination 
+                                :totalItems="currentPagination.total" 
+                                :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" 
+                                :totalPages="currentPagination.lastPage"
+                                @update:currentPage="(page) => currentPage = page" 
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Form Modal for Add/Edit workPlan -->
+        <FormModal 
+            :isOpen="isFormModalOpen" 
+            :title="isEditMode ? $t('workPlan.edit') : $t('workPlan.addNew')"
+            :fields="workPlanFields" 
+            :showImageUpload="false" 
+            :serverErrors="formErrors"
+            @close="closeFormModal" 
+            @submit="handleSubmitworkPlan" 
+        />
+
+        <!-- Details Modal -->
+        <DetailsModal 
+            :isOpen="isDetailsModalOpen" 
+            :title="$t('workPlan.details')" 
+            :data="selectedworkPlan"
+            :fields="detailsFields" 
+            @close="closeDetailsModal"
+        >
+            <template #after-details>
+                <div v-if="workPlanOrderItems.length > 0" class="mt-4">
+                    <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-box-seam"></i>
+                        {{ $t('workPlan.orderItems') }} ({{ workPlanOrderItems.length }})
+                    </h6>
+                    <OrderItemProgress 
+                        v-for="orderItem in workPlanOrderItems" 
+                        :key="orderItem.id"
+                        :orderItem="orderItem"
+                    />
+                </div>
+                
+                <div v-else-if="loadingDetails" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ $t('common.loading') }}</span>
+                    </div>
+                    <p class="text-muted mt-2">{{ $t('workPlan.loadingDetails') }}</p>
+                </div>
+                
+                <div v-else class="mt-4 text-center py-4 bg-light rounded">
+                    <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0 mt-2">{{ $t('workPlan.noOrderItems') }}</p>
+                </div>
+            </template>
+        </DetailsModal>
+
+        <!-- Bulk Action Confirmation Modal -->
+        <ConfirmationModal 
+            :isOpen="isBulkConfirmOpen" 
+            :title="$t('common.bulkDeleteConfirmTitle')"
+            :message="bulkConfirmMessage" 
+            :confirmText="$t('common.confirm')" 
+            :cancelText="$t('common.cancel')"
+            @confirm="executeBulkAction" 
+            @close="cancelBulkAction" 
+        />
+
+        <!-- Success Modal -->
+        <SuccessModal 
+            :isOpen="isSuccessModalOpen" 
+            :title="$t('common.success')"
+            :message="successMessage"
+            @close="closeSuccessModal" 
+        />
     </div>
-
-    <div class="card border-0">
-      <div class="card-body p-0">
-        <!-- Loading State -->
-        <div v-if="stepsStore.loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">{{ $t("common.loading") }}</span>
-          </div>
-          <p class="mt-2">{{ $t("common.loading") }}</p>
-        </div>
-
-        <!-- Error State -->
-        <div v-else-if="stepsStore.error" class="alert alert-danger m-3">
-          <i class="fas fa-exclamation-triangle me-2"></i>
-          {{ stepsStore.error }}
-        </div>
-
-        <!-- Data Table -->
-        <div v-else>
-          <DataTable
-            :columns="filteredColumns"
-            :data="paginatedData"
-            :actionsLabel="$t('driverSteps.actions')"
-            :showCheckbox="false"
-          >
-            <template #cell-status="{ row }">
-              <StatusBadge :status="row.status" type="workPlan" />
-            </template>
-
-            <template #cell-date="{ row }">
-              {{ formatDate(row.date) }}
-            </template>
-
-            <template #cell-created_at="{ row }">
-              {{ formatDateTime(row.created_at) }}
-            </template>
-
-            <template #actions="{ row }">
-              <ActionsDropdown
-                :row="row"
-                :detailsLabel="$t('driverSteps.details')"
-                :showEdit="false"
-                :showDelete="false"
-                :showDetails="true"
-                @details="openDetailsModal"
-              />
-            </template>
-          </DataTable>
-          
-          <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination
-              :totalItems="stepsStore.pagination.total"
-              :itemsPerPage="itemsPerPage"
-              :currentPage="currentPage"
-              :totalPages="stepsStore.pagination.lastPage"
-              @update:currentPage="(page) => (currentPage = page)"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Details Modal -->
-    <DetailsModal
-      :isOpen="isDetailsModalOpen"
-      :title="$t('driverSteps.stepDetails')"
-      :data="selectedStep"
-      :fields="detailsFields"
-      @close="closeDetailsModal"
-    />
-  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import Pagination from "../../../components/shared/Pagination.vue";
-import StatusBadge from "../../../components/shared/StatusBadge.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
+import OrderItemProgress from "../../../components/shared/OrderItemProgress.vue";
+import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
+import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
-import DriverStepsHeader from "../components/driverStepsHeader.vue";
-import { useDriverStepsStore } from "../stores/driverStepsStore.js";
+import WorkPlansHeader from "../components/workPlansHeader.vue";
+import FormModal from "../../../components/shared/FormModal.vue";
+import WorkPlanCalendar from "../components/calender.vue"
+import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
+import { useWorkPlansStore } from "../stores/workPlansStore.js";
+import { useDriverStore } from "../../drivers/stores/driversStore.js";
 import apiServices from "@/services/apiServices.js";
 
-const { t, locale } = useI18n();
-const stepsStore = useDriverStepsStore();
+const { t } = useI18n();
+const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
+const workPlansStore = useWorkPlansStore();
+const driverStore = useDriverStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
 const currentPage = ref(1);
+const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
+const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
-const selectedStep = ref({});
-const activeTab = ref('ongoing'); // Default to ongoing tab
+const isEditMode = ref(false);
+const selectedworkPlan = ref({});
+const formErrors = ref({});
+const activeTab = ref('calendar');
+const selectedRows = ref([]);
+const bulkActionLoading = ref(false);
+const isBulkConfirmOpen = ref(false);
+const pendingBulkAction = ref(null);
+const ordersWithItems = ref([]);
+const loadingOrders = ref(false);
+const workPlanOrderItems = ref([]);
+const loadingDetails = ref(false);
 
-const itemsPerPage = computed(() => stepsStore.pagination.perPage || 10);
+// ✅ Permissions
+const isSuperAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "superadmin");
+const isAdmin = computed(() => (authStore.userRole || "").toLowerCase() === "admin");
+const isDriver = computed(() => (authStore.userRole || "").toLowerCase() === "driver");
 
-// Get steps from store
-const steps = computed(() => stepsStore.steps);
+const canAddWorkPlan = computed(() => {
+  if (isDriver.value) return false;
+  return isAdmin.value || isSuperAdmin.value;
+});
 
-// Filter steps based on active tab - FRONTEND FILTERING
-const filteredSteps = computed(() => {
-  if (activeTab.value === 'ongoing') {
-    // Exclude done and failed
-    return steps.value.filter(step => 
-      !['done', 'failed'].includes(step.status)
-    );
+const isOwnCompanyPlan = (plan) => {
+  if (!companyId.value) return false;
+  const planCompanyId = String(plan.company_id);
+  return planCompanyId === String(companyId.value);
+};
+
+const canModifyPlan = (plan) => {
+  if (isDriver.value) return false;
+  if (isAdmin.value) return true;
+  if (isSuperAdmin.value) {
+    return isOwnCompanyPlan(plan);
   }
-  // All tab - show everything
-  return steps.value;
+  return false;
+};
+
+const workPlans = computed(() => {
+    const allPlans = workPlansStore.workPlans;
+
+    if (isSuperAdmin.value) {
+        return allPlans;
+    }
+
+    if (isAdmin.value) {
+        if (companyId.value) {
+            const filtered = allPlans.filter(plan => {
+                const planCompanyId = String(plan.company_id);
+                return planCompanyId === String(companyId.value);
+            });
+            return filtered;
+        } else {
+            return allPlans;
+        }
+    }
+
+    return [];
 });
 
-// Calculate ongoing count (exclude done and failed)
-const ongoingCount = computed(() => {
-  return filteredSteps.value.length;
+const orderOptions = computed(() => {
+    const options = ordersWithItems.value.map(order => ({
+        value: order.order_code,
+        label: order.order_code
+    }));
+
+    if (isEditMode.value && selectedworkPlan.value.workplanorder) {
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+
+            if (orderCode && !options.find(opt => opt.value === orderCode)) {
+                options.push({
+                    value: orderCode,
+                    label: orderCode
+                });
+            }
+        });
+    }
+
+    return options;
 });
 
-const stepsColumns = computed(() => [
-  { key: "__index", label: "#", sortable: false, isIndex: true },
-  { key: "name", label: t("driverSteps.name"), sortable: true },
-  { key: "driver_name", label: t("driverSteps.driver"), sortable: true },
-  { key: "status", label: t("driverSteps.status"), sortable: true },
-  { key: "date", label: t("driverSteps.date"), sortable: true },
-  { key: "created_at", label: t("driverSteps.createdAt"), sortable: true },
+const driverOptions = computed(() => {
+    const companyDrivers = driverStore.drivers.filter(driver =>
+        String(driver.company_id) === String(companyId.value)
+    );
+    return companyDrivers.map(driver => ({
+        value: driver.id,
+        label: driver.name || `Driver ${driver.id}`
+    }));
+});
+
+onMounted(async () => {
+    try {
+        await driverStore.fetchDrivers();
+        await workPlansStore.fetchWorkPlans({ page: 1, perPage: itemsPerPage.value, drivers: driverStore.drivers });
+        await fetchOrdersWithItems();
+    } catch (error) {
+        console.error("Failed to load initial data:", error);
+    }
+});
+
+watch(currentPage, async (newPage) => {
+    if (skipNextPageWatch.value) {
+        skipNextPageWatch.value = false;
+        return;
+    }
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: newPage,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (err) {
+        console.error("Failed to load page:", err);
+    }
+});
+
+const switchTab = async (tab) => {
+    activeTab.value = tab;
+    skipNextPageWatch.value = true;
+    currentPage.value = 1;
+    selectedRows.value = [];
+
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: 1,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (error) {
+        console.error("Failed to switch tabs:", error);
+    }
+};
+
+const handleRefresh = async () => {
+    selectedRows.value = [];
+    try {
+        await workPlansStore.fetchWorkPlans({
+            page: currentPage.value,
+            perPage: itemsPerPage.value,
+            drivers: driverStore.drivers,
+        });
+    } catch (error) {
+        console.error("Failed to refresh work plans:", error);
+    }
+};
+
+const selectedLine = ref('');
+const selectedCase = ref('');
+const lineOptions = ref([]);
+
+const formData = ref({
+    name: '',
+    driver_id: '',
+    date: ''
+});
+
+const workPlanFields = computed(() => {
+    let defaultOrders = [{ order: '', items: [] }];
+
+    if (isEditMode.value && selectedworkPlan.value.workplanorder && selectedworkPlan.value.workplanorder.length > 0) {
+        const orderItemsMap = new Map();
+
+        selectedworkPlan.value.workplanorder.forEach(wo => {
+            const orderItemId = wo.order_item?.id || wo.order_item_id;
+            const orderItemName = wo.order_item?.name || '';
+            const orderCode = orderItemName.split(' - ')[0].trim();
+
+            if (orderItemId && orderCode) {
+                if (!orderItemsMap.has(orderCode)) {
+                    orderItemsMap.set(orderCode, []);
+                }
+                orderItemsMap.get(orderCode).push(orderItemId);
+            }
+        });
+
+        defaultOrders = [];
+        orderItemsMap.forEach((itemIds, orderCode) => {
+            defaultOrders.push({
+                order: orderCode,
+                items: itemIds
+            });
+        });
+
+        if (defaultOrders.length === 0) {
+            defaultOrders = [{ order: '', items: [] }];
+        }
+    }
+
+    return [
+        {
+            name: 'name',
+            label: t('workPlan.form.name'),
+            type: 'text',
+            required: true,
+            placeholder: t('workPlan.form.namePlaceholder'),
+            colClass: 'col-md-6',
+            defaultValue: formData.value.name || selectedworkPlan.value.name || '',
+            validate: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return t('workPlan.validation.nameRequired');
+                }
+                if (value.length > 255) {
+                    return t('workPlan.validation.nameMax');
+                }
+                return null;
+            }
+        },
+        {
+            name: 'driver_id',
+            label: t('workPlan.form.driverName'),
+            type: 'select',
+            required: true,
+            options: driverOptions,
+            colClass: 'col-md-6',
+            defaultValue: formData.value.driver_id || selectedworkPlan.value.driver_id || selectedworkPlan.value.driver?.id || ''
+        },
+        {
+            name: 'date',
+            label: t('workPlan.form.date'),
+            type: 'date',
+            required: false,
+            colClass: 'col-md-6',
+            defaultValue: formData.value.date || selectedworkPlan.value.date || '',
+        },
+        {
+            name: 'company_id',
+            label: t('workPlan.form.company'),
+            type: 'select',
+            required: true,
+            options: companyOption.value.length
+                ? companyOption.value
+                : [{ value: "", label: t("common.noCompanyAssigned") }],
+            colClass: 'col-md-6',
+            defaultValue: companyId.value || '',
+            locked: true,
+            hidden: true
+        },
+        {
+            name: 'line_filter',
+            label: t('workPlan.form.filterByLine'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                ...lineOptions.value
+            ],
+            colClass: 'col-md-6',
+            defaultValue: selectedLine.value,
+            onChange: (value, formDataFromModal) => {
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
+                selectedLine.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'case_filter',
+            label: t('workPlan.form.filterByCase'),
+            type: 'select',
+            required: false,
+            options: [
+                { value: '', label: t('common.all') },
+                { value: 'Full', label: t('workPlan.cases.full') },
+                { value: 'Part', label: t('workPlan.cases.part') },
+                { value: 'Fast', label: t('workPlan.cases.fast') }
+            ],
+            colClass: 'col-md-6',
+            defaultValue: selectedCase.value,
+            onChange: (value, formDataFromModal) => {
+                formData.value = {
+                    name: formDataFromModal.name || formData.value.name,
+                    driver_id: formDataFromModal.driver_id || formData.value.driver_id,
+                    date: formDataFromModal.date || formData.value.date
+                };
+                
+                selectedCase.value = value;
+                handleFilterOrders();
+            }
+        },
+        {
+            name: 'orders',
+            label: t('workPlan.form.orders'),
+            type: 'orderRows',
+            required: false,
+            colClass: 'col-12',
+            orderLabel: t('workPlan.form.orderName'),
+            itemsLabel: t('workPlan.form.orderItems'),
+            orderOptions: orderOptions,
+            getItemsOptions: getItemsOptionsForOrder,
+            defaultValue: defaultOrders
+        }
+    ];
+});
+
+const getItemsOptionsForOrder = (orderCode) => {
+    if (!orderCode) {
+        return [];
+    }
+
+    const order = ordersWithItems.value.find(o => o.order_code === orderCode);
+    if (!order || !order.order_items || order.order_items.length === 0) {
+        return [];
+    }
+
+    const items = order.order_items.map(item => ({
+        value: item.order_item_id,
+        label: item.orderitemname
+    }));
+
+    return items;
+};
+
+const detailsFields = computed(() => [
+    { key: 'id', label: t('workPlan.id'), colClass: 'col-md-6' },
+    { key: 'name', label: t('workPlan.name'), colClass: 'col-md-6' },
+    { key: 'date', label: t('workPlan.date'), colClass: 'col-md-6' },
+    { key: 'driver_name', label: t('workPlan.driverName'), colClass: 'col-md-6' },
+    { key: 'company_name', label: t('workPlan.companyName'), colClass: 'col-md-6' },
+]);
+
+const workPlanColumns = ref([
+    { key: "id", label: t("workPlan.id"), sortable: true },
+    { key: "name", label: t("workPlan.name"), sortable: true },
+    { key: 'date', label: t('workPlan.date'), sortable: true },
+    { key: 'driver_name', label: t('workPlan.driverName'), sortable: true },
+    { key: 'company_name', label: t('workPlan.companyName') },
 ]);
 
 const visibleColumns = ref([]);
 
-// Details fields for modal
-const detailsFields = computed(() => [
-  { key: "id", label: t("driverSteps.id"), colClass: "col-md-6" },
-  { key: "name", label: t("driverSteps.name"), colClass: "col-md-6" },
-  { key: "driver_name", label: t("driverSteps.driver"), colClass: "col-md-6" },
-  { key: "status", label: t("driverSteps.status"), colClass: "col-md-6", translationKey: "driverSteps.status" },
-  { key: "date", label: t("driverSteps.date"), colClass: "col-md-6" },
-  { key: "created_at", label: t("driverSteps.createdAt"), colClass: "col-md-6" },
-  { key: "notes", label: t("driverSteps.notes"), colClass: "col-md-12" },
-]);
-
-// Fetch data on component mount
-onMounted(async () => {
-  try {
-    await fetchStepsPage(1);
-  } catch (error) {
-    console.error("❌ Failed to load data:", error);
-  }
-});
-
-// Watch for page changes
-watch(currentPage, async (newPage) => {
-  if (skipNextPageWatch.value) {
-    skipNextPageWatch.value = false;
-    return;
-  }
-  try {
-    await fetchStepsPage(newPage);
-  } catch (err) {
-    console.error("Failed to load page:", err);
-  }
-});
-
-// Switch tab function
-const switchTab = async (tab) => {
-  activeTab.value = tab;
-  skipNextPageWatch.value = true;
-  currentPage.value = 1;
-  
-  try {
-    await fetchStepsPage(1);
-  } catch (error) {
-    console.error("Failed to switch tabs:", error);
-  }
-};
-
-const handleRefresh = async () => {
-  try {
-    await fetchStepsPage(currentPage.value);
-  } catch (error) {
-    console.error("❌ Failed to refresh steps:", error);
-  }
-};
-
 const filteredColumns = computed(() => {
-  return stepsColumns.value.filter((col) => visibleColumns.value.includes(col.key));
+    return workPlanColumns.value.filter((col) => visibleColumns.value.includes(col.key));
 });
 
-const buildStepsFilters = () => {
-  const filters = {};
-  const trimmedSearch = searchText.value.trim();
-  if (trimmedSearch) {
-    filters.search = trimmedSearch;
-  }
-  
-  // Apply status filter only in 'all' tab when manually selected
-  if (activeTab.value === 'all' && selectedGroups.value.length > 0) {
-    filters.status =
-      selectedGroups.value.length === 1
-        ? selectedGroups.value[0]
-        : selectedGroups.value.join(",");
-  }
-  
-  return filters;
-};
+const filteredTableData = computed(() => {
+    let result = workPlans.value;
+    result = filterByGroups(result, selectedGroups.value, "company_name");
+    result = filterData(result, searchText.value);
+    return result;
+});
 
-const fetchStepsPage = async (page = 1) => {
-  const filters = buildStepsFilters();
-  await stepsStore.fetchSteps({
-    page,
-    perPage: itemsPerPage.value,
-    filters,
-  });
-};
+const paginatedTableData = computed(() => {
+    return filteredTableData.value;
+});
 
-// Server returns paginated data, then filter on frontend
-const paginatedData = computed(() => filteredSteps.value);
+const currentPagination = computed(() => workPlansStore.workPlansPagination);
 
-watch([searchText, selectedGroups], async () => {
-  if (currentPage.value !== 1) {
-    skipNextPageWatch.value = true;
+const bulkActions = computed(() => {
+    return [
+        {
+            id: "delete",
+            label: t("workPlan.bulkDelete"),
+            bgColor: "var(--color-danger)",
+        },
+    ];
+});
+
+const bulkConfirmMessage = computed(() => {
+    if (!pendingBulkAction.value) return '';
+
+    const count = selectedRows.value.length;
+    const entity = count === 1 ? t('workPlan.entitySingular') : t('workPlan.entityPlural');
+
+    return t('common.bulkPermanentDeleteConfirm', { count, entity });
+});
+
+watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
-  }
-  try {
-    await fetchStepsPage(1);
-  } catch (error) {
-    console.error("❌ Failed to apply filters:", error);
-  }
 });
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
+const fetchOrdersWithItems = async (filters = {}) => {
+    loadingOrders.value = true;
+    try {
+        const response = await apiServices.getOrdersWithItems(filters);
 
-const formatDateTime = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
+        let data = [];
+        if (Array.isArray(response.data)) {
+            data = response.data;
+        } else if (Array.isArray(response.data?.data)) {
+            data = response.data.data;
+        }
 
-// Open details modal and fetch step details
-const openDetailsModal = async (row) => {
-  try {
-    const response = await apiServices.getWorkPlanStepById(row.id);
-    
-    if (response.data?.data) {
-      const stepData = response.data.data;
-      
-      // Format the data for display
-      selectedStep.value = {
-        id: stepData.id,
-        name: stepData.name || 'N/A',
-        driver_name: stepData.driver_name || stepData.driver?.[1] || 'N/A',
-        status: stepData.status || 'N/A',
-        date: formatDate(stepData.date),
-        created_at: formatDateTime(stepData.created_at),
-        notes: stepData.notes || t('driverSteps.noNotes'),
-      };
-      
-      isDetailsModalOpen.value = true;
+        ordersWithItems.value = data;
+
+        const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
+        lineOptions.value = uniqueLines.map(line => ({
+            value: line,
+            label: line
+        }));
+    } catch (error) {
+        console.error("❌ Failed to fetch orders with items:", error);
+        ordersWithItems.value = [];
+    } finally {
+        loadingOrders.value = false;
     }
-  } catch (error) {
-    console.error("❌ Failed to fetch step details:", error);
-    alert(error.message || t('common.errorLoadingData'));
-  }
+};
+
+const handleFilterOrders = async () => {
+    const filters = {};
+
+    if (selectedLine.value) {
+        filters.line_name = selectedLine.value;
+    }
+
+    if (selectedCase.value) {
+        filters.case = selectedCase.value;
+    }
+    
+    await fetchOrdersWithItems(filters);
+};
+
+const openAddModal = async () => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+    formErrors.value = {};
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
+    await fetchOrdersWithItems();
+    isFormModalOpen.value = true;
+};
+
+const openEditModal = async (workPlan) => {
+    if (!canModifyPlan(workPlan)) {
+        alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
+        return;
+    }
+    
+    formErrors.value = {};
+    isEditMode.value = true;
+    selectedworkPlan.value = { ...workPlan };
+    
+    formData.value = {
+        name: workPlan.name,
+        driver_id: workPlan.driver_id,
+        date: workPlan.date
+    };
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    
+    await fetchOrdersWithItems();
+    isFormModalOpen.value = true;
+};
+
+const openDetailsModal = async (workPlan) => {
+    selectedworkPlan.value = { ...workPlan };
+    isDetailsModalOpen.value = true;
+    
+    await fetchWorkPlanDetails(workPlan.id);
+};
+
+const fetchWorkPlanDetails = async (workPlanId) => {
+    loadingDetails.value = true;
+    workPlanOrderItems.value = [];
+    
+    try {
+        const response = await apiServices.get(`/work_plans/${workPlanId}`);
+        const data = response.data.data;
+        
+        if (data.workplanorder && Array.isArray(data.workplanorder)) {
+            workPlanOrderItems.value = data.workplanorder;
+        }
+        
+        selectedworkPlan.value = {
+            ...selectedworkPlan.value,
+            ...data
+        };
+        
+    } catch (error) {
+        console.error("❌ Failed to fetch work plan details:", error);
+    } finally {
+        loadingDetails.value = false;
+    }
+};
+
+const closeFormModal = () => {
+    isFormModalOpen.value = false;
+    isEditMode.value = false;
+    selectedworkPlan.value = {};
+    
+    selectedLine.value = '';
+    selectedCase.value = '';
+    formData.value = {
+        name: '',
+        driver_id: '',
+        date: ''
+    };
+    
+    formErrors.value = {};
 };
 
 const closeDetailsModal = () => {
-  isDetailsModalOpen.value = false;
-  selectedStep.value = {};
+    isDetailsModalOpen.value = false;
+    selectedworkPlan.value = {};
+    workPlanOrderItems.value = [];
+};
+
+const handleSubmitworkPlan = async (workPlanData) => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+
+    const orderItems = [];
+    if (workPlanData.orders && Array.isArray(workPlanData.orders)) {
+        workPlanData.orders.forEach(row => {
+            if (row.items && Array.isArray(row.items)) {
+                row.items.forEach(itemId => {
+                    if (itemId && !orderItems.includes(itemId)) {
+                        orderItems.push(itemId);
+                    }
+                });
+            } else if (row.items) {
+                if (!orderItems.includes(row.items)) {
+                    orderItems.push(row.items);
+                }
+            }
+        });
+    }
+
+    const payload = {
+        name: workPlanData.name,
+        driver_id: parseInt(workPlanData.driver_id),
+        date: workPlanData.date || null,
+        Orderitems: orderItems.map(id => parseInt(id))
+    };
+
+    if (!isEditMode.value) {
+        payload.company_id = parseInt(companyId.value || workPlanData.company_id);
+    }
+
+    try {
+        if (isEditMode.value) {
+            await workPlansStore.updateWorkPlan(selectedworkPlan.value.id, payload, driverStore.drivers);
+            showSuccess(t('workPlan.updateSuccess'));
+        } else {
+            await workPlansStore.addWorkPlan(payload, driverStore.drivers);
+            showSuccess(t('workPlan.addSuccess'));
+        }
+        closeFormModal();
+    } catch (error) {
+        console.error("❌ Failed to save work plan:", error);
+
+        if (error.response && error.response.data) {
+            if (error.response.data.errors) {
+                const errorMessages = Object.values(error.response.data.errors).flat();
+                alert(errorMessages.join("\n"));
+            } else if (error.response.data.message) {
+                alert(error.response.data.message);
+            }
+        }
+    }
+};
+
+const handleDeleteWorkPlan = async (workPlan) => {
+    if (!canModifyPlan(workPlan)) {
+        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
+        return;
+    }
+    
+    try {
+        await workPlansStore.deleteWorkPlan(workPlan.id);
+        showSuccess(t('workPlan.deleteSuccess'));
+    } catch (error) {
+        console.error("❌ Failed to delete work plan:", error);
+        alert(error.message || t('common.saveFailed'));
+    }
+};
+
+const handleBulkAction = ({ actionId }) => {
+    if (!canAddWorkPlan.value) {
+        return;
+    }
+    
+    const validRows = selectedRows.value.filter(id => {
+        const plan = paginatedTableData.value.find(p => p.id === id);
+        return plan && canModifyPlan(plan);
+    });
+    
+    if (validRows.length === 0) {
+        alert(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
+        return;
+    }
+    
+    selectedRows.value = validRows;
+    pendingBulkAction.value = actionId;
+    isBulkConfirmOpen.value = true;
+};
+
+const executeBulkAction = async () => {
+    if (!pendingBulkAction.value || !canAddWorkPlan.value) return;
+    bulkActionLoading.value = true;
+    isBulkConfirmOpen.value = false;
+    const count = selectedRows.value.length;
+
+    try {
+        await workPlansStore.bulkDeleteWorkPlans(selectedRows.value);
+        showSuccess(t('workPlan.bulkDeleteSuccess', { count }));
+        selectedRows.value = [];
+        pendingBulkAction.value = null;
+        await handleRefresh();
+    } catch (error) {
+        console.error("❌ Bulk action failed:", error);
+    } finally {
+        bulkActionLoading.value = false;
+    }
+};
+
+const cancelBulkAction = () => {
+    isBulkConfirmOpen.value = false;
+    pendingBulkAction.value = null;
 };
 </script>
 
 <style scoped>
-.driver-steps-container {
-  max-width: 100%;
+.user-page-container {
+    max-width: 100%;
 }
 
 .nav-tabs .nav-link {
-  border: none;
-  border-bottom: 3px solid transparent;
-  color: #6c757d;
-  padding: 1rem 1.5rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6c757d;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
 }
 
 .nav-tabs .nav-link:hover {
-  border-bottom-color: var(--primary-color);
-  color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .nav-tabs .nav-link.active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
-  background-color: transparent;
-}
-
-.badge {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: transparent;
 }
 </style>
