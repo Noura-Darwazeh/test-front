@@ -44,6 +44,7 @@ api.interceptors.request.use(
 
     if (!config.headers['X-Client']) {
       config.headers["X-Client"] = 'desktop-browser';
+      
     }
 
     if (shouldLogApi) {

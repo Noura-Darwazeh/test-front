@@ -183,13 +183,13 @@ async function loginAsDriver(credentials) {
       throw new Error("Password is required");
     }
 
-    // ✅ بعتي "login" مش "username"
     const response = await api.post("/login", {
-      login: credentials.username.trim(),  // ← غيّرت من username لـ login
+      login: credentials.username.trim(),  
       password: credentials.password,
     }, {
       headers: {
         'X-Client': 'mobile-app',
+         'User-Agent': 'iphone',
       }
     });
 
