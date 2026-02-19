@@ -194,7 +194,7 @@ async function loginAsDriver(credentials) {
     {
       headers: {
         'X-Client': 'mobile-app',
-        'User-Agent': 'iphone',
+        // 'User-Agent': 'iphone',
       }
     }
   );
