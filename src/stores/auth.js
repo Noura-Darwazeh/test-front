@@ -190,12 +190,14 @@ async function loginAsDriver(credentials) {
     const response = await api.post("/login", {
       username: loginValue,
       password: credentials.password,
-    }, {
+    }, 
+    {
       headers: {
         'X-Client': 'mobile-app',
         'User-Agent': 'iphone',
       }
-    });
+    }
+  );
 
     const data = response.data;
 
