@@ -11,6 +11,9 @@
       :translationKey="'discountTypes'"
       :columns="discountColumns"
       v-model:visibleColumns="visibleColumns"
+      :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter"
+      @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="true"
       :addButtonText="$t('discount.addNew')"
       @add-click="openModal"
@@ -64,7 +67,8 @@
         </div>
 
         <div v-else>
-          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows">
+          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''">
             <template #actions="{ row }">
               <Actions
                 v-if="activeTab === 'active'"
@@ -72,10 +76,16 @@
                 :editLabel="$t('discount.edit')"
                 :detailsLabel="$t('discount.actions.details')"
                 :deleteLabel="$t('discount.actions.delete')"
+                :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')"
                 :confirmDelete="true"
                 @edit="handleEdit"
                 @details="handleDetails"
                 @delete="handleDeleteDiscount"
+                @activate="handleActivate"
+                @deactivate="handleDeactivate"
               />
               <Actions
                 v-else
@@ -136,12 +146,15 @@
     />
 
     <!-- Success Modal -->
-    <SuccessModal 
-      :isOpen="isSuccessModalOpen" 
+    <SuccessModal
+      :isOpen="isSuccessModalOpen"
       :title="$t('common.success')"
       :message="successMessage"
-      @close="closeSuccessModal" 
+      @close="closeSuccessModal"
     />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -156,7 +169,9 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
@@ -167,6 +182,7 @@ import { useCustomerStore } from "@/modules/customer/stores/customerStore.js";
 import { useRegionsManagementStore } from "@/modules/regions/store/regionsManagement.js";
 import { useLinesStore } from "@/modules/lines/stores/linesStore.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const { companyId } = useAuthDefaults();
@@ -175,6 +191,7 @@ const customerStore = useCustomerStore();
 const regionsStore = useRegionsManagementStore();
 const linesStore = useLinesStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const customers = computed(() => customerStore.customers);
 const regions = computed(() => regionsStore.regions);
@@ -229,6 +246,7 @@ const formatPriceWithFallback = (value, fallbackText = "N/A") => {
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const activeStatusFilter = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
@@ -247,6 +265,10 @@ const activeTab = ref('active');
 const discounts = computed(() => discountStore.discounts);
 const trashedDiscounts = computed(() => discountStore.trashedDiscounts);
 
+// Active Toggle
+const refreshDiscounts = () => discountStore.fetchDiscounts({ page: currentPage.value, perPage: itemsPerPage.value, filters: activeStatusFilter.value !== '' ? { is_active: activeStatusFilter.value } : {} });
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("discounts", refreshDiscounts, { showSuccess, showError });
+
 onMounted(async () => {
   try {
     await Promise.all([
@@ -261,17 +283,31 @@ onMounted(async () => {
   }
 });
 
+// Watch for active status filter changes — re-fetch from server
+watch(activeStatusFilter, async (newValue) => {
+  currentPage.value = 1;
+  const filters = {};
+  if (newValue !== '') filters.is_active = newValue;
+  try {
+    await discountStore.fetchDiscounts({ page: 1, perPage: itemsPerPage.value, filters });
+  } catch (err) {
+    console.error("Failed to filter discounts:", err);
+  }
+});
+
 // Watch for page changes to fetch new data from server
 watch(currentPage, async (newPage) => {
   if (skipNextPageWatch.value) {
     skipNextPageWatch.value = false;
     return;
   }
+  const filters = {};
+  if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
   try {
     if (activeTab.value === "trashed") {
       await discountStore.fetchTrashedDiscounts({ page: newPage, perPage: itemsPerPage.value });
     } else {
-      await discountStore.fetchDiscounts({ page: newPage, perPage: itemsPerPage.value });
+      await discountStore.fetchDiscounts({ page: newPage, perPage: itemsPerPage.value, filters });
     }
   } catch (err) {
     console.error("Failed to load page:", err);
@@ -304,6 +340,7 @@ const discountColumns = computed(() => [
   { key: "end_date", label: t("discount.table.endDate"), sortable: true },
   { key: "company_name", label: t("discount.table.company"), sortable: true },
   { key: "usage_count", label: t("discount.table.usageCount"), sortable: true },
+  { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const trashedColumns = computed(() => [
@@ -373,6 +410,16 @@ const currentPagination = computed(() => {
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
+      {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
       {
         id: "delete",
         label: t("discount.bulkDelete"),
@@ -462,11 +509,13 @@ const switchTab = async (tab) => {
 
 const handleRefresh = async () => {
   selectedRows.value = [];
+  const filters = {};
+  if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
   try {
     if (activeTab.value === "trashed") {
       await discountStore.fetchTrashedDiscounts({ page: currentPage.value, perPage: itemsPerPage.value });
     } else {
-      await discountStore.fetchDiscounts({ page: currentPage.value, perPage: itemsPerPage.value });
+      await discountStore.fetchDiscounts({ page: currentPage.value, perPage: itemsPerPage.value, filters });
     }
   } catch (error) {
     console.error("❌ Failed to refresh discounts:", error);
@@ -529,7 +578,7 @@ const payload = {
     if (applyServerErrors(error)) {
       return;
     }
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -540,7 +589,7 @@ const handleRestoreDiscount = async (discount) => {
     showSuccess(t('discount.restoreSuccess'));
   } catch (error) {
     console.error("❌ Failed to restore discount:", error);
-    alert(error.message || 'Failed to restore discount');
+    showError(error.message || 'Failed to restore discount');
   }
 };
 
@@ -551,7 +600,7 @@ const handleDeleteDiscount = async (discount) => {
     showSuccess(t('discount.deleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to delete discount:", error);
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -562,7 +611,7 @@ const handlePermanentDeleteDiscount = async (discount) => {
     showSuccess(t('discount.permanentDeleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to permanently delete discount:", error);
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -590,6 +639,10 @@ const executeBulkAction = async () => {
       await discountStore.bulkRestoreDiscounts(selectedRows.value);
       console.log("✅ Discounts restored successfully");
       showSuccess(t('discount.bulkRestoreSuccess', { count }));
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
     }
     selectedRows.value = [];
     pendingBulkAction.value = null;

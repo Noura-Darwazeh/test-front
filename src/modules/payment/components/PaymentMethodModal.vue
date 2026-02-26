@@ -58,7 +58,7 @@
                                 <div v-if="paymentMethod === 'driver'" class="mt-3 ms-4">
                                     <label class="form-label">{{ $t('payment.selectDriver') }}</label>
                                     <select v-model="selectedDriver" class="form-select"
-                                        :class="{ 'is-invalid': showError && !selectedDriver }">
+                                        :class="{ 'is-invalid': showValidationError && !selectedDriver }">
                                         <option value="">{{ $t('payment.selectDriverPlaceholder') }}</option>
 
                                         <option v-for="driver in drivers" :key="driver.value" :value="driver.value">
@@ -70,7 +70,7 @@
                                         Selected ID: {{ selectedDriver }}
                                     </small>
 
-                                    <div v-if="showError && !selectedDriver" class="invalid-feedback">
+                                    <div v-if="showValidationError && !selectedDriver" class="invalid-feedback">
                                         {{ $t('payment.driverRequired') }}
                                     </div>
                                 </div>
@@ -89,14 +89,19 @@
             </div>
         </div>
     </Transition>
+
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
 </template>
 
 <script setup>
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import PrimaryButton from '@/components/shared/PrimaryButton.vue';
+import ErrorModal from '@/components/shared/ErrorModal.vue';
+import { useErrorModal } from '@/composables/useErrorModal.js';
 
 const { t } = useI18n();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const props = defineProps({
     isOpen: {
@@ -121,26 +126,26 @@ const emit = defineEmits(['close', 'submit']);
 
 const paymentMethod = ref('');
 const selectedDriver = ref('');
-const showError = ref(false);
+const showValidationError = ref(false);
 
 const closeModal = () => {
     paymentMethod.value = '';
     selectedDriver.value = '';
-    showError.value = false;
+    showValidationError.value = false;
     emit('close');
 };
 
 const handleSubmit = () => {
-    showError.value = false;
+    showValidationError.value = false;
 
     // Validation
     if (!paymentMethod.value) {
-        alert(t('payment.selectPaymentMethodError'));
+        showError(t('payment.selectPaymentMethodError'));
         return;
     }
 
     if (paymentMethod.value === 'driver' && !selectedDriver.value) {
-        showError.value = true;
+        showValidationError.value = true;
         return;
     }
 
@@ -160,7 +165,7 @@ watch(() => props.isOpen, (newVal) => {
     if (newVal) {
         paymentMethod.value = '';
         selectedDriver.value = '';
-        showError.value = false;
+        showValidationError.value = false;
 
         const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
         document.body.style.overflow = 'hidden';

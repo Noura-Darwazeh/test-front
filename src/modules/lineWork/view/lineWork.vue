@@ -28,6 +28,9 @@
       :data="lineWorks"
       :columns="displayColumns"
       v-model:visibleColumns="visibleColumns"
+      :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter"
+      @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="true"
       :addButtonText="$t('lineWork.addNew')"
       @add-click="openAddModal"
@@ -87,6 +90,7 @@
             :data="paginatedData"
             :actionsLabel="$t('lineWork.actions')"
             v-model="selectedRows"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
           >
             <template #actions="{ row }">
               <ActionsDropdown
@@ -95,10 +99,16 @@
                 :editLabel="$t('lineWork.edit')"
                 :detailsLabel="$t('lineWork.details')"
                 :deleteLabel="$t('lineWork.delete')"
+                :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')"
                 :confirmDelete="true"
                 @edit="openEditModal"
                 @details="openDetailsModal"
                 @delete="handleDeleteLineWork"
+                @activate="handleActivate"
+                @deactivate="handleDeactivate"
               />
               <ActionsDropdown
                 v-else
@@ -156,6 +166,9 @@
       :message="successMessage"
       @close="closeSuccessModal"
     />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -167,7 +180,9 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import lineWorkHeader from "../components/lineWorkHeader.vue";
@@ -175,17 +190,20 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import { useLineWorkStore } from "../stores/lineworkStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const lineWorkStore = useLineWorkStore();
 const { companyId, companyOption, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } =
   useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ Check if user is SuperAdmin
 const isSuperAdmin = computed(() => authStore.hasRole("SuperAdmin"));
 
 const searchText = ref("");
+const activeStatusFilter = ref("");
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -201,6 +219,10 @@ const pendingBulkAction = ref(null);
 // Get lineWorks from store
 const lineWorks = computed(() => lineWorkStore.lineWorks);
 const trashedLineWork = computed(() => lineWorkStore.trashedLineWorks);
+
+// Active Toggle
+const refreshLineWorks = () => lineWorkStore.fetchLineWorks();
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("line-works", refreshLineWorks, { showSuccess, showError });
 
 // Fetch data on component mount
 onMounted(async () => {
@@ -272,6 +294,7 @@ const baseColumns = ref([
   { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "name", label: t("lineWork.name"), sortable: true },
   { key: "company", label: t("lineWork.company"), sortable: false },
+  { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 // ✅ Columns to display based on user role
@@ -314,6 +337,11 @@ const currentLoading = computed(() => {
 
 const currentFilteredData = computed(() => {
   let result = currentData.value;
+  // Apply is_active filter (client-side)
+  if (activeStatusFilter.value !== "" && activeTab.value === "active") {
+    const filterVal = Number(activeStatusFilter.value);
+    result = result.filter((item) => item.is_active === filterVal);
+  }
   result = filterData(result, searchText.value);
   return result;
 });
@@ -325,6 +353,16 @@ const paginatedData = computed(() => {
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
+      {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
       {
         id: "delete",
         label: t("lineWork.bulkDelete"),
@@ -483,7 +521,7 @@ const handleSubmitlineWork = async (lineWorkData) => {
       return;
     }
 
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 
@@ -498,7 +536,7 @@ const handleRestorelineWork = async (lineWork) => {
     showSuccess(t("lineWork.restoreSuccess"));
   } catch (error) {
     console.error("❌ Failed to restore line work:", error);
-    alert(error.message || "Failed to restore line work");
+    showError(error.message || "Failed to restore line work");
   }
 };
 
@@ -509,7 +547,7 @@ const handlePermanentDeleteLineWork = async (lineWork) => {
     showSuccess(t("lineWork.permanentDeleteSuccess"));
   } catch (error) {
     console.error("❌ Failed to permanently delete line work:", error);
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 
@@ -537,6 +575,10 @@ const executeBulkAction = async () => {
       await lineWorkStore.bulkRestoreLineWorks(selectedRows.value);
       console.log("✅ Line works restored successfully");
       showSuccess(t("lineWork.bulkRestoreSuccess", { count }));
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
     }
     selectedRows.value = [];
     pendingBulkAction.value = null;
@@ -559,7 +601,7 @@ const handleDeleteLineWork = async (lineWork) => {
     showSuccess(t("lineWork.deleteSuccess"));
   } catch (error) {
     console.error("❌ Failed to delete line work:", error);
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 </script>

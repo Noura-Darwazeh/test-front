@@ -71,7 +71,10 @@
         <tbody>
           <template v-for="(row, rowIndex) in sortedData" :key="row.id">
             <tr
-              :class="{ 'expanded-row': isExpanded(row.id), 'expandable-row': isRowExpandable(row) }"
+              :class="[
+                { 'expanded-row': isExpanded(row.id), 'expandable-row': isRowExpandable(row) },
+                rowClass ? rowClass(row) : ''
+              ]"
               @click="isRowExpandable(row) && toggleExpand(row.id)"
             >
               <!-- Expand Toggle -->
@@ -149,7 +152,10 @@
         v-for="(row, rowIndex) in sortedData"
         :key="row.id"
         class="card mb-3 border shadow-sm"
-        :class="{ 'expandable-card': isRowExpandable(row) }"
+        :class="[
+          { 'expandable-card': isRowExpandable(row) },
+          rowClass ? rowClass(row) : ''
+        ]"
         @click="isRowExpandable(row) && toggleExpand(row.id)"
       >
         <div class="card-body p-3">
@@ -280,6 +286,11 @@ const props = defineProps({
   },
   // ✅ Function to determine if a row checkbox should be disabled/hidden
   disableRowWhen: {
+    type: Function,
+    default: null,
+  },
+  // Function to return CSS class for a row (e.g. for inactive row styling)
+  rowClass: {
     type: Function,
     default: null,
   },
@@ -466,5 +477,19 @@ watch(() => props.data, () => {
   margin: 0 -1rem;
   padding: 1rem;
   border-radius: 0 0 0.375rem 0.375rem;
+}
+
+/* Inactive row styles */
+:deep(.row-inactive) {
+  opacity: 0.55;
+}
+
+:deep(.row-inactive td) {
+  background-color: #f8f9fa;
+}
+
+:deep(.card.row-inactive) {
+  opacity: 0.55;
+  background-color: #f8f9fa;
 }
 </style>

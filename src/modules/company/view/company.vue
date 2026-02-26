@@ -25,7 +25,11 @@
             <!-- Active Companies Tab -->
             <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
                 groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
-                translationKey="companyTypes" :columns="companyColumns" v-model:visibleColumns="visibleColumns"
+                translationKey="companyTypes"
+                groupKey2="shared_line" v-model:groupModelValue2="selectedSharedLineGroups"
+                :groupLabel2="$t('common.filterBySharedLine')" translationKey2="sharedLineOptions"
+                :columns="companyColumns" v-model:visibleColumns="visibleColumns"
+                :showActiveFilter="true" :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
                 :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal" @refresh-click="handleRefresh"
                 :showTrashedButton="false" />
 
@@ -36,12 +40,13 @@
             <div class="card border-0">
                 <div class="card-body p-0">
                     <DataTable :columns="filteredColumns" :data="paginatedcompanies" v-model="selectedRows"
-                        :actionsLabel="$t('company.actions')">
+                        :actionsLabel="$t('company.actions')"
+                        :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''">
                         <!-- Shared Line Column -->
                         <template #cell-shared_line="{ row }">
                             <SharedLineToggle 
                                 :companyId="row.id"
-                                :sharedLine="row.shared_line"
+                                :sharedLine="row.shared_line ?? 0"
                                 @updated="handleSharedLineUpdate"
                             />
                         </template>
@@ -49,7 +54,10 @@
                         <template #actions="{ row }">
                             <ActionsDropdown :row="row" :editLabel="$t('company.edit')"
                                 :detailsLabel="$t('company.details')" :deleteLabel="$t('company.delete')"
-                                @edit="openEditModal" @details="openDetailsModal" @delete="handleDeleteCompany" />
+                                :showActivate="row.is_active === 0" :showDeactivate="row.is_active === 1"
+                                :activateLabel="$t('common.activate')" :deactivateLabel="$t('common.deactivate')"
+                                @edit="openEditModal" @details="openDetailsModal" @delete="handleDeleteCompany"
+                                @activate="handleActivate" @deactivate="handleDeactivate" />
                         </template>
                     </DataTable>
                     <div class="px-3 pt-1 pb-2 bg-light">
@@ -80,7 +88,7 @@
                         <template #cell-shared_line="{ row }">
                             <SharedLineToggle 
                                 :companyId="row.id"
-                                :sharedLine="row.shared_line"
+                                :sharedLine="row.shared_line ?? 0"
                                 @updated="handleSharedLineUpdate"
                             />
                         </template>
@@ -231,6 +239,8 @@
         <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="bulkConfirmTitle" :message="bulkConfirmMessage"
             :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')" @confirm="executeBulkAction"
             @close="cancelBulkAction" />
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
+        <SuccessModal :isOpen="isSuccessModalOpen" :title="$t('common.success')" :message="successMessage" @close="closeSuccessModal" />
         </template>
     </div>
 </template>
@@ -252,8 +262,15 @@ import { useCompanyManagementStore } from "../store/companyManagement.js";
 import apiServices from "@/services/apiServices.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 import { useAuthStore } from "@/stores/auth.js";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const companyStore = useCompanyManagementStore();
 const authStore = useAuthStore();
 const isSuperAdmin = computed(
@@ -266,6 +283,8 @@ const activeTab = ref('active');
 // Search and Filters - Active Tab
 const searchText = ref("");
 const selectedGroups = ref([]);
+const activeStatusFilter = ref("");
+const selectedSharedLineGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
@@ -293,6 +312,10 @@ const pendingBulkAction = ref(null);
 const isDeleteConfirmOpen = ref(false);
 const pendingDeleteCompany = ref(null);
 const isForceDelete = ref(false);
+
+// Active Toggle
+const refreshCompanies = () => companyStore.fetchCompanies({ page: currentPage.value, perPage: itemsPerPage.value, filters: activeStatusFilter.value !== '' ? { is_active: activeStatusFilter.value } : {} });
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("companies", refreshCompanies, { showSuccess, showError });
 
 // Computed - Companies from Store
 const companies = computed(() => companyStore.companies);
@@ -377,6 +400,7 @@ const companyColumns = ref([
     { key: "name", label: t("company.name"), sortable: true },
     { key: "type", label: t("company.type"), sortable: false },
     { key: "shared_line", label: t("company.sharedLine"), sortable: false },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const visibleColumns = ref([]);
@@ -391,6 +415,7 @@ const filteredColumns = computed(() => {
 const filteredcompanies = computed(() => {
     let result = companies.value;
     result = filterByGroups(result, selectedGroups.value, "type");
+    result = filterByGroups(result, selectedSharedLineGroups.value, "shared_line");
     result = filterData(result, searchText.value);
     return result;
 });
@@ -417,6 +442,16 @@ const paginatedTrashedCompanies = computed(() => {
 const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
         return [
+            {
+                id: 'activate',
+                label: t('common.bulkActivate'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'deactivate',
+                label: t('common.bulkDeactivate'),
+                bgColor: 'var(--color-warning, #ffc107)',
+            },
             {
                 id: 'delete',
                 label: t('company.bulkDelete'),
@@ -478,8 +513,20 @@ const deleteConfirmMessage = computed(() => {
 });
 
 // Watch for search/filter changes
-watch([searchText, selectedGroups], () => {
+watch([searchText, selectedGroups, selectedSharedLineGroups], () => {
     currentPage.value = 1;
+});
+
+// Watch for active status filter changes — re-fetch from server
+watch(activeStatusFilter, async (newValue) => {
+    currentPage.value = 1;
+    const filters = {};
+    if (newValue !== '') filters.is_active = newValue;
+    try {
+        await companyStore.fetchCompanies({ page: 1, perPage: itemsPerPage.value, filters });
+    } catch (err) {
+        console.error("Failed to filter companies:", err);
+    }
 });
 
 watch([trashedSearchText, trashedSelectedGroups], () => {
@@ -506,8 +553,10 @@ watch(currentPage, async (newPage) => {
         skipNextPageWatch.value = false;
         return;
     }
+    const filters = {};
+    if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
     try {
-        await companyStore.fetchCompanies({ page: newPage, perPage: itemsPerPage.value });
+        await companyStore.fetchCompanies({ page: newPage, perPage: itemsPerPage.value, filters });
     } catch (err) {
         console.error("Failed to load page:", err);
     }
@@ -620,7 +669,7 @@ const handleSubmitcompany = async (companyData) => {
         if (applyServerErrors(error)) {
             return;
         }
-        alert(error.message || 'Failed to save company');
+        showError(error.message || 'Failed to save company');
     }
 };
 
@@ -695,6 +744,10 @@ const executeBulkAction = async () => {
         } else if (pendingBulkAction.value === 'restore') {
             // Restore from trashed tab
             await companyStore.bulkRestoreCompanies(selectedRows.value);
+        } else if (pendingBulkAction.value === 'activate') {
+            await handleBulkActivate(selectedRows.value);
+        } else if (pendingBulkAction.value === 'deactivate') {
+            await handleBulkDeactivate(selectedRows.value);
         }
 
         // Clear selection after success
@@ -715,11 +768,13 @@ const cancelBulkAction = () => {
 
 const handleRefresh = async () => {
     selectedRows.value = [];
+    const filters = {};
+    if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
     try {
         if (activeTab.value === 'trashed') {
             await companyStore.fetchTrashedCompanies({ page: trashedCurrentPage.value, perPage: itemsPerPage.value });
         } else {
-            await companyStore.fetchCompanies({ page: currentPage.value, perPage: itemsPerPage.value });
+            await companyStore.fetchCompanies({ page: currentPage.value, perPage: itemsPerPage.value, filters });
         }
     } catch (error) {
         console.error("Failed to refresh companies:", error);

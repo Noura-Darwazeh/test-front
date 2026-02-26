@@ -25,11 +25,11 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
   });
 
   // Actions
-  const fetchRegions = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchRegions = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getRegions({ page, perPage });
+      const response = await apiServices.getRegions({ page, perPage, filters });
 
       // Use backend data directly, no mapping needed
       regions.value = response.data.data;
@@ -93,11 +93,11 @@ export const useRegionsManagementStore = defineStore("regionsManagement", () => 
     }
   };
 
-  const fetchTrashedRegions = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedRegions = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedRegions({ page, perPage });
+      const response = await apiServices.getTrashedRegions({ page, perPage, filters });
       trashedRegions.value = response.data.data;
 
       // Update pagination metadata from response

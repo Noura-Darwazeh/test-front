@@ -58,12 +58,11 @@
               <form @submit.prevent="onSubmit">
                 <div class="mb-3">
                   <FormLabel :label="$t('login.usernameLabel')" for-id="username" :required="true" />
-                  <TextField 
-                    id="username" 
-                    v-model="form.username" 
+                  <TextField
+                    id="username"
+                    v-model="form.username"
                     type="text"
-                    :placeholder="$t('login.usernamePlaceholder')" 
-                    :required="true" 
+                    :placeholder="$t('login.usernamePlaceholder')"
                   />
                   <small v-if="errors.username" class="text-danger d-block mt-1">
                     {{ errors.username }}
@@ -72,13 +71,11 @@
 
                 <div class="mb-4">
                   <FormLabel :label="$t('login.passwordLabel')" for-id="password" :required="true" />
-                  <TextField 
-                    id="password" 
-                    v-model="form.password" 
+                  <TextField
+                    id="password"
+                    v-model="form.password"
                     type="password"
-                    :placeholder="$t('login.passwordPlaceholder')" 
-                    :minlength="6" 
-                    :required="true" 
+                    :placeholder="$t('login.passwordPlaceholder')"
                   />
                   <small v-if="errors.password" class="text-danger d-block mt-1">
                     {{ errors.password }}
@@ -92,12 +89,13 @@
                 </div>
 
                 <!-- Submit Button -->
-                <PrimaryButton 
-                  :text="$t('login.signIn')" 
+                <PrimaryButton
+                  :text="$t('login.signIn')"
                   :loading-text="$t('login.signingIn')"
-                  :loading="authStore.isLoading" 
-                  type="submit" 
-                  class="w-100 mb-3" 
+                  :loading="authStore.isLoading"
+                  :disabled="isButtonDisabled"
+                  type="submit"
+                  class="w-100 mb-3"
                 />
 
                 <!-- Back to Main Login -->
@@ -118,7 +116,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, nextTick } from 'vue';
+import { reactive, ref, computed, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth.js';
@@ -136,9 +134,21 @@ const { t, locale } = useI18n();
 const currentLanguage = ref(locale.value);
 const form = reactive({ username: '', password: '' });
 const errors = reactive({ username: '', password: '' });
+const loginFailed = ref(false);
+
+const isButtonDisabled = computed(() => {
+  return !form.username || !form.password || form.password.length < 6 || loginFailed.value;
+});
 
 const isRTL = computed(() => currentLanguage.value === 'ar');
 const currentLanguageLabel = computed(() => currentLanguage.value === 'ar' ? 'العربية' : 'English');
+
+watch(() => [form.username, form.password], () => {
+  if (loginFailed.value) {
+    loginFailed.value = false;
+    authStore.clearError();
+  }
+});
 
 const changeLanguage = (lang, close) => {
   currentLanguage.value = lang;
@@ -185,8 +195,9 @@ async function onSubmit() {
     await nextTick();
 
     router.push(authStore.user?.default_page || '/driver-steps');
-  } catch (error) {
-    console.error('❌ Driver login failed:', error.message);
+  } catch (err) {
+    loginFailed.value = true;
+    console.error('❌ Driver login failed:', err.message);
   }
 }
 </script>

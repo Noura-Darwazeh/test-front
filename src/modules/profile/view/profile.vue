@@ -17,8 +17,8 @@
               <div class="position-relative">
                 <div class="rounded-circle overflow-hidden border border-3 border-light bg-white shadow-sm"
                   style="width: 120px; height: 120px">
-                  <img v-if="formData.imagePreview || userProfile?.image"
-                    :src="formData.imagePreview || getImageUrl(userProfile.image)" alt="Profile" class="w-100 h-100"
+                  <img v-if="formData.imagePreview || authStore.user?.image"
+                    :src="formData.imagePreview || authStore.user?.image" alt="Profile" class="w-100 h-100"
                     style="object-fit: cover" />
                   <div v-else class="d-flex flex-column align-items-center justify-content-center h-100 bg-light">
                     <img :src="userIcon" alt="user" width="50" height="50" />
@@ -253,13 +253,14 @@ import FormLabel from '@/components/shared/FormLabel.vue';
 import TextField from '@/components/shared/TextField.vue';
 import SuccessModal from '@/components/shared/SuccessModal.vue';
 import apiServices from '@/services/apiServices.js';
+import api from '@/services/api.js';
 import { setLocale } from '@/i18n/index';
 import { normalizeServerErrors } from '@/utils/formErrors.js';
 import cameraIcon from '@/assets/profile/camera.svg';
 import settingIcon from '@/assets/profile/setting.svg';
 import userIcon from '@/assets/sidebar/userIcon.svg';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://192.168.100.35:80';
+const API_BASE_URL = api.defaults.baseURL;
 
 const { t } = useI18n();
 const router = useRouter();
@@ -547,19 +548,7 @@ const fetchUserProfile = async () => {
   }
 };
 
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
 
-  if (imagePath.startsWith('http')) {
-    const hasTimestamp = imagePath.includes('?t=');
-    if (!hasTimestamp) {
-      return `${imagePath}?t=${Date.now()}`;
-    }
-    return imagePath;
-  }
-
-  return `${API_BASE_URL}${imagePath}?t=${Date.now()}`;
-};
 
 const markAsChanged = () => {
   hasChanges.value = true;
@@ -649,11 +638,8 @@ const handleSaveChanges = async () => {
     if (response.data?.data) {
       const userData = response.data.data;
 
-      if (userData.image) {
-        if (!userData.image.startsWith('http')) {
-          userData.image = `${API_BASE_URL}${userData.image}`;
-        }
-        userData.image = `${userData.image}?t=${Date.now()}`;
+      if (userData.image && !userData.image.startsWith('http')) {
+        userData.image = `${API_BASE_URL}${userData.image}`;
       }
 
       userData.default_page = formData.default_page;

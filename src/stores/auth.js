@@ -4,7 +4,7 @@ import api from "@/services/api.js";
 import { setItem, getItem, removeItem } from "@/utils/shared/storageUtils.js";
 
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://delivery.local:30578/api";
 
 // Helper function to convert relative image path to full URL
 const getFullImageUrl = (imagePath) => {
@@ -118,7 +118,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     const data = response.data;
 
-    if (data.success === true) {
+    if (data.success === true || data.status === 'success') {
       // ✅ Convert image path to full URL
       if (data.user?.image) {
         data.user.image = getFullImageUrl(data.user.image);
@@ -188,6 +188,7 @@ async function loginAsDriver(credentials) {
     }
 
     const response = await api.post("/login", {
+      login: loginValue,
       username: loginValue,
       password: credentials.password,
     }, 
@@ -200,8 +201,10 @@ async function loginAsDriver(credentials) {
   );
 
     const data = response.data;
+console.log('🔍 Login response:', data); 
 
-    if (data.success === true) {
+    if (data.success === true || data.status === 'success') {
+
       if (data.user?.image) {
         data.user.image = getFullImageUrl(data.user.image);
       }
@@ -336,15 +339,9 @@ async function loginAsDriver(credentials) {
 
 
 function updateUser(userData) {
-  // ✅ Convert image path to full URL with cache busting
-  if (userData.image) {
-    if (!userData.image.startsWith('http')) {
-      userData.image = getFullImageUrl(userData.image);
-    }
-    const hasTimestamp = userData.image.includes('?t=');
-    if (!hasTimestamp) {
-      userData.image = `${userData.image}?t=${Date.now()}`;
-    }
+  // ✅ Convert image path to full URL if needed
+  if (userData.image && !userData.image.startsWith('http')) {
+    userData.image = getFullImageUrl(userData.image);
   }
 
   user.value = { ...user.value, ...userData };

@@ -157,12 +157,15 @@
         />
 
         <!-- Success Modal -->
-        <SuccessModal 
-            :isOpen="isSuccessModalOpen" 
+        <SuccessModal
+            :isOpen="isSuccessModalOpen"
             :title="$t('common.success')"
             :message="successMessage"
-            @close="closeSuccessModal" 
+            @close="closeSuccessModal"
         />
+
+        <!-- Error Modal -->
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
     </div>
 </template>
 
@@ -176,7 +179,9 @@ import OrderItemProgress from "../../../components/shared/OrderItemProgress.vue"
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import WorkPlansHeader from "../components/workPlansHeader.vue";
@@ -192,6 +197,7 @@ const { companyName, companyId, companyOption, authStore } = useAuthDefaults();
 const workPlansStore = useWorkPlansStore();
 const driverStore = useDriverStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -285,7 +291,7 @@ const orderOptions = computed(() => {
 
 const driverOptions = computed(() => {
     const companyDrivers = driverStore.drivers.filter(driver =>
-        String(driver.company_id) === String(companyId.value)
+        String(driver.company_id) === String(companyId.value) && driver.is_active !== 0
     );
     return companyDrivers.map(driver => ({
         value: driver.id,
@@ -640,7 +646,7 @@ const openAddModal = async () => {
 
 const openEditModal = async (workPlan) => {
     if (!canModifyPlan(workPlan)) {
-        alert(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
+        showError(t('workPlan.noPermissionToEdit') || "You don't have permission to edit this work plan");
         return;
     }
     
@@ -762,9 +768,9 @@ const handleSubmitworkPlan = async (workPlanData) => {
         if (error.response && error.response.data) {
             if (error.response.data.errors) {
                 const errorMessages = Object.values(error.response.data.errors).flat();
-                alert(errorMessages.join("\n"));
+                showError(errorMessages.join("\n"));
             } else if (error.response.data.message) {
-                alert(error.response.data.message);
+                showError(error.response.data.message);
             }
         }
     }
@@ -772,7 +778,7 @@ const handleSubmitworkPlan = async (workPlanData) => {
 
 const handleDeleteWorkPlan = async (workPlan) => {
     if (!canModifyPlan(workPlan)) {
-        alert(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
+        showError(t('workPlan.noPermissionToDelete') || "You don't have permission to delete this work plan");
         return;
     }
     
@@ -781,7 +787,7 @@ const handleDeleteWorkPlan = async (workPlan) => {
         showSuccess(t('workPlan.deleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to delete work plan:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -796,7 +802,7 @@ const handleBulkAction = ({ actionId }) => {
     });
     
     if (validRows.length === 0) {
-        alert(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
+        showError(t('workPlan.noPermissionForBulk') || "You don't have permission to perform bulk actions on selected items");
         return;
     }
     

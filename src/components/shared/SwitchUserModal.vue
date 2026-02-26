@@ -118,6 +118,9 @@
       </div>
     </div>
   </Transition>
+
+  <!-- Error Modal -->
+  <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
 </template>
 
 <script setup>
@@ -125,12 +128,15 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import PrimaryButton from './PrimaryButton.vue';
+import ErrorModal from './ErrorModal.vue';
 import { useAuthStore } from '@/stores/auth.js';
 import apiServices from '@/services/apiServices.js';
+import { useErrorModal } from '@/composables/useErrorModal.js';
 
 const { t } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
 
@@ -236,7 +242,7 @@ const switchToUser = async (user) => {
   } catch (err) {
     error.value = err.message || t('navbar.switchUserFailed');
     console.error('❌ Switch user error:', err);
-    alert(error.value);
+    showError(error.value);
   } finally {
     switching.value = false;
   }

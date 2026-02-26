@@ -20,6 +20,9 @@
             translationKey=""
             :columns="displayColumns"
             v-model:visibleColumns="visibleColumns"
+            :showActiveFilter="true"
+            :activeFilterValue="activeStatusFilter"
+            @update:activeFilterValue="activeStatusFilter = $event"
             :showAddButton="true"
             :addButtonText="$t('customer.addNew')"
             @add-click="openAddModal"
@@ -82,6 +85,7 @@
                         :data="paginatedData"
                         :actionsLabel="$t('customer.actions')"
                         v-model="selectedRows"
+                        :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
                     >
                         <template #actions="{ row }">
                             <!-- Active Customers Actions -->
@@ -91,10 +95,16 @@
                                 :editLabel="$t('customer.edit')"
                                 :detailsLabel="$t('customer.details')"
                                 :deleteLabel="$t('customer.delete')"
+                                :showActivate="row.is_active === 0"
+                                :showDeactivate="row.is_active === 1"
+                                :activateLabel="$t('common.activate')"
+                                :deactivateLabel="$t('common.deactivate')"
                                 :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
                                 @delete="handleDeleteCustomer"
+                                @activate="handleActivate"
+                                @deactivate="handleDeactivate"
                             />
                             <!-- Trashed Customers Actions -->
                             <ActionsDropdown
@@ -155,12 +165,14 @@
             @close="cancelBulkAction"
         />
 
-            <SuccessModal 
-            :isOpen="isSuccessModalOpen" 
+            <SuccessModal
+            :isOpen="isSuccessModalOpen"
             :title="$t('common.success')"
             :message="successMessage"
-            @close="closeSuccessModal" 
+            @close="closeSuccessModal"
         />
+
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
     </div>
 </template>
 
@@ -180,8 +192,12 @@ import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 const { t } = useI18n();
 const customerStore = useCustomerStore();
 const { companyId, companyOption, authStore } = useAuthDefaults();
@@ -191,6 +207,7 @@ const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const activeStatusFilter = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
@@ -211,6 +228,10 @@ const pendingBulkAction = ref(null);
 // Get customers from store
 const customers = computed(() => customerStore.customers);
 const trashedCustomers = computed(() => customerStore.trashedCustomers);
+
+// Active Toggle
+const refreshCustomers = () => fetchCustomersPage(currentPage.value);
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("customers", refreshCustomers, { showSuccess, showError });
 
 // Fetch data on component mount
 onMounted(async () => {
@@ -370,6 +391,7 @@ const baseColumns = ref([
     { key: "name", label: t("customer.name"), sortable: true },
     { key: "phone_number", label: t("customer.phoneNumber"), sortable: false },
     { key: 'company_name', label: t('customer.companyName'), sortable: false },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 // ✅ Columns to display based on user role
@@ -433,6 +455,9 @@ const buildCustomerFilters = () => {
                 ? selectedGroups.value[0]
                 : selectedGroups.value.join(",");
     }
+    if (activeStatusFilter.value !== '') {
+        filters.is_active = activeStatusFilter.value;
+    }
     return filters;
 };
 
@@ -448,7 +473,7 @@ const fetchCustomersPage = async (page = 1) => {
 // Server already returns paginated data; use store results directly
 const paginatedData = computed(() => currentData.value);
 
-watch([searchText, selectedGroups], async () => {
+watch([searchText, selectedGroups, activeStatusFilter], async () => {
     if (currentPage.value !== 1) {
         skipNextPageWatch.value = true;
         currentPage.value = 1;
@@ -530,6 +555,16 @@ const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
         return [
             {
+                id: 'activate',
+                label: t('common.bulkActivate'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'deactivate',
+                label: t('common.bulkDeactivate'),
+                bgColor: 'var(--color-warning, #ffc107)',
+            },
+            {
                 id: 'delete',
                 label: t('customer.bulkDelete'),
                 icon: 'fa-trash',
@@ -594,6 +629,10 @@ const executeBulkAction = async () => {
             await customerStore.bulkRestoreCustomers(selectedRows.value);
             console.log("✅ Customers restored successfully");
             showSuccess(t('customer.bulkRestoreSuccess', { count }));
+        } else if (pendingBulkAction.value === 'activate') {
+            await handleBulkActivate(selectedRows.value);
+        } else if (pendingBulkAction.value === 'deactivate') {
+            await handleBulkDeactivate(selectedRows.value);
         }
 
         selectedRows.value = [];
@@ -640,7 +679,7 @@ const handleSubmitCustomer = async (customerData) => {
             return;
         }
         
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -655,7 +694,7 @@ const handleRestoreCustomer = async (customer) => {
         showSuccess(t('customer.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore customer:", error);
-        alert(error.message || 'Failed to restore customer');
+        showError(error.message || 'Failed to restore customer');
     }
 };
 
@@ -666,7 +705,7 @@ const handleDeleteCustomer = async (customer) => {
         showSuccess(t('customer.deleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to delete customer:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -677,7 +716,7 @@ const handlePermanentDeleteCustomer = async (customer) => {
         showSuccess(t('customer.permanentDeleteSuccess')); 
     } catch (error) {
         console.error("Failed to permanently delete customer:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 

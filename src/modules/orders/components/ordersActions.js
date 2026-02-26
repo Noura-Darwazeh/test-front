@@ -21,6 +21,9 @@ export const createOrdersActions = ({
   bulkActionLoading,
   currentData,
   fetchOrdersPage,
+  showSuccess,
+  showError,
+  t,
 }) => {
   const clearEditFormErrors = () => {
     if (!editFormErrors) return;
@@ -102,8 +105,10 @@ export const createOrdersActions = ({
           });
         }
         closeModal();
+        if (showSuccess && t) showSuccess(t("orders.addSuccess"));
       } catch (err) {
         console.error("Failed to add exchange order:", err);
+        if (showError) showError(err.response?.data?.message || err.message || "Failed to add exchange order");
       }
       return;
     }
@@ -117,32 +122,40 @@ export const createOrdersActions = ({
         await ordersStore.addOrder(payload);
       }
       closeModal();
+      if (showSuccess && t) showSuccess(t("orders.addSuccess"));
     } catch (err) {
       console.error("Failed to add order:", err);
+      if (showError) showError(err.response?.data?.message || err.message || "Failed to add order");
     }
   };
 
   const handleDeleteOrder = async (order) => {
     try {
       await ordersStore.deleteOrder(order.id);
+      if (showSuccess && t) showSuccess(t("orders.deleteSuccess"));
     } catch (err) {
       console.error("Failed to delete order:", err);
+      if (showError) showError(err.response?.data?.message || err.message || "Failed to delete order");
     }
   };
 
   const handleRestoreOrder = async (order) => {
     try {
       await ordersStore.restoreOrder(order.id);
+      if (showSuccess && t) showSuccess(t("orders.restoreSuccess"));
     } catch (err) {
       console.error("Failed to restore order:", err);
+      if (showError) showError(err.response?.data?.message || err.message || "Failed to restore order");
     }
   };
 
   const handlePermanentDeleteOrder = async (order) => {
     try {
       await ordersStore.deleteOrder(order.id, true);
+      if (showSuccess && t) showSuccess(t("orders.permanentDeleteSuccess"));
     } catch (err) {
       console.error("Failed to permanently delete order:", err);
+      if (showError) showError(err.response?.data?.message || err.message || "Failed to permanently delete order");
     }
   };
 
@@ -153,19 +166,29 @@ export const createOrdersActions = ({
 
   const executeBulkAction = async () => {
     if (!pendingBulkAction.value) return;
+    const action = pendingBulkAction.value;
+    const count = selectedRows.value.length;
     bulkActionLoading.value = true;
 
     try {
-      if (pendingBulkAction.value === "delete") {
+      if (action === "delete") {
         await ordersStore.bulkDeleteOrders(selectedRows.value, false);
-      } else if (pendingBulkAction.value === "permanentDelete") {
+      } else if (action === "permanentDelete") {
         await ordersStore.bulkDeleteOrders(selectedRows.value, true);
-      } else if (pendingBulkAction.value === "restore") {
+      } else if (action === "restore") {
         await ordersStore.bulkRestoreOrders(selectedRows.value);
       }
       selectedRows.value = [];
+      if (showSuccess && t) {
+        if (action === "delete" || action === "permanentDelete") {
+          showSuccess(t("orders.bulkDeleteSuccess", { count }));
+        } else if (action === "restore") {
+          showSuccess(t("orders.bulkRestoreSuccess", { count }));
+        }
+      }
     } catch (err) {
-      console.error("Failed to bulk delete orders:", err);
+      console.error("Failed to bulk action orders:", err);
+      if (showError) showError(err.response?.data?.message || err.message || "Failed to perform bulk action");
     } finally {
       bulkActionLoading.value = false;
       isBulkConfirmOpen.value = false;
@@ -210,11 +233,13 @@ export const createOrdersActions = ({
     try {
       await ordersStore.updateOrder(selectedOrder.value.id, orderData);
       closeFormModal();
+      if (showSuccess && t) showSuccess(t("orders.updateSuccess"));
     } catch (err) {
       if (applyEditFormErrors(err)) {
         return;
       }
       console.error("Failed to update order:", err);
+      if (showError) showError(err.response?.data?.message || err.message || "Failed to update order");
     }
   };
 

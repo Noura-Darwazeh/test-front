@@ -34,11 +34,11 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
   );
 
   // Actions
-  const fetchCompanies = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchCompanies = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCompanies({ page, perPage });
+      const response = await apiServices.getCompanies({ page, perPage, filters });
 
       // Use backend data directly, no mapping needed
       companies.value = response.data.data;
@@ -63,11 +63,11 @@ export const useCompanyManagementStore = defineStore("companyManagement", () => 
     }
   };
 
-  const fetchTrashedCompanies = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedCompanies = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCompanies({ page, perPage });
+      const response = await apiServices.getTrashedCompanies({ page, perPage, filters });
 
       // Use backend data directly, no mapping needed
       trashedCompanies.value = response.data.data;

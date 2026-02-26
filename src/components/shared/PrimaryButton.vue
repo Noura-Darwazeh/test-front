@@ -104,6 +104,7 @@ const iconStyle = computed(() => {
 .btn-primary {
   background-color: var(--primary-color);
   border: none;
+  min-height: 42px;
   padding: 0.4rem 1rem;
   font-weight: 500;
   transition: all 0.2s ease;

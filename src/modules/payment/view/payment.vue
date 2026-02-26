@@ -53,6 +53,13 @@
     <!-- Payment Method Modal -->
     <PaymentMethodModal :isOpen="isPaymentMethodModalOpen" :selectedCount="selectedRows.length" :drivers="drivers"
       :loading="paymentMethodLoading" @close="closePaymentMethodModal" @submit="handlePaymentMethodSubmit" />
+
+    <!-- Success Modal -->
+    <SuccessModal :isOpen="isSuccessModalOpen" :title="$t('common.success')" :message="successMessage"
+      @close="closeSuccessModal" />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -66,13 +73,19 @@ import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import TableHeader from "../../../components/shared/TableHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import PaymentMethodModal from "../components/PaymentMethodModal.vue";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { usePaymentsManagementStore } from "../store/paymentsManagement.js";
 import apiServices from "@/services/apiServices.js";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 
 const { t } = useI18n();
 const paymentsStore = usePaymentsManagementStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // State
 const searchText = ref("");
@@ -304,7 +317,7 @@ const handleSubmitPayment = async (paymentData) => {
   } catch (error) {
     console.error("❌ Failed to update payment:", error);
     console.error("❌ Error details:", error.response?.data);
-    alert(error.response?.data?.message || error.message || "Failed to update payment. Please try again.");
+    showError(error.response?.data?.message || error.message || "Failed to update payment. Please try again.");
   }
 };
 
@@ -344,7 +357,7 @@ const handlePaymentMethodSubmit = async (paymentMethodData) => {
   } catch (error) {
     console.error("❌ Failed to mark payments as paid:", error);
     console.error("❌ Error response:", error.response?.data);
-    alert(error.message || "Failed to process payment. Please try again.");
+    showError(error.message || "Failed to process payment. Please try again.");
   } finally {
     paymentMethodLoading.value = false;
   }

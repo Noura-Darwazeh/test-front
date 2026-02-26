@@ -14,7 +14,7 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
         perPage: 20,
         total: 0,
         lastPage: 1,
-    });xx
+    });
 
     const normalizeInvoice = (invoice) => {
         const deliveryCompany = invoice.delivery_company;

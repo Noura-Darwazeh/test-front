@@ -2,7 +2,9 @@
     <div class="user-page-container bg-light">
         <BranchesHeader v-model="searchText" :searchPlaceholder="$t('branch.searchPlaceholder')" :data="branches"
             :columns="displayColumns"
-            v-model:visibleColumns="visibleColumns" :showAddButton="true" :addButtonText="$t('branch.addNew')"
+            v-model:visibleColumns="visibleColumns"
+            :showActiveFilter="true" :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
+            :showAddButton="true" :addButtonText="$t('branch.addNew')"
             @add-click="openAddModal" @refresh-click="handleRefresh" />
 
         <div class="card border-0">
@@ -46,13 +48,17 @@
                 <!-- Data Table -->
                 <div v-else>
                     <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('branch.actions')"
-                        v-model="selectedRows">
+                        v-model="selectedRows"
+                        :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''">
                         <template #actions="{ row }">
                             <!-- Active Branches Actions -->
                             <ActionsDropdown v-if="activeTab === 'active'" :row="row" :editLabel="$t('branch.edit')"
                                 :detailsLabel="$t('branch.details')" :deleteLabel="$t('branch.delete')"
+                                :showActivate="row.is_active === 0" :showDeactivate="row.is_active === 1"
+                                :activateLabel="$t('common.activate')" :deactivateLabel="$t('common.deactivate')"
                                 :confirmDelete="true" @edit="openEditModal" @details="openDetailsModal"
-                                @delete="handleDeleteBranch" />
+                                @delete="handleDeleteBranch"
+                                @activate="handleActivate" @deactivate="handleDeactivate" />
                             <!-- Trashed Branches Actions -->
                             <ActionsDropdown v-else :row="row" :restoreLabel="$t('branch.trashed.restore')"
                                 :deleteLabel="$t('branch.trashed.delete')" :showEdit="false" :showDetails="false"
@@ -79,12 +85,15 @@
             @confirm="executeBulkAction" @close="cancelBulkAction" />
 
         <!-- Success Modal -->
-        <SuccessModal 
-            :isOpen="isSuccessModalOpen" 
+        <SuccessModal
+            :isOpen="isSuccessModalOpen"
             :title="$t('common.success')"
             :message="successMessage"
-            @close="closeSuccessModal" 
+            @close="closeSuccessModal"
         />
+
+        <!-- Error Modal -->
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
     </div>
 </template>
 
@@ -96,7 +105,9 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
@@ -104,16 +115,19 @@ import BranchesHeader from "../components/branchesHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
 import { useBranchesManagementStore } from "../stores/branchesStore";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const branchesStore = useBranchesManagementStore();
 const { companyId, companyOption, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ Check if user is SuperAdmin
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
+const activeStatusFilter = ref("");
 const itemsPerPage = 1000;
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
@@ -127,6 +141,10 @@ const selectedRows = ref([]);
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
+
+// Active Toggle
+const refreshBranches = () => branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage, filters: activeStatusFilter.value !== '' ? { is_active: activeStatusFilter.value } : {} });
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("branches", refreshBranches, { showSuccess, showError });
 
 // Use store data
 const branches = computed(() => branchesStore.branches);
@@ -143,7 +161,18 @@ onMounted(async () => {
 });
 
 
-// Branch Form Fields 
+// Watch for active status filter changes — re-fetch from server
+watch(activeStatusFilter, async (newValue) => {
+    const filters = {};
+    if (newValue !== '') filters.is_active = newValue;
+    try {
+        await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage, filters });
+    } catch (err) {
+        console.error("Failed to filter branches:", err);
+    }
+});
+
+// Branch Form Fields
 const branchFields = computed(() => [
     {
         name: 'name',
@@ -238,6 +267,7 @@ const detailsFields = computed(() => {
 const baseColumns = ref([
     { key: "name", label: t("branch.name"), sortable: true },
     { key: "company_name", label: t("branch.company"), sortable: true },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 // ✅ Columns to display based on user role
@@ -354,8 +384,10 @@ const switchTab = async (tab) => {
             console.error("❌ Failed to fetch trashed branches:", error);
         }
     } else {
+        const filters = {};
+        if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
         try {
-            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage });
+            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage, filters });
         } catch (error) {
             console.error("❌ Failed to fetch branches:", error);
         }
@@ -364,11 +396,13 @@ const switchTab = async (tab) => {
 
 const handleRefresh = async () => {
     selectedRows.value = [];
+    const filters = {};
+    if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
     try {
         if (activeTab.value === 'trashed') {
             await branchesStore.fetchTrashedBranches({ page: 1, perPage: itemsPerPage });
         } else {
-            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage });
+            await branchesStore.fetchBranches({ page: 1, perPage: itemsPerPage, filters });
         }
     } catch (error) {
         console.error("❌ Failed to refresh branches:", error);
@@ -379,6 +413,16 @@ const handleRefresh = async () => {
 const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
         return [
+            {
+                id: 'activate',
+                label: t('common.bulkActivate'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'deactivate',
+                label: t('common.bulkDeactivate'),
+                bgColor: 'var(--color-warning, #ffc107)',
+            },
             {
                 id: 'delete',
                 label: t('branch.bulkDelete'),
@@ -445,6 +489,10 @@ const executeBulkAction = async () => {
             await branchesStore.bulkRestoreBranches(selectedRows.value);
             console.log("✅ Branches restored successfully");
             showSuccess(t('branch.bulkRestoreSuccess', { count }));
+        } else if (pendingBulkAction.value === 'activate') {
+            await handleBulkActivate(selectedRows.value);
+        } else if (pendingBulkAction.value === 'deactivate') {
+            await handleBulkDeactivate(selectedRows.value);
         }
 
         selectedRows.value = [];
@@ -486,7 +534,7 @@ const handleSubmitbranch = async (branchData) => {
         if (applyServerErrors(error)) {
             return;
         }
-        alert(error.message || 'Failed to save branch');
+        showError(error.message || 'Failed to save branch');
     }
 };
 
@@ -497,7 +545,7 @@ const handleRestorebranch = async (branch) => {
         showSuccess(t('branch.restoreSuccess'));
     } catch (error) {
         console.error('❌ Error restoring branch:', error);
-        alert(error.message || 'Failed to restore branch');
+        showError(error.message || 'Failed to restore branch');
     }
 };
 
@@ -508,7 +556,7 @@ const handleDeleteBranch = async (branch) => {
         showSuccess(t('branch.deleteSuccess'));
     } catch (error) {
         console.error("❌ Error deleting branch:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -519,7 +567,7 @@ const handlePermanentDeleteBranch = async (branch) => {
         showSuccess(t('branch.permanentDeleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to permanently delete branch:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 

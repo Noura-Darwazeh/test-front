@@ -52,14 +52,15 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
       created_at: price.created_at,
       updated_at: price.updated_at,
       deleted_at: price.deleted_at,
+      is_active: price.is_active ?? 1,
     };
   };
 
-  const fetchCompanyPrices = async () => {
+  const fetchCompanyPrices = async ({ filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCompanyPrices({ page: 1, perPage: 1000 });
+      const response = await apiServices.getCompanyPrices({ page: 1, perPage: 1000, filters });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
@@ -74,11 +75,11 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
     }
   };
 
-  const fetchTrashedCompanyPrices = async () => {
+  const fetchTrashedCompanyPrices = async ({ filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCompanyPrices({ page: 1, perPage: 1000 });
+      const response = await apiServices.getTrashedCompanyPrices({ page: 1, perPage: 1000, filters });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];

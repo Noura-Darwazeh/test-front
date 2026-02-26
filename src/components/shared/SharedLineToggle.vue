@@ -9,6 +9,7 @@
       @change="handleToggle"
       :disabled="loading || !canEdit"
     />
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -16,6 +17,8 @@
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth.js';
 import apiServices from '@/services/apiServices.js';
+import ErrorModal from '@/components/shared/ErrorModal.vue';
+import { useErrorModal } from '@/composables/useErrorModal.js';
 
 const props = defineProps({
   companyId: {
@@ -32,6 +35,7 @@ const emit = defineEmits(['updated']);
 
 const authStore = useAuthStore();
 const loading = ref(false);
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const isShared = computed(() => props.sharedLine === 1);
 
@@ -54,7 +58,7 @@ const handleToggle = async (event) => {
     console.error('❌ Failed to update shared line:', error);
     // Revert checkbox
     event.target.checked = !event.target.checked;
-    alert(error.message || 'Failed to update shared line');
+    showError(error.message || 'Failed to update shared line');
   } finally {
     loading.value = false;
   }

@@ -5,20 +5,27 @@
       v-model="searchText"
       :searchPlaceholder="$t('orders.searchPlaceholder')"
       :data="statusFilterData"
+      :data2="ordersStore.orders"
       :groupKey="'status'"
       v-model:groupModelValue="selectedGroups"
       :groupLabel="$t('orders.filterByStatus')"
       :translationKey="'orderStatus'"
+      groupKey2="customer_name"
+      v-model:groupModelValue2="selectedCustomerGroups"
+      :groupLabel2="$t('common.filterByCustomer')"
       :showTimeFilter="true"
       v-model:timeModelValue="selectedTimePeriod"
       :timeOptions="timePeriodOptions"
-        :columns="orderColumns"
-        v-model:visibleColumns="visibleColumns"
-        :showAddButton="true"
-        :addButtonText="$t('orders.addNew')"
-        @add-click="openModal"
-        @refresh-click="handleRefresh"
-      />
+      :extraFilters="orderExtraFilters"
+      :extraFilterValues="extraFilterValues"
+      @update:extraFilterValues="handleExtraFilterUpdate"
+      :columns="orderColumns"
+      v-model:visibleColumns="visibleColumns"
+      :showAddButton="true"
+      :addButtonText="$t('orders.addNew')"
+      @add-click="openModal"
+      @refresh-click="handleRefresh"
+    />
 
     <OrdersTableCard
       v-model:selectedRows="selectedRows"
@@ -75,6 +82,17 @@
       @confirm-bulk="executeBulkAction"
       @close-bulk="cancelBulkAction"
     />
+
+    <SuccessModal
+      :isOpen="isSuccessModalOpen"
+      :message="successMessage"
+      @close="closeSuccessModal"
+    />
+    <ErrorModal
+      :isOpen="isErrorModalOpen"
+      :message="errorMessage"
+      @close="closeErrorModal"
+    />
   </div>
 </template>
 
@@ -107,10 +125,16 @@ import { createOrdersActions } from "../components/ordersActions.js";
 import { useI18n } from "vue-i18n";
 import { useOrderFormFields } from "../components/orderFormFields.js";
 import { useOrdersStore } from "../store/ordersStore.js";
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 
 const { t } = useI18n();
 const { orderFields } = useOrderFormFields();
 const ordersStore = useOrdersStore();
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 const route = useRoute();
 const router = useRouter();
 
@@ -167,6 +191,7 @@ const handleOrderIdFromRoute = async (orderIdValue) => {
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const selectedCustomerGroups = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false); // Flag to prevent double-fetch on tab switch
@@ -195,6 +220,18 @@ const statusFilterData = computed(() => {
 });
 
 const selectedTimePeriod = ref("all");
+
+const orderExtraFilters = computed(() => [
+  { key: "case", label: t("common.filterByCase"), translationKey: "orderCase" },
+  { key: "type", label: t("common.filterByType"), translationKey: "orderType" },
+  { key: "package", label: t("common.filterByPackage"), translationKey: "orderPackage" },
+]);
+
+const extraFilterValues = ref({});
+
+const handleExtraFilterUpdate = (values) => {
+  extraFilterValues.value = values;
+};
 
 const timePeriodOptions = computed(() => getTimePeriodOptions(t));
 
@@ -281,6 +318,21 @@ const buildOrderFilters = () => {
         ? selectedGroups.value[0]
         : selectedGroups.value.join(",");
   }
+  if (selectedCustomerGroups.value.length > 0) {
+    filters.customer_name =
+      selectedCustomerGroups.value.length === 1
+        ? selectedCustomerGroups.value[0]
+        : selectedCustomerGroups.value.join(",");
+  }
+  // Extra filters (case, type, package)
+  const ev = extraFilterValues.value;
+  if (ev) {
+    for (const [key, values] of Object.entries(ev)) {
+      if (values && values.length > 0) {
+        filters[key] = values.length === 1 ? values[0] : values.join(",");
+      }
+    }
+  }
   return filters;
 };
 
@@ -361,6 +413,9 @@ const {
   bulkActionLoading,
   currentData,
   fetchOrdersPage,
+  showSuccess,
+  showError,
+  t,
 });
 
 const searchDebounceTimer = ref(null);
@@ -375,7 +430,7 @@ const closeProgressModal = () => {
   selectedProgressOrder.value = null;
 };
 
-watch([searchText, selectedGroups], () => {
+watch([searchText, selectedGroups, selectedCustomerGroups, extraFilterValues], () => {
   if (searchDebounceTimer.value) {
     clearTimeout(searchDebounceTimer.value);
   }

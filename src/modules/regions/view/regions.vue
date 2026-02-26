@@ -2,6 +2,7 @@
     <div class="user-page-container bg-light">
         <RegionsHeader v-model="searchText" :searchPlaceholder="$t('regions.searchPlaceholder')" :data="regions"
             :columns="regionsColumns" v-model:visibleColumns="visibleColumns"
+            :showActiveFilter="true" :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
             :showAddButton="isSuperAdmin" :addButtonText="$t('regions.addNew')" @add-click="openAddModal"
             @refresh-click="handleRefresh" />
 
@@ -55,12 +56,13 @@
 
                 <!-- Data Table -->
                 <div v-else>
-                    <DataTable 
-                        :columns="filteredColumns" 
-                        :data="paginatedData" 
+                    <DataTable
+                        :columns="filteredColumns"
+                        :data="paginatedData"
                         :actionsLabel="$t('regions.actions')"
                         v-model="selectedRows"
                         :showCheckbox="isSuperAdmin"
+                        :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
                     >
                         <template #actions="{ row }">
                             <!-- للأدمن: فقط Details -->
@@ -78,12 +80,15 @@
                                 v-else-if="activeTab === 'active'"
                                 :row="row"
                                 :editLabel="$t('regions.edit')"
-                                :detailsLabel="$t('regions.details')" 
+                                :detailsLabel="$t('regions.details')"
                                 :deleteLabel="$t('regions.delete')"
+                                :showActivate="row.is_active === 0" :showDeactivate="row.is_active === 1"
+                                :activateLabel="$t('common.activate')" :deactivateLabel="$t('common.deactivate')"
                                 :confirmDelete="true"
-                                @edit="openEditModal" 
-                                @details="openDetailsModal" 
+                                @edit="openEditModal"
+                                @details="openDetailsModal"
                                 @delete="handleDeleteRegion"
+                                @activate="handleActivate" @deactivate="handleDeactivate"
                             />
                             <ActionsDropdown
                                 v-else
@@ -134,24 +139,29 @@
         />
 
         <!-- Success Modal -->
-        <SuccessModal 
-            :isOpen="isSuccessModalOpen" 
+        <SuccessModal
+            :isOpen="isSuccessModalOpen"
             :title="$t('common.success')"
             :message="successMessage"
-            @close="closeSuccessModal" 
+            @close="closeSuccessModal"
         />
+
+        <!-- Error Modal -->
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import ActionsDropdown from "../../../components/shared/Actions.vue";
 import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import RegionsHeader from "../components/regionsHeader.vue";
@@ -159,15 +169,18 @@ import FormModal from "../../../components/shared/FormModal.vue";
 import { useRegionsManagementStore } from "../store/regionsManagement.js";
 import { useAuthStore } from "@/stores/auth.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t, locale } = useI18n();
 const regionsStore = useRegionsManagementStore();
 const authStore = useAuthStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
+const activeStatusFilter = ref("");
 const itemsPerPage = 1000;
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
@@ -179,6 +192,10 @@ const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 const activeTab = ref('active');
+
+// Active Toggle
+const refreshRegions = () => regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage, filters: activeStatusFilter.value !== '' ? { is_active: activeStatusFilter.value } : {} });
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("regions", refreshRegions, { showSuccess, showError });
 
 // Get regions from store
 const regions = computed(() => regionsStore.regions);
@@ -193,6 +210,17 @@ onMounted(async () => {
   }
 });
 
+
+// Watch for active status filter changes — re-fetch from server
+watch(activeStatusFilter, async (newValue) => {
+    const filters = {};
+    if (newValue !== '') filters.is_active = newValue;
+    try {
+        await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage, filters });
+    } catch (err) {
+        console.error("Failed to filter regions:", err);
+    }
+});
 
 // regions Form Fields
 const regionsFields = computed(() => [
@@ -270,6 +298,7 @@ const regionsColumns = ref([
     { key: "__index", label: "#", sortable: false, isIndex: true },
     { key: "name", label: t("regions.name"), sortable: true },
     { key: "timezone", label: t("regions.timezone"), sortable: false },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const trashedColumns = computed(() => [
@@ -332,6 +361,16 @@ const paginatedData = computed(() => {
 const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
         return [
+            {
+                id: 'activate',
+                label: t('common.bulkActivate'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'deactivate',
+                label: t('common.bulkDeactivate'),
+                bgColor: 'var(--color-warning, #ffc107)',
+            },
             {
                 id: 'delete',
                 label: t('regions.bulkDelete'),
@@ -435,8 +474,10 @@ const switchTab = async (tab) => {
             console.error("❌ Failed to load trashed regions:", error);
         }
     } else {
+        const filters = {};
+        if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
         try {
-            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
+            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage, filters });
         } catch (error) {
             console.error("❌ Failed to load regions:", error);
         }
@@ -445,11 +486,13 @@ const switchTab = async (tab) => {
 
 const handleRefresh = async () => {
     selectedRows.value = [];
+    const filters = {};
+    if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
     try {
         if (activeTab.value === 'trashed') {
             await regionsStore.fetchTrashedRegions({ page: 1, perPage: itemsPerPage });
         } else {
-            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage });
+            await regionsStore.fetchRegions({ page: 1, perPage: itemsPerPage, filters });
         }
     } catch (error) {
         console.error("❌ Failed to refresh regions:", error);
@@ -485,7 +528,7 @@ const handleSubmitregions = async (regionsData) => {
         if (applyServerErrors(error)) {
             return;
         }
-        alert(error.message || "Failed to save region");
+        showError(error.message || "Failed to save region");
     }
 };
 
@@ -500,7 +543,7 @@ const handleRestoreregions = async (region) => {
         showSuccess(t('regions.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore region:", error);
-        alert(error.message || "Failed to restore region");
+        showError(error.message || "Failed to restore region");
     }
 };
 
@@ -515,7 +558,7 @@ const handleDeleteRegion = async (region) => {
         showSuccess(t('regions.deleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to delete region:", error);
-        alert(error.message || "Failed to delete region");
+        showError(error.message || "Failed to delete region");
     }
 };
 
@@ -530,7 +573,7 @@ const handlePermanentDeleteRegion = async (region) => {
         showSuccess(t('regions.permanentDeleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to permanently delete region:", error);
-        alert(error.message || "Failed to delete region");
+        showError(error.message || "Failed to delete region");
     }
 };
 
@@ -563,6 +606,10 @@ const executeBulkAction = async () => {
             await regionsStore.bulkRestoreRegions(selectedRows.value);
             console.log("✅ Regions restored successfully");
             showSuccess(t('regions.bulkRestoreSuccess', { count }));
+        } else if (pendingBulkAction.value === 'activate') {
+            await handleBulkActivate(selectedRows.value);
+        } else if (pendingBulkAction.value === 'deactivate') {
+            await handleBulkDeactivate(selectedRows.value);
         }
         selectedRows.value = [];
         pendingBulkAction.value = null;

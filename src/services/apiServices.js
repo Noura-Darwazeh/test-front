@@ -214,6 +214,11 @@ class ApiServices {
     return this.post(`/bulk-restore/${entitySingular}/${entityPlural}`, { ids });
   }
 
+  // ===== Active/Inactive Toggle =====
+  async toggleEntityActive(entityPlural, id, isActive) {
+    return this.patch(`/${entityPlural}/${id}`, { is_active: isActive });
+  }
+
   // ===== Authentication Services =====
   async login(credentials) {
     return this.post("/login", credentials);
@@ -319,12 +324,18 @@ class ApiServices {
   }
 
   // ===== Currency Services =====
-  async getCurrencies({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("currencies", { page, perPage });
+  async getCurrencies({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/currencies", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "currencies:list",
+    });
   }
 
-  async getTrashedCurrencies({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("currencies", { page, perPage });
+  async getTrashedCurrencies({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/currencies", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "currencies:trashed",
+    });
   }
 
   async createCurrency(currencyData) {
@@ -366,12 +377,18 @@ class ApiServices {
   }
 
   // ===== Branches Services =====
-  async getBranches({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("branches", { page, perPage });
+  async getBranches({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/branches", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "branches:list",
+    });
   }
 
-  async getTrashedBranches({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("branches", { page, perPage });
+  async getTrashedBranches({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/branches", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "branches:trashed",
+    });
   }
 
   async createBranch(branchData) {
@@ -438,12 +455,18 @@ class ApiServices {
   }
 
   // ===== Company Services =====
-  async getCompanies({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("companies", { page, perPage });
+  async getCompanies({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/companies", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "companies:list",
+    });
   }
 
-  async getTrashedCompanies({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("companies", { page, perPage });
+  async getTrashedCompanies({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/companies", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "companies:trashed",
+    });
   }
 
   async createCompany(companyData) {
@@ -527,12 +550,18 @@ class ApiServices {
   }
 
   // ===== Line Price Services =====
-  async getLinePrices({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("line_prices", { page, perPage });
+  async getLinePrices({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/line_prices", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "line_prices:list",
+    });
   }
 
-  async getTrashedLinePrices({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("line_prices", { page, perPage });
+  async getTrashedLinePrices({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/line_prices", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "line_prices:trashed",
+    });
   }
 
   async createLinePrice(priceData) {
@@ -565,12 +594,18 @@ class ApiServices {
   }
 
   // ===== Lines Services =====
-  async getLines({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("lines", { page, perPage });
+  async getLines({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/lines", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "lines:list",
+    });
   }
 
-  async getTrashedLines({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("lines", { page, perPage });
+  async getTrashedLines({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/lines", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "lines:trashed",
+    });
   }
 
   async createLine(lineData) {
@@ -598,12 +633,18 @@ class ApiServices {
   }
 
   // ===== Regions Services =====
-  async getRegions({ page = 1, perPage = 10 } = {}) {
-    return this.get(`/regions?page=${page}&per_page=${perPage}`);
+  async getRegions({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/regions", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "regions:list",
+    });
   }
 
-  async getTrashedRegions({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("regions", { page, perPage });
+  async getTrashedRegions({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/regions", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "regions:trashed",
+    });
   }
 
   async createRegion(regionData) {
@@ -631,12 +672,18 @@ class ApiServices {
   }
 
   // ===== Company Price Services =====
-  async getCompanyPrices({ page = 1, perPage = 10 } = {}) {
-    return this.get(`/company_item_prices?page=${page}&per_page=${perPage}`);
+  async getCompanyPrices({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/company_item_prices", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "company_item_prices:list",
+    });
   }
 
-  async getTrashedCompanyPrices({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("company_item_prices", { page, perPage });
+  async getTrashedCompanyPrices({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/company_item_prices", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "company_item_prices:trashed",
+    });
   }
 
   async createCompanyPrice(priceData) {
@@ -673,12 +720,18 @@ class ApiServices {
   }
 
   // ===== Discount Services =====
-  async getDiscounts({ page = 1, perPage = 10 } = {}) {
-    return this.get(`/discounts?page=${page}&per_page=${perPage}`);
+  async getDiscounts({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/discounts", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "discounts:list",
+    });
   }
 
-  async getTrashedDiscounts({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("discounts", { page, perPage });
+  async getTrashedDiscounts({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/discounts", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "discounts:trashed",
+    });
   }
 
   async createDiscount(discountData) {
@@ -706,12 +759,18 @@ class ApiServices {
   }
 
   // ===== Driver Line Services =====
-  async getDriverLines({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("driver_lines", { page, perPage });
+  async getDriverLines({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/driver_lines", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "driver_lines:list",
+    });
   }
 
-  async getTrashedDriverLines({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("driver_lines", { page, perPage });
+  async getTrashedDriverLines({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/driver_lines", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "driver_lines:trashed",
+    });
   }
 
   async createDriverLine(driverLineData) {
@@ -814,6 +873,16 @@ class ApiServices {
     return this.get("/statistics/lines");
   }
 
+  // Power BI - get embed token for a report from the backend
+  async getPowerBIEmbedToken(reportId) {
+    return this.get(`/powerbi/embed-token/${reportId}`);
+  }
+
+  // Power BI - get all available reports
+  async getPowerBIReports() {
+    return this.get("/powerbi/reports");
+  }
+
   // Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
     const params = new URLSearchParams();
@@ -830,8 +899,11 @@ class ApiServices {
   }
 
   // ===== Line Work Services =====
-  async getLineWorks({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("line_works", { page, perPage });
+  async getLineWorks({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/line_works", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "line_works:list",
+    });
   }
 
   async createLineWork(lineWorkData) {
@@ -850,8 +922,11 @@ class ApiServices {
     return this.restoreEntity("line_works", lineWorkId);
   }
 
-  async getTrashedLineWorks({ page = 1, perPage = 10 } = {}) {
-    return this.getTrashedEntities("line_works", { page, perPage });
+  async getTrashedLineWorks({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/trashed/line_works", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "line_works:trashed",
+    });
   }
 
   async bulkDeleteLineWorks(lineWorkIds, force = false) {

@@ -18,8 +18,15 @@
             v-model:groupModelValue="selectedGroups"
             :groupLabel="$t('driver.filterByStatus')"
             translationKey="statuses"
+            groupKey2="type"
+            v-model:groupModelValue2="selectedTypeGroups"
+            :groupLabel2="$t('common.filterByType')"
+            translationKey2="driverTypes"
             :columns="driverColumns"
             v-model:visibleColumns="visibleColumns"
+            :showActiveFilter="true"
+            :activeFilterValue="activeStatusFilter"
+            @update:activeFilterValue="activeStatusFilter = $event"
             :showAddButton="true"
             :addButtonText="$t('driver.addNew')"
             @add-click="openAddModal"
@@ -82,6 +89,7 @@
                         :data="paginatedData"
                         :actionsLabel="$t('driver.actions')"
                         v-model="selectedRows"
+                        :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
                     >
                         <template #actions="{ row }">
                             <!-- Active Drivers Actions -->
@@ -91,10 +99,16 @@
                                 :editLabel="$t('driver.edit')"
                                 :detailsLabel="$t('driver.details')"
                                 :deleteLabel="$t('driver.delete')"
+                                :showActivate="row.is_active === 0"
+                                :showDeactivate="row.is_active === 1"
+                                :activateLabel="$t('common.activate')"
+                                :deactivateLabel="$t('common.deactivate')"
                                 :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
                                 @delete="handleDeleteDriver"
+                                @activate="handleActivate"
+                                @deactivate="handleDeactivate"
                             />
                             <!-- Trashed Drivers Actions -->
                             <ActionsDropdown
@@ -170,12 +184,14 @@
             @close="cancelBulkAction"
         />
 
-        <SuccessModal 
-            :isOpen="isSuccessModalOpen" 
+        <SuccessModal
+            :isOpen="isSuccessModalOpen"
             :title="$t('common.success')"
             :message="successMessage"
-            @close="closeSuccessModal" 
+            @close="closeSuccessModal"
         />
+
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
     </div>
 </template>
 
@@ -195,13 +211,17 @@ import { useDriverStore } from "../stores/driversStore.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import apiServices from "@/services/apiServices.js";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
-import { useSuccessModal } from "../../../composables/useSuccessModal.js"; 
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const driverStore = useDriverStore();
 const { companyId, companyOption } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35").replace(/\/api\/?$/, "");
 const getFullImageUrl = (imagePath) => {
     if (!imagePath || imagePath === "path/test") return null;
@@ -211,6 +231,8 @@ const getFullImageUrl = (imagePath) => {
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const selectedTypeGroups = ref([]);
+const activeStatusFilter = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const skipNextPageWatch = ref(false);
@@ -241,6 +263,10 @@ const pendingBulkAction = ref(null);
 // Get drivers from store
 const drivers = computed(() => driverStore.drivers);
 const trashedDrivers = computed(() => driverStore.trashedDrivers);
+
+// Active Toggle
+const refreshDrivers = () => fetchDriversPage(currentPage.value);
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("drivers", refreshDrivers, { showSuccess, showError });
 const branches = ref([]);
 
 // ✅ NEW: Computed for other drivers
@@ -480,6 +506,7 @@ const driverColumns = ref([
     { key: "branch_name", label: t("driver.branchName"), sortable: false },
     { key: "vehicle_number", label: t("driver.vehicleNumber"), sortable: true },
     { key: "phone_number", label: t("driver.phoneNumber"), sortable: false },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const trashedColumns = computed(() => [
@@ -521,6 +548,15 @@ const buildDriverFilters = () => {
                 ? selectedGroups.value[0]
                 : selectedGroups.value.join(",");
     }
+    if (selectedTypeGroups.value.length > 0) {
+        filters.type =
+            selectedTypeGroups.value.length === 1
+                ? selectedTypeGroups.value[0]
+                : selectedTypeGroups.value.join(",");
+    }
+    if (activeStatusFilter.value !== '') {
+        filters.is_active = activeStatusFilter.value;
+    }
     return filters;
 };
 
@@ -536,7 +572,7 @@ const fetchDriversPage = async (page = 1) => {
 // Server already returns paginated data; use store results directly
 const paginatedData = computed(() => currentData.value);
 
-watch([searchText, selectedGroups], async () => {
+watch([searchText, selectedGroups, selectedTypeGroups, activeStatusFilter], async () => {
     if (currentPage.value !== 1) {
         skipNextPageWatch.value = true;
         currentPage.value = 1;
@@ -619,6 +655,16 @@ const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
         return [
             {
+                id: 'activate',
+                label: t('common.bulkActivate'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'deactivate',
+                label: t('common.bulkDeactivate'),
+                bgColor: 'var(--color-warning, #ffc107)',
+            },
+            {
                 id: 'delete',
                 label: t('driver.bulkDelete'),
                 icon: 'fa-trash',
@@ -683,6 +729,10 @@ const executeBulkAction = async () => {
             await driverStore.bulkRestoreDrivers(selectedRows.value);
             console.log("✅ Drivers restored successfully");
             showSuccess(t('driver.bulkRestoreSuccess', { count }));
+        } else if (pendingBulkAction.value === 'activate') {
+            await handleBulkActivate(selectedRows.value);
+        } else if (pendingBulkAction.value === 'deactivate') {
+            await handleBulkDeactivate(selectedRows.value);
         }
 
         selectedRows.value = [];
@@ -755,7 +805,7 @@ const handleSubmitDriver = async (driverData) => {
         }
         
         // For other errors, show generic alert
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -770,7 +820,7 @@ const handleRestoreDriver = async (driver) => {
         showSuccess(t('driver.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore driver:", error);
-        alert(error.message || 'Failed to restore driver');
+        showError(error.message || 'Failed to restore driver');
     }
 };
 
@@ -808,7 +858,7 @@ const handleDeleteDriver = async (driver) => {
         
     } catch (error) {
         console.error("❌ Error checking/deleting driver:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -830,7 +880,7 @@ const handleReassignWorkPlans = async ({ workPlanIds, oldDriverId, newDriverId }
         
     } catch (error) {
         console.error('❌ Failed to reassign/delete:', error);
-        alert(error.message || t('driver.reassignFailed'));
+        showError(error.message || t('driver.reassignFailed'));
     }
 };
 
@@ -848,7 +898,7 @@ const handleDirectDelete = async (driverId) => {
         
     } catch (error) {
         console.error('❌ Failed to delete:', error);
-        alert(error.message || t('driver.deleteFailed'));
+        showError(error.message || t('driver.deleteFailed'));
     }
 };
 
@@ -866,7 +916,7 @@ const handlePermanentDeleteDriver = async (driver) => {
         showSuccess(t('driver.permanentDeleteSuccess')); 
     } catch (error) {
         console.error("Failed to permanently delete driver:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 

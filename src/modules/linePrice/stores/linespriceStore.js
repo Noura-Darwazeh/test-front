@@ -37,6 +37,7 @@ export const useLinePriceStore = defineStore("linePrice", () => {
       created_at: price.created_at,
       updated_at: price.updated_at,
       deleted_at: price.deleted_at,
+      is_active: price.is_active ?? 1,
     };
   };
   // State
@@ -96,11 +97,11 @@ export const useLinePriceStore = defineStore("linePrice", () => {
   });
 
   // Actions
-  const fetchLinePrices = async () => {
+  const fetchLinePrices = async ({ filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getLinePrices({ page: 1, perPage: 1000 });
+      const response = await apiServices.getLinePrices({ page: 1, perPage: 1000, filters });
 
       // Transform API response to match frontend format
       linePrices.value = response.data.data.map((price) =>
@@ -275,11 +276,11 @@ export const useLinePriceStore = defineStore("linePrice", () => {
     }
   };
 
-  const fetchTrashedLinePrices = async () => {
+  const fetchTrashedLinePrices = async ({ filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedLinePrices({ page: 1, perPage: 1000 });
+      const response = await apiServices.getTrashedLinePrices({ page: 1, perPage: 1000, filters });
 
       // Transform API response to match frontend format
       trashedLinePrices.value = response.data.data.map((price) =>

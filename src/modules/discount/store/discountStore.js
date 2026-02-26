@@ -61,11 +61,11 @@ export const useDiscountStore = defineStore("discounts", () => {
     };
   };
 
-  const fetchDiscounts = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchDiscounts = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getDiscounts({ page, perPage });
+      const response = await apiServices.getDiscounts({ page, perPage, filters });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];
@@ -91,11 +91,11 @@ export const useDiscountStore = defineStore("discounts", () => {
     }
   };
 
-  const fetchTrashedDiscounts = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedDiscounts = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedDiscounts({ page, perPage });
+      const response = await apiServices.getTrashedDiscounts({ page, perPage, filters });
       const data = Array.isArray(response.data.data)
         ? response.data.data
         : [];

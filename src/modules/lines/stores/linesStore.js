@@ -58,6 +58,7 @@ export const useLinesStore = defineStore("lines", () => {
       created_at: line.created_at,
       updated_at: line.updated_at,
       deleted_at: line.deleted_at,
+      is_active: line.is_active ?? 1,
     };
   };
 
@@ -87,11 +88,11 @@ export const useLinesStore = defineStore("lines", () => {
   });
 
   // Actions
-  const fetchLines = async () => {
+  const fetchLines = async ({ filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getLines({ page: 1, perPage: 1000 });
+      const response = await apiServices.getLines({ page: 1, perPage: 1000, filters });
 
       // Transform API response to match frontend format
       lines.value = response.data.data.map(normalizeLine);
@@ -241,11 +242,11 @@ export const useLinesStore = defineStore("lines", () => {
     }
   };
 
-  const fetchTrashedLines = async () => {
+  const fetchTrashedLines = async ({ filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedLines({ page: 1, perPage: 1000 });
+      const response = await apiServices.getTrashedLines({ page: 1, perPage: 1000, filters });
 
       // Transform API response to match frontend format
       trashedLines.value = response.data.data.map(normalizeLine);

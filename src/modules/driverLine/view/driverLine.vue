@@ -38,6 +38,9 @@
       :translationKey="'driverLineStatus'"
       :columns="driverLineColumns"
       v-model:visibleColumns="visibleColumns"
+      :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter"
+      @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="true"
       :addButtonText="$t('driverLine.addNew')"
       @add-click="openModal"
@@ -92,7 +95,8 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows">
+          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''">
             <template #actions="{ row }">
               <Actions
                 v-if="activeTab === 'active'"
@@ -100,10 +104,16 @@
                 :editLabel="$t('driverLine.edit')"
                 :detailsLabel="$t('driverLine.actions.details')"
                 :deleteLabel="$t('driverLine.actions.delete')"
+                :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')"
                 :confirmDelete="true"
                 @edit="handleEdit"
                 @details="handleDetails"
                 @delete="handleDeleteDriverLine"
+                @activate="handleActivate"
+                @deactivate="handleDeactivate"
               />
               <Actions
                 v-else
@@ -163,12 +173,15 @@
     />
 
     <!-- Success Modal -->
-    <SuccessModal 
-      :isOpen="isSuccessModalOpen" 
+    <SuccessModal
+      :isOpen="isSuccessModalOpen"
       :title="$t('common.success')"
       :message="successMessage"
-      @close="closeSuccessModal" 
+      @close="closeSuccessModal"
     />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -184,7 +197,9 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData, filterByGroups, paginateData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useDriverLineFormFields } from "../components/driverLineFormFields.js";
@@ -192,6 +207,7 @@ import { useDriverLineStore } from "../stores/driverLineStore.js";
 import { useDriverStore } from "@/modules/drivers/stores/driversStore.js";
 import { useLineWorkStore } from "@/modules/lineWork/stores/lineworkStore.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const router = useRouter();
@@ -199,6 +215,7 @@ const driverLineStore = useDriverLineStore();
 const driverStore = useDriverStore();
 const lineWorkStore = useLineWorkStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 const drivers = computed(() => driverStore.drivers);
 const lineWorks = computed(() => lineWorkStore.lineWorks);
@@ -209,6 +226,7 @@ const { driverLineFields } = useDriverLineFormFields({
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const activeStatusFilter = ref("");
 const currentPage = ref(1);
 const itemsPerPage = ref(5);
 const isModalOpen = ref(false);
@@ -226,6 +244,10 @@ const activeTab = ref('active');
 // Get driver lines from store
 const driverLines = computed(() => driverLineStore.driverLines);
 const trashedDriverLines = computed(() => driverLineStore.trashedDriverLines);
+
+// Active Toggle
+const refreshDriverLines = () => driverLineStore.fetchDriverLines();
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("driver-lines", refreshDriverLines, { showSuccess, showError });
 
 const driversById = computed(() => {
   const map = {};
@@ -296,6 +318,7 @@ const driverLineColumns = computed(() => [
     sortable: true,
   },
   { key: "created_at", label: t("driverLine.table.createdAt"), sortable: true },
+  { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const trashedColumns = computed(() => [
@@ -347,6 +370,16 @@ const paginatedData = computed(() => {
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
+      {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
       {
         id: "delete",
         label: t("driverLine.bulkDelete"),
@@ -480,7 +513,7 @@ const handleSubmitDriverLine = async (driverLineData) => {
       }
     }
     
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -495,7 +528,7 @@ const handleRestoreDriverLine = async (driverLine) => {
     showSuccess(t('driverLine.restoreSuccess'));
   } catch (error) {
     console.error("❌ Failed to restore driver line:", error);
-    alert(error.message || "Failed to restore driver line");
+    showError(error.message || "Failed to restore driver line");
   }
 };
 
@@ -506,7 +539,7 @@ const handlePermanentDeleteDriverLine = async (driverLine) => {
     showSuccess(t('driverLine.permanentDeleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to permanently delete driver line:", error);
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 
@@ -534,6 +567,10 @@ const executeBulkAction = async () => {
       await driverLineStore.bulkRestoreDriverLines(selectedRows.value);
       console.log("✅ Driver lines restored successfully");
       showSuccess(t('driverLine.bulkRestoreSuccess', { count }));
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
     }
     selectedRows.value = [];
     pendingBulkAction.value = null;
@@ -607,7 +644,7 @@ const handleDeleteDriverLine = async (driverLine) => {
     showSuccess(t('driverLine.deleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to delete driver line:", error);
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 

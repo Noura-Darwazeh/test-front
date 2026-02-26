@@ -63,7 +63,7 @@ api.interceptors.request.use(
   (error) => {
     console.error("❌ Request Error:", error);
     return Promise.reject(error);
-  }
+  },
 );
 
 
@@ -77,10 +77,13 @@ api.interceptors.response.use(
     }
 
     if (shouldLogApi) {
-      console.log(`✅ API Response: ${String(response.config?.method || "get").toUpperCase()} ${response.config?.url}`, {
-        status: response.status,
-        data: response.data,
-      });
+      console.log(
+        `✅ API Response: ${String(response.config?.method || "get").toUpperCase()} ${response.config?.url}`,
+        {
+          status: response.status,
+          data: response.data,
+        },
+      );
     }
 
     return response;
@@ -137,7 +140,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

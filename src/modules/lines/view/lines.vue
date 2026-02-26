@@ -34,6 +34,9 @@
       v-model:visibleColumns="visibleColumns"
       :showAddButton="true"
       :addButtonText="$t('lines.addNew')"
+      :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter"
+      @update:activeFilterValue="activeStatusFilter = $event"
       @add-click="openAddModal"
       @refresh-click="handleRefresh"
     />
@@ -94,6 +97,7 @@
             :data="paginatedData"
             :actionsLabel="$t('lines.actions')"
             v-model="selectedRows"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
           >
             <template #actions="{ row }">
               <!-- Active Lines Actions -->
@@ -103,10 +107,16 @@
                 :editLabel="$t('lines.edit')"
                 :detailsLabel="$t('lines.details')"
                 :deleteLabel="$t('lines.delete')"
+                :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')"
                 :confirmDelete="true"
                 @edit="openEditModal"
                 @details="openDetailsModal"
                 @delete="handleDeleteLine"
+                @activate="handleActivate"
+                @deactivate="handleDeactivate"
               />
               <!-- Trashed Lines Actions -->
               <ActionsDropdown
@@ -165,6 +175,9 @@
       :message="successMessage"
       @close="closeSuccessModal"
     />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -176,7 +189,9 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData, filterByGroups } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinesHeader from "../components/linesHeader.vue";
@@ -185,6 +200,7 @@ import { useLinesStore } from "../stores/linesStore.js";
 import { useRegionsManagementStore } from "@/modules/regions/store/regionsManagement.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const linesStore = useLinesStore();
@@ -192,12 +208,14 @@ const regionsStore = useRegionsManagementStore();
 const { companyId, companyOption, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } =
   useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ Check if user is SuperAdmin
 const isSuperAdmin = computed(() => authStore.hasRole("SuperAdmin"));
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const activeStatusFilter = ref("");
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -216,6 +234,10 @@ const pendingBulkAction = ref(null);
 const lines = computed(() => linesStore.lines);
 const trashedLines = computed(() => linesStore.trashedLines);
 const regions = computed(() => regionsStore.regions);
+
+// Active Toggle
+const refreshLines = () => linesStore.fetchLines();
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("lines", refreshLines, { showSuccess, showError });
 
 const regionOptions = computed(() =>
   regions.value
@@ -308,6 +330,7 @@ const baseColumns = ref([
   { key: "name", label: t("lines.name"), sortable: true },
   { key: "region", label: t("lines.region"), sortable: false },
   { key: "company", label: t("lines.company"), sortable: false },
+  { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 // ✅ Columns to display based on user role
@@ -368,6 +391,13 @@ const currentLoading = computed(() => {
 // Filter current data
 const currentFilteredData = computed(() => {
   let result = currentData.value;
+
+  // Apply is_active filter (client-side)
+  if (activeStatusFilter.value !== "" && activeTab.value === "active") {
+    const filterVal = Number(activeStatusFilter.value);
+    result = result.filter((item) => item.is_active === filterVal);
+  }
+
   result = filterData(result, searchText.value);
 
   // ✅ Only apply group filter for SuperAdmin
@@ -463,6 +493,16 @@ const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
       {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
+      {
         id: "delete",
         label: t("lines.bulkDelete"),
         icon: "fa-trash",
@@ -532,6 +572,10 @@ const executeBulkAction = async () => {
       await linesStore.bulkRestoreLines(selectedRows.value);
       console.log("✅ Lines restored successfully");
       showSuccess(t("lines.bulkRestoreSuccess", { count }));
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
     }
 
     selectedRows.value = [];
@@ -585,7 +629,7 @@ const handleSubmitLines = async (lineData) => {
       return;
     }
 
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 
@@ -600,7 +644,7 @@ const handleRestoreLine = async (line) => {
     showSuccess(t("lines.restoreSuccess"));
   } catch (error) {
     console.error("❌ Failed to restore line:", error);
-    alert(error.message || "Failed to restore line");
+    showError(error.message || "Failed to restore line");
   }
 };
 
@@ -611,7 +655,7 @@ const handleDeleteLine = async (line) => {
     showSuccess(t("lines.deleteSuccess"));
   } catch (error) {
     console.error("❌ Failed to delete line:", error);
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 
@@ -622,7 +666,7 @@ const handlePermanentDeleteLine = async (line) => {
     showSuccess(t("lines.permanentDeleteSuccess"));
   } catch (error) {
     console.error("❌ Failed to permanently delete line:", error);
-    alert(error.message || t("common.saveFailed"));
+    showError(error.message || t("common.saveFailed"));
   }
 };
 </script>

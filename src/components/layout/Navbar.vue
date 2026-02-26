@@ -129,6 +129,9 @@
     @confirm="confirmLogout"
     @close="closeLogoutModal"
   />
+
+  <!-- Error Modal -->
+  <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
 </template>
 
 <script setup>
@@ -140,6 +143,8 @@ import { useAuthStore } from "@/stores/auth.js";
 import BaseDropdown from "@/components/shared/BaseDropdown.vue";
 import SwitchUserModal from "@/components/shared/SwitchUserModal.vue";
 import ConfirmationModal from "@/components/shared/ConfirmationModal.vue";
+import ErrorModal from "@/components/shared/ErrorModal.vue";
+import { useErrorModal } from "@/composables/useErrorModal.js";
 import bellIcon from "@/assets/Navbar/Bell.svg";
 import globeIcon from "@/assets/Navbar/Globe.svg";
 import dropDownIcon from "@/assets/Navbar/DropDown.svg";
@@ -155,6 +160,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const { locale, t } = useI18n();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 const isRTL = computed(() => locale.value === "ar");
 
 const displayTitle = computed(() => {
@@ -219,11 +225,11 @@ const returnToAdmin = async () => {
       window.location.reload();
     } else {
       console.error("❌ Failed to return to admin");
-      alert("Failed to return to admin account");
+      showError("Failed to return to admin account");
     }
   } catch (error) {
     console.error("❌ Error returning to admin:", error);
-    alert("Error returning to admin account");
+    showError("Error returning to admin account");
   }
 };
 
@@ -239,7 +245,7 @@ const confirmLogout = async () => {
     router.push({ name: "Login" });
   } catch (error) {
     console.error("❌ Logout error:", error);
-    alert("Logout failed. Please try again.");
+    showError("Logout failed. Please try again.");
   }
 };
 

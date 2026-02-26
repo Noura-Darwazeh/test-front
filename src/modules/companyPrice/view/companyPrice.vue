@@ -7,6 +7,9 @@
       :data="companyPrices"
       :columns="companyPriceColumns"
       v-model:visibleColumns="visibleColumns"
+      :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter"
+      @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="true"
       :addButtonText="$t('companyPrice.addNew')"
       @add-click="openModal"
@@ -60,7 +63,8 @@
         </div>
 
         <div v-else>
-          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows">
+          <DataTable :columns="filteredColumns" :data="paginatedData" v-model="selectedRows"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''">
             <template #actions="{ row }">
               <Actions
                 v-if="activeTab === 'active'"
@@ -68,10 +72,16 @@
                 :editLabel="$t('companyPrice.edit')"
                 :detailsLabel="$t('companyPrice.actions.details')"
                 :deleteLabel="$t('companyPrice.actions.delete')"
+                :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')"
                 :confirmDelete="true"
                 @edit="handleEdit"
                 @details="handleDetails"
                 @delete="handleDeleteCompanyPrice"
+                @activate="handleActivate"
+                @deactivate="handleDeactivate"
               />
               <Actions
                 v-else
@@ -123,17 +133,20 @@
     />
 
     <!-- Success Modal -->
-    <SuccessModal 
-      :isOpen="isSuccessModalOpen" 
+    <SuccessModal
+      :isOpen="isSuccessModalOpen"
       :title="$t('common.success')"
       :message="successMessage"
-      @close="closeSuccessModal" 
+      @close="closeSuccessModal"
     />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import CompanyPriceHeader from "../components/companyPriceHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -142,19 +155,23 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCompanyPriceFormFields } from "../components/companyPriceFormFields.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useCompanyPriceStore } from "../store/companyPriceStore.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
 const { companyId, currencyId, currencyName } = useAuthDefaults();
 const companyPriceStore = useCompanyPriceStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // Simple price formatter
 const formatPrice = (value, symbol = "$") => {
@@ -163,6 +180,7 @@ const formatPrice = (value, symbol = "$") => {
 };
 
 const searchText = ref("");
+const activeStatusFilter = ref("");
 const isModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -177,6 +195,10 @@ const activeTab = ref('active');
 // Store data
 const companyPrices = computed(() => companyPriceStore.companyPrices);
 const trashedCompanyPrices = computed(() => companyPriceStore.trashedCompanyPrices);
+
+// Active Toggle
+const refreshCompanyPrices = () => companyPriceStore.fetchCompanyPrices();
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("company-item-prices", refreshCompanyPrices, { showSuccess, showError });
 
 onMounted(async () => {
   try {
@@ -239,6 +261,7 @@ const companyPriceColumns = computed(() => [
     label: t("companyPrice.table.createdAt"),
     sortable: true,
   },
+  { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const trashedColumns = computed(() => [
@@ -276,6 +299,11 @@ const currentLoading = computed(() => {
 
 const currentFilteredData = computed(() => {
   let result = currentData.value;
+  // Apply is_active filter (client-side)
+  if (activeStatusFilter.value !== "" && activeTab.value === "active") {
+    const filterVal = Number(activeStatusFilter.value);
+    result = result.filter((item) => item.is_active === filterVal);
+  }
   result = filterData(result, searchText.value);
   return result;
 });
@@ -287,6 +315,16 @@ const paginatedData = computed(() => {
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
+      {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
       {
         id: "delete",
         label: t("companyPrice.bulkDelete"),
@@ -425,7 +463,7 @@ const handleAddCompanyPrice = async (priceData) => {
     if (applyServerErrors(error)) {
       return;
     }
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -436,7 +474,7 @@ const handleRestoreCompanyPrice = async (price) => {
     showSuccess(t('companyPrice.restoreSuccess'));
   } catch (error) {
     console.error("❌ Failed to restore company price:", error);
-    alert(error.message || 'Failed to restore company price');
+    showError(error.message || 'Failed to restore company price');
   }
 };
 
@@ -447,7 +485,7 @@ const handleDeleteCompanyPrice = async (price) => {
     showSuccess(t('companyPrice.deleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to delete company price:", error);
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -458,7 +496,7 @@ const handlePermanentDeleteCompanyPrice = async (price) => {
     showSuccess(t('companyPrice.permanentDeleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to permanently delete company price:", error);
-    alert(error.message || t('common.saveFailed'));
+    showError(error.message || t('common.saveFailed'));
   }
 };
 
@@ -486,6 +524,10 @@ const executeBulkAction = async () => {
       await companyPriceStore.bulkRestoreCompanyPrices(selectedRows.value);
       console.log("✅ Company prices restored successfully");
       showSuccess(t('companyPrice.bulkRestoreSuccess', { count }));
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
     }
     selectedRows.value = [];
     pendingBulkAction.value = null;

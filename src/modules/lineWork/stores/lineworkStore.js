@@ -37,6 +37,7 @@ export const useLineWorkStore = defineStore("lineWork", () => {
       created_at: lineWork.created_at,
       updated_at: lineWork.updated_at,
       deleted_at: lineWork.deleted_at,
+      is_active: lineWork.is_active ?? 1,
     };
   };
 
@@ -52,11 +53,11 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     return grouped;
   });
 
-  const fetchLineWorks = async () => {
+  const fetchLineWorks = async ({ filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getLineWorks({ page: 1, perPage: 1000 });
+      const response = await apiServices.getLineWorks({ page: 1, perPage: 1000, filters });
       const rawData = Array.isArray(response.data.data)
         ? response.data.data
         : [];
@@ -72,11 +73,11 @@ export const useLineWorkStore = defineStore("lineWork", () => {
     }
   };
 
-  const fetchTrashedLineWorks = async () => {
+  const fetchTrashedLineWorks = async ({ filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedLineWorks({ page: 1, perPage: 1000 });
+      const response = await apiServices.getTrashedLineWorks({ page: 1, perPage: 1000, filters });
       const rawData = Array.isArray(response.data.data)
         ? response.data.data
         : [];

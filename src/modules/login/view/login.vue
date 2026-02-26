@@ -44,7 +44,7 @@
             <div class="mb-4">
               <FormLabel :label="$t('login.emailLabel')" for-id="login" :required="true" />
               <TextField id="login" v-model="form.login" type="text"
-                :placeholder="$t('login.emailPlaceholder')" :required="true" />
+                :placeholder="$t('login.emailPlaceholder')" />
               <small v-if="errors.login" class="text-danger d-block mt-1">
                 {{ errors.login }}
               </small>
@@ -53,7 +53,7 @@
             <div class="mb-4">
               <FormLabel :label="$t('login.passwordLabel')" for-id="password" :required="true" />
               <TextField id="password" v-model="form.password" type="password"
-                :placeholder="$t('login.passwordPlaceholder')" :minlength="6" :required="true" />
+                :placeholder="$t('login.passwordPlaceholder')" />
               <small v-if="errors.password" class="text-danger d-block mt-1">
                 {{ errors.password }}
               </small>
@@ -70,7 +70,7 @@
             </div>
 
             <PrimaryButton :text="$t('login.signIn')" :loading-text="$t('login.signingIn')"
-              :loading="authStore.isLoading" type="submit" class="w-100" />
+              :loading="authStore.isLoading" :disabled="isButtonDisabled" type="submit" class="w-100" />
 
                <div class="text-center mt-4">
       <p class="text-muted mb-2">{{ $t('login.areYouDriver') }}</p>
@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, onUnmounted, nextTick  } from 'vue';
+import { reactive, ref, computed, watch, onMounted, onUnmounted, nextTick  } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../../../stores/auth.js';
@@ -146,6 +146,18 @@ const slides = [
 
 const form = reactive({ login: '', password: '' });
 const errors = reactive({ login: '', password: '' });
+const loginFailed = ref(false);
+
+const isButtonDisabled = computed(() => {
+  return !form.login || !form.password || form.password.length < 6 || loginFailed.value;
+});
+
+watch(() => [form.login, form.password], () => {
+  if (loginFailed.value) {
+    loginFailed.value = false;
+    authStore.clearError();
+  }
+});
 
 const isRTL = computed(() => currentLanguage.value === 'ar');
 const currentLanguageLabel = computed(() => currentLanguage.value === 'ar' ? 'العربية' : 'English');
@@ -200,8 +212,9 @@ async function onSubmit() {
         await nextTick();
 
     router.push(authStore.user?.default_page || '/user');
-  } catch (error) {
-    console.error('❌ Login failed:', error.message);
+  } catch (err) {
+    loginFailed.value = true;
+    console.error('❌ Login failed:', err.message);
   }
 }
 </script>

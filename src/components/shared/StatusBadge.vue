@@ -12,13 +12,24 @@ const { t } = useI18n();
 
 const props = defineProps({
   status: {
-    type: String,
+    type: [String, Number],
     required: true,
   },
   type: {
     type: String,
     default: "default", // default, order, driver, discount, etc.
   },
+  statusMap: {
+    type: Object,
+    default: null,
+  },
+});
+
+const resolvedStatus = computed(() => {
+  if (props.statusMap && props.statusMap[props.status] !== undefined) {
+    return props.statusMap[props.status];
+  }
+  return String(props.status);
 });
 
 const displayText = computed(() => {
@@ -28,23 +39,24 @@ const displayText = computed(() => {
 });
 
 const getTranslationKey = () => {
+  const status = resolvedStatus.value;
   switch (props.type) {
     case "order":
-      return `orderStatus.${props.status}`;
+      return `orderStatus.${status}`;
     case "driver":
-      return `statuses.${props.status}`;
+      return `statuses.${status}`;
     case "discount":
-      return `discount.status.${props.status}`;
+      return `discount.status.${status}`;
     case "currency":
-      return `currency.status.${props.status}`;
+      return `currency.status.${status}`;
     case "driverLine":
-      return `driverLine.status.${props.status}`;
+      return `driverLine.status.${status}`;
     case "user":
       return `user.${props.status}`;
     case "workPlan": 
       return `driverSteps.status.${props.status}`;
     default:
-      return props.status;
+      return props.statusMap ? `common.${status}` : status;
   }
 };
 
@@ -84,7 +96,7 @@ const getBadgeClass = () => {
     draft: "bg-secondary",
   };
 
-  return statusMap[props.status] || "bg-secondary";
+  return statusMap[resolvedStatus.value] || "bg-secondary";
 };
 </script>
 

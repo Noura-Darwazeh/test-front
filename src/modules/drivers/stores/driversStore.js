@@ -88,6 +88,7 @@ export const useDriverStore = defineStore("driver", () => {
       created_by: driver.created_by,
       created_at: driver.created_at,
       updated_at: driver.updated_at,
+      is_active: driver.is_active ?? 1,
     };
   };
 

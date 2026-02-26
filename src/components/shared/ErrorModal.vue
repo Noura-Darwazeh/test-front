@@ -10,39 +10,40 @@
       <div v-if="isOpen" class="modal d-block" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
-          <!-- Success Animation Background -->
-          <div class="success-background">
-            <div class="success-circle-1"></div>
-            <div class="success-circle-2"></div>
-            <div class="success-circle-3"></div>
+          <!-- Error Animation Background -->
+          <div class="error-background">
+            <div class="error-circle-1"></div>
+            <div class="error-circle-2"></div>
+            <div class="error-circle-3"></div>
           </div>
 
           <!-- Modal Body -->
           <div class="modal-body p-5 text-center position-relative">
-            <!-- Success Icon with Animation -->
-            <div class="success-icon-container mb-4">
-              <div class="success-checkmark-circle">
-                <div class="success-checkmark">
-                  <svg class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            <!-- Error Icon with Animation -->
+            <div class="error-icon-container mb-4">
+              <div class="error-x-circle">
+                <div class="error-x-mark">
+                  <svg class="x-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle class="x-circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="x-line-1" fill="none" d="M16 16 36 36"/>
+                    <path class="x-line-2" fill="none" d="M36 16 16 36"/>
                   </svg>
                 </div>
               </div>
             </div>
-            
+
             <!-- Title with Fade In -->
-            <h3 class="fw-bold text-success mb-3 title-fade-in">{{ title }}</h3>
-            
+            <h3 class="fw-bold text-danger mb-3 title-fade-in">{{ title }}</h3>
+
             <!-- Message with Slide Up -->
             <p class="text-muted mb-4 message-slide-up">{{ message }}</p>
-            
+
             <!-- Button with Scale -->
             <div class="button-scale d-flex justify-content-center">
-              <PrimaryButton 
-                :text="$t('common.ok')" 
-                @click="closeModal" 
-                bgColor="var(--color-success)"
+              <PrimaryButton
+                :text="$t('common.ok')"
+                @click="closeModal"
+                bgColor="var(--color-danger, #dc3545)"
                 class="px-5"
               />
             </div>
@@ -65,31 +66,17 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'Success!',
+    default: 'Error',
   },
   message: {
     type: String,
     required: true,
   },
-  autoClose: {
-    type: Boolean,
-    default: true,
-  },
-  autoCloseDelay: {
-    type: Number,
-    default: 3000,
-  },
 });
 
 const emit = defineEmits(['close']);
 
-let autoCloseTimer = null;
-
 const closeModal = () => {
-  if (autoCloseTimer) {
-    clearTimeout(autoCloseTimer);
-    autoCloseTimer = null;
-  }
   emit('close');
 };
 
@@ -100,20 +87,9 @@ watch(() => props.isOpen, (newVal) => {
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
-
-    if (props.autoClose) {
-      autoCloseTimer = setTimeout(() => {
-        closeModal();
-      }, props.autoCloseDelay);
-    }
   } else {
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
-    
-    if (autoCloseTimer) {
-      clearTimeout(autoCloseTimer);
-      autoCloseTimer = null;
-    }
   }
 });
 </script>
@@ -131,7 +107,7 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .modal-backdrop {
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);
   position: fixed;
   top: 0;
   left: 0;
@@ -203,8 +179,8 @@ watch(() => props.isOpen, (newVal) => {
   overflow: hidden;
 }
 
-/* ===== Success Background Animation ===== */
-.success-background {
+/* ===== Error Background Animation ===== */
+.error-background {
   position: absolute;
   top: 0;
   left: 0;
@@ -214,15 +190,15 @@ watch(() => props.isOpen, (newVal) => {
   pointer-events: none;
 }
 
-.success-circle-1,
-.success-circle-2,
-.success-circle-3 {
+.error-circle-1,
+.error-circle-2,
+.error-circle-3 {
   position: absolute;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
 }
 
-.success-circle-1 {
+.error-circle-1 {
   width: 300px;
   height: 300px;
   top: -150px;
@@ -230,7 +206,7 @@ watch(() => props.isOpen, (newVal) => {
   animation: float 6s ease-in-out infinite;
 }
 
-.success-circle-2 {
+.error-circle-2 {
   width: 200px;
   height: 200px;
   bottom: -100px;
@@ -238,7 +214,7 @@ watch(() => props.isOpen, (newVal) => {
   animation: float 8s ease-in-out infinite reverse;
 }
 
-.success-circle-3 {
+.error-circle-3 {
   width: 150px;
   height: 150px;
   top: 50%;
@@ -255,14 +231,14 @@ watch(() => props.isOpen, (newVal) => {
   }
 }
 
-/* ===== Success Icon Animation ===== */
-.success-icon-container {
+/* ===== Error Icon Animation ===== */
+.error-icon-container {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.success-checkmark-circle {
+.error-x-circle {
   width: 100px;
   height: 100px;
   position: relative;
@@ -284,43 +260,51 @@ watch(() => props.isOpen, (newVal) => {
   }
 }
 
-.success-checkmark {
+.error-x-mark {
   width: 100px;
   height: 100px;
   margin: 0 auto;
   position: relative;
 }
 
-.checkmark-svg {
+.x-svg {
   width: 100px;
   height: 100px;
   border-radius: 50%;
   display: block;
   stroke-width: 3;
-  stroke: #28a745;
+  stroke: #dc3545;
   stroke-miterlimit: 10;
-  box-shadow: inset 0px 0px 0px #28a745;
-  animation: fillCircle 0.4s ease-in-out 0.4s forwards, 
+  box-shadow: inset 0px 0px 0px #dc3545;
+  animation: fillCircle 0.4s ease-in-out 0.4s forwards,
              scaleCircle 0.3s ease-in-out 0.9s both;
 }
 
-.checkmark-circle {
+.x-circle {
   stroke-dasharray: 166;
   stroke-dashoffset: 166;
   stroke-width: 3;
   stroke-miterlimit: 10;
-  stroke: #28a745;
+  stroke: #dc3545;
   fill: none;
   animation: strokeCircle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
 }
 
-.checkmark-check {
-  transform-origin: 50% 50%;
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
+.x-line-1,
+.x-line-2 {
   stroke: #fff;
   stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 29;
+  stroke-dashoffset: 29;
+}
+
+.x-line-1 {
   animation: strokeCheck 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+.x-line-2 {
+  animation: strokeCheck 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.95s forwards;
 }
 
 @keyframes strokeCircle {
@@ -337,7 +321,7 @@ watch(() => props.isOpen, (newVal) => {
 
 @keyframes fillCircle {
   100% {
-    box-shadow: inset 0px 0px 0px 60px #28a745;
+    box-shadow: inset 0px 0px 0px 60px #dc3545;
   }
 }
 
@@ -402,15 +386,15 @@ watch(() => props.isOpen, (newVal) => {
 /* ===== Hover Effects ===== */
 .modal-body .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
   transition: all 0.3s ease;
 }
 
 /* ===== Responsive ===== */
 @media (max-width: 576px) {
-  .success-checkmark-circle,
-  .success-checkmark,
-  .checkmark-svg {
+  .error-x-circle,
+  .error-x-mark,
+  .x-svg {
     width: 80px;
     height: 80px;
   }
@@ -419,7 +403,7 @@ watch(() => props.isOpen, (newVal) => {
     padding: 2rem 1.5rem !important;
   }
 
-  .success-circle-1 {
+  .error-circle-1 {
     width: 200px;
     height: 200px;
   }

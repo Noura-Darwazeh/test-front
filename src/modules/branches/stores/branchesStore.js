@@ -105,11 +105,11 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
   };
 
   // Actions
-  const fetchBranches = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchBranches = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getBranches({ page, perPage });
+      const response = await apiServices.getBranches({ page, perPage, filters });
 
       // Enrich branches with company_name and flatten location
       branches.value = await enrichBranchesWithCompanyName(response.data.data);
@@ -222,11 +222,11 @@ export const useBranchesManagementStore = defineStore("branchesManagement", () =
     }
   };
 
-  const fetchTrashedBranches = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedBranches = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedBranches({ page, perPage });
+      const response = await apiServices.getTrashedBranches({ page, perPage, filters });
 
       // Enrich branches with company_name and flatten location
       trashedBranches.value = await enrichBranchesWithCompanyName(response.data.data);

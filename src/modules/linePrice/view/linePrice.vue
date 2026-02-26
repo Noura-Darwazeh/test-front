@@ -23,6 +23,9 @@
             v-model:visibleColumns="visibleColumns"
             :showAddButton="true"
             :addButtonText="$t('linePrice.addNew')"
+            :showActiveFilter="true"
+            :activeFilterValue="activeStatusFilter"
+            @update:activeFilterValue="activeStatusFilter = $event"
             @add-click="openAddModal"
             @refresh-click="handleRefresh"
         />
@@ -83,6 +86,7 @@
                         :data="paginatedData"
                         :actionsLabel="$t('linePrice.actions')"
                         v-model="selectedRows"
+                        :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
                     >
                         <template #actions="{ row }">
                             <!-- Active Line Prices Actions -->
@@ -92,10 +96,16 @@
                                 :editLabel="$t('linePrice.edit')"
                                 :detailsLabel="$t('linePrice.details')"
                                 :deleteLabel="$t('linePrice.delete')"
+                                :showActivate="row.is_active === 0"
+                                :showDeactivate="row.is_active === 1"
+                                :activateLabel="$t('common.activate')"
+                                :deactivateLabel="$t('common.deactivate')"
                                 :confirmDelete="true"
                                 @edit="openEditModal"
                                 @details="openDetailsModal"
                                 @delete="handleDeleteLinePrice"
+                                @activate="handleActivate"
+                                @deactivate="handleDeactivate"
                             />
                             <!-- Trashed Line Prices Actions -->
                             <ActionsDropdown
@@ -148,12 +158,15 @@
         />
 
         <!-- Success Modal -->
-        <SuccessModal 
-            :isOpen="isSuccessModalOpen" 
+        <SuccessModal
+            :isOpen="isSuccessModalOpen"
             :title="$t('common.success')"
             :message="successMessage"
-            @close="closeSuccessModal" 
+            @close="closeSuccessModal"
         />
+
+        <!-- Error Modal -->
+        <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
     </div>
 </template>
 
@@ -165,7 +178,9 @@ import DetailsModal from "../../../components/shared/DetailsModal.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import LinePriceHeader from "../components/linePriceHeader.vue";
@@ -174,16 +189,19 @@ import { useLinePriceStore } from "../stores/linespriceStore.js";
 import apiServices from "@/services/apiServices.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t } = useI18n();
 const linePriceStore = useLinePriceStore();
 const { companyId, companyOption, currencyId, authStore } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ Check if user is SuperAdmin
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
 
 const searchText = ref("");
+const activeStatusFilter = ref("");
 const selectedGroups = ref([]);
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
@@ -204,6 +222,10 @@ const pendingBulkAction = ref(null);
 // Get line prices from store
 const linePrices = computed(() => linePriceStore.linePrices);
 const trashedLinePrices = computed(() => linePriceStore.trashedLinePrices);
+
+// Active Toggle
+const refreshLinePrices = () => linePriceStore.fetchLinePrices();
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("line-prices", refreshLinePrices, { showSuccess, showError });
 
 // Fetch data on component mount
 onMounted(async () => {
@@ -360,6 +382,7 @@ const baseColumns = ref([
     { key: "currency_code", label: t("linePrice.currency"), sortable: false },
     { key: "company_name", label: t("linePrice.company"), sortable: false },
     { key: "type", label: t("linePrice.type"), sortable: false },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 // ✅ Columns to display based on user role
@@ -417,7 +440,13 @@ const currentLoading = computed(() => {
 // Filter current data
 const currentFilteredData = computed(() => {
     let result = currentData.value;
-    
+
+    // Apply is_active filter (client-side)
+    if (activeStatusFilter.value !== "" && activeTab.value === "active") {
+        const filterVal = Number(activeStatusFilter.value);
+        result = result.filter((item) => item.is_active === filterVal);
+    }
+
     // Apply search filter
     result = filterData(result, searchText.value);
     
@@ -514,6 +543,16 @@ const bulkActions = computed(() => {
     if (activeTab.value === 'active') {
         return [
             {
+                id: 'activate',
+                label: t('common.bulkActivate'),
+                bgColor: 'var(--color-success)',
+            },
+            {
+                id: 'deactivate',
+                label: t('common.bulkDeactivate'),
+                bgColor: 'var(--color-warning, #ffc107)',
+            },
+            {
                 id: 'delete',
                 label: t('linePrice.bulkDelete'),
                 icon: 'fa-trash',
@@ -579,6 +618,10 @@ const executeBulkAction = async () => {
             await linePriceStore.bulkRestoreLinePrices(selectedRows.value);
             console.log("✅ Line prices restored successfully");
             showSuccess(t('linePrice.bulkRestoreSuccess', { count }));
+        } else if (pendingBulkAction.value === 'activate') {
+            await handleBulkActivate(selectedRows.value);
+        } else if (pendingBulkAction.value === 'deactivate') {
+            await handleBulkDeactivate(selectedRows.value);
         }
 
         selectedRows.value = [];
@@ -629,7 +672,7 @@ const handleSubmitLinePrice = async (priceData) => {
             return;
         }
         
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -644,7 +687,7 @@ const handleRestoreLinePrice = async (linePrice) => {
         showSuccess(t('linePrice.restoreSuccess'));
     } catch (error) {
         console.error("❌ Failed to restore line price:", error);
-        alert(error.message || 'Failed to restore line price');
+        showError(error.message || 'Failed to restore line price');
     }
 };
 
@@ -655,7 +698,7 @@ const handleDeleteLinePrice = async (linePrice) => {
         showSuccess(t('linePrice.deleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to delete line price:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 
@@ -666,7 +709,7 @@ const handlePermanentDeleteLinePrice = async (linePrice) => {
         showSuccess(t('linePrice.permanentDeleteSuccess'));
     } catch (error) {
         console.error("❌ Failed to permanently delete line price:", error);
-        alert(error.message || t('common.saveFailed'));
+        showError(error.message || t('common.saveFailed'));
     }
 };
 

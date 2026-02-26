@@ -78,6 +78,7 @@ export const useCustomerStore = defineStore("customer", () => {
       created_at: customer.created_at,
       updated_at: customer.updated_at,
       created_by: customer.created_by,
+      is_active: customer.is_active ?? 1,
     };
   };
 
@@ -102,7 +103,8 @@ export const useCustomerStore = defineStore("customer", () => {
       const response = await apiServices.getCustomers({ page, perPage, filters });
 
       // Transform API response to match frontend format
-      customers.value = response.data.data.map(normalizeCustomer);
+      const rawList = response.data?.data ?? response.data ?? [];
+      customers.value = Array.isArray(rawList) ? rawList.map(normalizeCustomer) : [];
 
       // Update pagination metadata from response
       if (response.data.meta) {

@@ -7,6 +7,7 @@
       :data="currenciesWithLocalizedName"
       :columns="currencyColumns"
       v-model:visibleColumns="visibleColumns"
+      :showActiveFilter="true" :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="canAdd"
       :addButtonText="$t('currency.addNew')"
       @add-click="openAddModal"
@@ -69,6 +70,7 @@
             :data="paginatedData"
             v-model="selectedRows"
             :showCheckbox="canDelete"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
           >
             <template #actions="{ row }">
               <Actions
@@ -80,10 +82,13 @@
                 :showEdit="canEdit"
                 :showDetails="true"
                 :showDelete="canDelete"
+                :showActivate="row.is_active === 0" :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')" :deactivateLabel="$t('common.deactivate')"
                 :confirmDelete="true"
                 @edit="openEditModal"
                 @details="openDetailsModal"
                 @delete="handleDeleteCurrency"
+                @activate="handleActivate" @deactivate="handleDeactivate"
               />
               <Actions
                 v-else
@@ -135,17 +140,20 @@
     />
 
     <!-- Success Modal -->
-    <SuccessModal 
-      :isOpen="isSuccessModalOpen" 
+    <SuccessModal
+      :isOpen="isSuccessModalOpen"
       :title="$t('common.success')"
       :message="successMessage"
-      @close="closeSuccessModal" 
+      @close="closeSuccessModal"
     />
+
+    <!-- Error Modal -->
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import DataTable from "../../../components/shared/DataTable.vue";
 import CurrencyHeader from "../components/currencyHeader.vue";
 import FormModal from "../../../components/shared/FormModal.vue";
@@ -154,18 +162,22 @@ import BulkActionsBar from "../../../components/shared/BulkActionsBar.vue";
 import Actions from "../../../components/shared/Actions.vue";
 import ConfirmationModal from "../../../components/shared/ConfirmationModal.vue";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { filterData } from "@/utils/dataHelpers";
 import { useI18n } from "vue-i18n";
 import { useCurrencyFormFields } from "../components/currencyFormFields.js";
 import { useCurrenciesManagementStore } from "../store/currenciesManagement.js";
 import { useAuthStore } from "@/stores/auth.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 
 const { t, locale } = useI18n();
 const currenciesStore = useCurrenciesManagementStore();
 const authStore = useAuthStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // Permissions
 const isSuperAdmin = computed(() => authStore.hasRole('SuperAdmin'));
@@ -174,6 +186,7 @@ const canEdit = computed(() => isSuperAdmin.value);
 const canDelete = computed(() => isSuperAdmin.value);
 
 const searchText = ref("");
+const activeStatusFilter = ref("");
 const itemsPerPage = 1000;
 const isFormModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
@@ -185,6 +198,10 @@ const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 const activeTab = ref('active');
+
+// Active Toggle
+const refreshCurrencies = () => currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage, filters: activeStatusFilter.value !== '' ? { is_active: activeStatusFilter.value } : {} });
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("currencies", refreshCurrencies, { showSuccess, showError });
 
 // Get currencies from store
 const currencies = computed(() => currenciesStore.currencies);
@@ -206,12 +223,24 @@ onMounted(async () => {
 });
 
 
+// Watch for active status filter changes — re-fetch from server
+watch(activeStatusFilter, async (newValue) => {
+  const filters = {};
+  if (newValue !== '') filters.is_active = newValue;
+  try {
+    await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage, filters });
+  } catch (err) {
+    console.error("Failed to filter currencies:", err);
+  }
+});
+
 // Table columns
 const currencyColumns = computed(() => [
   { key: "__index", label: "#", sortable: false, isIndex: true },
   { key: "name", label: t("currency.table.name"), sortable: true },
   { key: "symbol", label: t("currency.table.symbol"), sortable: true },
   { key: "key", label: t("currency.table.key"), sortable: true },
+  { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
 ]);
 
 const trashedColumns = computed(() => [
@@ -290,6 +319,16 @@ const paginatedData = computed(() => {
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
+      {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
       {
         id: "delete",
         label: t("currency.bulkDelete"),
@@ -384,8 +423,10 @@ const switchTab = async (tab) => {
       console.error("❌ Failed to load trashed currencies:", error);
     }
   } else {
+    const filters = {};
+    if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
     try {
-      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
+      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage, filters });
     } catch (error) {
       console.error("❌ Failed to load currencies:", error);
     }
@@ -394,11 +435,13 @@ const switchTab = async (tab) => {
 
 const handleRefresh = async () => {
   selectedRows.value = [];
+  const filters = {};
+  if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
   try {
     if (activeTab.value === "trashed") {
       await currenciesStore.fetchTrashedCurrencies({ page: 1, perPage: itemsPerPage });
     } else {
-      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage });
+      await currenciesStore.fetchCurrencies({ page: 1, perPage: itemsPerPage, filters });
     }
   } catch (error) {
     console.error("❌ Failed to refresh currencies:", error);
@@ -446,7 +489,7 @@ const handleSubmitCurrency = async (currencyData) => {
         (c) => c.key && c.key.toLowerCase() === currencyData.key.toLowerCase()
       );
       if (existingCurrency) {
-        alert(t("currency.validation.keyExists"));
+        showError(t("currency.validation.keyExists"));
         return;
       }
 
@@ -465,7 +508,7 @@ const handleSubmitCurrency = async (currencyData) => {
     closeFormModal();
   } catch (error) {
     console.error("❌ Component: Failed to save currency:", error);
-    alert(error.message || "Failed to save currency");
+    showError(error.message || "Failed to save currency");
   }
 };
 
@@ -476,7 +519,7 @@ const handleRestoreCurrency = async (currency) => {
     showSuccess(t('currency.restoreSuccess'));
   } catch (error) {
     console.error("❌ Failed to restore currency:", error);
-    alert(error.message || "Failed to restore currency");
+    showError(error.message || "Failed to restore currency");
   }
 };
 
@@ -487,7 +530,7 @@ const handleDeleteCurrency = async (currency) => {
     showSuccess(t('currency.deleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to delete currency:", error);
-    alert(error.message || "Failed to delete currency");
+    showError(error.message || "Failed to delete currency");
   }
 };
 
@@ -498,7 +541,7 @@ const handlePermanentDeleteCurrency = async (currency) => {
     showSuccess(t('currency.permanentDeleteSuccess'));
   } catch (error) {
     console.error("❌ Failed to permanently delete currency:", error);
-    alert(error.message || "Failed to delete currency");
+    showError(error.message || "Failed to delete currency");
   }
 };
 
@@ -526,6 +569,10 @@ const executeBulkAction = async () => {
       await currenciesStore.bulkRestoreCurrencies(selectedRows.value);
       console.log("✅ Currencies restored successfully");
       showSuccess(t('currency.bulkRestoreSuccess', { count }));
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
     }
     selectedRows.value = [];
     pendingBulkAction.value = null;

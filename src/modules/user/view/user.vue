@@ -10,6 +10,9 @@
       translationKey="roles"
       :columns="userColumns"
       v-model:visibleColumns="visibleColumns"
+      :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter"
+      @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="canAddUser"
       :addButtonText="$t('user.addNew')"
       @add-click="openModal"
@@ -72,8 +75,8 @@
             :data="paginatedData"
             :actionsLabel="$t('user.actions')"
             v-model="selectedRows"
-                        :disableRowWhen="disableUserSelection"
-
+            :disableRowWhen="disableUserSelection"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
           >
             <template #actions="{ row }">
               <!-- Active Users Actions -->
@@ -86,9 +89,15 @@
                 :showEdit="canEditUser(row)"
                 :showDelete="canDeleteUser(row)"
                 :showDetails="true"
+                :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1"
+                :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')"
                 @edit="openEditModal"
                 @details="openDetailsModal"
                 @delete="handleDeleteUser"
+                @activate="handleActivate"
+                @deactivate="handleDeactivate"
               />
               <!-- Trashed Users Actions -->
               <ActionsDropdown
@@ -163,12 +172,14 @@
       @close="cancelBulkAction"
     />
 
-        <SuccessModal 
-      :isOpen="isSuccessModalOpen" 
+        <SuccessModal
+      :isOpen="isSuccessModalOpen"
       :title="$t('common.success')"
       :message="successMessage"
-      @close="closeSuccessModal" 
+      @close="closeSuccessModal"
     />
+
+    <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
 </template>
 
@@ -189,12 +200,16 @@ import apiServices from "@/services/apiServices.js";
 import { useAuthStore } from "@/stores/auth.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
-import SuccessModal from "../../../components/shared/SuccessModal.vue"; 
-import { useSuccessModal } from "../../../composables/useSuccessModal.js"; 
+import SuccessModal from "../../../components/shared/SuccessModal.vue";
+import { useSuccessModal } from "../../../composables/useSuccessModal.js";
+import ErrorModal from "../../../components/shared/ErrorModal.vue";
+import { useErrorModal } from "../../../composables/useErrorModal.js";
+import { useActiveToggle } from "../../../composables/useActiveToggle.js";
 const { t } = useI18n();
 const usersStore = useUsersManagementStore();
 const authStore = useAuthStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal(); // ✅
+const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ API Base URL
 const API_BASE_URL =
@@ -222,6 +237,7 @@ const canAddUser = computed(() => isSuperAdmin.value || isAdmin.value);
 
 const searchText = ref("");
 const selectedGroups = ref([]);
+const activeStatusFilter = ref("");
 const currentPage = ref(1);
 const skipNextPageWatch = ref(false);
 const isModalOpen = ref(false);
@@ -233,6 +249,10 @@ const userToDelete = ref(null);
 const activeTab = ref("active");
 const selectedRows = ref([]);
 const formErrors = ref({});
+
+// Active Toggle
+const refreshUsers = () => fetchUsersPage(currentPage.value);
+const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("users", refreshUsers, { showSuccess, showError });
 
 // Get the correct pagination metadata based on active tab
 const currentPagination = computed(() => {
@@ -576,6 +596,7 @@ const userColumns = computed(() => {
     { key: "phone_number", label: t("user.phoneNumber"), sortable: false },
     { key: "role", label: t("user.userRole"), sortable: true },
     { key: "company_name", label: t("user.company"), sortable: false },
+    { key: "is_active", label: t("common.status"), sortable: false, component: "StatusBadge", componentProps: { statusMap: { 1: "active", 0: "inactive" } } },
   ];
   return isSuperAdmin.value
     ? columns
@@ -619,6 +640,16 @@ const handleRefresh = async () => {
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
+      {
+        id: 'activate',
+        label: t('common.bulkActivate'),
+        bgColor: 'var(--color-success)',
+      },
+      {
+        id: 'deactivate',
+        label: t('common.bulkDeactivate'),
+        bgColor: 'var(--color-warning, #ffc107)',
+      },
       {
         id: "delete",
         label: t("user.bulkDelete"),
@@ -689,6 +720,9 @@ const buildUserFilters = () => {
         ? selectedGroups.value[0]
         : selectedGroups.value.join(",");
   }
+  if (activeStatusFilter.value !== '') {
+    filters.is_active = activeStatusFilter.value;
+  }
   return filters;
 };
 
@@ -712,7 +746,7 @@ const fetchUsersPage = async (page = 1) => {
 // Server already returns paginated data; use store results directly
 const paginatedData = computed(() => currentData.value);
 
-watch([searchText, selectedGroups], async () => {
+watch([searchText, selectedGroups, activeStatusFilter], async () => {
   if (currentPage.value !== 1) {
     skipNextPageWatch.value = true;
     currentPage.value = 1;
@@ -813,7 +847,7 @@ const handleSubmitUser = async (userData) => {
 
     // ✅ Validation for Admin: prevent adding Admin role
     if (isAdmin.value && normalizedRole === "Admin") {
-      alert(t("user.validation.cannotAddAdmin"));
+      showError(t("user.validation.cannotAddAdmin"));
       return;
     }
 
@@ -899,7 +933,7 @@ const handleSubmitUser = async (userData) => {
     if (applyServerErrors(error)) {
       return;
     }
-    alert(error.message || "Failed to save user. Please try again.");
+    showError(error.message || "Failed to save user. Please try again.");
   }
 };
 
@@ -964,15 +998,25 @@ const executeBulkAction = async () => {
     }  else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
       console.log(`✅ ${count} users restored successfully!`);
-      
+
       isBulkConfirmOpen.value = false;
       pendingBulkAction.value = null;
       selectedRows.value = [];
-      
+
       await nextTick();
       showSuccess(t('user.bulkRestoreSuccess', { count }));
-      
+
       await usersStore.fetchTrashedUsers();
+    } else if (pendingBulkAction.value === 'activate') {
+      await handleBulkActivate(selectedRows.value);
+      isBulkConfirmOpen.value = false;
+      pendingBulkAction.value = null;
+      selectedRows.value = [];
+    } else if (pendingBulkAction.value === 'deactivate') {
+      await handleBulkDeactivate(selectedRows.value);
+      isBulkConfirmOpen.value = false;
+      pendingBulkAction.value = null;
+      selectedRows.value = [];
     }
 
   } catch (error) {

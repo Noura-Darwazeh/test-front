@@ -26,11 +26,11 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
   });
 
   // Actions
-  const fetchCurrencies = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchCurrencies = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getCurrencies({ page, perPage });
+      const response = await apiServices.getCurrencies({ page, perPage, filters });
 
       // Use backend data directly, no mapping needed
       currencies.value = response.data.data;
@@ -97,11 +97,11 @@ export const useCurrenciesManagementStore = defineStore("currenciesManagement", 
     }
   };
 
-  const fetchTrashedCurrencies = async ({ page = 1, perPage = 10 } = {}) => {
+  const fetchTrashedCurrencies = async ({ page = 1, perPage = 10, filters = {} } = {}) => {
     trashedLoading.value = true;
     error.value = null;
     try {
-      const response = await apiServices.getTrashedCurrencies({ page, perPage });
+      const response = await apiServices.getTrashedCurrencies({ page, perPage, filters });
       trashedCurrencies.value = response.data.data;
 
       // Update pagination metadata from response

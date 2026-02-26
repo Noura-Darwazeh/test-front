@@ -339,7 +339,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: planIcon,
         order: 21,
-        roles: ["SuperAdmin", "Admin", "Driver"],
+        roles: [ "Driver"],
       },
     },
     {
