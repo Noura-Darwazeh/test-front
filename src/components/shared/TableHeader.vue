@@ -16,7 +16,8 @@
           :translationKey="translationKey"
         />
 
-        <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" />
+        <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick"  :disabled="isRefreshing"
+  :loading="isRefreshing" />
       </div>
       <!-- columnSelector and Add Button -->
       <div class="d-flex gap-2">
@@ -78,6 +79,7 @@ import PrimaryButton from "../shared/PrimaryButton.vue";
 import trashIcon from "../../assets/table/recycle.svg";
 import addIcon from "../../assets/table/add.svg";
 import refreshIcon from "../../assets/table/refresh.svg?component"
+import apiServices from "@/services/apiServices.js";
 
 const props = defineProps({
   modelValue: String,
@@ -241,13 +243,30 @@ watch(() => props.extraFilterValues, (newValue) => {
 const handleAddClick = () => {
   emit('add-click');
 };
+const isRefreshing = ref(false);
 
-const handleRefreshClick = () => {
-  emit('refresh-click');
-};
+const handleRefreshClick = async () => {
+  if (isRefreshing.value) return;
 
-const handleTrashedClick = () => {
-  emit('trashed-click');
+  isRefreshing.value = true;
+
+  try {
+    const res = await apiServices.refreshPowerBIDataset();
+
+    const { embedUrl, embedToken, reportId } = res.data;
+
+    // نرجع البيانات للـ parent
+    emit("refresh-click", {
+      embedUrl,
+      embedToken,
+      reportId,
+    });
+
+  } catch (err) {
+    console.error("Refresh failed:", err);
+  } finally {
+    isRefreshing.value = false;
+  }
 };
 </script>
 
