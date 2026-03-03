@@ -882,9 +882,7 @@ class ApiServices {
   async getPowerBIReports() {
     return this.get("/powerbi/reports");
   }
-async refreshPowerBIDataset() {
-  return this.post("/powerbi/refresh-dataset");
-}
+
   // Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
     const params = new URLSearchParams();

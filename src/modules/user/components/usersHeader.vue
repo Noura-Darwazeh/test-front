@@ -1,5 +1,5 @@
 <template>
-    <usersHeader v-bind="$attrs" @refresh-click="handlePowerBIRefresh"/>
+    <usersHeader v-bind="$attrs" />
 </template>
 
 <script setup>
