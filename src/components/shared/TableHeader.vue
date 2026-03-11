@@ -16,13 +16,13 @@
           :translationKey="translationKey"
         />
 
-        <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" />
+        <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" :loading="isRefreshing" />
       </div>
       <!-- columnSelector and Add Button -->
       <div class="d-flex gap-2">
         <ColumnSelector :columns="columns" :modelValue="visibleColumns"
           @update:modelValue="$emit('update:visibleColumns', $event)" />
-        <PrimaryButton v-if="showAddButton"  bgColor="var(--color-success)"  :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
+        <PrimaryButton v-if="showAddButton" bgColor="var(--color-success)" :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
         <PrimaryButton v-if="showTrashedButton" bgColor="var(--color-danger)" :iconBefore="trashIcon"
           @click="handleTrashedClick" />
       </div>
@@ -64,11 +64,40 @@
         :options="timeOptions"
       />
     </div>
+
+    <!-- Power BI Modal -->
+    <Teleport to="body">
+      <Transition name="backdrop">
+        <div v-if="isPowerBIModalOpen" class="powerbi-backdrop" @click.self="closePowerBIModal"></div>
+      </Transition>
+      <Transition name="modal">
+        <div v-if="isPowerBIModalOpen" class="powerbi-overlay" @click.self="closePowerBIModal">
+          <div class="powerbi-dialog">
+            <div class="powerbi-card">
+              <div class="powerbi-header">
+                <h5 class="powerbi-title">📊 Power BI Report</h5>
+                <button type="button" class="powerbi-close" @click="closePowerBIModal">&times;</button>
+              </div>
+              <div class="powerbi-body">
+                <div v-if="powerBILoading" class="text-center py-5">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <p class="mt-2 text-muted">Loading report...</p>
+                </div>
+                <div v-else-if="powerBIError" class="alert alert-danger">
+                  {{ powerBIError }}
+                </div>
+                <div v-else-if="powerBIConfig" ref="embedContainer" class="powerbi-embed-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed, reactive } from "vue";
+import { ref, watch, computed, reactive, onUnmounted } from "vue";
 import ColumnSelector from "./ColumnSelector.vue";
 import MainFilters from "../filters/composed/MainFilters.vue";
 import GroupFilter from "../filters/base/GroupFilter.vue";
@@ -77,7 +106,9 @@ import TimePeriodFilter from "../filters/base/TimePeriodFilter.vue";
 import PrimaryButton from "../shared/PrimaryButton.vue";
 import trashIcon from "../../assets/table/recycle.svg";
 import addIcon from "../../assets/table/add.svg";
-import refreshIcon from "../../assets/table/refresh.svg?component"
+import refreshIcon from "../../assets/table/refresh.svg?component";
+import apiServices from "@/services/apiServices.js";
+import * as pbi from "powerbi-client";
 
 const props = defineProps({
   modelValue: String,
@@ -88,48 +119,22 @@ const props = defineProps({
   groupModelValue: Array,
   groupLabel: String,
   translationKey: String,
-  // Extra filter props
   groupKey2: String,
   groupModelValue2: Array,
   groupLabel2: String,
   translationKey2: String,
-  showActiveFilter: {
-    type: Boolean,
-    default: false,
-  },
-  activeFilterValue: {
-    type: [String, Number],
-    default: "",
-  },
-  showTimeFilter: {
-    type: Boolean,
-    default: false,
-  },
+  showActiveFilter: { type: Boolean, default: false },
+  activeFilterValue: { type: [String, Number], default: "" },
+  showTimeFilter: { type: Boolean, default: false },
   timeModelValue: String,
   timeOptions: Array,
-  extraFilters: {
-    type: Array,
-    default: () => [],
-  },
-  extraFilterValues: {
-    type: Object,
-    default: () => ({}),
-  },
-  // Table header props
+  extraFilters: { type: Array, default: () => [] },
+  extraFilterValues: { type: Object, default: () => ({}) },
   columns: Array,
   visibleColumns: Array,
-  showAddButton: {
-    type: Boolean,
-    default: true,
-  },
-  addButtonText: {
-    type: String,
-    default: "Add New",
-  },
-  showTrashedButton: {
-    type: Boolean,
-    default: false,
-  },
+  showAddButton: { type: Boolean, default: true },
+  addButtonText: { type: String, default: "Add New" },
+  showTrashedButton: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -180,75 +185,122 @@ const activeExtraCount = computed(() => {
   return count;
 });
 
-// Watchers for extra filters
-watch(selectedGroups2, (newValue) => {
-  emit("update:groupModelValue2", newValue);
-});
+watch(selectedGroups2, (v) => emit("update:groupModelValue2", v));
+watch(activeFilter, (v) => emit("update:activeFilterValue", v));
+watch(timePeriod, (v) => emit("update:timeModelValue", v));
 
-watch(activeFilter, (newValue) => {
-  emit("update:activeFilterValue", newValue);
-});
-
-watch(timePeriod, (newValue) => {
-  emit("update:timeModelValue", newValue);
-});
-
-// Watch extra filter selections
 if (props.extraFilters) {
   for (const ef of props.extraFilters) {
-    watch(
-      () => extraFilterSelections[ef.key],
-      () => {
-        const values = {};
-        props.extraFilters.forEach((f) => {
-          values[f.key] = extraFilterSelections[f.key] || [];
-        });
-        emit("update:extraFilterValues", values);
-      }
-    );
+    watch(() => extraFilterSelections[ef.key], () => {
+      const values = {};
+      props.extraFilters.forEach((f) => { values[f.key] = extraFilterSelections[f.key] || []; });
+      emit("update:extraFilterValues", values);
+    });
   }
 }
 
-// Sync props back to local state
-watch(() => props.groupModelValue2, (newValue) => {
-  if (newValue !== undefined) {
-    selectedGroups2.value = newValue || [];
-  }
-});
-
-watch(() => props.activeFilterValue, (newValue) => {
-  if (newValue !== undefined) {
-    activeFilter.value = newValue;
-  }
-});
-
-watch(() => props.timeModelValue, (newValue) => {
-  if (newValue !== undefined) {
-    timePeriod.value = newValue || "all";
-  }
-});
-
-watch(() => props.extraFilterValues, (newValue) => {
-  if (newValue && props.extraFilters) {
+watch(() => props.groupModelValue2, (v) => { if (v !== undefined) selectedGroups2.value = v || []; });
+watch(() => props.activeFilterValue, (v) => { if (v !== undefined) activeFilter.value = v; });
+watch(() => props.timeModelValue, (v) => { if (v !== undefined) timePeriod.value = v || "all"; });
+watch(() => props.extraFilterValues, (v) => {
+  if (v && props.extraFilters) {
     props.extraFilters.forEach((ef) => {
-      if (newValue[ef.key] !== undefined) {
-        extraFilterSelections[ef.key] = newValue[ef.key];
-      }
+      if (v[ef.key] !== undefined) extraFilterSelections[ef.key] = v[ef.key];
     });
   }
 }, { deep: true });
 
-const handleAddClick = () => {
-  emit('add-click');
+// ── Power BI ──────────────────────────────────────────────────────────────
+const isRefreshing = ref(false);
+const isPowerBIModalOpen = ref(false);
+const powerBILoading = ref(false);
+const powerBIError = ref(null);
+const powerBIConfig = ref(null);
+const embedContainer = ref(null);
+
+let reportInstance = null;
+const powerbiService = new pbi.service.Service(
+  pbi.factories.hpmFactory,
+  pbi.factories.wpmpFactory,
+  pbi.factories.routerFactory
+);
+
+const embedReport = (config) => {
+  if (!embedContainer.value) return;
+
+  if (reportInstance) {
+    powerbiService.reset(embedContainer.value);
+    reportInstance = null;
+  }
+
+  const embedConfig = {
+    type: "report",
+    id: config.reportId,
+    embedUrl: config.embedUrl,
+    accessToken: config.embedToken,
+    tokenType: pbi.models.TokenType.Embed,
+    settings: {
+      panes: {
+        filters: { expanded: false, visible: false },
+        pageNavigation: { visible: true },
+      },
+      background: pbi.models.BackgroundType.Transparent,
+    },
+  };
+
+  reportInstance = powerbiService.embed(embedContainer.value, embedConfig);
 };
 
-const handleRefreshClick = () => {
-  emit('refresh-click');
+const closePowerBIModal = () => {
+  isPowerBIModalOpen.value = false;
+  if (reportInstance && embedContainer.value) {
+    powerbiService.reset(embedContainer.value);
+    reportInstance = null;
+  }
+  powerBIConfig.value = null;
+  powerBIError.value = null;
 };
 
-const handleTrashedClick = () => {
-  emit('trashed-click');
+const handleRefreshClick = async () => {
+  isRefreshing.value = true;
+  powerBIError.value = null;
+
+  try {
+    const response = await apiServices.refreshPowerBIDataset();
+    const data = response.data;
+
+    powerBIConfig.value = {
+      reportId: data.reportId,
+      embedUrl: data.embedUrl,
+      embedToken: data.embedToken,
+    };
+
+    isPowerBIModalOpen.value = true;
+    powerBILoading.value = true;
+
+    // wait for DOM then embed
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    powerBILoading.value = false;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    embedReport(powerBIConfig.value);
+
+  } catch (err) {
+    // fallback: emit normal refresh
+    emit("refresh-click");
+    console.warn("Power BI refresh not available, falling back to normal refresh");
+  } finally {
+    isRefreshing.value = false;
+  }
 };
+
+const handleAddClick = () => emit("add-click");
+const handleTrashedClick = () => emit("trashed-click");
+
+onUnmounted(() => {
+  if (reportInstance && embedContainer.value) {
+    powerbiService.reset(embedContainer.value);
+  }
+});
 </script>
 
 <style scoped>
@@ -273,20 +325,9 @@ const handleTrashedClick = () => {
   background-color: #e9ecef;
 }
 
-.extra-toggle-icon {
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.extra-toggle-label {
-  font-size: 0.8rem;
-}
-
-.extra-toggle-bar .badge {
-  font-size: 0.6rem;
-  padding: 0.2em 0.45em;
-}
+.extra-toggle-icon { font-size: 1rem; font-weight: 700; line-height: 1; }
+.extra-toggle-label { font-size: 0.8rem; }
+.extra-toggle-bar .badge { font-size: 0.6rem; padding: 0.2em 0.45em; }
 
 .extra-filters {
   margin-top: 0.5rem;
@@ -295,28 +336,96 @@ const handleTrashedClick = () => {
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Power BI Modal ── */
+.powerbi-backdrop {
+  background-color: rgba(0, 0, 0, 0.55);
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+}
+
+.powerbi-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.powerbi-dialog {
+  width: 100%;
+  max-width: 1100px;
+}
+
+.powerbi-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.powerbi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.powerbi-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.powerbi-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.powerbi-close:hover { color: #212529; }
+
+.powerbi-body {
+  padding: 0;
+  min-height: 500px;
+}
+
+.powerbi-embed-container {
+  width: 100%;
+  height: 600px;
+  border: none;
+}
+
+/* Transitions */
+.backdrop-enter-active, .backdrop-leave-active { transition: opacity 0.2s ease; }
+.backdrop-enter-from, .backdrop-leave-to { opacity: 0; }
+.modal-enter-active { transition: opacity 0.2s ease; }
+.modal-leave-active { transition: opacity 0.15s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+.modal-enter-active .powerbi-dialog { transition: transform 0.2s ease-out; }
+.modal-leave-active .powerbi-dialog { transition: transform 0.15s ease-in; }
+.modal-enter-from .powerbi-dialog { transform: scale(0.9) translateY(-20px); }
+.modal-leave-to .powerbi-dialog { transform: scale(0.95); }
+
 @media (max-width: 400px) {
-  .mb-3 {
-    gap: 0.75rem !important;
-  }
-
-  .d-flex.gap-2:last-child {
-    width: 100%;
-  }
-
-  .extra-filters {
-    flex-direction: column;
-    align-items: stretch !important;
-  }
+  .mb-3 { gap: 0.75rem !important; }
+  .d-flex.gap-2:last-child { width: 100%; }
+  .extra-filters { flex-direction: column; align-items: stretch !important; }
 }
 </style>

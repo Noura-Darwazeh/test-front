@@ -1508,6 +1508,7 @@ driverPortal: 'Driver Portal',
       customers: "Customers",
       lineWork: "Line Work",
       lines: "Lines",
+      charts:"Charts"
     },
     labels: {
       totalCustomers: "Total Customers",

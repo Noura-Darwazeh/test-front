@@ -1509,6 +1509,7 @@ driverPortal: 'بوابة السائقين',
       customers: "العملاء",
       lineWork: "خطوط العمل",
       lines: "الخطوط",
+      charts:"الرسوم البيانية"
     },
     labels: {
       totalCustomers: "إجمالي العملاء",

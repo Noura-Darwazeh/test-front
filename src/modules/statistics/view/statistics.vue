@@ -52,6 +52,16 @@
               {{ $t("statistics.tabs.lines") }}
             </button>
           </li>
+          <!-- ✅ Charts Tab -->
+          <li class="nav-item">
+            <button
+              class="nav-link"
+              :class="{ active: activeTab === 'charts' }"
+              @click="activeTab = 'charts'"
+            >
+              {{ $t("statistics.tabs.charts") }}
+            </button>
+          </li>
         </ul>
       </div>
 
@@ -330,6 +340,34 @@
             </div>
           </div>
         </div>
+
+        <!-- ✅ Charts Tab Content -->
+        <div v-if="activeTab === 'charts'">
+          <div v-if="chartsLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">{{ $t("common.loading") }}</span>
+            </div>
+            <p class="mt-2">{{ $t("common.loading") }}</p>
+          </div>
+          <div v-else-if="chartsError" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ chartsError }}
+          </div>
+          <div v-else-if="chartsEmbedConfig">
+            <div class="d-flex justify-content-end mb-3">
+              <button
+                class="btn btn-outline-primary d-flex align-items-center gap-2"
+                @click="refreshCharts"
+                :disabled="chartsLoading"
+              >
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+              </button>
+            </div>
+            <PowerBIEmbed :embedConfig="chartsEmbedConfig" height="600px" />
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -340,6 +378,7 @@ import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import StatCard from "@/components/shared/StatCard.vue";
+import PowerBIEmbed from "@/components/shared/PowerBIEmbed.vue";
 import apiServices from "@/services/apiServices.js";
 import { useOrdersStore } from "@/modules/orders/store/ordersStore.js";
 import OrdersTableCard from "@/modules/orders/components/OrdersTableCard.vue";
@@ -371,6 +410,11 @@ const loading = ref({
   lineWork: false,
   lines: false,
 });
+
+// ✅ Charts state
+const chartsLoading = ref(false);
+const chartsError = ref(null);
+const chartsEmbedConfig = ref(null);
 
 const formatPrice = (value, currencySymbol = "$") => {
   const numericValue = parseFloat(value);
@@ -442,6 +486,29 @@ const fetchLinesStats = async () => {
     loading.value.lines = false;
   }
 };
+
+// ✅ Fetch Power BI charts
+const fetchCharts = async () => {
+  chartsLoading.value = true;
+  chartsError.value = null;
+  try {
+    const response = await apiServices.refreshPowerBIDatasetOrders();
+    console.log("Power BI response:", response);
+    const data = response.data;
+    chartsEmbedConfig.value = {
+      reportId: data.reportId,
+      embedUrl: data.embedUrl,
+      accessToken: data.embedToken,
+      type: "report",
+    };
+  } catch (err) {
+    chartsError.value = err.message || "Failed to load charts";
+  } finally {
+    chartsLoading.value = false;
+  }
+};
+
+const refreshCharts = () => fetchCharts();
 
 const fetchOrdersList = async () => {
   try {
@@ -707,6 +774,7 @@ onMounted(async () => {
     fetchCustomersStats(),
     fetchLineWorkStats(),
     fetchLinesStats(),
+    fetchCharts(), // ✅ load charts on mount
   ]);
   await fetchOrdersList();
 });

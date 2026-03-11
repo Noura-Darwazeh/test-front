@@ -882,8 +882,11 @@ class ApiServices {
   async getPowerBIReports() {
     return this.get("/powerbi/reports");
   }
-async refreshPowerBIDataset() {
+async refreshPowerBIDatasetOrders() {
   return this.post("/powerbi/refresh-dataset");
+}
+async refreshPowerBIDatasetDrivers() {
+  return this.post("/powerbi/refresh-dataset2");
 }
   // Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
