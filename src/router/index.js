@@ -51,17 +51,17 @@ import permissionIcon from "@/assets/sidebar/permission.svg";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: "/",
-      redirect: (to) => {
-        const authStore = useAuthStore();
-        const defaultPage = authStore.user?.default_page || "/user";
-        if (authStore.isAuthenticated && defaultPage) {
-          return defaultPage;
-        }
-        return "/user";
-      },
-    },
+{
+  path: "/",
+  redirect: (to) => {
+    const authStore = useAuthStore();
+    const defaultPage = authStore.user?.default_page || "/statistics";
+    if (authStore.isAuthenticated && defaultPage) {
+      return defaultPage;
+    }
+    return "/statistics";
+  },
+},
     {
       path: "/login",
       name: "Login",

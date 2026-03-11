@@ -128,7 +128,7 @@ export const useAuthStore = defineStore("auth", () => {
       if (savedUser?.default_page && data.user.id === savedUser.id) {
         data.user.default_page = savedUser.default_page;
       } else {
-        data.user.default_page = data.user.landing_page || '/user';
+data.user.default_page = data.user.landing_page || '/statistics';
       }
 
       // Save auth data
@@ -399,8 +399,8 @@ function updateUser(userData) {
 
   function getDefaultPageByRole(role) {
     if (role === "Driver") return "/driver-steps";
-    if (role === "Admin" || role === "SuperAdmin") return "/user";
-    return "/user";
+    if (role === "Admin" || role === "SuperAdmin") return "/statistics";
+    return "/statistics";
   }
 
   /**
