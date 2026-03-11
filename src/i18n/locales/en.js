@@ -1530,6 +1530,24 @@ driverPortal: 'Driver Portal',
       minimumHours: "Minimum Hours",
       maximumHours: "Maximum Hours",
     },
+    charts:{
+      title: "Analytics Charts",
+      ordersTab: "Orders",
+      ordersTabDesc: "Sales & delivery analytics",
+      driversTab: "Drivers",
+      driversTabDesc: "Performance & activity insights",
+      ordersReport: "Orders Analytics Report",
+      driversReport: "Driver Analytics Report",
+      liveData: "Live Data",
+      refresh: "Refresh",
+      loadingOrders: "Loading orders analytics...",
+      loadingDrivers: "Loading driver analytics...",
+      noOrdersData: "No Orders Data",
+      noOrdersDesc: "Orders chart data is not available",
+      noDriversData: "No Driver Data",
+      noDriversDesc: "Driver chart data is not available",
+      tryAgain: "Try Again"
+    }
   },
 
   // Order Status Translation Keys
