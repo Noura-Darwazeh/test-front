@@ -883,10 +883,10 @@ class ApiServices {
     return this.get("/powerbi/reports");
   }
   async refreshPowerBIDatasetOrders() {
-    return this.post("/powerbi/refresh-dataset");
+    return this.post("/powerbi/refresh-dataset/OrderReport");
 }
   async refreshPowerBIDatasetDrivers() {
-    return this.post("/powerbi/refresh-dataset2");
+    return this.post("/powerbi/refresh-dataset/dax");
 }
   // Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
