@@ -63,36 +63,7 @@
         v-model="timePeriod"
         :options="timeOptions"
       />
-    </div>
-
-    <!-- Power BI Modal -->
-    <Teleport to="body">
-      <Transition name="backdrop">
-        <div v-if="isPowerBIModalOpen" class="powerbi-backdrop" @click.self="closePowerBIModal"></div>
-      </Transition>
-      <Transition name="modal">
-        <div v-if="isPowerBIModalOpen" class="powerbi-overlay" @click.self="closePowerBIModal">
-          <div class="powerbi-dialog">
-            <div class="powerbi-card">
-              <div class="powerbi-header">
-                <h5 class="powerbi-title">📊 Power BI Report</h5>
-                <button type="button" class="powerbi-close" @click="closePowerBIModal">&times;</button>
-              </div>
-              <div class="powerbi-body">
-                <div v-if="powerBILoading" class="text-center py-5">
-                  <div class="spinner-border text-primary" role="status"></div>
-                  <p class="mt-2 text-muted">Loading report...</p>
-                </div>
-                <div v-else-if="powerBIError" class="alert alert-danger">
-                  {{ powerBIError }}
-                </div>
-                <div v-else-if="powerBIConfig" ref="embedContainer" class="powerbi-embed-container"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    </div>  
   </div>
 </template>
 
@@ -210,97 +181,10 @@ watch(() => props.extraFilterValues, (v) => {
   }
 }, { deep: true });
 
-// ── Power BI ──────────────────────────────────────────────────────────────
-const isRefreshing = ref(false);
-const isPowerBIModalOpen = ref(false);
-const powerBILoading = ref(false);
-const powerBIError = ref(null);
-const powerBIConfig = ref(null);
-const embedContainer = ref(null);
-
-let reportInstance = null;
-const powerbiService = new pbi.service.Service(
-  pbi.factories.hpmFactory,
-  pbi.factories.wpmpFactory,
-  pbi.factories.routerFactory
-);
-
-const embedReport = (config) => {
-  if (!embedContainer.value) return;
-
-  if (reportInstance) {
-    powerbiService.reset(embedContainer.value);
-    reportInstance = null;
-  }
-
-  const embedConfig = {
-    type: "report",
-    id: config.reportId,
-    embedUrl: config.embedUrl,
-    accessToken: config.embedToken,
-    tokenType: pbi.models.TokenType.Embed,
-    settings: {
-      panes: {
-        filters: { expanded: false, visible: false },
-        pageNavigation: { visible: true },
-      },
-      background: pbi.models.BackgroundType.Transparent,
-    },
-  };
-
-  reportInstance = powerbiService.embed(embedContainer.value, embedConfig);
-};
-
-const closePowerBIModal = () => {
-  isPowerBIModalOpen.value = false;
-  if (reportInstance && embedContainer.value) {
-    powerbiService.reset(embedContainer.value);
-    reportInstance = null;
-  }
-  powerBIConfig.value = null;
-  powerBIError.value = null;
-};
-
-const handleRefreshClick = async () => {
-  isRefreshing.value = true;
-  powerBIError.value = null;
-
-  try {
-    const response = await apiServices.refreshPowerBIDataset();
-    const data = response.data;
-
-    powerBIConfig.value = {
-      reportId: data.reportId,
-      embedUrl: data.embedUrl,
-      embedToken: data.embedToken,
-    };
-
-    isPowerBIModalOpen.value = true;
-    powerBILoading.value = true;
-
-    // wait for DOM then embed
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    powerBILoading.value = false;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    embedReport(powerBIConfig.value);
-
-  } catch (err) {
-    // fallback: emit normal refresh
-    emit("refresh-click");
-    console.warn("Power BI refresh not available, falling back to normal refresh");
-  } finally {
-    isRefreshing.value = false;
-  }
-};
-
 const handleAddClick = () => emit("add-click");
 const handleTrashedClick = () => emit("trashed-click");
 
-onUnmounted(() => {
-  if (reportInstance && embedContainer.value) {
-    powerbiService.reset(embedContainer.value);
-  }
-});
+
 </script>
 
 <style scoped>
@@ -338,78 +222,6 @@ onUnmounted(() => {
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Power BI Modal ── */
-.powerbi-backdrop {
-  background-color: rgba(0, 0, 0, 0.55);
-  position: fixed;
-  inset: 0;
-  z-index: 1040;
-}
-
-.powerbi-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.powerbi-dialog {
-  width: 100%;
-  max-width: 1100px;
-}
-
-.powerbi-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.powerbi-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.powerbi-title {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #212529;
-}
-
-.powerbi-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  line-height: 1;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.15s;
-}
-
-.powerbi-close:hover { color: #212529; }
-
-.powerbi-body {
-  padding: 0;
-  min-height: 500px;
-}
-
-.powerbi-embed-container {
-  width: 100%;
-  height: 600px;
-  border: none;
 }
 
 /* Transitions */

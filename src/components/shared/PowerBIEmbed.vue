@@ -56,11 +56,11 @@ const loading = ref(false);
 const error = ref(null);
 
 let reportInstance = null;
-// const powerbi = new pbi.service.Service(
-//   pbi.factories.hpmFactory,
-//   pbi.factories.wpmpFactory,
-//   pbi.factories.routerFactory
-// );
+//  const powerbi = new pbi.service.Service(
+//    pbi.factories.hpmFactory,
+//    pbi.factories.wpmpFactory,
+//    pbi.factories.routerFactory
+//  );
 
 const embedReport = () => {
   if (!props.embedConfig || !embedContainer.value) return;
