@@ -305,7 +305,6 @@
                 </div>
               </div>
               <div v-else-if="chartsError" class="alert alert-danger d-flex align-items-center gap-2">
-                <i class="fas fa-exclamation-triangle"></i>{{ chartsError }}
               </div>
               <div v-else-if="chartsEmbedConfig">
                 <div class="chart-toolbar">
