@@ -198,6 +198,7 @@ import { useUsersManagementStore } from "../store/usersManagement.js";
 import { VALIDATION_LIMITS } from "../constants/userConstants.js";
 import apiServices from "@/services/apiServices.js";
 import { useAuthStore } from "@/stores/auth.js";
+import { useNotificationEventsStore } from "@/stores/notificationEvents.js";
 import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 import SuccessModal from "../../../components/shared/SuccessModal.vue";
@@ -205,15 +206,15 @@ import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { useActiveToggle } from "../../../composables/useActiveToggle.js";
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const usersStore = useUsersManagementStore();
 const authStore = useAuthStore();
+const notificationEventsStore = useNotificationEventsStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal(); // ✅
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ API Base URL
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
 
 // ✅ Helper function to get full image URL
 const getFullImageUrl = (imagePath) => {
@@ -234,6 +235,7 @@ const isAdmin = computed(
 );
 
 const canAddUser = computed(() => isSuperAdmin.value || isAdmin.value);
+
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -303,12 +305,6 @@ const resolveIdValue = (value) => {
   return value === null || value === undefined ? "" : String(value);
 };
 
-const normalizeUserForEdit = (user) => ({
-  ...user,
-  company_id: resolveIdValue(user.company_id ?? user.company),
-  region_id: resolveIdValue(user.region_id ?? user.region),
-  currency_id: resolveIdValue(user.currency_id ?? user.currency),
-});
 
 // Get users from store, excluding logged-in user and SuperAdmin users
 const users = computed(() => {
@@ -404,7 +400,7 @@ const fetchDropdownData = async () => {
 // Fetch data on component mount
 onMounted(async () => {
   try {
-    await Promise.all([fetchUsersPage(1), fetchDropdownData()]);
+    await Promise.all([fetchUsersPage(1), fetchDropdownData(), notificationEventsStore.fetchEvents()]);
   } catch (error) {
     console.error("❌ Failed to load data:", error);
   }
@@ -568,6 +564,51 @@ const userFields = computed(() => [
     defaultValue: isEditMode.value
       ? selectedUser.value.currency_id
       : currencyId.value,
+  },
+  // ── Notification Preferences ───────────────────────────────────────────
+  {
+    type: "section",
+    label: t("user.form.notificationSection"),
+    colClass: "col-12",
+  },
+  {
+    name: "phones",
+    label: t("user.form.notificationPhone"),
+    type: "tags",
+    required: false,
+    placeholder: t("user.form.phoneNumberPlaceholder"),
+    colClass: "col-md-6",
+    defaultValue: isEditMode.value ? (selectedUser.value.phones ?? []) : [],
+  },
+  {
+    name: "notification_emails",
+    label: t("user.form.notificationEmails"),
+    type: "tags",
+    inputType: "email",
+    required: false,
+    placeholder: "email@example.com",
+    colClass: "col-md-6",
+    defaultValue: isEditMode.value ? (selectedUser.value.notification_emails ?? []) : [],
+  },
+  // ── Notification Matrix ────────────────────────────────────────────────
+  {
+    type: "notification-matrix",
+    colClass: "col-12",
+    prefix: "notify_",
+    defaultValues: isEditMode.value ? selectedUser.value : {},
+    events: (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).map((ev) => ({
+      key: ev.key,
+      label: locale.value === "ar" ? ev.ar_name : ev.en_name,
+      icon: "fas fa-bell",
+    })),
+    channels: [
+      { key: "sms",      label: t("user.form.smsAlert"),      icon: "fas fa-sms" },
+      { key: "web",      label: t("user.form.webAlert"),      icon: "fas fa-globe" },
+      { key: "email",    label: t("user.form.emailAlert"),    icon: "fas fa-envelope" },
+      { key: "mobile",   label: t("user.form.mobileAlert"),   icon: "fas fa-mobile-alt" },
+      { key: "telegram", label: t("user.form.telegramAlert"), icon: "fab fa-telegram-plane" },
+      { key: "whatsapp", label: t("user.form.whatsappAlert"), icon: "fab fa-whatsapp" },
+    ],
   },
 ]);
 
@@ -891,6 +932,15 @@ const handleSubmitUser = async (userData) => {
       if (userData.password) {
         updatedData.password = userData.password;
       }
+      // Notification matrix diff — dynamic events × 6 channels
+      notificationEventsStore.events.forEach((ev) => {
+        ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
+          const key = `notify_${ev.key}_${ch}`;
+          if ((userData[key] ?? 0) !== (selectedUser.value[key] ?? 0)) {
+            updatedData[key] = userData[key] ?? 0;
+          }
+        });
+      });
 
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
@@ -914,9 +964,20 @@ const handleSubmitUser = async (userData) => {
         region_id: userData.region_id || null,
         currency_id: userData.currency_id || null,
       };
+      // Notification matrix: dynamic events × 6 channels
+      notificationEventsStore.events.forEach((ev) => {
+        ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
+          const k = `notify_${ev.key}_${ch}`;
+          newUser[k] = userData[k] ?? 0;
+        });
+      });
 
-      // Add optional email field only if provided
+      // Account email (single string, unchanged)
       if (userData.email) newUser.email = userData.email;
+
+      // Notification channels — only include if filled in
+      if (userData.phones?.length) newUser.phones = userData.phones;
+      if (userData.notification_emails?.length) newUser.notification_emails = userData.notification_emails;
 
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {

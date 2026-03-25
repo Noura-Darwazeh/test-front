@@ -4,11 +4,11 @@
       <img :src="searchIcon" alt="Search" width="16" height="16" />
     </span>
     <input type="search" class="form-control" :class="isRTL ? 'pe-5' : 'ps-5'" :placeholder="placeholder"
-      :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" :dir="isRTL ? 'rtl' : 'ltr'" />
+      :value="modelValue" @input="handleInput" :dir="isRTL ? 'rtl' : 'ltr'" />
   </div>
 </template>
 <script setup>
-import { computed } from "vue";
+import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import searchIcon from "@/assets/search.svg";
 
@@ -22,7 +22,15 @@ defineProps({
     default: "Search...",
   },
 });
-defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue"]);
+
+const debounceTimer = ref(null);
+const handleInput = (e) => {
+  clearTimeout(debounceTimer.value);
+  debounceTimer.value = setTimeout(() => {
+    emit("update:modelValue", e.target.value);
+  }, 400);
+};
 </script>
 
 <style scoped>

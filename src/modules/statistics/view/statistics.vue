@@ -306,7 +306,7 @@
               </div>
               <div v-else-if="chartsError" class="alert alert-danger d-flex align-items-center gap-2">
               </div>
-              <div v-else-if="chartsEmbedConfig">
+              <div v-else-if="orderschartsEmbedConfig">
                 <div class="chart-toolbar">
                   <div class="d-flex align-items-center gap-3">
                     <div class="chart-toolbar-badge chart-toolbar-badge--orders">
@@ -315,20 +315,20 @@
                     </div>
                     <span class="text-muted small">{{ $t("statistics.charts.ordersReport") }}</span>
                   </div>
-                  <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2" @click="refreshCharts" :disabled="chartsLoading">
+                  <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-2" @click="refreshOrdersCharts" :disabled="chartsLoading">
                     <i class="fas fa-sync-alt" :class="{ 'fa-spin': chartsLoading }"></i>
                     {{ $t("statistics.charts.refresh") }}
                   </button>
                 </div>
                 <div class="powerbi-wrapper">
-                  <PowerBIEmbed :embedConfig="chartsEmbedConfig" height="580px" />
+                  <PowerBIEmbed :embedConfig="orderschartsEmbedConfig" height="580px" />
                 </div>
               </div>
               <div v-else class="chart-empty">
                 <div class="chart-empty-icon chart-empty-icon--orders"><i class="fas fa-chart-bar"></i></div>
                 <h6 class="mt-3 mb-1">{{ $t("statistics.charts.noOrdersData") }}</h6>
                 <p class="text-muted small mb-3">{{ $t("statistics.charts.noOrdersDesc") }}</p>
-                <button class="btn btn-sm btn-outline-primary" @click="refreshCharts">
+                <button class="btn btn-sm btn-outline-primary" @click="refreshOrdersCharts">
                   <i class="fas fa-sync-alt me-2"></i>{{ $t("statistics.charts.tryAgain") }}
                 </button>
               </div>
@@ -419,13 +419,24 @@ const loading = ref({
   lines: false,
 });
 
-const chartsLoading = ref(false);
-const chartsError = ref(null);
-const chartsEmbedConfig = ref(null);
+import { usePowerBI } from "@/composables/usePowerBI.js";
 
-const driverChartsLoading = ref(false);
-const driverChartsError = ref(null);
-const driverChartsEmbedConfig = ref(null);
+const { 
+  embedConfig: orderschartsEmbedConfig, 
+  loading: chartsLoading, 
+  error: chartsError, 
+  loadReport: fetchOrderCharts 
+} = usePowerBI();
+
+const { 
+  embedConfig: driverChartsEmbedConfig, 
+  loading: driverChartsLoading, 
+  error: driverChartsError, 
+  loadReport: fetchDriverCharts 
+} = usePowerBI();
+
+const refreshOrdersCharts = () => fetchOrderCharts("OrderReport");
+const refreshDriverCharts = () => fetchDriverCharts("dax");
 
 const formatPrice = (value, currencySymbol = "$") => {
   const numericValue = parseFloat(value);
@@ -478,32 +489,6 @@ const fetchLinesStats = async () => {
   finally { loading.value.lines = false; }
 };
 
-const fetchCharts = async () => {
-  chartsLoading.value = true;
-  chartsError.value = null;
-  try {
-    const response = await apiServices.refreshPowerBIDatasetOrders();
-    const data = response.data;
-    chartsEmbedConfig.value = { reportId: data.reportId, embedUrl: data.embedUrl, accessToken: data.embedToken, type: "report" };
-  } catch (err) {
-    chartsError.value = err.message || t("statistics.charts.loadingOrders");
-  } finally { chartsLoading.value = false; }
-};
-
-const fetchDriverCharts = async () => {
-  driverChartsLoading.value = true;
-  driverChartsError.value = null;
-  try {
-    const response = await apiServices.refreshPowerBIDatasetDrivers();
-    const data = response.data;
-    driverChartsEmbedConfig.value = { reportId: data.reportId, embedUrl: data.embedUrl, accessToken: data.embedToken, type: "report" };
-  } catch (err) {
-    driverChartsError.value = err.message || t("statistics.charts.loadingDrivers");
-  } finally { driverChartsLoading.value = false; }
-};
-
-const refreshCharts = () => fetchCharts();
-const refreshDriverCharts = () => fetchDriverCharts();
 
 const fetchOrdersList = async () => {
   try { await ordersStore.fetchOrders({ page: 1, perPage: itemsPerPage.value }); }
@@ -609,8 +594,8 @@ onMounted(async () => {
     fetchCustomersStats(),
     fetchLineWorkStats(),
     fetchLinesStats(),
-    fetchCharts(),
-    fetchDriverCharts(),
+    fetchOrderCharts("OrderReport"),
+    fetchDriverCharts("dax"),
   ]);
   await fetchOrdersList();
 });

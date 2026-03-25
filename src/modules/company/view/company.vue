@@ -4,7 +4,24 @@
             {{ $t('common.accessDenied') }}
         </div>
         <template v-else>
-        <!-- Tabs for Active and Trashed Companies -->
+        <!-- Header / Filters (above tabs) -->
+        <CompanyHeader v-if="activeTab === 'active'"
+            v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
+            groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
+            translationKey="companyTypes"
+            groupKey2="shared_line" v-model:groupModelValue2="selectedSharedLineGroups"
+            :groupLabel2="$t('common.filterBySharedLine')" translationKey2="sharedLineOptions"
+            :columns="companyColumns" v-model:visibleColumns="visibleColumns"
+            :showActiveFilter="true" :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
+            :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal" @refresh-click="handleRefresh"
+            :showTrashedButton="false" />
+        <CompanyHeader v-else
+            v-model="trashedSearchText" :searchPlaceholder="$t('company.searchPlaceholder')"
+            :data="trashedCompanies" groupKey="type" v-model:groupModelValue="trashedSelectedGroups"
+            :groupLabel="$t('company.filterByType')" translationKey="companyTypes" :columns="companyColumns"
+            v-model:visibleColumns="visibleColumns" :showAddButton="false" :showTrashedButton="false" @refresh-click="handleRefresh" />
+
+        <!-- Tabs -->
         <ul class="nav nav-tabs mb-3">
             <li class="nav-item">
                 <a class="nav-link" :class="{ active: activeTab === 'active' }" @click="activeTab = 'active'"
@@ -22,17 +39,6 @@
 
         <!-- Tab Content -->
         <div v-if="activeTab === 'active'">
-            <!-- Active Companies Tab -->
-            <CompanyHeader v-model="searchText" :searchPlaceholder="$t('company.searchPlaceholder')" :data="companies"
-                groupKey="type" v-model:groupModelValue="selectedGroups" :groupLabel="$t('company.filterByType')"
-                translationKey="companyTypes"
-                groupKey2="shared_line" v-model:groupModelValue2="selectedSharedLineGroups"
-                :groupLabel2="$t('common.filterBySharedLine')" translationKey2="sharedLineOptions"
-                :columns="companyColumns" v-model:visibleColumns="visibleColumns"
-                :showActiveFilter="true" :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
-                :showAddButton="true" :addButtonText="$t('company.addNew')" @add-click="openAddModal" @refresh-click="handleRefresh"
-                :showTrashedButton="false" />
-
             <!-- Bulk Actions Bar for Active Tab -->
             <BulkActionsBar :selectedCount="selectedRows.length" entityName="company" :actions="bulkActions"
                 :loading="bulkActionLoading" @action="handleBulkAction" />
@@ -70,12 +76,6 @@
         </div>
 
         <div v-else>
-            <!-- Trashed Companies Tab -->
-            <CompanyHeader v-model="trashedSearchText" :searchPlaceholder="$t('company.searchPlaceholder')"
-                :data="trashedCompanies" groupKey="type" v-model:groupModelValue="trashedSelectedGroups"
-                :groupLabel="$t('company.filterByType')" translationKey="companyTypes" :columns="companyColumns"
-                v-model:visibleColumns="visibleColumns" :showAddButton="false" :showTrashedButton="false" @refresh-click="handleRefresh" />
-
             <!-- Bulk Actions Bar for Trashed Tab -->
             <BulkActionsBar :selectedCount="selectedRows.length" entityName="company" :actions="bulkActions"
                 :loading="bulkActionLoading" @action="handleBulkAction" />

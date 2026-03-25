@@ -1,8 +1,7 @@
 import axios from "axios";
 import { getItem, removeItem } from "@/utils/shared/storageUtils";
 
-const rawBaseUrl =
-  import.meta.env.VITE_API_BASE_URL || "http://delivery.local:30578/api";
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://delivery.local:30578/api";
 const normalizedBaseUrl = rawBaseUrl.replace(/\/+$/, "");
 const apiBaseUrl = normalizedBaseUrl.endsWith("/api")
   ? normalizedBaseUrl
@@ -111,10 +110,16 @@ api.interceptors.response.use(
     }
 
     switch (status) {
-      case 401:
+      case 401: {
         removeItem("auth_token");
         error.message = "Session expired. Please login again.";
+        const reqUrl = error.config?.url || '';
+        const isAuthEndpoint = reqUrl.includes('/login') || reqUrl.includes('/register');
+        if (!isAuthEndpoint && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
         break;
+      }
       case 403:
         error.message = "Access denied. You don't have permission for this action.";
         break;

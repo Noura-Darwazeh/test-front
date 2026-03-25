@@ -13,7 +13,7 @@ const { t } = useI18n();
 const props = defineProps({
   status: {
     type: [String, Number],
-    required: true,
+    default: null,
   },
   type: {
     type: String,
@@ -26,6 +26,7 @@ const props = defineProps({
 });
 
 const resolvedStatus = computed(() => {
+  if (props.status === null || props.status === undefined) return null;
   if (props.statusMap && props.statusMap[props.status] !== undefined) {
     return props.statusMap[props.status];
   }
@@ -33,9 +34,8 @@ const resolvedStatus = computed(() => {
 });
 
 const displayText = computed(() => {
-  // Use translation key based on type
-  const translationKey = getTranslationKey();
-  return t(translationKey);
+  if (resolvedStatus.value === null) return '—';
+  return t(getTranslationKey());
 });
 
 const getTranslationKey = () => {

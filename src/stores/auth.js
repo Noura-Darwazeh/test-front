@@ -4,7 +4,7 @@ import api from "@/services/api.js";
 import { setItem, getItem, removeItem } from "@/utils/shared/storageUtils.js";
 
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://delivery.local:30578/api";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
 
 // Helper function to convert relative image path to full URL
 const getFullImageUrl = (imagePath) => {
@@ -260,41 +260,13 @@ console.log('🔍 Login response:', data);
 
 
   async function logout() {
-    isLoading.value = true;
-    error.value = null;
-
+    clearAuthData(); // Clear local state immediately — no error possible from here
     try {
-      if (token.value) {
-        const response = await api.post("/logout");
-
-        if (response.data.success === true) {
-          clearAuthData();
-          return { success: true, message: response.data.message };
-        } else {
-          throw new Error(response.data.message || "Logout failed");
-        }
-      } else {
-        console.warn("⚠️ No token found, clearing local data only");
-        clearAuthData();
-        return { success: true, message: "Logged out locally" };
-      }
-    } catch (err) {
-      console.error("❌ Logout error:", err);
-
-      if (err.response?.status === 401 || err.response?.data?.success === false) {
-        clearAuthData();
-        return {
-          success: true,
-          message: "Session expired, logged out locally"
-        };
-      }
-
-      error.value = err.message || "Logout failed";
-      clearAuthData();
-      throw err;
-    } finally {
-      isLoading.value = false;
+      await api.post("/logout"); // Best-effort backend session cleanup
+    } catch {
+      // Ignore — expired token, network error, etc. We're already logged out locally.
     }
+    return { success: true };
   }
 
   function initializeAuth() {

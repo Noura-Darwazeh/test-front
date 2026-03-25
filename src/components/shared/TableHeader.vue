@@ -16,7 +16,7 @@
           :translationKey="translationKey"
         />
 
-        <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" :loading="isRefreshing" />
+        <PrimaryButton :iconBefore="refreshIcon" @click="handleRefreshClick" />
       </div>
       <!-- columnSelector and Add Button -->
       <div class="d-flex gap-2">
@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, reactive, onUnmounted } from "vue";
+import { ref, watch, computed, reactive } from "vue";
 import ColumnSelector from "./ColumnSelector.vue";
 import MainFilters from "../filters/composed/MainFilters.vue";
 import GroupFilter from "../filters/base/GroupFilter.vue";
@@ -78,8 +78,6 @@ import PrimaryButton from "../shared/PrimaryButton.vue";
 import trashIcon from "../../assets/table/recycle.svg";
 import addIcon from "../../assets/table/add.svg";
 import refreshIcon from "../../assets/table/refresh.svg?component";
-import apiServices from "@/services/apiServices.js";
-import * as pbi from "powerbi-client";
 
 const props = defineProps({
   modelValue: String,

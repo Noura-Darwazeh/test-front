@@ -140,8 +140,7 @@ const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } =
   useSuccessModal();
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } =
   useErrorModal();
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
 
 // State
 const searchText = ref("");

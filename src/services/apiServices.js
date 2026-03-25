@@ -873,15 +873,26 @@ class ApiServices {
     return this.get("/statistics/lines");
   }
 
-  // Power BI - get embed token for a report from the backend
-  async getPowerBIEmbedToken(reportId) {
-    return this.get(`/powerbi/embed-token/${reportId}`);
+  // FCM — save device token for the authenticated user
+  async saveFCMToken(token) {
+    return this.post('/fcm-token', { fcm_token: token });
   }
 
-  // Power BI - get all available reports
-  async getPowerBIReports() {
-    return this.get("/powerbi/reports");
+  // Notifications — fetch all for the current user
+  async getNotifications() {
+    return this.get('/notification');
   }
+
+  // Notifications — mark single as read
+  async markNotificationRead(id) {
+    return this.patch(`/notification/${id}/read`);
+  }
+
+  // Notifications — mark all as read
+  async markAllNotificationsRead() {
+    return this.post('/notification/read-all');
+  }
+
   async refreshPowerBIDatasetOrders() {
     return this.post("/powerbi/refresh-dataset/OrderReport");
 }
@@ -1244,6 +1255,26 @@ async createWorkPlanSteps({ workPlanOrdersId, status, notes } = {}) {
 
   return this.post("/work_plan_steps", payload);
 }
+
+  // ===== Notification Events Services =====
+  async getEvents({ search = '', cancelKey } = {}) {
+    return this.get("/events", {
+      params: normalizeQueryParams({ search }),
+      cancelKey: cancelKey ?? "events:list",
+    });
+  }
+
+  async createEvent(data) {
+    return this.post("/events", data);
+  }
+
+  async updateEvent(id, data) {
+    return this.updateEntity("events", id, data);
+  }
+
+  async deleteEvent(id) {
+    return this.deleteEntity("events", id);
+  }
 }
 
 // Create and freeze the singleton instance

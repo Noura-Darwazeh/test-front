@@ -28,6 +28,7 @@ import invoices from "../modules/invoices/view/invoices.vue";
 import permissions from "../modules/permissions/view/permissions.vue";
 import statistics from "../modules/statistics/view/statistics.vue";
 import driverSteps from "../modules/driver/view/driverSteps.vue";
+import notificationEvents from "../modules/events/view/events.vue";
 
 import userIcon from "@/assets/sidebar/userIcon.svg";
 import driverIcon from "@/assets/sidebar/driverIcon.svg";
@@ -379,6 +380,19 @@ const router = createRouter({
         icon: permissionIcon,
         order: 20,
         roles: ["SuperAdmin", "Admin"],
+      },
+    },
+    {
+      path: "/notification-events",
+      name: "NotificationEvents",
+      component: notificationEvents,
+      meta: {
+        titleKey: "events.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: permissionIcon,
+        order: 22,
+        roles: ["SuperAdmin"],
       },
     },
     {

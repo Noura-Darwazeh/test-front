@@ -138,7 +138,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
 
 const props = defineProps({
   isOpen: {

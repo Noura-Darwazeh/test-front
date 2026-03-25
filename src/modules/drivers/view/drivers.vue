@@ -216,13 +216,15 @@ import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 import { useActiveToggle } from "../../../composables/useActiveToggle.js";
+import { useNotificationEventsStore } from "@/stores/notificationEvents.js";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const driverStore = useDriverStore();
+const notificationEventsStore = useNotificationEventsStore();
 const { companyId, companyOption } = useAuthDefaults();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://192.168.100.35").replace(/\/api\/?$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
 const getFullImageUrl = (imagePath) => {
     if (!imagePath || imagePath === "path/test") return null;
     if (imagePath.startsWith("http")) return imagePath;
@@ -319,6 +321,7 @@ onMounted(async () => {
         await Promise.all([
             fetchDriversPage(1),
             fetchBranches(),
+            notificationEventsStore.fetchEvents(),
         ]);
     } catch (error) {
         console.error("❌ Failed to load drivers:", error);
@@ -475,7 +478,33 @@ const driverFields = computed(() => [
             }
             return null;
         }
-    }
+    },
+    // ── Notification Preferences ───────────────────────────────────────────
+    {
+        type: 'section',
+        label: t('driver.form.notificationSection'),
+        colClass: 'col-12',
+    },
+    // ── Notification Matrix ────────────────────────────────────────────────
+    {
+        type: 'notification-matrix',
+        colClass: 'col-12',
+        prefix: 'notify_',
+        defaultValues: isEditMode.value ? selectedDriver.value : {},
+        events: (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).map((ev) => ({
+            key: ev.key,
+            label: locale.value === 'ar' ? ev.ar_name : ev.en_name,
+            icon: 'fas fa-bell',
+        })),
+        channels: [
+            { key: 'sms',      label: t('driver.form.smsAlert'),      icon: 'fas fa-sms' },
+            { key: 'web',      label: t('driver.form.webAlert'),      icon: 'fas fa-globe' },
+            { key: 'email',    label: t('driver.form.emailAlert'),    icon: 'fas fa-envelope' },
+            { key: 'mobile',   label: t('driver.form.mobileAlert'),   icon: 'fas fa-mobile-alt' },
+            { key: 'telegram', label: t('driver.form.telegramAlert'), icon: 'fab fa-telegram-plane' },
+            { key: 'whatsapp', label: t('driver.form.whatsappAlert'), icon: 'fab fa-whatsapp' },
+        ],
+    },
 ]);
 
 // Details Fields

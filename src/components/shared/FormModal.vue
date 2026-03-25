@@ -57,8 +57,16 @@
                 :class="field.hidden ? 'd-none' : field.colClass || 'col-md-6'"
               >
                 <input v-if="field.hidden" type="hidden" v-model="formData[field.name]" />
+                <template v-else-if="field.type === 'section'">
+                  <div class="form-section-divider d-flex align-items-center gap-2">
+                    <hr class="flex-grow-1 m-0" />
+                    <span class="text-muted small fw-semibold text-uppercase">{{ field.label }}</span>
+                    <hr class="flex-grow-1 m-0" />
+                  </div>
+                </template>
                 <template v-else>
-                  <label class="form-label fw-semibold" :for="field.name">
+                  <!-- Checkbox / icon-toggle / notification-matrix handle their own label inline — skip the outer form-label -->
+                  <label v-if="!['checkbox', 'icon-toggle', 'notification-matrix'].includes(field.type)" class="form-label fw-semibold" :for="field.name">
                     {{ field.label }}
                     <span v-if="field.required" class="text-danger">*</span>
                   </label>
@@ -160,18 +168,87 @@
                   </div>
                 </div>
 
-                <!-- Checkbox -->
-                <div v-else-if="field.type === 'checkbox'" class="form-check mt-2">
-                  <input
-                    :id="field.name"
-                    v-model="formData[field.name]"
-                    class="form-check-input"
-                    type="checkbox"
-                    :true-value="field.trueValue ?? 1"
-                    :false-value="field.falseValue ?? 0"
-                    :disabled="field.disabled"
-                    @change="handleFieldInput(field)"
-                  />
+                <!-- Checkbox — toggle switch with inline label -->
+                <div v-else-if="field.type === 'checkbox'" class="checkbox-field d-flex align-items-center h-100">
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      :id="field.name"
+                      v-model="formData[field.name]"
+                      class="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      :true-value="field.trueValue ?? 1"
+                      :false-value="field.falseValue ?? 0"
+                      :disabled="field.disabled"
+                      @change="handleFieldInput(field)"
+                    />
+                    <label class="form-check-label fw-semibold" :for="field.name">
+                      {{ field.label }}
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Icon Toggle Tile — clickable square with icon + label -->
+                <div
+                  v-else-if="field.type === 'icon-toggle'"
+                  class="it-tile"
+                  :class="{ 'it-tile--active': formData[field.name] == (field.trueValue ?? 1) }"
+                  @click="
+                    formData[field.name] = formData[field.name] == (field.trueValue ?? 1)
+                      ? (field.falseValue ?? 0)
+                      : (field.trueValue ?? 1);
+                    handleFieldInput(field);
+                  "
+                >
+                  <i :class="field.icon"></i>
+                  <span>{{ field.label }}</span>
+                </div>
+
+                <!-- Notification Matrix — accordion: activate event first, then pick channels -->
+                <div v-else-if="field.type === 'notification-matrix'" class="nm-container">
+                  <div
+                    v-for="ev in field.events"
+                    :key="ev.key"
+                    class="nm-event-row"
+                    :class="{ 'nm-event-row--open': isMatrixEventExpanded(field, ev.key) }"
+                  >
+                    <!-- Event header — click to toggle -->
+                    <div
+                      class="nm-event-header"
+                      @click="toggleMatrixEvent(field, ev.key)"
+                    >
+                      <div class="d-flex align-items-center gap-2">
+                        <i :class="ev.icon" class="nm-ev-icon"></i>
+                        <span class="nm-ev-label">{{ ev.label }}</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span
+                          v-if="!isMatrixEventExpanded(field, ev.key) && getActiveChannelCount(field, ev.key) > 0"
+                          class="nm-ch-badge"
+                        >
+                          {{ getActiveChannelCount(field, ev.key) }}
+                        </span>
+                        <i
+                          class="fas nm-caret"
+                          :class="isMatrixEventExpanded(field, ev.key) ? 'fa-chevron-up' : 'fa-chevron-down'"
+                        ></i>
+                      </div>
+                    </div>
+
+                    <!-- Channel strip — visible only when expanded -->
+                    <div v-if="isMatrixEventExpanded(field, ev.key)" class="nm-channels-strip">
+                      <div
+                        v-for="ch in field.channels"
+                        :key="ch.key"
+                        class="nm-ch-item"
+                        :class="{ 'nm-ch-item--active': formData[`${field.prefix || 'notify_'}${ev.key}_${ch.key}`] == 1 }"
+                        @click="toggleMatrixCell(field, ev.key, ch.key)"
+                      >
+                        <i :class="ch.icon" class="nm-ch-icon"></i>
+                        <small class="nm-ch-label">{{ ch.label }}</small>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Button field -->
@@ -294,6 +371,31 @@
                   </div>
                 </div>
 
+                <!-- Tags: free-text multi-value chips -->
+                <div v-else-if="field.type === 'tags'" class="tags-field">
+                  <div v-if="(formData[field.name] || []).length" class="tags-chips d-flex flex-wrap gap-1 mb-2">
+                    <span
+                      v-for="(tag, idx) in formData[field.name]"
+                      :key="idx"
+                      class="badge bg-primary d-flex align-items-center gap-1 tag-chip"
+                    >
+                      {{ tag }}
+                      <button type="button" class="tag-remove" @click="removeTag(field.name, idx)">&times;</button>
+                    </span>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <input
+                      :type="field.inputType || 'tel'"
+                      class="form-control form-control-sm"
+                      :placeholder="field.placeholder || ''"
+                      v-model="tagsInput[field.name]"
+                      @keydown.enter.prevent="addTag(field.name)"
+                      :disabled="field.locked || field.disabled"
+                    />
+                    <button type="button" class="btn btn-outline-primary btn-sm px-3" @click="addTag(field.name)">+</button>
+                  </div>
+                </div>
+
                 <!-- Location picker button -->
                 <div v-else-if="field.type === 'locationPicker'" class="d-flex flex-column gap-2">
                   <PrimaryButton
@@ -390,12 +492,54 @@ const { t } = useI18n();
 const formData = reactive({});
 const errors = reactive({});
 const serverFieldErrors = reactive({});
+const tagsInput = reactive({});
 const isSubmitting = ref(false);
 const imagePreview = ref(null);
 const imageFile = ref(null);
 const imageError = ref("");
 const fileInput = ref(null);
 const showPassword = ref({});
+
+const addTag = (fieldName) => {
+  const val = (tagsInput[fieldName] || '').trim();
+  if (!val) return;
+  if (!Array.isArray(formData[fieldName])) formData[fieldName] = [];
+  formData[fieldName].push(val);
+  tagsInput[fieldName] = '';
+};
+
+const removeTag = (fieldName, index) => {
+  formData[fieldName].splice(index, 1);
+};
+
+const toggleMatrixCell = (field, evKey, chKey) => {
+  const k = `${field.prefix || 'notify_'}${evKey}_${chKey}`;
+  formData[k] = formData[k] == 1 ? 0 : 1;
+};
+
+// ── Notification Matrix accordion state ──
+const matrixExpandedEvents = reactive({});
+
+const isMatrixEventExpanded = (field, evKey) => {
+  return !!matrixExpandedEvents[`${field.prefix || 'notify_'}_${evKey}`];
+};
+
+const getActiveChannelCount = (field, evKey) => {
+  const prefix = field.prefix || 'notify_';
+  return (field.channels || []).filter(ch => formData[`${prefix}${evKey}_${ch.key}`] == 1).length;
+};
+
+const toggleMatrixEvent = (field, evKey) => {
+  const key = `${field.prefix || 'notify_'}_${evKey}`;
+  if (matrixExpandedEvents[key]) {
+    // Collapsing — zero out all channels for this event
+    const prefix = field.prefix || 'notify_';
+    (field.channels || []).forEach(ch => { formData[`${prefix}${evKey}_${ch.key}`] = 0; });
+    matrixExpandedEvents[key] = false;
+  } else {
+    matrixExpandedEvents[key] = true;
+  }
+};
 
 const uploadLabel = computed(() =>
   props.imageUploadLabel ? props.imageUploadLabel : t("common.uploadImage")
@@ -522,6 +666,9 @@ const resolveDefaultValue = (field) => {
   if (fieldType === "multiselect") {
     return Array.isArray(field.defaultValue) ? field.defaultValue : [];
   }
+  if (fieldType === "tags") {
+    return Array.isArray(field.defaultValue) ? [...field.defaultValue] : [];
+  }
   if (fieldType === "select") {
     return normalizeSelectValue(field.defaultValue);
   }
@@ -630,12 +777,27 @@ const initializeForm = () => {
   clearAllErrors();
 
   props.fields.forEach((field) => {
-    if (field && field.name) {
+    if (!field) return;
+    if (field.type === 'notification-matrix') {
+      const prefix = field.prefix || 'notify_';
+      (field.events || []).forEach((ev) => {
+        (field.channels || []).forEach((ch) => {
+          const key = `${prefix}${ev.key}_${ch.key}`;
+          formData[key] = field.defaultValues?.[key] ?? 0;
+        });
+        // Auto-expand events that already have an active channel (edit mode)
+        const expandKey = `${prefix}_${ev.key}`;
+        const hasActive = (field.channels || []).some(
+          ch => (field.defaultValues?.[`${prefix}${ev.key}_${ch.key}`] ?? 0) == 1
+        );
+        matrixExpandedEvents[expandKey] = hasActive;
+      });
+    } else if (field.name) {
       if (field.type === "orderRows") {
         const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
           ? field.defaultValue
           : [{ order: "", items: [] }];
-        
+
         formData[field.name] = defaultRows.map((row) => ({
           order: row?.order || "",
           items: Array.isArray(row?.items) ? [...row.items] : []
@@ -650,6 +812,9 @@ const initializeForm = () => {
           latitude: row?.latitude ?? "",
           longitude: row?.longitude ?? "",
         }));
+      } else if (field.type === "tags") {
+        formData[field.name] = Array.isArray(field.defaultValue) ? [...field.defaultValue] : [];
+        tagsInput[field.name] = "";
       } else {
         formData[field.name] = resolveDefaultValue(field);
       }
@@ -670,12 +835,23 @@ const resetForm = () => {
   if (!props.fields || props.fields.length === 0) return;
 
   props.fields.forEach((field) => {
-    if (field && field.name) {
+    if (!field) return;
+    if (field.type === 'notification-matrix') {
+      const prefix = field.prefix || 'notify_';
+      (field.events || []).forEach((ev) => {
+        (field.channels || []).forEach((ch) => {
+          const key = `${prefix}${ev.key}_${ch.key}`;
+          formData[key] = 0;
+        });
+        // Collapse all events on reset
+        matrixExpandedEvents[`${prefix}_${ev.key}`] = false;
+      });
+    } else if (field.name) {
       if (field.type === "orderRows") {
         const defaultRows = Array.isArray(field.defaultValue) && field.defaultValue.length
           ? field.defaultValue
           : [{ order: "", items: [] }];
-        
+
         formData[field.name] = defaultRows.map((row) => ({
           order: row?.order || "",
           items: Array.isArray(row?.items) ? [...row.items] : []
@@ -1401,4 +1577,152 @@ const handleFieldChange = (field, event) => {
   border-radius: 10px;
   overflow: hidden;
 }
+
+/* ── Tags field ── */
+.tags-field { display: flex; flex-direction: column; gap: 0; }
+.tag-chip { font-size: 0.8rem; padding: 0.25rem 0.5rem; }
+.tag-remove {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  font-size: 1rem;
+  margin-left: 2px;
+}
+.tag-remove:hover { color: #fff; }
+
+/* ── Icon Toggle Tile ── */
+.it-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  border: 2px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  min-height: 76px;
+  transition: background 0.18s, border-color 0.18s, transform 0.1s;
+}
+.it-tile i {
+  font-size: 1.25rem;
+  color: #9ca3af;
+  transition: color 0.18s;
+}
+.it-tile span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.2;
+  transition: color 0.18s;
+}
+.it-tile--active {
+  background: #3b82f6;
+  border-color: #2563eb;
+}
+.it-tile--active i  { color: #fff; }
+.it-tile--active span { color: #fff; }
+.it-tile:hover:not(.it-tile--active) {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+.it-tile:active { transform: scale(0.93); }
+
+/* ── Checkbox / toggle switch ── */
+.checkbox-field {
+  min-height: 38px; /* matches form-control height so the row stays aligned */
+}
+.form-check-input[type="checkbox"] {
+  cursor: pointer;
+}
+.form-check-label {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ── Section divider ── */
+.form-section-divider { padding: 0.5rem 0 0.25rem; }
+.form-section-divider hr { border-color: #dee2e6; opacity: 1; }
+
+/* ── Notification Matrix (accordion) ── */
+.nm-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.nm-event-row { border-bottom: 1px solid #f3f4f6; }
+.nm-event-row:last-child { border-bottom: none; }
+
+/* Event header row */
+.nm-event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  cursor: pointer;
+  background: #fafafa;
+  user-select: none;
+  transition: background 0.15s;
+}
+.nm-event-header:hover { background: #f3f4f6; }
+.nm-event-row--open .nm-event-header {
+  background: #eff6ff;
+  border-bottom: 1px solid #dbeafe;
+}
+.nm-ev-icon { color: #6b7280; width: 16px; text-align: center; font-size: 14px; }
+.nm-ev-label { font-size: 13px; font-weight: 500; color: #374151; }
+.nm-caret { font-size: 11px; color: #9ca3af; transition: transform 0.2s; }
+.nm-event-row--open .nm-caret { color: #3b82f6; }
+.nm-ch-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: #3b82f6;
+  border-radius: 20px;
+  padding: 1px 8px;
+  line-height: 1.6;
+}
+
+/* Channel strip (expanded area) */
+.nm-channels-strip {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  background: #fff;
+  flex-wrap: wrap;
+}
+.nm-ch-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  cursor: pointer;
+  background: #f9fafb;
+  transition: all 0.15s ease;
+  min-width: 64px;
+  user-select: none;
+}
+.nm-ch-item:hover { border-color: #3b82f6; background: #eff6ff; }
+.nm-ch-item--active { background: #3b82f6; border-color: #2563eb; }
+.nm-ch-item:active { transform: scale(0.93); }
+.nm-ch-icon { font-size: 18px; color: #6b7280; transition: color 0.15s; }
+.nm-ch-item--active .nm-ch-icon { color: #fff; }
+.nm-ch-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: color 0.15s;
+}
+.nm-ch-item--active .nm-ch-label { color: rgba(255,255,255,0.9); }
 </style>
