@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { initializeApp } from "firebase/app";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -10,16 +10,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const firebaseEnabled = !!firebaseConfig.projectId && !!firebaseConfig.apiKey;
-
 let app = null;
 let messaging = null;
 
-if (firebaseEnabled) {
+try {
   app = initializeApp(firebaseConfig);
   messaging = getMessaging(app);
-} else {
-  console.warn('Firebase config missing — push notifications disabled.');
+} catch (err) {
+  console.warn(
+    "Firebase initialization failed — push notifications disabled.",
+    err,
+  );
 }
 
 /**
@@ -27,33 +28,36 @@ if (firebaseEnabled) {
  * Returns null if permission denied or browser unsupported.
  */
 export async function requestFCMToken() {
-  if (!firebaseEnabled || !messaging) return null;
+  if (!messaging) return null;
 
-  if (!('Notification' in window)) {
-    console.warn('This browser does not support notifications.');
+  if (!("Notification" in window)) {
+    console.warn("This browser does not support notifications.");
     return null;
   }
 
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    console.warn('Notification permission denied.');
+  if (permission !== "granted") {
+    console.warn("Notification permission denied.");
     return null;
   }
 
   try {
     let swRegistration;
-    if ('serviceWorker' in navigator) {
+    if ("serviceWorker" in navigator) {
       swRegistration = await navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
+        .register("/firebase-messaging-sw.js")
         .then((reg) => {
           // Wait for the service worker to be active before using it
           if (reg.active) return reg;
           return new Promise((resolve) => {
             const sw = reg.installing || reg.waiting;
-            if (!sw) { resolve(reg); return; }
-            sw.addEventListener('statechange', function handler() {
-              if (sw.state === 'activated') {
-                sw.removeEventListener('statechange', handler);
+            if (!sw) {
+              resolve(reg);
+              return;
+            }
+            sw.addEventListener("statechange", function handler() {
+              if (sw.state === "activated") {
+                sw.removeEventListener("statechange", handler);
                 resolve(reg);
               }
             });
@@ -67,7 +71,11 @@ export async function requestFCMToken() {
     });
     return token || null;
   } catch (err) {
-    console.error('Failed to get FCM token:', err);
+    if (err.name === "SecurityError") {
+      console.warn("FCM blocked — SSL certificate not trusted by browser. Push notifications unavailable.");
+    } else {
+      console.error("Failed to get FCM token:", err);
+    }
     return null;
   }
 }
@@ -77,11 +85,16 @@ export async function requestFCMToken() {
  * Calls the provided callback with { title, body, data }.
  */
 export function onForegroundMessage(callback) {
-  if (!firebaseEnabled || !messaging) return () => {};
+  if (!messaging) return () => {};
 
   return onMessage(messaging, (payload) => {
-    const title = payload.notification?.title || payload.data?.title || 'New Notification';
-    const body = payload.notification?.body || payload.data?.message || payload.data?.body || '';
+    const title =
+      payload.notification?.title || payload.data?.title || "New Notification";
+    const body =
+      payload.notification?.body ||
+      payload.data?.message ||
+      payload.data?.body ||
+      "";
     const data = payload.data || {};
     callback({ title, body, data });
   });

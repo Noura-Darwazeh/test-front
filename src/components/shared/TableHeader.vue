@@ -181,6 +181,7 @@ watch(() => props.extraFilterValues, (v) => {
 
 const handleAddClick = () => emit("add-click");
 const handleTrashedClick = () => emit("trashed-click");
+const handleRefreshClick = () => emit("refresh-click");
 
 
 </script>

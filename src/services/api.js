@@ -1,7 +1,7 @@
 import axios from "axios";
 import { getItem, removeItem } from "@/utils/shared/storageUtils";
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://delivery.local:30578/api";
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 const normalizedBaseUrl = rawBaseUrl.replace(/\/+$/, "");
 const apiBaseUrl = normalizedBaseUrl.endsWith("/api")
   ? normalizedBaseUrl
