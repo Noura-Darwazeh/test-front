@@ -25,20 +25,70 @@ const containsFile = (value) => {
 
 const toFormData = (data) => {
   const formData = new FormData();
+
+  const normalizeScalar = (v) => {
+    if (typeof v === "boolean") return v ? 1 : 0; // backend-friendly: numeric booleans
+    return v;
+  };
+
   Object.keys(data || {}).forEach((key) => {
     const value = data[key];
     if (value === null || value === undefined || value === "") {
       return;
     }
     if (Array.isArray(value)) {
-      value.forEach((entry) => {
-        if (entry !== null && entry !== undefined && entry !== "") {
-          formData.append(`${key}[]`, entry);
+      const nonEmptyEntries = value.filter((entry) => entry !== null && entry !== undefined && entry !== "");
+      if (nonEmptyEntries.length === 0) return;
+
+      // Array of primitives (or Files) => keep previous behavior: `key[]`
+      const hasObjectEntries = nonEmptyEntries.some(
+        (entry) => typeof entry === "object" && entry !== null && !(entry instanceof File) && !(entry instanceof Blob) && !Array.isArray(entry)
+      );
+      if (!hasObjectEntries) {
+        nonEmptyEntries.forEach((entry) => {
+          formData.append(`${key}[]`, normalizeScalar(entry));
+        });
+        return;
+      }
+
+      // Array of objects => flatten using bracket notation:
+      // events[0][event_id], events[0][email][0], ...
+      nonEmptyEntries.forEach((entry, index) => {
+        if (entry === null || entry === undefined || entry === "") return;
+
+        if (typeof entry !== "object" || Array.isArray(entry)) {
+          formData.append(`${key}[${index}]`, normalizeScalar(entry));
+          return;
         }
+
+        Object.keys(entry).forEach((subKey) => {
+          const subVal = entry[subKey];
+          if (subVal === null || subVal === undefined || subVal === "") return;
+
+          if (Array.isArray(subVal)) {
+            subVal.forEach((arrEntry, arrIndex) => {
+              if (arrEntry === null || arrEntry === undefined || arrEntry === "") return;
+              formData.append(`${key}[${index}][${subKey}][${arrIndex}]`, normalizeScalar(arrEntry));
+            });
+            return;
+          }
+
+          // Simple object inside object (1-depth flatten)
+          if (typeof subVal === "object" && subVal !== null && !(subVal instanceof File) && !(subVal instanceof Blob)) {
+            Object.keys(subVal).forEach((deepKey) => {
+              const deepVal = subVal[deepKey];
+              if (deepVal === null || deepVal === undefined || deepVal === "") return;
+              formData.append(`${key}[${index}][${subKey}][${deepKey}]`, normalizeScalar(deepVal));
+            });
+            return;
+          }
+
+          formData.append(`${key}[${index}][${subKey}]`, normalizeScalar(subVal));
+        });
       });
       return;
     }
-    formData.append(key, value);
+    formData.append(key, normalizeScalar(value));
   });
   return formData;
 };

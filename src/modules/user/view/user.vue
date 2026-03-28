@@ -1,43 +1,24 @@
 <template>
   <div class="user-page-container bg-light">
-    <usersHeader
-      v-model="searchText"
-      :searchPlaceholder="$t('user.searchPlaceholder')"
-      :data="users"
-      groupKey="role"
-      v-model:groupModelValue="selectedGroups"
-      :groupLabel="$t('user.filterByRole')"
-      translationKey="roles"
-      :columns="userColumns"
-      v-model:visibleColumns="visibleColumns"
-      :showActiveFilter="true"
-      :activeFilterValue="activeStatusFilter"
-      @update:activeFilterValue="activeStatusFilter = $event"
-      :showAddButton="canAddUser"
-      :addButtonText="$t('user.addNew')"
-      @add-click="openModal"
-      @refresh-click="handleRefresh"
-    />
+    <usersHeader v-model="searchText" :searchPlaceholder="$t('user.searchPlaceholder')" :data="users" groupKey="role"
+      v-model:groupModelValue="selectedGroups" :groupLabel="$t('user.filterByRole')" translationKey="roles"
+      :columns="userColumns" v-model:visibleColumns="visibleColumns" :showActiveFilter="true"
+      :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
+      :showAddButton="canAddUser" :addButtonText="$t('user.addNew')" @add-click="openModal"
+      @refresh-click="handleRefresh" />
 
     <div class="card border-0">
       <!-- Tabs -->
       <div class="card-header bg-white border-bottom">
         <ul class="nav nav-tabs card-header-tabs">
           <li class="nav-item">
-            <button
-              class="nav-link"
-              :class="{ active: activeTab === 'active' }"
-              @click="switchTab('active')"
-            >
+            <button class="nav-link" :class="{ active: activeTab === 'active' }" @click="switchTab('active')">
               {{ $t("user.activeUsers") }}
             </button>
           </li>
           <li class="nav-item">
-            <button
-              class="nav-link trashed-tab"
-              :class="{ active: activeTab === 'trashed' }"
-              @click="switchTab('trashed')"
-            >
+            <button class="nav-link trashed-tab" :class="{ active: activeTab === 'trashed' }"
+              @click="switchTab('trashed')">
               {{ $t("user.trashed.title") }}
             </button>
           </li>
@@ -46,13 +27,8 @@
 
       <div class="card-body p-0">
         <!-- Bulk Actions Bar -->
-        <BulkActionsBar
-          :selectedCount="selectedRows.length"
-          entityName="user"
-          :actions="bulkActions"
-          :loading="bulkActionLoading"
-          @action="handleBulkAction"
-        />
+        <BulkActionsBar :selectedCount="selectedRows.length" entityName="user" :actions="bulkActions"
+          :loading="bulkActionLoading" @action="handleBulkAction" />
 
         <!-- Loading State -->
         <div v-if="currentLoading" class="text-center py-5">
@@ -70,114 +46,52 @@
 
         <!-- Data Table -->
         <div v-else>
-          <DataTable
-            :columns="filteredColumns"
-            :data="paginatedData"
-            :actionsLabel="$t('user.actions')"
-            v-model="selectedRows"
-            :disableRowWhen="disableUserSelection"
-            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''"
-          >
+          <DataTable :columns="filteredColumns" :data="paginatedData" :actionsLabel="$t('user.actions')"
+            v-model="selectedRows" :disableRowWhen="disableUserSelection"
+            :rowClass="(row) => row.is_active === 0 ? 'row-inactive' : ''">
             <template #actions="{ row }">
               <!-- Active Users Actions -->
-              <ActionsDropdown
-                v-if="activeTab === 'active'"
-                :row="row"
-                :editLabel="$t('user.edit')"
-                :detailsLabel="$t('user.details')"
-                :deleteLabel="$t('user.delete')"
-                :showEdit="canEditUser(row)"
-                :showDelete="canDeleteUser(row)"
-                :showDetails="true"
-                :showActivate="row.is_active === 0"
-                :showDeactivate="row.is_active === 1"
-                :activateLabel="$t('common.activate')"
-                :deactivateLabel="$t('common.deactivate')"
-                @edit="openEditModal"
-                @details="openDetailsModal"
-                @delete="handleDeleteUser"
-                @activate="handleActivate"
-                @deactivate="handleDeactivate"
-              />
+              <ActionsDropdown v-if="activeTab === 'active'" :row="row" :editLabel="$t('user.edit')"
+                :detailsLabel="$t('user.details')" :deleteLabel="$t('user.delete')" :showEdit="canEditUser(row)"
+                :showDelete="canDeleteUser(row)" :showDetails="true" :showActivate="row.is_active === 0"
+                :showDeactivate="row.is_active === 1" :activateLabel="$t('common.activate')"
+                :deactivateLabel="$t('common.deactivate')" @edit="openEditModal" @details="openDetailsModal"
+                @delete="handleDeleteUser" @activate="handleActivate" @deactivate="handleDeactivate" />
               <!-- Trashed Users Actions -->
-              <ActionsDropdown
-                v-else
-                :row="row"
-                :restoreLabel="$t('user.trashed.restore')"
-                :deleteLabel="$t('user.trashed.delete')"
-                :showEdit="false"
-                :showDetails="false"
-                :showDelete="false"
-                :showRestore="true"
-                :confirmDelete="true"
-                @restore="handleRestoreUser"
-                
-              />
+              <ActionsDropdown v-else :row="row" :restoreLabel="$t('user.trashed.restore')"
+                :deleteLabel="$t('user.trashed.delete')" :showEdit="false" :showDetails="false" :showDelete="false"
+                :showRestore="true" :confirmDelete="true" @restore="handleRestoreUser" />
             </template>
           </DataTable>
           <div class="px-3 pt-1 pb-2 bg-light">
-            <Pagination
-              :totalItems="currentPagination.total"
-              :itemsPerPage="itemsPerPage"
-              :currentPage="currentPage"
-              :totalPages="currentPagination.lastPage"
-              @update:currentPage="(page) => (currentPage = page)"
-            />
+            <Pagination :totalItems="currentPagination.total" :itemsPerPage="itemsPerPage" :currentPage="currentPage"
+              :totalPages="currentPagination.lastPage" @update:currentPage="(page) => (currentPage = page)" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Form Modal for Add/Edit User -->
-    <FormModal
-      :isOpen="isModalOpen"
-      :title="isEditMode ? $t('user.edit') : $t('user.addNew')"
-      :fields="userFields"
-      :showImageUpload="true"
-      :imageRequired="false"
-      :imageUploadLabel="$t('user.form.uploadImage')"
-      :serverErrors="formErrors"
-      @close="closeModal"
-      @submit="handleSubmitUser"
-    />
+    <FormModal :isOpen="isModalOpen" :title="isEditMode ? $t('user.edit') : $t('user.addNew')" :fields="userFields"
+      :showImageUpload="true" :imageRequired="false" :imageUploadLabel="$t('user.form.uploadImage')"
+      :serverErrors="formErrors" @close="closeModal" @submit="handleSubmitUser" />
 
     <!-- Details Modal -->
-    <DetailsModal
-      :isOpen="isDetailsModalOpen"
-      :title="$t('user.details')"
-      :data="selectedUser"
-      :fields="detailsFields"
-      @close="closeDetailsModal"
-    />
+    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('user.details')" :data="selectedUser" :fields="detailsFields"
+      @close="closeDetailsModal" />
 
     <!-- Delete Confirmation Modal -->
-    <ConfirmationModal
-      :isOpen="isDeleteModalOpen"
-      :title="$t('user.confirmDeleteTitle')"
-      :message="$t('user.confirmDelete')"
-      :confirmText="$t('user.delete')"
-      :cancelText="$t('common.cancel')"
-      @close="closeDeleteModal"
-      @confirm="confirmDelete"
-    />
+    <ConfirmationModal :isOpen="isDeleteModalOpen" :title="$t('user.confirmDeleteTitle')"
+      :message="$t('user.confirmDelete')" :confirmText="$t('user.delete')" :cancelText="$t('common.cancel')"
+      @close="closeDeleteModal" @confirm="confirmDelete" />
 
     <!-- Bulk Action Confirmation Modal -->
-    <ConfirmationModal
-      :isOpen="isBulkConfirmOpen"
-      :title="$t('common.bulkDeleteConfirmTitle')"
-      :message="bulkConfirmMessage"
-      :confirmText="$t('common.confirm')"
-      :cancelText="$t('common.cancel')"
-      @confirm="executeBulkAction"
-      @close="cancelBulkAction"
-    />
+    <ConfirmationModal :isOpen="isBulkConfirmOpen" :title="$t('common.bulkDeleteConfirmTitle')"
+      :message="bulkConfirmMessage" :confirmText="$t('common.confirm')" :cancelText="$t('common.cancel')"
+      @confirm="executeBulkAction" @close="cancelBulkAction" />
 
-        <SuccessModal
-      :isOpen="isSuccessModalOpen"
-      :title="$t('common.success')"
-      :message="successMessage"
-      @close="closeSuccessModal"
-    />
+    <SuccessModal :isOpen="isSuccessModalOpen" :title="$t('common.success')" :message="successMessage"
+      @close="closeSuccessModal" />
 
     <ErrorModal :isOpen="isErrorModalOpen" :message="errorMessage" @close="closeErrorModal" />
   </div>
@@ -206,11 +120,13 @@ import { useSuccessModal } from "../../../composables/useSuccessModal.js";
 import ErrorModal from "../../../components/shared/ErrorModal.vue";
 import { useErrorModal } from "../../../composables/useErrorModal.js";
 import { useActiveToggle } from "../../../composables/useActiveToggle.js";
+import { nextTick } from "vue";
+
 const { t, locale } = useI18n();
 const usersStore = useUsersManagementStore();
 const authStore = useAuthStore();
 const notificationEventsStore = useNotificationEventsStore();
-const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal(); // ✅
+const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
 // ✅ API Base URL
@@ -235,7 +151,6 @@ const isAdmin = computed(
 );
 
 const canAddUser = computed(() => isSuperAdmin.value || isAdmin.value);
-
 
 const searchText = ref("");
 const selectedGroups = ref([]);
@@ -420,6 +335,18 @@ watch(currentPage, async (newPage) => {
 });
 
 // ✅ User Form Fields with conditional logic
+const notificationMatrixDefaultValues = computed(() => {
+  if (!isEditMode.value) return {};
+
+  const defaults = { ...(selectedUser.value || {}) };
+  const prefix = "notify_";
+
+  (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
+    defaults[`${prefix}${ev.key}_email_recipients`] = [];
+  });
+
+  return defaults;
+});
 const userFields = computed(() => [
   {
     name: "name",
@@ -508,7 +435,7 @@ const userFields = computed(() => [
     //     ? selectedUser.value.role[0]
     //     : selectedUser.value.role
     //   : "",
-      defaultValue: isEditMode.value ? selectedUser.value.role : "",
+    defaultValue: isEditMode.value ? selectedUser.value.role : "",
     validate: (value) => {
       if (!value || (Array.isArray(value) && value.length === 0)) {
         return t("user.validation.roleRequired");
@@ -571,41 +498,24 @@ const userFields = computed(() => [
     label: t("user.form.notificationSection"),
     colClass: "col-12",
   },
-  {
-    name: "phones",
-    label: t("user.form.notificationPhone"),
-    type: "tags",
-    required: false,
-    placeholder: t("user.form.phoneNumberPlaceholder"),
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? (selectedUser.value.phones ?? []) : [],
-  },
-  {
-    name: "notification_emails",
-    label: t("user.form.notificationEmails"),
-    type: "tags",
-    inputType: "email",
-    required: false,
-    placeholder: "email@example.com",
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? (selectedUser.value.notification_emails ?? []) : [],
-  },
+
   // ── Notification Matrix ────────────────────────────────────────────────
   {
     type: "notification-matrix",
     colClass: "col-12",
     prefix: "notify_",
-    defaultValues: isEditMode.value ? selectedUser.value : {},
+    enableEmailRecipients: true,
+    defaultValues: notificationMatrixDefaultValues.value,
     events: (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).map((ev) => ({
       key: ev.key,
       label: locale.value === "ar" ? ev.ar_name : ev.en_name,
       icon: "fas fa-bell",
     })),
     channels: [
-      { key: "sms",      label: t("user.form.smsAlert"),      icon: "fas fa-sms" },
-      { key: "web",      label: t("user.form.webAlert"),      icon: "fas fa-globe" },
-      { key: "email",    label: t("user.form.emailAlert"),    icon: "fas fa-envelope" },
-      { key: "mobile",   label: t("user.form.mobileAlert"),   icon: "fas fa-mobile-alt" },
+      { key: "sms", label: t("user.form.smsAlert"), icon: "fas fa-sms" },
+      { key: "web", label: t("user.form.webAlert"), icon: "fas fa-globe" },
+      { key: "email", label: t("user.form.emailAlert"), icon: "fas fa-envelope" },
+      { key: "mobile", label: t("user.form.mobileAlert"), icon: "fas fa-mobile-alt" },
       { key: "telegram", label: t("user.form.telegramAlert"), icon: "fab fa-telegram-plane" },
       { key: "whatsapp", label: t("user.form.whatsappAlert"), icon: "fab fa-whatsapp" },
     ],
@@ -626,6 +536,11 @@ const detailsFields = computed(() => [
     colClass: "col-md-6",
   },
   { key: "company_name", label: t("user.company"), colClass: "col-md-12" },
+  {
+    key: "notification_matrix_details",
+    label: t("user.form.notificationEventsSection"),
+    colClass: "col-md-12",
+  },
 ]);
 
 const userColumns = computed(() => {
@@ -704,7 +619,7 @@ const bulkActions = computed(() => {
       label: t("user.bulkRestore"),
       bgColor: "var(--color-success)",
     },
- 
+
   ];
 });
 
@@ -824,11 +739,11 @@ const openEditModal = (user) => {
   // selectedUser.value = { ...user };
 
 
-    const normalizedUser = {
+  const normalizedUser = {
     ...user,
     role: Array.isArray(user.role) ? user.role[0] : user.role
   };
-  
+
   selectedUser.value = normalizedUser;
 
   if (selectedUser.value.image) {
@@ -845,6 +760,58 @@ const openDetailsModal = (user) => {
   if (selectedUser.value.image) {
     selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
   }
+
+  // Details: summarize notification preferences (events + active channels + email recipients)
+  const channelDefs = [
+    { key: "sms", label: t("user.form.smsAlert") },
+    { key: "web", label: t("user.form.webAlert") },
+    { key: "email", label: t("user.form.emailAlert") },
+    { key: "mobile", label: t("user.form.mobileAlert") },
+    { key: "telegram", label: t("user.form.telegramAlert") },
+    { key: "whatsapp", label: t("user.form.whatsappAlert") },
+  ];
+
+  const prefix = "notify_";
+  const localeIsAr = locale.value === "ar";
+  const eventList = Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : [];
+
+  const eventsWithActiveChannels = eventList
+    .map((ev) => {
+      const evLabel = localeIsAr ? ev.ar_name : ev.en_name;
+
+      const activeChannels = channelDefs
+        .filter((ch) => Number(selectedUser.value?.[`${prefix}${ev.key}_${ch.key}`] ?? 0) === 1)
+        .map((ch) => ch.label);
+
+      if (activeChannels.length === 0) return null;
+
+      // Email recipients (preferred: notify_<event>_email_recipients array)
+      let recipients = selectedUser.value?.[`${prefix}${ev.key}_email_recipients`];
+      if (!Array.isArray(recipients)) recipients = [];
+
+      // Fallback: if backend returns `events: [{ event_id, email: [] }]`
+      if (recipients.length === 0 && Array.isArray(selectedUser.value?.events)) {
+        const matched = selectedUser.value.events.find((e) => {
+          const eventId = e?.event_id;
+          return (
+            (eventId !== undefined && String(eventId) === String(ev.id)) ||
+            (eventId !== undefined && String(eventId) === String(ev.key))
+          );
+        });
+        if (Array.isArray(matched?.email)) recipients = matched.email;
+      }
+
+      const emailChannelActive = activeChannels.includes(t("user.form.emailAlert"));
+      const recipientsText =
+        emailChannelActive && recipients.length > 0 ? ` (${recipients.join(", ")})` : "";
+
+      return `${evLabel}: ${activeChannels.join(", ")}${recipientsText}`;
+    })
+    .filter(Boolean);
+
+  selectedUser.value.notification_matrix_details = eventsWithActiveChannels.length
+    ? eventsWithActiveChannels.join(" | ")
+    : "N/A";
 
   isDetailsModalOpen.value = true;
 };
@@ -868,6 +835,51 @@ const closeDeleteModal = () => {
 
 const handleSubmitUser = async (userData) => {
   try {
+    const buildEmailEventsPayload = (data) => {
+      const globalEmails = Array.isArray(data?.notification_emails) ? data.notification_emails : [];
+      const eventsPayload = [];
+      const missing = [];
+
+      (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
+        const emailEnabled = Number(data?.[`notify_${ev.key}_email`] ?? 0) === 1;
+        if (!emailEnabled) return;
+
+        const recipientsKey = `notify_${ev.key}_email_recipients`;
+        const eventEmails = Array.isArray(data?.[recipientsKey]) ? data[recipientsKey] : [];
+        const emailsToSend = eventEmails.length ? eventEmails : globalEmails;
+
+        if (!emailsToSend.length) {
+          missing.push(ev.en_name || ev.key || String(ev.id));
+          return;
+        }
+
+        eventsPayload.push({
+          event_id: ev.id,
+          email: emailsToSend,
+        });
+      });
+
+      return { eventsPayload, missing };
+    };
+
+    const computeGlobalChannelAlerts = (data) => {
+      const eventList = Array.isArray(notificationEventsStore.events)
+        ? notificationEventsStore.events
+        : [];
+
+      const isAnyChannelActive = (chKey) =>
+        eventList.some((ev) => Number(data?.[`notify_${ev.key}_${chKey}`] ?? 0) === 1);
+
+      return {
+        sms_alert: isAnyChannelActive("sms") ? 1 : 0,
+        web_alert: isAnyChannelActive("web") ? 1 : 0,
+        email_alert: isAnyChannelActive("email") ? 1 : 0,
+        mobile_alert: isAnyChannelActive("mobile") ? 1 : 0,
+        telegram_alert: isAnyChannelActive("telegram") ? 1 : 0,
+        whatsapp_alert: isAnyChannelActive("whatsapp") ? 1 : 0,
+      };
+    };
+
     // Validate image size
     if (
       userData.image &&
@@ -878,7 +890,7 @@ const handleSubmitUser = async (userData) => {
       formErrors.value = { ...formErrors.value, image: t("user.validation.imageSize") };
       return;
     }
-    
+
     const selectedRole = Array.isArray(selectedUser.value.role)
       ? selectedUser.value.role[0]
       : selectedUser.value.role;
@@ -917,12 +929,12 @@ const handleSubmitUser = async (userData) => {
       if (normalizedRole !== selectedRole) {
         updatedData.role = normalizedRole;
       }
-      
+
       // ✅ Admin cannot change company_id
       if (isSuperAdmin.value && userData.company_id !== selectedUser.value.company_id) {
         updatedData.company_id = userData.company_id || null;
       }
-      
+
       if (userData.region_id !== selectedUser.value.region_id) {
         updatedData.region_id = userData.region_id || null;
       }
@@ -932,6 +944,21 @@ const handleSubmitUser = async (userData) => {
       if (userData.password) {
         updatedData.password = userData.password;
       }
+
+      // Notification emails per event (only when `email` channel is enabled for that event)
+      const { eventsPayload, missing } = buildEmailEventsPayload(userData);
+      if (missing.length) {
+        showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
+        return;
+      }
+      updatedData.events = eventsPayload;
+
+      // Backend seems to persist these flags (`*_alert`) separately.
+      // Set `email_alert` only when we actually have recipients for enabled email events.
+      const alerts = computeGlobalChannelAlerts(userData);
+      alerts.email_alert = eventsPayload.some((e) => Array.isArray(e.email) && e.email.length > 0) ? 1 : 0;
+      Object.assign(updatedData, alerts);
+
       // Notification matrix diff — dynamic events × 6 channels
       notificationEventsStore.events.forEach((ev) => {
         ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
@@ -964,6 +991,23 @@ const handleSubmitUser = async (userData) => {
         region_id: userData.region_id || null,
         currency_id: userData.currency_id || null,
       };
+
+      // Notification emails per event (only when `email` channel is enabled for that event)
+      const { eventsPayload, missing } = buildEmailEventsPayload(userData);
+      if (missing.length) {
+        showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
+        return;
+      }
+      if (eventsPayload.length) {
+        newUser.events = eventsPayload;
+      }
+
+      // Backend seems to persist these flags (`*_alert`) separately.
+      // Set `email_alert` only when we actually have recipients for enabled email events.
+      const alerts = computeGlobalChannelAlerts(userData);
+      alerts.email_alert = eventsPayload.some((e) => Array.isArray(e.email) && e.email.length > 0) ? 1 : 0;
+      Object.assign(newUser, alerts);
+
       // Notification matrix: dynamic events × 6 channels
       notificationEventsStore.events.forEach((ev) => {
         ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
@@ -975,9 +1019,10 @@ const handleSubmitUser = async (userData) => {
       // Account email (single string, unchanged)
       if (userData.email) newUser.email = userData.email;
 
-      // Notification channels — only include if filled in
-      if (userData.phones?.length) newUser.phones = userData.phones;
-      if (userData.notification_emails?.length) newUser.notification_emails = userData.notification_emails;
+      // If backend still needs the old global list, send it only when events payload is empty.
+      if ((!newUser.events || newUser.events.length === 0) && userData.notification_emails?.length) {
+        newUser.notification_emails = userData.notification_emails;
+      }
 
       // Add image file if it exists (not base64)
       if (userData.image && userData.image instanceof File) {
@@ -1038,7 +1083,6 @@ const handleBulkAction = ({ actionId }) => {
   }
 };
 
-import { nextTick } from "vue"; 
 
 const executeBulkAction = async () => {
   bulkActionLoading.value = true;
@@ -1048,15 +1092,15 @@ const executeBulkAction = async () => {
     if (pendingBulkAction.value === "delete") {
       await usersStore.bulkDeleteUsers(selectedRows.value, false);
       console.log(`✅ ${count} users deleted successfully!`);
-      
+
       isBulkConfirmOpen.value = false;
       pendingBulkAction.value = null;
       selectedRows.value = [];
-      
+
       await nextTick();
       showSuccess(t('user.bulkDeleteSuccess', { count }));
-      
-    }  else if (pendingBulkAction.value === "restore") {
+
+    } else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
       console.log(`✅ ${count} users restored successfully!`);
 
@@ -1097,18 +1141,18 @@ const cancelBulkAction = () => {
 const canEditUser = (user) => {
 
   if (isSuperAdmin.value) return true;
-  
+
   if (isAdmin.value) {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;
   }
-  
+
   return false;
 };
 
 const canDeleteUser = (user) => {
   if (isSuperAdmin.value) return true;
-  
+
   if (isAdmin.value) {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;

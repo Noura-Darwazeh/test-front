@@ -248,6 +248,53 @@
                         <small class="nm-ch-label">{{ ch.label }}</small>
                       </div>
                     </div>
+
+                    <!-- Email recipients — visible only when expanded and email channel active -->
+                    <div
+                      v-if="
+                        field.enableEmailRecipients &&
+                        isMatrixChannelActive(field, ev.key, 'email')
+                      "
+                      class="nm-email-recipients"
+                    >
+                      <div class="nm-email-title text-muted small mb-2">
+                        {{ field.emailRecipientsLabel || t("user.form.notificationEmails") }}
+                      </div>
+
+                      <div
+                        v-if="(formData[getMatrixEmailRecipientsKey(field, ev.key)] || []).length"
+                        class="tags-chips d-flex flex-wrap gap-1 mb-2"
+                      >
+                        <span
+                          v-for="(tag, idx) in formData[getMatrixEmailRecipientsKey(field, ev.key)]"
+                          :key="idx"
+                          class="badge bg-primary d-flex align-items-center gap-1 tag-chip"
+                        >
+                          {{ tag }}
+                          <button type="button" class="tag-remove" @click="removeTag(getMatrixEmailRecipientsKey(field, ev.key), idx)">
+                            &times;
+                          </button>
+                        </span>
+                      </div>
+
+                      <div class="d-flex gap-2">
+                        <input
+                          type="email"
+                          class="form-control form-control-sm"
+                          :placeholder="field.emailRecipientsPlaceholder || 'email@example.com'"
+                          v-model="tagsInput[getMatrixEmailRecipientsKey(field, ev.key)]"
+                          @keydown.enter.prevent="addTag(getMatrixEmailRecipientsKey(field, ev.key))"
+                          @blur="addTag(getMatrixEmailRecipientsKey(field, ev.key))"
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-sm px-3"
+                          @click="addTag(getMatrixEmailRecipientsKey(field, ev.key))"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -513,8 +560,15 @@ const removeTag = (fieldName, index) => {
 };
 
 const toggleMatrixCell = (field, evKey, chKey) => {
-  const k = `${field.prefix || 'notify_'}${evKey}_${chKey}`;
-  formData[k] = formData[k] == 1 ? 0 : 1;
+  const k = `${field.prefix || "notify_"}${evKey}_${chKey}`;
+  const nextVal = formData[k] == 1 ? 0 : 1;
+  formData[k] = nextVal;
+
+  // When disabling email for an event, clear its recipients list
+  if (field.enableEmailRecipients && chKey === "email" && nextVal === 0) {
+    const recipientsKey = getMatrixEmailRecipientsKey(field, evKey);
+    formData[recipientsKey] = [];
+  }
 };
 
 // ── Notification Matrix accordion state ──
@@ -522,6 +576,20 @@ const matrixExpandedEvents = reactive({});
 
 const isMatrixEventExpanded = (field, evKey) => {
   return !!matrixExpandedEvents[`${field.prefix || 'notify_'}_${evKey}`];
+};
+
+const getMatrixEmailRecipientsKey = (field, evKey) => {
+  const prefix = field.prefix || "notify_";
+  return `${prefix}${evKey}_email_recipients`;
+};
+
+const getMatrixCellKey = (field, evKey, chKey) => {
+  const prefix = field.prefix || "notify_";
+  return `${prefix}${evKey}_${chKey}`;
+};
+
+const isMatrixChannelActive = (field, evKey, chKey) => {
+  return formData[getMatrixCellKey(field, evKey, chKey)] == 1;
 };
 
 const getActiveChannelCount = (field, evKey) => {
@@ -535,6 +603,11 @@ const toggleMatrixEvent = (field, evKey) => {
     // Collapsing — zero out all channels for this event
     const prefix = field.prefix || 'notify_';
     (field.channels || []).forEach(ch => { formData[`${prefix}${evKey}_${ch.key}`] = 0; });
+
+    // Also clear email recipients when matrix collapses
+    if (field.enableEmailRecipients) {
+      formData[getMatrixEmailRecipientsKey(field, evKey)] = [];
+    }
     matrixExpandedEvents[key] = false;
   } else {
     matrixExpandedEvents[key] = true;
@@ -785,6 +858,11 @@ const initializeForm = () => {
           const key = `${prefix}${ev.key}_${ch.key}`;
           formData[key] = field.defaultValues?.[key] ?? 0;
         });
+
+        if (field.enableEmailRecipients) {
+          const recipientsKey = `${prefix}${ev.key}_email_recipients`;
+          formData[recipientsKey] = field.defaultValues?.[recipientsKey] ?? [];
+        }
         // Auto-expand events that already have an active channel (edit mode)
         const expandKey = `${prefix}_${ev.key}`;
         const hasActive = (field.channels || []).some(
@@ -843,6 +921,10 @@ const resetForm = () => {
           const key = `${prefix}${ev.key}_${ch.key}`;
           formData[key] = 0;
         });
+
+        if (field.enableEmailRecipients) {
+          formData[`${prefix}${ev.key}_email_recipients`] = [];
+        }
         // Collapse all events on reset
         matrixExpandedEvents[`${prefix}_${ev.key}`] = false;
       });
