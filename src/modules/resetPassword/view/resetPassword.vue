@@ -2,7 +2,8 @@
     <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light" style="padding:32px;">
         <div class="row shadow rounded-4 bg-white overflow-hidden g-0" style="max-width:1200px; width:100%">
             <!-- Loading State -->
-            <div v-if="isValidatingToken" class="col-12 d-flex align-items-center justify-content-center" style="min-height:600px; padding: 48px 40px;">
+            <div v-if="isValidatingToken" class="col-12 d-flex align-items-center justify-content-center"
+                style="min-height:600px; padding: 48px 40px;">
                 <div class="text-center">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
                         <span class="visually-hidden">{{ $t('common.loading') }}</span>
@@ -13,7 +14,8 @@
             </div>
 
             <!-- Invalid Token State -->
-            <div v-else-if="!isTokenValid" class="col-12 d-flex align-items-center justify-content-center" style="min-height:600px; padding: 48px 40px;">
+            <div v-else-if="!isTokenValid" class="col-12 d-flex align-items-center justify-content-center"
+                style="min-height:600px; padding: 48px 40px;">
                 <div class="text-center" style="max-width: 420px;">
                     <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
                         style="width:64px;height:64px;background:#dc3545;color:#fff">
@@ -27,11 +29,8 @@
                     <p class="text-muted mb-4">
                         {{ $t('resetPassword.expirationMessage') }}
                     </p>
-                    <PrimaryButton
-                        :text="$t('resetPassword.requestNewLink')"
-                        @click="router.push('/forgot-password')"
-                        bg-color="var(--primary-color)"
-                    />
+                    <PrimaryButton :text="$t('resetPassword.requestNewLink')" @click="router.push('/forgot-password')"
+                        bg-color="var(--primary-color)" />
                     <div class="mt-3">
                         <small class="text-muted">{{ $t('resetPassword.redirectingIn5') }}</small>
                     </div>
@@ -41,7 +40,8 @@
             <!-- Valid Token - Show Reset Form -->
             <template v-else>
                 <!-- LEFT: FORM -->
-                <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center" style="padding: 48px 40px;">
+                <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center"
+                    style="padding: 48px 40px;">
                     <div style="max-width: 420px; width: 100%;">
                         <div class="text-center mb-4">
                             <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
@@ -55,15 +55,11 @@
                         <form @submit.prevent="onSubmit" class="needs-validation" novalidate>
                             <!-- New Password Field -->
                             <div class="mb-3">
-                                <FormLabel :label="$t('resetPassword.newPasswordLabel')" for-id="password" :required="true" />
-                                <TextField
-                                    id="password"
-                                    v-model="form.password"
-                                    type="password"
-                                    :placeholder="$t('resetPassword.passwordPlaceholder')"
-                                    :minlength="6"
-                                    :required="true"
-                                />
+                                <FormLabel :label="$t('resetPassword.newPasswordLabel')" for-id="password"
+                                    :required="true" />
+                                <TextField id="password" v-model="form.password" type="password"
+                                    :placeholder="$t('resetPassword.passwordPlaceholder')" :minlength="6"
+                                    :required="true" />
                                 <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
                                 <small v-else class="text-muted d-block mt-1">
                                     {{ $t('resetPassword.validation.passwordMin') }}
@@ -72,15 +68,11 @@
 
                             <!-- Confirm Password Field -->
                             <div class="mb-3">
-                                <FormLabel :label="$t('resetPassword.confirmPasswordLabel')" for-id="password_confirmation" :required="true" />
-                                <TextField
-                                    id="password_confirmation"
-                                    v-model="form.password_confirmation"
-                                    type="password"
-                                    :placeholder="$t('resetPassword.passwordPlaceholder')"
-                                    :minlength="6"
-                                    :required="true"
-                                />
+                                <FormLabel :label="$t('resetPassword.confirmPasswordLabel')"
+                                    for-id="password_confirmation" :required="true" />
+                                <TextField id="password_confirmation" v-model="form.password_confirmation"
+                                    type="password" :placeholder="$t('resetPassword.passwordPlaceholder')"
+                                    :minlength="6" :required="true" />
                                 <small v-if="errors.password_confirmation" class="text-danger">
                                     {{ errors.password_confirmation }}
                                 </small>
@@ -94,13 +86,9 @@
 
                             <!-- Submit Button -->
                             <div class="mb-3">
-                                <PrimaryButton
-                                    :text="$t('resetPassword.resetButton')"
-                                    :loading-text="$t('resetPassword.resetting')"
-                                    :loading="submitting"
-                                    :disabled="!isFormValid"
-                                    type="submit"
-                                />
+                                <PrimaryButton :text="$t('resetPassword.resetButton')"
+                                    :loading-text="$t('resetPassword.resetting')" :loading="submitting"
+                                    :disabled="!isFormValid" type="submit" />
                             </div>
 
                             <!-- Success Message -->
@@ -167,7 +155,7 @@ const successMessage = ref(t('resetPassword.successMessage'))
 const isValidatingToken = ref(true)
 const isTokenValid = ref(false)
 
-// Get token and email from URL or localStorage
+// Get token from URL and email from localStorage
 const token = ref('')
 const email = ref('')
 
@@ -193,9 +181,9 @@ async function validateResetToken() {
         }
     } catch (err) {
         console.error('❌ Token validation failed:', err)
-        
+
         isTokenValid.value = false
-        
+
         // Handle different error scenarios
         if (err.response?.data?.message) {
             apiError.value = err.response.data.message
@@ -215,9 +203,11 @@ async function validateResetToken() {
 }
 
 onMounted(async () => {
-    // Try to get token and email from URL query parameters
-    token.value = route.query.token || getItem('reset_token', '')
-    email.value = route.query.email || getItem('reset_email', '')
+    // Get token and email from URL and localStorage
+    token.value = route.query.token
+    email.value = getItem('forgot_email', '')
+    console.log('t', token.value)
+    console.log('e', email.value)
 
     // Validate that we have both token and email
     if (!token.value || !email.value) {
@@ -225,7 +215,7 @@ onMounted(async () => {
         apiError.value = t('resetPassword.errors.missingToken')
         isValidatingToken.value = false
         isTokenValid.value = false
-        
+
         // Redirect to forgot password after 3 seconds
         setTimeout(() => {
             router.push('/forgot-password')
@@ -238,10 +228,10 @@ onMounted(async () => {
 
 // Computed property to check if form is valid
 const isFormValid = computed(() => {
-    return form.password.length >= 6 && 
-           form.password === form.password_confirmation &&
-           !errors.password && 
-           !errors.password_confirmation
+    return form.password.length >= 6 &&
+        form.password === form.password_confirmation &&
+        !errors.password &&
+        !errors.password_confirmation
 })
 
 // Validate passwords match

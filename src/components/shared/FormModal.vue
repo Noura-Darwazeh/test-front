@@ -96,7 +96,7 @@
                   <button
                     v-if="field.type === 'password'"
                     type="button"
-                    @click="togglePasswordVisibility(field.name)"
+                    @click="togglePasswordVisibility(field.nam e)"
                     class="btn position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent p-0 me-2"
                     style="z-index: 10"
                     tabindex="-1"
