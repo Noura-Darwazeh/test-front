@@ -118,6 +118,10 @@ const currentLanguageLabel = computed(() => {
 
 onMounted(() => {
   detectBrowserLanguage();
+   const savedEmail = localStorage.getItem('forgot_email')
+  if (savedEmail) {
+    email.value = savedEmail
+  }
 });
 
 const detectBrowserLanguage = () => {
@@ -179,6 +183,9 @@ async function onSubmit() {
         console.log("FORGOT RESPONSE:", response.data)
 
         if (response.data.success === true) {
+
+                localStorage.setItem('forgot_email', email.value.trim())
+
             successMessage.value =
                 response.data.message || t('forgotPassword.successMessage')
 

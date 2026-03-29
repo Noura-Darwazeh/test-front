@@ -63,8 +63,6 @@
                                     :placeholder="$t('resetPassword.passwordPlaceholder')"
                                     :minlength="6"
                                     :required="true"
-                                      @input="validatePasswords"
-
                                 />
                                 <small v-if="errors.password" class="text-danger">{{ errors.password }}</small>
                                 <small v-else class="text-muted d-block mt-1">
@@ -82,8 +80,6 @@
                                     :placeholder="$t('resetPassword.passwordPlaceholder')"
                                     :minlength="6"
                                     :required="true"
-                                      @input="validatePasswords"
-
                                 />
                                 <small v-if="errors.password_confirmation" class="text-danger">
                                     {{ errors.password_confirmation }}
@@ -148,6 +144,7 @@ import TextField from '../../../components/shared/TextField.vue'
 import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
 import packageIcon from '../../../assets/login/package.svg'
 import api from '@/services/api.js'
+import { getItem, removeItem } from '@/utils/shared/storageUtils.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -166,13 +163,17 @@ const errors = reactive({
 const submitting = ref(false)
 const success = ref(false)
 const apiError = ref('')
-const successMessage = ref(t('resetPassword.successMessage')) // ✅ FIX
+const successMessage = ref(t('resetPassword.successMessage'))
 const isValidatingToken = ref(true)
 const isTokenValid = ref(false)
 
+// Get token and email from URL or localStorage
 const token = ref('')
+const email = ref('')
 
-// ✅ Validate Token
+/**
+ * Validate the reset token with the API
+ */
 async function validateResetToken() {
     try {
         isValidatingToken.value = true
@@ -181,23 +182,30 @@ async function validateResetToken() {
         const response = await api.get('/password/reset/validate', {
             params: {
                 token: token.value,
+                email: email.value
             }
         })
-console.log('Token validation response',response)
+
         if (response.data.success === true) {
             isTokenValid.value = true
         } else {
-            throw new Error(response.data.message)
+            throw new Error(response.data.message || 'Invalid token')
         }
     } catch (err) {
+        console.error('❌ Token validation failed:', err)
+        
         isTokenValid.value = false
-
+        
+        // Handle different error scenarios
         if (err.response?.data?.message) {
             apiError.value = err.response.data.message
+        } else if (err.response?.status === 400 || err.response?.status === 404) {
+            apiError.value = t('resetPassword.errors.expiredLink')
         } else {
-            apiError.value = t('resetPassword.errors.invalidLink')
+            apiError.value = err.message || t('resetPassword.errors.invalidLink')
         }
 
+        // Redirect to forgot password after 5 seconds
         setTimeout(() => {
             router.push('/forgot-password')
         }, 5000)
@@ -207,31 +215,36 @@ console.log('Token validation response',response)
 }
 
 onMounted(async () => {
-    token.value = route.query.token
+    // Try to get token and email from URL query parameters
+    token.value = route.query.token || getItem('reset_token', '')
+    email.value = route.query.email || getItem('reset_email', '')
 
-    if (!token.value) {
+    // Validate that we have both token and email
+    if (!token.value || !email.value) {
+        console.error('❌ Missing token or email')
         apiError.value = t('resetPassword.errors.missingToken')
         isValidatingToken.value = false
         isTokenValid.value = false
-
+        
+        // Redirect to forgot password after 3 seconds
         setTimeout(() => {
             router.push('/forgot-password')
         }, 3000)
     } else {
+        // Validate the token with the API
         await validateResetToken()
     }
 })
 
-// ✅ Computed
+// Computed property to check if form is valid
 const isFormValid = computed(() => {
-    return form.password.length >= 6 &&
-        form.password_confirmation.length > 0 && 
-        form.password === form.password_confirmation &&
-        !errors.password &&
-        !errors.password_confirmation
+    return form.password.length >= 6 && 
+           form.password === form.password_confirmation &&
+           !errors.password && 
+           !errors.password_confirmation
 })
 
-// ✅ Validation (FIXED)
+// Validate passwords match
 const validatePasswords = () => {
     errors.password = ''
     errors.password_confirmation = ''
@@ -241,10 +254,8 @@ const validatePasswords = () => {
         return false
     }
 
-    if (
-        form.password_confirmation &&
-        form.password !== form.password_confirmation
-    ) {
+    if (form.password_confirmation.length > 0 &&
+        form.password !== form.password_confirmation) {
         errors.password_confirmation = t('resetPassword.validation.passwordsNotMatch')
         return false
     }
@@ -252,15 +263,30 @@ const validatePasswords = () => {
     return true
 }
 
-// ✅ Submit
 async function onSubmit() {
+    // Clear previous errors
     errors.password = ''
     errors.password_confirmation = ''
     apiError.value = ''
 
-    if (!validatePasswords()) return
+    // Validate form
+    if (!form.password || form.password.length < 6) {
+        errors.password = t('resetPassword.validation.passwordMin')
+        return
+    }
 
-    if (!token.value) {
+    if (!form.password_confirmation) {
+        errors.password_confirmation = t('resetPassword.validation.confirmRequired')
+        return
+    }
+
+    if (form.password !== form.password_confirmation) {
+        errors.password_confirmation = t('resetPassword.validation.passwordsNotMatch')
+        return
+    }
+
+    // Check if we have token and email
+    if (!token.value || !email.value) {
         apiError.value = t('resetPassword.errors.missingToken')
         return
     }
@@ -268,29 +294,60 @@ async function onSubmit() {
     submitting.value = true
 
     try {
+        // Call the reset password API
         const response = await api.post('/reset_password', {
             token: token.value,
+            email: email.value,
             password: form.password,
             password_confirmation: form.password_confirmation
+        }, {
+            params: {
+                token: token.value,
+                email: email.value
+            }
         })
 
+        // Check if successful
         if (response.data.success === true) {
-            successMessage.value =
-                response.data.message || t('resetPassword.successMessage')
+            // Update success message with API response
+            successMessage.value = response.data.message || t('resetPassword.successMessage')
 
+            // Show success message
             success.value = true
 
+            // Clear reset data from localStorage
+            removeItem('reset_token')
+            removeItem('reset_email')
+
+            // Redirect to login after 3 seconds
             setTimeout(() => {
                 router.push('/login')
             }, 3000)
         } else {
-            throw new Error(response.data.message)
+            throw new Error(response.data.message || t('resetPassword.errors.resetFailed'))
         }
     } catch (error) {
+        console.error('❌ Reset password error:', error)
+
+        // Handle different error scenarios
         if (error.response?.data?.message) {
             apiError.value = error.response.data.message
+        } else if (error.response?.status === 400) {
+            apiError.value = t('resetPassword.errors.invalidLink')
+        } else if (error.response?.status === 422) {
+            // Validation errors
+            const validationErrors = error.response.data.errors
+            if (validationErrors) {
+                if (validationErrors.password) {
+                    errors.password = validationErrors.password[0]
+                }
+                if (validationErrors.password_confirmation) {
+                    errors.password_confirmation = validationErrors.password_confirmation[0]
+                }
+            }
+            apiError.value = t('resetPassword.errors.validationFailed')
         } else {
-            apiError.value = t('resetPassword.errors.resetFailed')
+            apiError.value = error.message || t('resetPassword.errors.resetFailed')
         }
     } finally {
         submitting.value = false
