@@ -98,10 +98,8 @@ import PrimaryButton from '../../../components/shared/PrimaryButton.vue'
 import BaseDropdown from '../../../components/shared/BaseDropdown.vue'
 import packageIcon from '../../../assets/login/package.svg'
 import apiServices from '@/services/apiServices.js'
-import { setItem } from '@/utils/shared/storageUtils.js'
 import { setLocale } from '@/i18n/index'
 
-const router = useRouter()
 const { t, locale } = useI18n()
 
 const email = ref('')
@@ -124,27 +122,31 @@ onMounted(() => {
 
 const detectBrowserLanguage = () => {
   const savedLang = localStorage.getItem('lang');
-  
-  if (!savedLang) {
-    const browserLang = navigator.language || navigator.userLanguage;
-    
-    if (browserLang.startsWith('ar')) {
-      currentLanguage.value = 'ar';
-      setLocale('ar');
-    } else {
-      currentLanguage.value = 'en';
-      setLocale('en');
-    }
-  } else {
+
+  if (savedLang) {
     currentLanguage.value = savedLang;
+    setLocale(savedLang);
+    return;
+  }
+
+  const browserLang = navigator.language || navigator.userLanguage;
+
+  if (browserLang.startsWith('ar')) {
+    currentLanguage.value = 'ar';
+    setLocale('ar');
+  } else {
+    currentLanguage.value = 'en';
+    setLocale('en');
   }
 };
 
 const changeLanguage = (lang, closeDropdown) => {
   currentLanguage.value = lang;
   setLocale(lang);
+
+  localStorage.setItem('lang', lang);
+
   closeDropdown();
- 
 };
 
 
@@ -155,17 +157,14 @@ const clearErrors = () => {
 
 // ===== Form Logic =====
 async function onSubmit() {
-    // Clear previous errors
     emailError.value = ''
     sent.value = false
 
-    // Validate email is not empty
     if (!email.value || !email.value.trim()) {
         emailError.value = t('forgotPassword.validation.emailRequired')
         return
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email.value)) {
         emailError.value = t('forgotPassword.validation.emailInvalid')
@@ -177,50 +176,42 @@ async function onSubmit() {
     try {
         const response = await apiServices.forgotPassword(email.value.trim())
 
+        console.log("FORGOT RESPONSE:", response.data)
+
         if (response.data.success === true) {
-            const token = response.data.token || response.data.data?.token
+            successMessage.value =
+                response.data.message || t('forgotPassword.successMessage')
 
-            setItem('reset_email', email.value.trim())
-            if (token) {
-                setItem('reset_token', token)
-            }
-
-            successMessage.value = response.data.message || t('forgotPassword.successMessage')
             sent.value = true
-            emailError.value = '' // ✅ Clear error on success
-
-            // Optional: redirect after delay
-            // setTimeout(() => {
-            //     router.push('/login')
-            // }, 5000)
+            emailError.value = ''
         } else {
-            throw new Error(response.data.message || t('forgotPassword.errors.sendFailed'))
+            throw new Error(
+                response.data.message || t('forgotPassword.errors.sendFailed')
+            )
         }
     } catch (error) {
         console.error('❌ Forgot password error:', error)
 
-        // ✅ Handle different error cases - show under input
         if (error.response?.status === 404) {
             emailError.value = t('forgotPassword.errors.emailNotFound')
         } else if (error.response?.status === 422) {
-            // ✅ Validation error
             const validationErrors = error.response?.data?.errors
             if (validationErrors?.email) {
-                emailError.value = Array.isArray(validationErrors.email) 
-                    ? validationErrors.email[0] 
+                emailError.value = Array.isArray(validationErrors.email)
+                    ? validationErrors.email[0]
                     : validationErrors.email
             } else {
-                emailError.value = error.response?.data?.message || t('forgotPassword.validation.emailInvalid')
+                emailError.value =
+                    error.response?.data?.message ||
+                    t('forgotPassword.validation.emailInvalid')
             }
         } else if (error.response?.status === 500) {
-            // ✅ Server error
             emailError.value = t('forgotPassword.errors.serverError')
         } else if (error.response?.data?.message) {
-            // ✅ Any other API error message
             emailError.value = error.response.data.message
         } else {
-            // ✅ Generic error
-            emailError.value = error.message || t('forgotPassword.errors.sendFailed')
+            emailError.value =
+                error.message || t('forgotPassword.errors.sendFailed')
         }
     } finally {
         submitting.value = false
