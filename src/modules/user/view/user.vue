@@ -129,10 +129,8 @@ const notificationEventsStore = useNotificationEventsStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
-// ✅ API Base URL
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
 
-// ✅ Helper function to get full image URL
 const getFullImageUrl = (imagePath) => {
   if (!imagePath) return null;
   if (imagePath.startsWith("http")) return imagePath;
@@ -141,7 +139,6 @@ const getFullImageUrl = (imagePath) => {
 
 const { companyId, companyOption, currencyId } = useAuthDefaults();
 
-// ✅ Check if user can add users (SuperAdmin or Admin)
 const isSuperAdmin = computed(
   () => (authStore.userRole || "").toLowerCase() === "superadmin",
 );
@@ -167,11 +164,9 @@ const activeTab = ref("active");
 const selectedRows = ref([]);
 const formErrors = ref({});
 
-// Active Toggle
 const refreshUsers = () => fetchUsersPage(currentPage.value);
 const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("users", refreshUsers, { showSuccess, showError });
 
-// Get the correct pagination metadata based on active tab
 const currentPagination = computed(() => {
   return activeTab.value === "active"
     ? usersStore.usersPagination
@@ -180,28 +175,23 @@ const currentPagination = computed(() => {
 
 const itemsPerPage = computed(() => currentPagination.value.perPage || 10);
 
-// Bulk action state
 const bulkActionLoading = ref(false);
 const isBulkConfirmOpen = ref(false);
 const pendingBulkAction = ref(null);
 
-// Dynamic data from API
 const regions = ref([]);
 const currencies = ref([]);
 const companies = ref([]);
 const dataLoading = ref(false);
 
-// ✅ Roles available based on user type
 const roles = computed(() => {
   if (isSuperAdmin.value) {
-    // SuperAdmin can add all roles
     return [
       { value: "Admin", label: "Admin" },
       { value: "Employee", label: "Employee" },
       { value: "Supervisor", label: "Supervisor" },
     ];
   } else if (isAdmin.value) {
-    // Admin can only add Employee and Supervisor
     return [
       { value: "Employee", label: "Employee" },
       { value: "Supervisor", label: "Supervisor" },
@@ -220,24 +210,17 @@ const resolveIdValue = (value) => {
   return value === null || value === undefined ? "" : String(value);
 };
 
-
-// Get users from store, excluding logged-in user and SuperAdmin users
 const users = computed(() => {
   return usersStore.users.filter((user) => {
     if (user.id === authStore.user?.id) return false;
-
-    // Exclude SuperAdmin users (case-insensitive)
-    // Handle role as array or string
     const userRole = Array.isArray(user.role) ? user.role[0] : user.role;
     if (userRole?.toLowerCase() === "superadmin") return false;
-
     return true;
   });
 });
 
 const trashedUsers = computed(() => usersStore.trashedUsers);
 
-// Fetch dropdown data (regions, currencies, companies)
 const fetchDropdownData = async () => {
   dataLoading.value = true;
   const shouldFetchCompanies = isSuperAdmin.value;
@@ -261,7 +244,6 @@ const fetchDropdownData = async () => {
       }));
     } else {
       regions.value = [];
-      console.error("❌ Failed to load regions:", regionsResponse.reason);
     }
 
     if (currenciesResponse.status === "fulfilled") {
@@ -288,7 +270,6 @@ const fetchDropdownData = async () => {
       }));
     } else {
       currencies.value = [];
-      console.error("❌ Failed to load currencies:", currenciesResponse.reason);
     }
 
     if (shouldFetchCompanies) {
@@ -299,7 +280,6 @@ const fetchDropdownData = async () => {
         }));
       } else {
         companies.value = [];
-        console.error("❌ Failed to load companies:", companiesResponse?.reason);
       }
     } else {
       companies.value = [];
@@ -312,7 +292,6 @@ const fetchDropdownData = async () => {
   }
 };
 
-// Fetch data on component mount
 onMounted(async () => {
   try {
     await Promise.all([fetchUsersPage(1), fetchDropdownData(), notificationEventsStore.fetchEvents()]);
@@ -321,7 +300,6 @@ onMounted(async () => {
   }
 });
 
-// Watch for page changes to fetch new data from server
 watch(currentPage, async (newPage) => {
   if (skipNextPageWatch.value) {
     skipNextPageWatch.value = false;
@@ -334,19 +312,16 @@ watch(currentPage, async (newPage) => {
   }
 });
 
-// ✅ User Form Fields with conditional logic
 const notificationMatrixDefaultValues = computed(() => {
   if (!isEditMode.value) return {};
-
   const defaults = { ...(selectedUser.value || {}) };
   const prefix = "notify_";
-
   (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
     defaults[`${prefix}${ev.key}_email_recipients`] = [];
   });
-
   return defaults;
 });
+
 const userFields = computed(() => [
   {
     name: "name",
@@ -430,11 +405,6 @@ const userFields = computed(() => [
       label: role.label,
     })),
     colClass: "col-md-6",
-    // defaultValue: isEditMode.value
-    //   ? selectedUser.value.role
-    //     ? selectedUser.value.role[0]
-    //     : selectedUser.value.role
-    //   : "",
     defaultValue: isEditMode.value ? selectedUser.value.role : "",
     validate: (value) => {
       if (!value || (Array.isArray(value) && value.length === 0)) {
@@ -442,14 +412,12 @@ const userFields = computed(() => [
       }
       return null;
     },
-
   },
   {
     name: "company_id",
     label: t("user.form.company"),
     type: "select",
     required: false,
-    // ✅ SuperAdmin sees all companies, Admin sees only their company (hidden field)
     options: isSuperAdmin.value
       ? companies.value
       : companyOption.value.length
@@ -462,8 +430,8 @@ const userFields = computed(() => [
       : isSuperAdmin.value
         ? ""
         : companyId.value,
-    locked: !isSuperAdmin.value, // ✅ Locked for Admin
-    hidden: !isSuperAdmin.value, // ✅ Hidden for Admin
+    locked: !isSuperAdmin.value,
+    hidden: !isSuperAdmin.value,
   },
   {
     name: "region_id",
@@ -492,14 +460,11 @@ const userFields = computed(() => [
       ? selectedUser.value.currency_id
       : currencyId.value,
   },
-  // ── Notification Preferences ───────────────────────────────────────────
   {
     type: "section",
     label: t("user.form.notificationSection"),
     colClass: "col-12",
   },
-
-  // ── Notification Matrix ────────────────────────────────────────────────
   {
     type: "notification-matrix",
     colClass: "col-12",
@@ -522,7 +487,6 @@ const userFields = computed(() => [
   },
 ]);
 
-// Details Fields
 const detailsFields = computed(() => [
   { key: "id", label: t("user.id"), colClass: "col-md-6" },
   { key: "name", label: t("user.fullName"), colClass: "col-md-6" },
@@ -570,7 +534,6 @@ const trashedColumns = computed(() => [
 
 const visibleColumns = ref([]);
 
-// Tab switching function
 const switchTab = async (tab) => {
   activeTab.value = tab;
   skipNextPageWatch.value = true;
@@ -592,72 +555,39 @@ const handleRefresh = async () => {
   }
 };
 
-// Bulk actions configuration
 const bulkActions = computed(() => {
   if (activeTab.value === "active") {
     return [
-      {
-        id: 'activate',
-        label: t('common.bulkActivate'),
-        bgColor: 'var(--color-success)',
-      },
-      {
-        id: 'deactivate',
-        label: t('common.bulkDeactivate'),
-        bgColor: 'var(--color-warning, #ffc107)',
-      },
-      {
-        id: "delete",
-        label: t("user.bulkDelete"),
-        bgColor: "var(--color-danger)",
-      },
+      { id: 'activate', label: t('common.bulkActivate'), bgColor: 'var(--color-success)' },
+      { id: 'deactivate', label: t('common.bulkDeactivate'), bgColor: 'var(--color-warning, #ffc107)' },
+      { id: "delete", label: t("user.bulkDelete"), bgColor: "var(--color-danger)" },
     ];
   }
   return [
-    {
-      id: "restore",
-      label: t("user.bulkRestore"),
-      bgColor: "var(--color-success)",
-    },
-
+    { id: "restore", label: t("user.bulkRestore"), bgColor: "var(--color-success)" },
   ];
 });
 
-// Bulk confirmation message
 const bulkConfirmMessage = computed(() => {
   if (!pendingBulkAction.value) return "";
-
   const count = selectedRows.value.length;
   const entity = count === 1 ? t("user.entitySingular") : t("user.entityPlural");
-
-  if (pendingBulkAction.value === "delete") {
-    return t("common.bulkDeleteConfirm", { count, entity });
-  }
-  if (pendingBulkAction.value === "permanentDelete") {
-    return t("common.bulkPermanentDeleteConfirm", { count, entity });
-  }
-  if (pendingBulkAction.value === "restore") {
-    return t("common.bulkRestoreConfirm", { count, entity });
-  }
+  if (pendingBulkAction.value === "delete") return t("common.bulkDeleteConfirm", { count, entity });
+  if (pendingBulkAction.value === "permanentDelete") return t("common.bulkPermanentDeleteConfirm", { count, entity });
+  if (pendingBulkAction.value === "restore") return t("common.bulkRestoreConfirm", { count, entity });
   return "";
 });
 
-// Current loading state based on active tab
 const currentLoading = computed(() => {
-  return activeTab.value === "active"
-    ? usersStore.loading
-    : usersStore.trashedLoading;
+  return activeTab.value === "active" ? usersStore.loading : usersStore.trashedLoading;
 });
 
-// Current data based on active tab
 const currentData = computed(() => {
   return activeTab.value === "active" ? users.value : trashedUsers.value;
 });
 
-// Filtered columns based on active tab
 const filteredColumns = computed(() => {
-  const columns =
-    activeTab.value === "active" ? userColumns.value : trashedColumns.value;
+  const columns = activeTab.value === "active" ? userColumns.value : trashedColumns.value;
   if (activeTab.value === "active") {
     return columns.filter((col) => visibleColumns.value.includes(col.key));
   }
@@ -667,39 +597,25 @@ const filteredColumns = computed(() => {
 const buildUserFilters = () => {
   const filters = {};
   const trimmedSearch = searchText.value.trim();
-  if (trimmedSearch) {
-    filters.search = trimmedSearch;
-  }
+  if (trimmedSearch) filters.search = trimmedSearch;
   if (selectedGroups.value.length > 0) {
-    filters.role =
-      selectedGroups.value.length === 1
-        ? selectedGroups.value[0]
-        : selectedGroups.value.join(",");
+    filters.role = selectedGroups.value.length === 1
+      ? selectedGroups.value[0]
+      : selectedGroups.value.join(",");
   }
-  if (activeStatusFilter.value !== '') {
-    filters.is_active = activeStatusFilter.value;
-  }
+  if (activeStatusFilter.value !== '') filters.is_active = activeStatusFilter.value;
   return filters;
 };
 
 const fetchUsersPage = async (page = 1) => {
   const filters = buildUserFilters();
   if (activeTab.value === "trashed") {
-    await usersStore.fetchTrashedUsers({
-      page,
-      perPage: itemsPerPage.value,
-      filters,
-    });
+    await usersStore.fetchTrashedUsers({ page, perPage: itemsPerPage.value, filters });
   } else {
-    await usersStore.fetchUsers({
-      page,
-      perPage: itemsPerPage.value,
-      filters,
-    });
+    await usersStore.fetchUsers({ page, perPage: itemsPerPage.value, filters });
   }
 };
 
-// Server already returns paginated data; use store results directly
 const paginatedData = computed(() => currentData.value);
 
 watch([searchText, selectedGroups, activeStatusFilter], async () => {
@@ -724,7 +640,6 @@ const clearFormErrors = () => {
   formErrors.value = {};
 };
 
-// Add Modal
 const openModal = () => {
   clearFormErrors();
   isEditMode.value = false;
@@ -732,29 +647,24 @@ const openModal = () => {
   isModalOpen.value = true;
 };
 
-// Edit Modal
 const openEditModal = (user) => {
   clearFormErrors();
   isEditMode.value = true;
-  // selectedUser.value = { ...user };
-
-
   const normalizedUser = {
     ...user,
     role: Array.isArray(user.role) ? user.role[0] : user.role
   };
-
   selectedUser.value = normalizedUser;
-
   if (selectedUser.value.image) {
     selectedUser.value.imagePreview = getFullImageUrl(selectedUser.value.image);
   }
-
   isModalOpen.value = true;
 };
 
-// Details Modal
+// ✅ FIXED: openDetailsModal with correct response parsing and channel checking
 const openDetailsModal = async (user) => {
+    console.log("User ID:", user.id); // ✅
+
   selectedUser.value = { ...user };
 
   if (selectedUser.value.image) {
@@ -766,18 +676,18 @@ const openDetailsModal = async (user) => {
 
   try {
     const response = await apiServices.getUserNotificationEvents(user.id);
+console.log("API Response For User Notifications:", response); // ✅
+    // ✅ FIXED: Correctly extract data from { data: [...] } response shape
     let notificationsData = [];
     const rData = response?.data;
+
     if (Array.isArray(rData)) {
       notificationsData = rData;
-    } else if (rData && Array.isArray(rData.data)) {
+    } else if (Array.isArray(rData?.data)) {
+      // ✅ This matches your API response: { data: [...] }
       notificationsData = rData.data;
-    } else if (rData?.data && Array.isArray(rData.data.data)) {
+    } else if (Array.isArray(rData?.data?.data)) {
       notificationsData = rData.data.data;
-    } else if (rData?.data?.data && Array.isArray(rData.data.data.data)) {
-      notificationsData = rData.data.data.data;
-    } else if (Array.isArray(response)) {
-      notificationsData = response;
     }
 
     const channelDefs = [
@@ -791,23 +701,30 @@ const openDetailsModal = async (user) => {
 
     const eventsWithActiveChannels = notificationsData.map((item) => {
       const eventName = item.event?.name || t("common.unknownEvent", "Unknown Event");
+
       let channels = item.channel || {};
-      
       if (typeof channels === 'string') {
-        try {
-          channels = JSON.parse(channels);
-        } catch (e) {
-          channels = {};
-        }
+        try { channels = JSON.parse(channels); } catch { channels = {}; }
       }
 
+      // ✅ FIXED: Check boolean true OR numeric 1 — API returns actual booleans
       const activeChannels = channelDefs
-        .filter((ch) => channels[`${ch.key}_alert`] === true || String(channels[`${ch.key}_alert`]) === "1" || String(channels[`${ch.key}_alert`]) === "true")
+        .filter((ch) => {
+          const val = channels[`${ch.key}_alert`];
+          return val === true || val === 1 || val === "1" || val === "true";
+        })
         .map((ch) => ch.label);
 
       if (activeChannels.length === 0) return null;
 
-      const emailChannelActive = activeChannels.includes(t("user.form.emailAlert"));
+      // ✅ Check if email channel is active and get recipients
+      const emailChannelActive = channelDefs
+        .find((ch) => ch.key === "email") &&
+        (() => {
+          const val = channels["email_alert"];
+          return val === true || val === 1 || val === "1" || val === "true";
+        })();
+
       let recipientsText = "";
       if (emailChannelActive && Array.isArray(channels.email) && channels.email.length > 0) {
         recipientsText = ` (${channels.email.join(", ")})`;
@@ -884,10 +801,7 @@ const handleSubmitUser = async (userData) => {
     };
 
     const computeGlobalChannelAlerts = (data) => {
-      const eventList = Array.isArray(notificationEventsStore.events)
-        ? notificationEventsStore.events
-        : [];
-
+      const eventList = Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : [];
       const isAnyChannelActive = (chKey) =>
         eventList.some((ev) => Number(data?.[`notify_${ev.key}_${chKey}`] ?? 0) === 1);
 
@@ -901,13 +815,11 @@ const handleSubmitUser = async (userData) => {
       };
     };
 
-    // Validate image size
     if (
       userData.image &&
       userData.image instanceof File &&
       userData.image.size > VALIDATION_LIMITS.IMAGE_MAX_SIZE
     ) {
-      console.error("❌ Image size exceeds limit");
       formErrors.value = { ...formErrors.value, image: t("user.validation.imageSize") };
       return;
     }
@@ -915,58 +827,33 @@ const handleSubmitUser = async (userData) => {
     const selectedRole = Array.isArray(selectedUser.value.role)
       ? selectedUser.value.role[0]
       : selectedUser.value.role;
-    const normalizedRole = Array.isArray(userData.role)
-      ? userData.role[0]
-      : userData.role;
+    const normalizedRole = Array.isArray(userData.role) ? userData.role[0] : userData.role;
 
-    // ✅ Validation for Admin: prevent adding Admin role
     if (isAdmin.value && normalizedRole === "Admin") {
       showError(t("user.validation.cannotAddAdmin"));
       return;
     }
 
-    // ✅ Force company_id for Admin users
     if (isAdmin.value && !userData.company_id) {
       userData.company_id = companyId.value;
     }
 
     if (isEditMode.value) {
-      // Update existing user
       const updatedData = {};
 
-      // Only include fields that have changed
-      if (userData.name !== selectedUser.value.name) {
-        updatedData.name = userData.name;
-      }
-      if (userData.username !== selectedUser.value.username) {
-        updatedData.username = userData.username;
-      }
-      if (userData.email !== selectedUser.value.email) {
-        updatedData.email = userData.email || "";
-      }
-      if (userData.phone_number !== selectedUser.value.phone_number) {
-        updatedData.phone_number = userData.phone_number;
-      }
-      if (normalizedRole !== selectedRole) {
-        updatedData.role = normalizedRole;
-      }
+      if (userData.name !== selectedUser.value.name) updatedData.name = userData.name;
+      if (userData.username !== selectedUser.value.username) updatedData.username = userData.username;
+      if (userData.email !== selectedUser.value.email) updatedData.email = userData.email || "";
+      if (userData.phone_number !== selectedUser.value.phone_number) updatedData.phone_number = userData.phone_number;
+      if (normalizedRole !== selectedRole) updatedData.role = normalizedRole;
 
-      // ✅ Admin cannot change company_id
       if (isSuperAdmin.value && userData.company_id !== selectedUser.value.company_id) {
         updatedData.company_id = userData.company_id || null;
       }
+      if (userData.region_id !== selectedUser.value.region_id) updatedData.region_id = userData.region_id || null;
+      if (userData.currency_id !== selectedUser.value.currency_id) updatedData.currency_id = userData.currency_id || null;
+      if (userData.password) updatedData.password = userData.password;
 
-      if (userData.region_id !== selectedUser.value.region_id) {
-        updatedData.region_id = userData.region_id || null;
-      }
-      if (userData.currency_id !== selectedUser.value.currency_id) {
-        updatedData.currency_id = userData.currency_id || null;
-      }
-      if (userData.password) {
-        updatedData.password = userData.password;
-      }
-
-      // Notification preferences per event
       const { eventsPayload, missing } = buildEventsPayload(userData);
       if (missing.length) {
         showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
@@ -974,13 +861,10 @@ const handleSubmitUser = async (userData) => {
       }
       updatedData.events = eventsPayload;
 
-      // Backend seems to persist these flags (`*_alert`) separately.
-      // Set `email_alert` only when we actually have recipients for enabled email events.
       const alerts = computeGlobalChannelAlerts(userData);
       alerts.email_alert = eventsPayload.some((e) => Array.isArray(e.email) && e.email.length > 0) ? 1 : 0;
       Object.assign(updatedData, alerts);
 
-      // Notification matrix diff — dynamic events × 6 channels
       notificationEventsStore.events.forEach((ev) => {
         ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
           const key = `notify_${ev.key}_${ch}`;
@@ -990,46 +874,34 @@ const handleSubmitUser = async (userData) => {
         });
       });
 
-      // Add image file if it exists (not base64)
-      if (userData.image && userData.image instanceof File) {
-        updatedData.image = userData.image;
-      }
+      if (userData.image && userData.image instanceof File) updatedData.image = userData.image;
 
       await usersStore.updateUser(selectedUser.value.id, updatedData);
-      console.log("✅ User updated successfully!");
       showSuccess(t('user.updateSuccess'));
-
       closeModal();
     } else {
-      // Add new user
       const newUser = {
         name: userData.name,
         username: userData.username,
         password: userData.password,
         phone_number: userData.phone_number,
         role: normalizedRole,
-        company_id: isAdmin.value ? companyId.value : (userData.company_id || null), // ✅ Force Admin's company
+        company_id: isAdmin.value ? companyId.value : (userData.company_id || null),
         region_id: userData.region_id || null,
         currency_id: userData.currency_id || null,
       };
 
-      // Notification preferences per event
       const { eventsPayload, missing } = buildEventsPayload(userData);
       if (missing.length) {
         showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
         return;
       }
-      if (eventsPayload.length) {
-        newUser.events = eventsPayload;
-      }
+      if (eventsPayload.length) newUser.events = eventsPayload;
 
-      // Backend seems to persist these flags (`*_alert`) separately.
-      // Set `email_alert` only when we actually have recipients for enabled email events.
       const alerts = computeGlobalChannelAlerts(userData);
       alerts.email_alert = eventsPayload.some((e) => Array.isArray(e.email) && e.email.length > 0) ? 1 : 0;
       Object.assign(newUser, alerts);
 
-      // Notification matrix: dynamic events × 6 channels
       notificationEventsStore.events.forEach((ev) => {
         ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
           const k = `notify_${ev.key}_${ch}`;
@@ -1037,29 +909,21 @@ const handleSubmitUser = async (userData) => {
         });
       });
 
-      // Account email (single string, unchanged)
       if (userData.email) newUser.email = userData.email;
 
-      // If backend still needs the old global list, send it only when events payload is empty.
       if ((!newUser.events || newUser.events.length === 0) && userData.notification_emails?.length) {
         newUser.notification_emails = userData.notification_emails;
       }
 
-      // Add image file if it exists (not base64)
-      if (userData.image && userData.image instanceof File) {
-        newUser.image = userData.image;
-      }
+      if (userData.image && userData.image instanceof File) newUser.image = userData.image;
 
       await usersStore.addUser(newUser);
-      console.log("✅ User added successfully!");
       showSuccess(t('user.addSuccess'));
       closeModal();
     }
   } catch (error) {
     console.error("❌ Failed to save user:", error);
-    if (applyServerErrors(error)) {
-      return;
-    }
+    if (applyServerErrors(error)) return;
     showError(error.message || "Failed to save user. Please try again.");
   }
 };
@@ -1067,7 +931,6 @@ const handleSubmitUser = async (userData) => {
 const handleRestoreUser = async (user) => {
   try {
     await usersStore.restoreUser(user.id);
-    console.log("✅ User restored successfully!");
     showSuccess(t('user.restoreSuccess'));
     await usersStore.fetchTrashedUsers();
   } catch (error) {
@@ -1084,7 +947,6 @@ const confirmDelete = async () => {
   try {
     if (userToDelete.value) {
       await usersStore.deleteUser(userToDelete.value.id);
-      console.log("✅ User deleted successfully!");
       showSuccess(t('user.deleteSuccess'));
       userToDelete.value = null;
     }
@@ -1093,17 +955,14 @@ const confirmDelete = async () => {
   }
 };
 
-// Bulk action handler
 const handleBulkAction = ({ actionId }) => {
   pendingBulkAction.value = actionId;
-
   if (actionId === "delete" || actionId === "permanentDelete") {
     isBulkConfirmOpen.value = true;
   } else {
     executeBulkAction();
   }
 };
-
 
 const executeBulkAction = async () => {
   bulkActionLoading.value = true;
@@ -1112,26 +971,18 @@ const executeBulkAction = async () => {
   try {
     if (pendingBulkAction.value === "delete") {
       await usersStore.bulkDeleteUsers(selectedRows.value, false);
-      console.log(`✅ ${count} users deleted successfully!`);
-
       isBulkConfirmOpen.value = false;
       pendingBulkAction.value = null;
       selectedRows.value = [];
-
       await nextTick();
       showSuccess(t('user.bulkDeleteSuccess', { count }));
-
     } else if (pendingBulkAction.value === "restore") {
       await usersStore.bulkRestoreUsers(selectedRows.value);
-      console.log(`✅ ${count} users restored successfully!`);
-
       isBulkConfirmOpen.value = false;
       pendingBulkAction.value = null;
       selectedRows.value = [];
-
       await nextTick();
       showSuccess(t('user.bulkRestoreSuccess', { count }));
-
       await usersStore.fetchTrashedUsers();
     } else if (pendingBulkAction.value === 'activate') {
       await handleBulkActivate(selectedRows.value);
@@ -1144,7 +995,6 @@ const executeBulkAction = async () => {
       pendingBulkAction.value = null;
       selectedRows.value = [];
     }
-
   } catch (error) {
     console.error(`❌ Bulk action failed:`, error);
     isBulkConfirmOpen.value = false;
@@ -1160,25 +1010,20 @@ const cancelBulkAction = () => {
 };
 
 const canEditUser = (user) => {
-
   if (isSuperAdmin.value) return true;
-
   if (isAdmin.value) {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;
   }
-
   return false;
 };
 
 const canDeleteUser = (user) => {
   if (isSuperAdmin.value) return true;
-
   if (isAdmin.value) {
     const userCompanyId = resolveIdValue(user.company_id ?? user.company);
     return userCompanyId === companyId.value;
   }
-
   return false;
 };
 

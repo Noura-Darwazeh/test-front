@@ -335,8 +335,8 @@ class ApiServices {
   }
 
   async getUserNotificationEvents(userId) {
-    return this.post("/notification_events", { user_id: userId });
-  }
+  return this.get("/notification_events", { params: { user_id: userId } });
+}
 
   // ===== Driver Services =====
   async getDrivers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
