@@ -2075,6 +2075,7 @@ driverPortal: 'Driver Portal',
 
   // Common Translations
   common: {
+    none:"None",
     create: "Create",
     actions: "Actions",
     noDataAvailable: "No data available",

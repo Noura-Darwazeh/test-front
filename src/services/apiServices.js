@@ -334,6 +334,10 @@ class ApiServices {
     return this.bulkRestoreEntities("user", "users", userIds);
   }
 
+  async getUserNotificationEvents(userId) {
+    return this.post("/notification_events", { user_id: userId });
+  }
+
   // ===== Driver Services =====
   async getDrivers({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
     return this.get("/drivers", {

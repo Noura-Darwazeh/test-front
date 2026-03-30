@@ -754,66 +754,76 @@ const openEditModal = (user) => {
 };
 
 // Details Modal
-const openDetailsModal = (user) => {
+const openDetailsModal = async (user) => {
   selectedUser.value = { ...user };
 
   if (selectedUser.value.image) {
     selectedUser.value.image = getFullImageUrl(selectedUser.value.image);
   }
 
-  // Details: summarize notification preferences (events + active channels + email recipients)
-  const channelDefs = [
-    { key: "sms", label: t("user.form.smsAlert") },
-    { key: "web", label: t("user.form.webAlert") },
-    { key: "email", label: t("user.form.emailAlert") },
-    { key: "mobile", label: t("user.form.mobileAlert") },
-    { key: "telegram", label: t("user.form.telegramAlert") },
-    { key: "whatsapp", label: t("user.form.whatsappAlert") },
-  ];
+  selectedUser.value.notification_matrix_details = t('common.loading') || 'Loading...';
+  isDetailsModalOpen.value = true;
 
-  const prefix = "notify_";
-  const localeIsAr = locale.value === "ar";
-  const eventList = Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : [];
+  try {
+    const response = await apiServices.getUserNotificationEvents(user.id);
+    let notificationsData = [];
+    const rData = response?.data;
+    if (Array.isArray(rData)) {
+      notificationsData = rData;
+    } else if (rData && Array.isArray(rData.data)) {
+      notificationsData = rData.data;
+    } else if (rData?.data && Array.isArray(rData.data.data)) {
+      notificationsData = rData.data.data;
+    } else if (rData?.data?.data && Array.isArray(rData.data.data.data)) {
+      notificationsData = rData.data.data.data;
+    } else if (Array.isArray(response)) {
+      notificationsData = response;
+    }
 
-  const eventsWithActiveChannels = eventList
-    .map((ev) => {
-      const evLabel = localeIsAr ? ev.ar_name : ev.en_name;
+    const channelDefs = [
+      { key: "sms", label: t("user.form.smsAlert") },
+      { key: "web", label: t("user.form.webAlert") },
+      { key: "email", label: t("user.form.emailAlert") },
+      { key: "mobile", label: t("user.form.mobileAlert") },
+      { key: "telegram", label: t("user.form.telegramAlert") },
+      { key: "whatsapp", label: t("user.form.whatsappAlert") },
+    ];
+
+    const eventsWithActiveChannels = notificationsData.map((item) => {
+      const eventName = item.event?.name || t("common.unknownEvent", "Unknown Event");
+      let channels = item.channel || {};
+      
+      if (typeof channels === 'string') {
+        try {
+          channels = JSON.parse(channels);
+        } catch (e) {
+          channels = {};
+        }
+      }
 
       const activeChannels = channelDefs
-        .filter((ch) => Number(selectedUser.value?.[`${prefix}${ev.key}_${ch.key}`] ?? 0) === 1)
+        .filter((ch) => channels[`${ch.key}_alert`] === true || String(channels[`${ch.key}_alert`]) === "1" || String(channels[`${ch.key}_alert`]) === "true")
         .map((ch) => ch.label);
 
       if (activeChannels.length === 0) return null;
 
-      // Email recipients (preferred: notify_<event>_email_recipients array)
-      let recipients = selectedUser.value?.[`${prefix}${ev.key}_email_recipients`];
-      if (!Array.isArray(recipients)) recipients = [];
-
-      // Fallback: if backend returns `events: [{ event_id, email: [] }]`
-      if (recipients.length === 0 && Array.isArray(selectedUser.value?.events)) {
-        const matched = selectedUser.value.events.find((e) => {
-          const eventId = e?.event_id;
-          return (
-            (eventId !== undefined && String(eventId) === String(ev.id)) ||
-            (eventId !== undefined && String(eventId) === String(ev.key))
-          );
-        });
-        if (Array.isArray(matched?.email)) recipients = matched.email;
+      const emailChannelActive = activeChannels.includes(t("user.form.emailAlert"));
+      let recipientsText = "";
+      if (emailChannelActive && Array.isArray(channels.email) && channels.email.length > 0) {
+        recipientsText = ` (${channels.email.join(", ")})`;
       }
 
-      const emailChannelActive = activeChannels.includes(t("user.form.emailAlert"));
-      const recipientsText =
-        emailChannelActive && recipients.length > 0 ? ` (${recipients.join(", ")})` : "";
+      return `${eventName}: ${activeChannels.join(", ")}${recipientsText}`;
+    }).filter(Boolean);
 
-      return `${evLabel}: ${activeChannels.join(", ")}${recipientsText}`;
-    })
-    .filter(Boolean);
+    selectedUser.value.notification_matrix_details = eventsWithActiveChannels.length
+      ? eventsWithActiveChannels.join(" | ")
+      : t('common.none') || 'N/A';
 
-  selectedUser.value.notification_matrix_details = eventsWithActiveChannels.length
-    ? eventsWithActiveChannels.join(" | ")
-    : "N/A";
-
-  isDetailsModalOpen.value = true;
+  } catch (error) {
+    console.error("Failed to load user notification events", error);
+    selectedUser.value.notification_matrix_details = t('common.error') || 'Error loading details';
+  }
 };
 
 const closeModal = () => {
@@ -835,28 +845,39 @@ const closeDeleteModal = () => {
 
 const handleSubmitUser = async (userData) => {
   try {
-    const buildEmailEventsPayload = (data) => {
+    const buildEventsPayload = (data) => {
       const globalEmails = Array.isArray(data?.notification_emails) ? data.notification_emails : [];
       const eventsPayload = [];
       const missing = [];
 
       (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
-        const emailEnabled = Number(data?.[`notify_${ev.key}_email`] ?? 0) === 1;
-        if (!emailEnabled) return;
+        const channels = ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'];
+        const eventConfig = { event_id: ev.id };
+        let hasAnyChannel = false;
 
-        const recipientsKey = `notify_${ev.key}_email_recipients`;
-        const eventEmails = Array.isArray(data?.[recipientsKey]) ? data[recipientsKey] : [];
-        const emailsToSend = eventEmails.length ? eventEmails : globalEmails;
+        channels.forEach((ch) => {
+          const isEnabled = Number(data?.[`notify_${ev.key}_${ch}`] ?? 0) === 1;
+          if (isEnabled) {
+            eventConfig[`${ch}_alert`] = 1;
+            hasAnyChannel = true;
+          }
+        });
 
-        if (!emailsToSend.length) {
-          missing.push(ev.en_name || ev.key || String(ev.id));
-          return;
+        if (!hasAnyChannel) return;
+
+        if (eventConfig.email_alert === 1) {
+          const recipientsKey = `notify_${ev.key}_email_recipients`;
+          const eventEmails = Array.isArray(data?.[recipientsKey]) ? data[recipientsKey] : [];
+          const emailsToSend = eventEmails.length ? eventEmails : globalEmails;
+
+          if (!emailsToSend.length) {
+            missing.push(locale.value === "ar" ? ev.ar_name : ev.en_name || ev.key || String(ev.id));
+            return;
+          }
+          eventConfig.email = emailsToSend;
         }
 
-        eventsPayload.push({
-          event_id: ev.id,
-          email: emailsToSend,
-        });
+        eventsPayload.push(eventConfig);
       });
 
       return { eventsPayload, missing };
@@ -945,8 +966,8 @@ const handleSubmitUser = async (userData) => {
         updatedData.password = userData.password;
       }
 
-      // Notification emails per event (only when `email` channel is enabled for that event)
-      const { eventsPayload, missing } = buildEmailEventsPayload(userData);
+      // Notification preferences per event
+      const { eventsPayload, missing } = buildEventsPayload(userData);
       if (missing.length) {
         showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
         return;
@@ -992,8 +1013,8 @@ const handleSubmitUser = async (userData) => {
         currency_id: userData.currency_id || null,
       };
 
-      // Notification emails per event (only when `email` channel is enabled for that event)
-      const { eventsPayload, missing } = buildEmailEventsPayload(userData);
+      // Notification preferences per event
+      const { eventsPayload, missing } = buildEventsPayload(userData);
       if (missing.length) {
         showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
         return;
