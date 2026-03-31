@@ -24,7 +24,6 @@
                     <img :src="userIcon" alt="user" width="50" height="50" />
                   </div>
                 </div>
-                <!-- Edit Profile Image Button -->
                 <button class="btn btn-sm rounded-circle position-absolute bottom-0 end-0 shadow"
                   style="width: 36px; height: 36px" @click="triggerFileInput" type="button">
                   <img :src="cameraIcon" alt="camera" width="16" height="16" />
@@ -64,13 +63,11 @@
               </div>
               <div class="card-body p-4">
                 <div class="row g-3">
-                  <!-- ID (Read-only) -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.id')" />
                     <input type="text" class="form-control bg-light" :value="userProfile?.id" disabled />
                   </div>
 
-                  <!-- Full Name -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.fullName')" :required="true" />
                     <TextField 
@@ -86,7 +83,6 @@
                     </div>
                   </div>
 
-                  <!-- Username -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.username')" :required="true" />
                     <TextField 
@@ -102,7 +98,6 @@
                     </div>
                   </div>
 
-                  <!-- Email -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.email')" />
                     <TextField 
@@ -118,7 +113,6 @@
                     </div>
                   </div>
 
-                  <!-- Phone Number -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.phoneNumber')" :required="true" />
                     <TextField 
@@ -149,14 +143,12 @@
               </div>
               <div class="card-body p-4">
                 <div class="row g-3">
-                  <!-- User Role (Read-only) -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.userRole')" />
                     <input type="text" class="form-control bg-light" :value="$t(`roles.${userProfile?.role?.[0]}`)"
                       disabled />
                   </div>
 
-                  <!-- Company -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.form.company')" />
                     <select v-model="formData.company_id" class="form-select" @change="markAsChanged">
@@ -167,7 +159,6 @@
                     </select>
                   </div>
 
-                  <!-- Region -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.form.region')" />
                     <select v-model="formData.region_id" class="form-select" @change="markAsChanged">
@@ -178,7 +169,6 @@
                     </select>
                   </div>
 
-                  <!-- Currency -->
                   <div class="col-12">
                     <FormLabel :label="$t('user.form.currency')" />
                     <select v-model="formData.currency_id" class="form-select" @change="markAsChanged">
@@ -189,7 +179,6 @@
                     </select>
                   </div>
 
-                  <!-- Language -->
                   <div class="col-12">
                     <FormLabel :label="$t('profile.language')" />
                     <select v-model="formData.language" class="form-select" @change="handleLanguageChange">
@@ -198,6 +187,101 @@
                     </select>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ Notification Events Card -->
+        <div class="row g-4 mt-0" v-if="notificationEvents.length > 0">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+                  <i class="fas fa-bell text-primary"></i>
+                  {{ $t('user.form.notificationSection') || 'Notification Preferences' }}
+                </h5>
+                <span v-if="notificationsLoading" class="spinner-border spinner-border-sm text-primary"></span>
+              </div>
+              <div class="card-body p-4">
+                <div class="row g-3">
+                  <div
+                    v-for="event in notificationEvents"
+                    :key="event.id"
+                    class="col-12"
+                  >
+                    <div class="notification-event-card p-3 border rounded-3">
+                      <!-- Event Name -->
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fas fa-bell-slash text-muted" style="font-size: 14px;"></i>
+                        <span class="fw-semibold text-dark">
+                          {{ $i18n.locale === 'ar' ? event.event?.ar_name : event.event?.en_name }}
+                        </span>
+                      </div>
+
+                      <!-- Active Channels -->
+                      <div class="d-flex flex-wrap gap-2">
+                        <template v-for="ch in channelDefs" :key="ch.key">
+                          <span
+                            v-if="isChannelActive(event.channel, ch.key)"
+                            class="badge channel-badge"
+                            :class="ch.badgeClass"
+                          >
+                            <i :class="ch.icon + ' me-1'"></i>
+                            {{ ch.label }}
+                          </span>
+                        </template>
+
+                        <!-- No active channels fallback -->
+                        <span
+                          v-if="!hasAnyActiveChannel(event.channel)"
+                          class="text-muted small"
+                        >
+                          {{ $t('common.none') || 'No active channels' }}
+                        </span>
+                      </div>
+
+                      <!-- Email Recipients -->
+                      <div
+                        v-if="isChannelActive(event.channel, 'email') && getEmailRecipients(event.channel).length"
+                        class="mt-2"
+                      >
+                        <small class="text-muted d-block mb-1">
+                          <i class="fas fa-envelope me-1"></i>
+                          {{ $t('user.form.notificationEmails') || 'Email Recipients' }}:
+                        </small>
+                        <div class="d-flex flex-wrap gap-1">
+                          <span
+                            v-for="email in getEmailRecipients(event.channel)"
+                            :key="email"
+                            class="badge bg-light text-dark border"
+                            style="font-size: 0.75rem;"
+                          >
+                            {{ email }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No notifications state -->
+        <div class="row g-4 mt-0" v-else-if="!notificationsLoading && notificationsFetched">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+                  <i class="fas fa-bell text-primary"></i>
+                  {{ $t('user.form.notificationSection') || 'Notification Preferences' }}
+                </h5>
+              </div>
+              <div class="card-body p-4 text-center text-muted">
+                <i class="fas fa-bell-slash fa-2x mb-2 opacity-50"></i>
+                <p class="mb-0">{{ $t('navbar.noNotifications') || 'No notification preferences configured.' }}</p>
               </div>
             </div>
           </div>
@@ -219,7 +303,6 @@
           </div>
         </Transition>
 
-        <!-- Change Password Button (when no changes) -->
         <div v-if="!hasChanges" class="d-flex gap-3 mt-4 justify-content-center">
           <PrimaryButton :text="$t('profile.changePassword')" bgColor="var(--color-warning)" @click="openPasswordModal"
             type="button" />
@@ -262,7 +345,7 @@ import userIcon from '@/assets/sidebar/userIcon.svg';
 
 const API_BASE_URL = api.defaults.baseURL;
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -278,7 +361,71 @@ const imageFile = ref(null);
 const isSuccessModalOpen = ref(false);
 const successMessage = ref('');
 
-// ✅ Field Errors
+// ✅ Notification Events State
+const notificationEvents = ref([]);
+const notificationsLoading = ref(false);
+const notificationsFetched = ref(false);
+
+// ✅ Channel definitions with labels and styles
+const channelDefs = [
+  { key: 'sms',      label: t('user.form.smsAlert') || 'SMS',       icon: 'fas fa-sms',             badgeClass: 'bg-warning text-dark' },
+  { key: 'web',      label: t('user.form.webAlert') || 'Web',        icon: 'fas fa-globe',           badgeClass: 'bg-info text-dark' },
+  { key: 'email',    label: t('user.form.emailAlert') || 'Email',    icon: 'fas fa-envelope',        badgeClass: 'bg-primary' },
+  { key: 'mobile',   label: t('user.form.mobileAlert') || 'Mobile',  icon: 'fas fa-mobile-alt',      badgeClass: 'bg-success' },
+  { key: 'telegram', label: t('user.form.telegramAlert') || 'Telegram', icon: 'fab fa-telegram-plane', badgeClass: 'bg-primary' },
+  { key: 'whatsapp', label: t('user.form.whatsappAlert') || 'WhatsApp', icon: 'fab fa-whatsapp',     badgeClass: 'bg-success' },
+];
+
+// ✅ Helper: check if a channel is active
+const isChannelActive = (channel, key) => {
+  if (!channel) return false;
+  let ch = channel;
+  if (typeof ch === 'string') {
+    try { ch = JSON.parse(ch); } catch { return false; }
+  }
+  const val = ch[`${key}_alert`];
+  return val === true || val === 1 || val === '1' || val === 'true';
+};
+
+// ✅ Helper: check if any channel is active
+const hasAnyActiveChannel = (channel) => {
+  return channelDefs.some(ch => isChannelActive(channel, ch.key));
+};
+
+// ✅ Helper: get email recipients array
+const getEmailRecipients = (channel) => {
+  if (!channel) return [];
+  let ch = channel;
+  if (typeof ch === 'string') {
+    try { ch = JSON.parse(ch); } catch { return []; }
+  }
+  return Array.isArray(ch.email) ? ch.email : [];
+};
+
+// ✅ Fetch notification events for current user
+const fetchNotificationEvents = async (userId) => {
+  notificationsLoading.value = true;
+  try {
+    const response = await apiServices.getUserNotificationEvents(userId);
+    const data = response?.data;
+
+    if (Array.isArray(data)) {
+      notificationEvents.value = data;
+    } else if (Array.isArray(data?.data)) {
+      notificationEvents.value = data.data;
+    } else {
+      notificationEvents.value = [];
+    }
+  } catch (error) {
+    console.error('❌ Failed to fetch notification events:', error);
+    notificationEvents.value = [];
+  } finally {
+    notificationsLoading.value = false;
+    notificationsFetched.value = true;
+  }
+};
+
+// Field Errors
 const fieldErrors = ref({
   name: '',
   username: '',
@@ -300,10 +447,8 @@ const formData = reactive({
   imagePreview: null,
 });
 
-// Original data for comparison
 const originalData = ref({});
 
-// Dynamic data
 const regions = ref([]);
 const currencies = ref([]);
 const companies = ref([]);
@@ -339,14 +484,10 @@ const passwordFields = computed(() => [
   },
 ]);
 
-// ✅ Validation Functions
 const validateField = (fieldName) => {
   const value = formData[fieldName];
-  
-  // Clear previous error
   fieldErrors.value[fieldName] = '';
 
-  // Required fields validation
   if (['name', 'username', 'phone_number'].includes(fieldName)) {
     if (!value || value.trim() === '') {
       fieldErrors.value[fieldName] = t('common.validation.requiredField', { field: t(`user.${fieldName === 'phone_number' ? 'phoneNumber' : fieldName}`) });
@@ -354,7 +495,6 @@ const validateField = (fieldName) => {
     }
   }
 
-  // Email validation
   if (fieldName === 'email' && value && value.trim() !== '') {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
@@ -363,15 +503,12 @@ const validateField = (fieldName) => {
     }
   }
 
-  // Phone number validation
   if (fieldName === 'phone_number' && value) {
     const phoneDigits = value.replace(/\D/g, '');
-    
     if (phoneDigits.length < 10) {
       fieldErrors.value.phone_number = t('common.validation.phoneTooShort');
       return false;
     }
-    
     if (phoneDigits.length > 15) {
       fieldErrors.value.phone_number = t('common.validation.phoneTooLong');
       return false;
@@ -383,24 +520,17 @@ const validateField = (fieldName) => {
 
 const validateAllFields = () => {
   let isValid = true;
-  
   ['name', 'username', 'email', 'phone_number'].forEach(field => {
-    if (!validateField(field)) {
-      isValid = false;
-    }
+    if (!validateField(field)) isValid = false;
   });
-  
   return isValid;
 };
 
 const handleFieldInput = (fieldName) => {
-  if (fieldErrors.value[fieldName]) {
-    fieldErrors.value[fieldName] = '';
-  }
+  if (fieldErrors.value[fieldName]) fieldErrors.value[fieldName] = '';
   markAsChanged();
 };
 
-// Fetch dropdown data
 const fetchDropdownData = async () => {
   try {
     const [regionsResponse, currenciesResponse, companiesResponse] = await Promise.all([
@@ -420,16 +550,10 @@ const fetchDropdownData = async () => {
       currencies.value = currenciesResponse.data.data.map(currency => ({
         value: String(currency.id),
         label: (() => {
-          const name =
-            currency.nameenglish ||
-            currency.namearabic ||
-            currency.name ||
-            currency.key ||
-            currency.code ||
-            "";
-          const symbol = currency.symbol || "";
+          const name = currency.nameenglish || currency.namearabic || currency.name || currency.key || currency.code || '';
+          const symbol = currency.symbol || '';
           if (name && symbol && name !== symbol) return `${name} (${symbol})`;
-          return name || symbol || "";
+          return name || symbol || '';
         })(),
       }));
     }
@@ -440,7 +564,6 @@ const fetchDropdownData = async () => {
         label: company.name
       }));
     }
-
   } catch (error) {
     console.error('❌ Failed to load dropdown data:', error);
   }
@@ -448,60 +571,39 @@ const fetchDropdownData = async () => {
 
 const populateDropdownsFromProfile = () => {
   if (!userProfile.value) return;
-
   const user = userProfile.value;
 
   if (user.company?.id) {
     const companyId = String(user.company.id);
-    const companyName = user.company.name;
-
     if (!companies.value.find(c => c.value === companyId)) {
-      companies.value.push({
-        value: companyId,
-        label: companyName
-      });
+      companies.value.push({ value: companyId, label: user.company.name });
     }
   }
-
   if (user.region?.id) {
     const regionId = String(user.region.id);
-    const regionName = user.region.name;
-
     if (!regions.value.find(r => r.value === regionId)) {
-      regions.value.push({
-        value: regionId,
-        label: regionName
-      });
+      regions.value.push({ value: regionId, label: user.region.name });
     }
   }
-
   if (user.currency?.id) {
     const currencyId = String(user.currency.id);
-    const currencyName = user.currency.name;
-
     if (!currencies.value.find(c => c.value === currencyId)) {
-      currencies.value.push({
-        value: currencyId,
-        label: currencyName
-      });
+      currencies.value.push({ value: currencyId, label: user.currency.name });
     }
   }
 };
 
 const initializeFormData = () => {
   if (!userProfile.value) return;
-
   const user = userProfile.value;
 
   formData.name = user.name || '';
   formData.username = user.username || '';
   formData.email = user.email || '';
   formData.phone_number = user.phone_number || '';
-
   formData.company_id = user.company?.id ? String(user.company.id) : '';
   formData.region_id = user.region?.id ? String(user.region.id) : '';
   formData.currency_id = user.currency?.id ? String(user.currency.id) : '';
-
   formData.language = user.language || 'english';
   formData.default_page = user.default_page || user.landing_page || '/user';
   formData.imagePreview = null;
@@ -519,27 +621,23 @@ const initializeFormData = () => {
     default_page: formData.default_page,
   };
 
-  // Clear all errors
-  Object.keys(fieldErrors.value).forEach(key => {
-    fieldErrors.value[key] = '';
-  });
+  Object.keys(fieldErrors.value).forEach(key => { fieldErrors.value[key] = ''; });
 };
 
 const fetchUserProfile = async () => {
   try {
     isLoading.value = true;
     const userId = authStore.user?.id;
-
-    if (!userId) {
-      console.error('No user ID found');
-      return;
-    }
+    if (!userId) return;
 
     const response = await apiServices.getUserProfile(userId);
     userProfile.value = response.data.data;
 
     populateDropdownsFromProfile();
     initializeFormData();
+
+    // ✅ Fetch notification events using the same user ID
+    await fetchNotificationEvents(userId);
 
   } catch (error) {
     console.error('❌ Failed to fetch user profile:', error);
@@ -548,11 +646,7 @@ const fetchUserProfile = async () => {
   }
 };
 
-
-
-const markAsChanged = () => {
-  hasChanges.value = true;
-};
+const markAsChanged = () => { hasChanges.value = true; };
 
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
@@ -563,14 +657,12 @@ const handleImageUpload = (event) => {
     fieldErrors.value.image = t('common.validation.invalidImageFile');
     return;
   }
-
   if (file.size > 5 * 1024 * 1024) {
     fieldErrors.value.image = t('common.validation.imageMaxSize', { size: 5 });
     return;
   }
 
   imageFile.value = file;
-
   const reader = new FileReader();
   reader.onload = (e) => {
     formData.imagePreview = e.target.result;
@@ -580,9 +672,7 @@ const handleImageUpload = (event) => {
 };
 
 const triggerFileInput = () => {
-  if (fileInput.value) {
-    fileInput.value.click();
-  }
+  if (fileInput.value) fileInput.value.click();
 };
 
 const handleLanguageChange = async () => {
@@ -592,60 +682,34 @@ const handleLanguageChange = async () => {
 };
 
 const handleSaveChanges = async () => {
-  // ✅ Validate all fields
-  if (!validateAllFields()) {
-    return;
-  }
+  if (!validateAllFields()) return;
 
   const languageChanged = formData.language !== originalData.value.language;
-  
+
   try {
     isSaving.value = true;
-
     const formDataToSend = new FormData();
 
     formDataToSend.append('name', formData.name);
     formDataToSend.append('phone_number', formData.phone_number);
-
-    if (formData.email && formData.email.trim() !== '') {
-      formDataToSend.append('email', formData.email);
-    }
-
-    if (formData.username !== originalData.value.username) {
-      formDataToSend.append('username', formData.username);
-    }
-
-    if (formData.company_id && formData.company_id !== '') {
-      formDataToSend.append('company_id', formData.company_id);
-    }
-    
-    if (formData.region_id && formData.region_id !== '') {
-      formDataToSend.append('region_id', formData.region_id);
-    }
-    
-    if (formData.currency_id && formData.currency_id !== '') {
-      formDataToSend.append('currency_id', formData.currency_id);
-    }
-
+    if (formData.email && formData.email.trim() !== '') formDataToSend.append('email', formData.email);
+    if (formData.username !== originalData.value.username) formDataToSend.append('username', formData.username);
+    if (formData.company_id && formData.company_id !== '') formDataToSend.append('company_id', formData.company_id);
+    if (formData.region_id && formData.region_id !== '') formDataToSend.append('region_id', formData.region_id);
+    if (formData.currency_id && formData.currency_id !== '') formDataToSend.append('currency_id', formData.currency_id);
     formDataToSend.append('language', formData.language);
-
-    if (imageFile.value) {
-      formDataToSend.append('image', imageFile.value);
-    }
+    if (imageFile.value) formDataToSend.append('image', imageFile.value);
 
     const response = await apiServices.updateUser(userProfile.value.id, formDataToSend);
 
     if (response.data?.data) {
       const userData = response.data.data;
-
       if (userData.image && !userData.image.startsWith('http')) {
         userData.image = `${API_BASE_URL}${userData.image}`;
       }
-
       userData.default_page = formData.default_page;
       authStore.updateUser(userData);
 
-      // ✅ Show Success Modal instead of alert
       successMessage.value = t('profile.updateSuccess') || 'Profile updated successfully!';
       isSuccessModalOpen.value = true;
 
@@ -659,27 +723,17 @@ const handleSaveChanges = async () => {
       userProfile.value = userData;
       imageFile.value = null;
       formData.imagePreview = null;
-
-      if (fileInput.value) {
-        fileInput.value.value = '';
-      }
-
+      if (fileInput.value) fileInput.value.value = '';
       initializeFormData();
       hasChanges.value = false;
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setTimeout(() => { window.location.reload(); }, 1500);
     }
   } catch (error) {
     console.error('❌ Failed to update profile:', error);
-    
     const currentUser = authStore.user;
     currentUser.default_page = formData.default_page;
     authStore.updateUser(currentUser);
-
-    const errorMessage = error.response?.data?.message || error.message || t('profile.updateError');
-    successMessage.value = errorMessage;
+    successMessage.value = error.response?.data?.message || error.message || t('profile.updateError');
     isSuccessModalOpen.value = true;
   } finally {
     isSaving.value = false;
@@ -719,17 +773,14 @@ const handleChangePassword = async (passwordData) => {
     passwordFormErrors.value = {};
 
     if (passwordData.new_password !== passwordData.confirm_password) {
-      passwordFormErrors.value = {
-        confirm_password: t('profile.passwordMismatch'),
-      };
+      passwordFormErrors.value = { confirm_password: t('profile.passwordMismatch') };
       return;
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&#]).{8,}$/;
     if (!passwordRegex.test(passwordData.new_password)) {
       passwordFormErrors.value = {
-        new_password:
-          'Password must include uppercase, lowercase, a symbol (@$!%*?&#), and be at least 8 characters.',
+        new_password: 'Password must include uppercase, lowercase, a symbol (@$!%*?&#), and be at least 8 characters.',
       };
       return;
     }
@@ -744,7 +795,6 @@ const handleChangePassword = async (passwordData) => {
       successMessage.value = t('profile.passwordChangeSuccess');
       isSuccessModalOpen.value = true;
       closePasswordModal();
-
       setTimeout(() => {
         authStore.logout();
         router.push('/login');
@@ -752,9 +802,7 @@ const handleChangePassword = async (passwordData) => {
     }
   } catch (error) {
     console.error('❌ Failed to change password:', error);
-    if (applyPasswordErrors(error)) {
-      return;
-    }
+    if (applyPasswordErrors(error)) return;
     successMessage.value = error.message || t('profile.passwordChangeError');
     isSuccessModalOpen.value = true;
   }
@@ -809,7 +857,6 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-/* ✅ Invalid Field Styling */
 .form-control.is-invalid,
 .form-select.is-invalid {
   border-color: #dc3545;
@@ -825,6 +872,24 @@ onMounted(async () => {
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
+}
+
+/* ✅ Notification Event Card */
+.notification-event-card {
+  background: #fafbfc;
+  transition: all 0.2s ease;
+}
+
+.notification-event-card:hover {
+  background: #f0f7ff;
+  border-color: var(--primary-color, #0d6efd) !important;
+}
+
+.channel-badge {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 500;
 }
 
 .fixed-action-bar {
