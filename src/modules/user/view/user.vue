@@ -859,7 +859,6 @@ const handleSubmitUser = async (userData) => {
         showError(`${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`);
         return;
       }
-      updatedData.events = eventsPayload;
 
       const alerts = computeGlobalChannelAlerts(userData);
       alerts.email_alert = eventsPayload.some((e) => Array.isArray(e.email) && e.email.length > 0) ? 1 : 0;
@@ -877,8 +876,17 @@ const handleSubmitUser = async (userData) => {
       if (userData.image && userData.image instanceof File) updatedData.image = userData.image;
 
       await usersStore.updateUser(selectedUser.value.id, updatedData);
+      
+      // ✅ Update notification events via dedicated endpoint
+      await apiServices.updateUserNotificationEvents({
+        user_id: selectedUser.value.id,
+        events: eventsPayload
+      });
+
       showSuccess(t('user.updateSuccess'));
       closeModal();
+      // Optionally re-fetch to update local cache
+      await fetchUsersPage(currentPage.value);
     } else {
       const newUser = {
         name: userData.name,

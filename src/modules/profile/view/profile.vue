@@ -201,7 +201,17 @@
                   <i class="fas fa-bell text-primary"></i>
                   {{ $t('user.form.notificationSection') || 'Notification Preferences' }}
                 </h5>
-                <span v-if="notificationsLoading" class="spinner-border spinner-border-sm text-primary"></span>
+                <div class="d-flex align-items-center gap-2">
+                  <PrimaryButton
+                    v-if="!notificationsLoading && notificationsFetched"
+                    :text="$t('user.edit') || 'Edit Preferences'"
+                    bgColor="var(--color-primary)"
+                    @click="openNotificationsModal"
+                    type="button"
+                    class="btn-sm"
+                  />
+                  <span v-if="notificationsLoading" class="spinner-border spinner-border-sm text-primary"></span>
+                </div>
               </div>
               <div class="card-body p-4">
                 <div class="row g-3">
@@ -273,11 +283,18 @@
         <div class="row g-4 mt-0" v-else-if="!notificationsLoading && notificationsFetched">
           <div class="col-12">
             <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white border-bottom">
+              <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
                 <h5 class="mb-0 fw-semibold d-flex align-items-center gap-2">
                   <i class="fas fa-bell text-primary"></i>
                   {{ $t('user.form.notificationSection') || 'Notification Preferences' }}
                 </h5>
+                <PrimaryButton
+                  :text="$t('user.edit') || 'Edit Preferences'"
+                  bgColor="var(--color-primary)"
+                  @click="openNotificationsModal"
+                  type="button"
+                  class="btn-sm"
+                />
               </div>
               <div class="card-body p-4 text-center text-muted">
                 <i class="fas fa-bell-slash fa-2x mb-2 opacity-50"></i>
@@ -309,6 +326,17 @@
         </div>
       </form>
 
+      <!-- Edit Notifications Modal -->
+      <FormModal
+        :isOpen="isNotificationsModalOpen"
+        :title="$t('user.form.notificationSection') || 'Edit Notification Preferences'"
+        :fields="notificationFields"
+        :showImageUpload="false"
+        :serverErrors="notificationsFormErrors"
+        @close="closeNotificationsModal"
+        @submit="handleSaveNotifications"
+      />
+
       <!-- Change Password Modal -->
       <FormModal :isOpen="isPasswordModalOpen" :title="$t('profile.changePassword')" :fields="passwordFields"
         :showImageUpload="false" :serverErrors="passwordFormErrors" @close="closePasswordModal"
@@ -330,6 +358,7 @@ import { ref, computed, onMounted, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth.js';
+import { useNotificationEventsStore } from '@/stores/notificationEvents.js';
 import FormModal from '@/components/shared/FormModal.vue';
 import PrimaryButton from '@/components/shared/PrimaryButton.vue';
 import FormLabel from '@/components/shared/FormLabel.vue';
@@ -348,6 +377,7 @@ const API_BASE_URL = api.defaults.baseURL;
 const { t, locale } = useI18n();
 const router = useRouter();
 const authStore = useAuthStore();
+const notificationEventsStore = useNotificationEventsStore();
 
 // State
 const isLoading = ref(true);
@@ -422,6 +452,149 @@ const fetchNotificationEvents = async (userId) => {
   } finally {
     notificationsLoading.value = false;
     notificationsFetched.value = true;
+  }
+};
+
+// ✅ Notification Edit Modal Logic
+const isNotificationsModalOpen = ref(false);
+const notificationsFormErrors = ref({});
+
+const openNotificationsModal = () => {
+  notificationsFormErrors.value = {};
+  isNotificationsModalOpen.value = true;
+};
+
+const closeNotificationsModal = () => {
+  isNotificationsModalOpen.value = false;
+  notificationsFormErrors.value = {};
+};
+
+const notificationMatrixDefaultValues = computed(() => {
+  const defaults = {};
+  const prefix = "notify_";
+  
+  (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
+    defaults[`${prefix}${ev.key}_email_recipients`] = [];
+    ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
+      defaults[`${prefix}${ev.key}_${ch}`] = 0;
+    });
+  });
+
+  notificationEvents.value.forEach(eventData => {
+    const ev = notificationEventsStore.events.find(e => e.id === eventData.event_id || e.id === eventData.event?.id);
+    if (!ev) return;
+    
+    let chData = eventData.channel;
+    if (typeof chData === 'string') {
+      try { chData = JSON.parse(chData); } catch { chData = {}; }
+    }
+    
+    if (!chData) return;
+
+    ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
+      if (chData[`${ch}_alert`] === true || chData[`${ch}_alert`] === 1 || chData[`${ch}_alert`] === '1' || chData[`${ch}_alert`] === 'true') {
+        defaults[`${prefix}${ev.key}_${ch}`] = 1;
+      }
+    });
+
+    if (Array.isArray(chData.email) && chData.email.length > 0) {
+      defaults[`${prefix}${ev.key}_email_recipients`] = [...chData.email];
+    }
+  });
+
+  return defaults;
+});
+
+const notificationFields = computed(() => {
+  if (!notificationEventsStore.events.length) return [];
+  
+  return [
+    {
+      type: "notification-matrix",
+      colClass: "col-12",
+      prefix: "notify_",
+      enableEmailRecipients: true,
+      defaultValues: notificationMatrixDefaultValues.value,
+      events: notificationEventsStore.events.map((ev) => ({
+        key: ev.key,
+        label: locale.value === "ar" ? ev.ar_name : ev.en_name,
+        icon: "fas fa-bell",
+      })),
+      channels: [
+        { key: "sms", label: t("user.form.smsAlert") },
+        { key: "web", label: t("user.form.webAlert") },
+        { key: "email", label: t("user.form.emailAlert") },
+        { key: "mobile", label: t("user.form.mobileAlert") },
+        { key: "telegram", label: t("user.form.telegramAlert") },
+        { key: "whatsapp", label: t("user.form.whatsappAlert") },
+      ],
+    }
+  ];
+});
+
+const handleSaveNotifications = async (formDataEvent) => {
+  try {
+    const globalEmails = Array.isArray(userProfile.value?.notification_emails) ? userProfile.value.notification_emails : [];
+    const eventsPayload = [];
+    const missing = [];
+
+    (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
+      const channels = ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'];
+      const eventConfig = { event_id: ev.id };
+      let hasAnyChannel = false;
+
+      channels.forEach((ch) => {
+        const isEnabled = Number(formDataEvent?.[`notify_${ev.key}_${ch}`] ?? 0) === 1;
+        if (isEnabled) {
+          eventConfig[`${ch}_alert`] = 1;
+          hasAnyChannel = true;
+        }
+      });
+
+      if (!hasAnyChannel) return;
+
+      if (eventConfig.email_alert === 1) {
+        const recipientsKey = `notify_${ev.key}_email_recipients`;
+        const eventEmails = Array.isArray(formDataEvent?.[recipientsKey]) ? formDataEvent[recipientsKey] : [];
+        const emailsToSend = eventEmails.length ? eventEmails : globalEmails;
+
+        if (!emailsToSend.length) {
+          missing.push(locale.value === "ar" ? ev.ar_name : ev.en_name || ev.key || String(ev.id));
+          return;
+        }
+        eventConfig.email = emailsToSend;
+      }
+
+      eventsPayload.push(eventConfig);
+    });
+
+    if (missing.length) {
+      notificationsFormErrors.value = {
+        _summary: `${t("user.form.notificationEmails")}: ${missing.join(", ")} missing at least one email.`
+      };
+      return;
+    }
+
+    const payload = {
+      user_id: userProfile.value.id,
+      events: eventsPayload
+    };
+
+    await apiServices.updateUserNotificationEvents(payload);
+    
+    successMessage.value = t('profile.updateSuccess') || 'Preferences updated successfully!';
+    isSuccessModalOpen.value = true;
+    closeNotificationsModal();
+    
+    await fetchNotificationEvents(userProfile.value.id);
+
+  } catch (error) {
+    console.error('❌ Failed to update notification events:', error);
+    if (error.response?.data?.errors) {
+      notificationsFormErrors.value = normalizeServerErrors(error);
+    } else {
+      notificationsFormErrors.value = { _summary: error.message || 'Error saving notifications' };
+    }
   }
 };
 
@@ -820,6 +993,7 @@ const getRoleBadgeClass = (role) => {
 };
 
 onMounted(async () => {
+  await notificationEventsStore.fetchEvents();
   await fetchDropdownData();
   await fetchUserProfile();
 });
