@@ -235,12 +235,16 @@
                       </p>
                       <div class="notif-channels-strip mb-3">
                         <div
-                          v-for="ch in channelDefs"
-                          :key="ch.key"
-                          class="notif-ch-item"
-                          :class="{ 'notif-ch-item--active': notifFormData[`${ev.key}_${ch.key}`] == 1 }"
-                          @click="toggleChannel(ev.key, ch.key)"
-                        >
+  v-for="ch in channelDefs"
+  :key="ch.key"
+  class="notif-ch-item"
+  :class="{ 
+    'notif-ch-item--active': notifFormData[`${ev.key}_${ch.key}`] == 1,
+    'notif-ch-item--locked': ch.requiresPermission && !hasWhatsappPermission
+  }"
+  :title="ch.requiresPermission && !hasWhatsappPermission ? 'WhatsApp is a paid feature' : ''"
+  @click="toggleChannel(ev.key, ch.key)"
+>
                           <i :class="ch.icon" class="notif-ch-icon"></i>
                           <small class="notif-ch-label">{{ ch.label }}</small>
                         </div>
@@ -448,8 +452,17 @@ const channelDefs = [
   { key: 'email',    label: t('user.form.emailAlert')    || 'Email',    icon: 'fas fa-envelope',       badgeClass: 'bg-primary'           },
   { key: 'mobile',   label: t('user.form.mobileAlert')   || 'Mobile',   icon: 'fas fa-mobile-alt',     badgeClass: 'bg-success'           },
   { key: 'telegram', label: t('user.form.telegramAlert') || 'Telegram', icon: 'fab fa-telegram-plane', badgeClass: 'bg-primary'           },
-  { key: 'whatsapp', label: t('user.form.whatsappAlert') || 'WhatsApp', icon: 'fab fa-whatsapp',       badgeClass: 'bg-success'           },
-];
+{ 
+  key: 'whatsapp', 
+  label: t('user.form.whatsappAlert') || 'WhatsApp', 
+  icon: 'fab fa-whatsapp', 
+  badgeClass: 'bg-success',
+  requiresPermission: 'whatsapp channel'
+},];
+const hasWhatsappPermission = computed(() => 
+  authStore.hasPermission('whatsapp channel')
+)
+
 
 // ─── Expand / collapse ──────────────────────────────────────────────────────
 const isEventExpanded = (evId) => expandedEvents.value.has(evId);
@@ -462,6 +475,8 @@ const toggleEvent = (evId) => {
 
 // ─── Toggle channel ─────────────────────────────────────────────────────────
 const toggleChannel = (evKey, chKey) => {
+    if (chKey === 'whatsapp' && !hasWhatsappPermission.value) return;
+
   const k = `${evKey}_${chKey}`;
   notifFormData[k] = notifFormData[k] == 1 ? 0 : 1;
 
@@ -929,6 +944,15 @@ onMounted(async () => {
   background: none; border: none;
   color: rgba(255,255,255,0.85);
   cursor: pointer; padding: 0; line-height: 1; font-size: 1rem;
+}
+.notif-ch-item--locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  position: relative;
+}
+.notif-ch-item--locked:hover {
+  border-color: #e5e7eb;
+  background: #f9fafb;
 }
 .tag-remove-btn:hover { color: #fff; }
 .tag-remove-btn--dark { color: rgba(0,0,0,0.5); }

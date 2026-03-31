@@ -392,7 +392,11 @@ function updateUser(userData) {
   function hasAnyRole(roles) {
     return roles.includes(userRole.value);
   }
-
+function hasPermission(permission) {
+  return permissions.value?.some(
+    (p) => p.toLowerCase() === permission.toLowerCase()
+  ) ?? false;
+}
   function getDefaultPageByRole(role) {
     if (role === "Driver") return "/driver-steps";
     if (role === "Admin" || role === "SuperAdmin") return "/statistics";
@@ -522,6 +526,8 @@ function updateUser(userData) {
     getDefaultPageByRole,
     switchUser,
     returnToAdmin,
-    loginAsDriver
+    loginAsDriver,
+    hasPermission,
+
   };
 });
