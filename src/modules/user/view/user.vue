@@ -77,8 +77,35 @@
       :serverErrors="formErrors" @close="closeModal" @submit="handleSubmitUser" />
 
     <!-- Details Modal -->
-    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('user.details')" :data="selectedUser" :fields="detailsFields"
-      @close="closeDetailsModal" />
+  <DetailsModal 
+  :isOpen="isDetailsModalOpen" 
+  :title="$t('user.details')" 
+  :data="selectedUser" 
+  :fields="detailsFields"
+  @close="closeDetailsModal"
+>
+  <template #after-details>
+    <div v-if="selectedUser.notification_channels_data?.length" class="mt-3">
+      <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+        {{ $t('user.form.notificationEventsSection') }}
+      </label>
+      <div v-for="item in selectedUser.notification_channels_data" :key="item.eventName" class="mb-3">
+        <div class="fw-semibold small mb-1 text-dark">{{ item.eventName }}</div>
+        <div class="d-flex flex-wrap gap-2">
+          <span
+            v-for="ch in item.channelStates"
+            :key="ch.key"
+            class="badge px-3 py-2"
+            :class="ch.active ? 'bg-primary text-white' : 'bg-light text-muted border'"
+            style="font-size: 0.75rem;"
+          >
+            {{ ch.label }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </template>
+</DetailsModal>
 
     <!-- Delete Confirmation Modal -->
     <ConfirmationModal :isOpen="isDeleteModalOpen" :title="$t('user.confirmDeleteTitle')"
@@ -500,11 +527,11 @@ const detailsFields = computed(() => [
     colClass: "col-md-6",
   },
   { key: "company_name", label: t("user.company"), colClass: "col-md-12" },
-  {
-    key: "notification_matrix_details",
-    label: t("user.form.notificationEventsSection"),
-    colClass: "col-md-12",
-  },
+  // {
+  //   key: "notification_matrix_details",
+  //   label: t("user.form.notificationEventsSection"),
+  //   colClass: "col-md-12",
+  // },
 ]);
 
 const userColumns = computed(() => {
@@ -661,10 +688,7 @@ const openEditModal = (user) => {
   isModalOpen.value = true;
 };
 
-// ✅ FIXED: openDetailsModal with correct response parsing and channel checking
 const openDetailsModal = async (user) => {
-    console.log("User ID:", user.id); // ✅
-
   selectedUser.value = { ...user };
 
   if (selectedUser.value.image) {
@@ -672,23 +696,17 @@ const openDetailsModal = async (user) => {
   }
 
   selectedUser.value.notification_matrix_details = t('common.loading') || 'Loading...';
+  selectedUser.value.notification_channels_data = []; // store raw data for rendering
   isDetailsModalOpen.value = true;
 
   try {
     const response = await apiServices.getUserNotificationEvents(user.id);
-console.log("API Response For User Notifications:", response); // ✅
-    // ✅ FIXED: Correctly extract data from { data: [...] } response shape
     let notificationsData = [];
     const rData = response?.data;
 
-    if (Array.isArray(rData)) {
-      notificationsData = rData;
-    } else if (Array.isArray(rData?.data)) {
-      // ✅ This matches your API response: { data: [...] }
-      notificationsData = rData.data;
-    } else if (Array.isArray(rData?.data?.data)) {
-      notificationsData = rData.data.data;
-    }
+    if (Array.isArray(rData)) notificationsData = rData;
+    else if (Array.isArray(rData?.data)) notificationsData = rData.data;
+    else if (Array.isArray(rData?.data?.data)) notificationsData = rData.data.data;
 
     const channelDefs = [
       { key: "sms", label: t("user.form.smsAlert") },
@@ -699,47 +717,38 @@ console.log("API Response For User Notifications:", response); // ✅
       { key: "whatsapp", label: t("user.form.whatsappAlert") },
     ];
 
-    const eventsWithActiveChannels = notificationsData.map((item) => {
+    // Store structured data for the modal to render colored badges
+    selectedUser.value.notification_channels_data = notificationsData.map((item) => {
       const eventName = item.event?.name || t("common.unknownEvent", "Unknown Event");
-
       let channels = item.channel || {};
       if (typeof channels === 'string') {
         try { channels = JSON.parse(channels); } catch { channels = {}; }
       }
 
-      // ✅ FIXED: Check boolean true OR numeric 1 — API returns actual booleans
-      const activeChannels = channelDefs
-        .filter((ch) => {
-          const val = channels[`${ch.key}_alert`];
-          return val === true || val === 1 || val === "1" || val === "true";
-        })
-        .map((ch) => ch.label);
+      const channelStates = channelDefs.map((ch) => {
+        const val = channels[`${ch.key}_alert`];
+        return {
+          key: ch.key,
+          label: ch.label,
+          active: val === true || val === 1 || val === "1" || val === "true",
+        };
+      });
 
-      if (activeChannels.length === 0) return null;
+      return { eventName, channelStates };
+    }).filter(item => item.channelStates.some(ch => ch.active));
 
-      // ✅ Check if email channel is active and get recipients
-      const emailChannelActive = channelDefs
-        .find((ch) => ch.key === "email") &&
-        (() => {
-          const val = channels["email_alert"];
-          return val === true || val === 1 || val === "1" || val === "true";
-        })();
-
-      let recipientsText = "";
-      if (emailChannelActive && Array.isArray(channels.email) && channels.email.length > 0) {
-        recipientsText = ` (${channels.email.join(", ")})`;
-      }
-
-      return `${eventName}: ${activeChannels.join(", ")}${recipientsText}`;
-    }).filter(Boolean);
-
-    selectedUser.value.notification_matrix_details = eventsWithActiveChannels.length
-      ? eventsWithActiveChannels.join(" | ")
-      : t('common.none') || 'N/A';
+    // fallback text version
+    selectedUser.value.notification_matrix_details = 
+      selectedUser.value.notification_channels_data.length
+        ? selectedUser.value.notification_channels_data
+            .map(item => `${item.eventName}: ${item.channelStates.filter(c=>c.active).map(c=>c.label).join(', ')}`)
+            .join(' | ')
+        : t('common.none') || 'N/A';
 
   } catch (error) {
     console.error("Failed to load user notification events", error);
     selectedUser.value.notification_matrix_details = t('common.error') || 'Error loading details';
+    selectedUser.value.notification_channels_data = [];
   }
 };
 
