@@ -233,6 +233,8 @@ driverPortal: 'Driver Portal',
       notifyWorkPlanDelay: "Work Plan Delay",
       uploadImage: "Upload Image",
       removeImage: "Remove",
+      selectChannels: "Select Notification Channels",
+      notificationPhones:"Notifications Phones",
     },
 
     // Validation Messages

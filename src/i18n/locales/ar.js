@@ -132,6 +132,7 @@ driverPortal: 'بوابة السائقين',
   },
   user: {
     // عناوين الصفحة
+
     title: "جدول المستخدمين",
     pageTitle: "إدارة المستخدمين",
     pageSubtitle: "إدارة مستخدمي النظام وصلاحياتهم",
@@ -230,6 +231,8 @@ driverPortal: 'بوابة السائقين',
       notifyWorkPlanDelay: "تلقي إشعارات عند تأخر خطة العمل",
       uploadImage: "رفع صورة",
       removeImage: "إزالة",
+      selectChannels: "اختر قنوات الاشعارات",
+      notificationPhones:"ارقام هواتف الاشعارات",
     },
 
     // رسائل التحقق

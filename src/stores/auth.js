@@ -21,6 +21,7 @@ export const useAuthStore = defineStore("auth", () => {
   const isLoading = ref(false);
   const error = ref(null);
   const isSwitchedUser = ref(false); 
+  const permissions = ref([]);
 
   // ===== Getters =====
   const isAuthenticated = computed(() => !!token.value && !!user.value);
@@ -141,6 +142,14 @@ data.user.default_page = data.user.landing_page || '/statistics';
       setItem("auth_token", data.token);
       setItem("auth_user", data.user);
       setItem("auth_device", data.device);
+      
+      if (data.permissions) {
+        permissions.value = data.permissions;
+        setItem("auth_permissions", data.permissions);
+      } else {
+        permissions.value = [];
+        removeItem("auth_permissions");
+      }
 
       // Set user's preferred language
       if (data.user?.language) {
@@ -225,6 +234,14 @@ console.log('🔍 Login response:', data);
       setItem("auth_user", data.user);
       setItem("auth_device", data.device);
 
+      if (data.permissions) {
+        permissions.value = data.permissions;
+        setItem("auth_permissions", data.permissions);
+      } else {
+        permissions.value = [];
+        removeItem("auth_permissions");
+      }
+
       if (data.user?.language) {
         const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
         setItem("user_language", uiLang);
@@ -286,7 +303,12 @@ console.log('🔍 Login response:', data);
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
-      isSwitchedUser.value = !!savedIsSwitched; 
+      isSwitchedUser.value = !!savedIsSwitched;
+      
+      const savedPermissions = getItem("auth_permissions");
+      if (savedPermissions) {
+        permissions.value = savedPermissions;
+      }
     }
   }
 
@@ -296,9 +318,11 @@ console.log('🔍 Login response:', data);
     device.value = null;
     error.value = null;
     isSwitchedUser.value = false; 
+    permissions.value = [];
     removeItem("auth_token");
     removeItem("auth_user");
     removeItem("auth_device");
+    removeItem("auth_permissions");
     removeItem("user_language");
     removeItem("original_admin_token");
     removeItem("original_admin_user");
@@ -472,6 +496,7 @@ function updateUser(userData) {
     isLoading,
     error,
     isSwitchedUser,
+    permissions,
 
     // Getters
     isAuthenticated,

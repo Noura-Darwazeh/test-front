@@ -253,11 +253,13 @@
                     <div
                       v-if="
                         field.enableEmailRecipients &&
+                        isMatrixEventExpanded(field, ev.key) &&
                         isMatrixChannelActive(field, ev.key, 'email')
                       "
                       class="nm-email-recipients"
                     >
                       <div class="nm-email-title text-muted small mb-2">
+                        <i class="fas fa-envelope me-1"></i>
                         {{ field.emailRecipientsLabel || t("user.form.notificationEmails") }}
                       </div>
 
@@ -295,6 +297,56 @@
                         </button>
                       </div>
                     </div>
+
+                    <!-- ✅ Phone recipients — visible when sms or whatsapp active -->
+                    <div
+                      v-if="
+                        field.enablePhoneRecipients &&
+                        isMatrixEventExpanded(field, ev.key) &&
+                        (isMatrixChannelActive(field, ev.key, 'sms') || isMatrixChannelActive(field, ev.key, 'whatsapp'))
+                      "
+                      class="nm-email-recipients"
+                    >
+                      <div class="nm-email-title text-muted small mb-2">
+                        <i class="fas fa-phone me-1"></i>
+                        {{ field.phoneRecipientsLabel || t("user.form.notificationPhones") }}
+                      </div>
+
+                      <div
+                        v-if="(formData[getMatrixPhoneRecipientsKey(field, ev.key)] || []).length"
+                        class="tags-chips d-flex flex-wrap gap-1 mb-2"
+                      >
+                        <span
+                          v-for="(tag, idx) in formData[getMatrixPhoneRecipientsKey(field, ev.key)]"
+                          :key="idx"
+                          class="badge bg-warning text-dark d-flex align-items-center gap-1 tag-chip"
+                        >
+                          {{ tag }}
+                          <button type="button" class="tag-remove" @click="removeTag(getMatrixPhoneRecipientsKey(field, ev.key), idx)">
+                            &times;
+                          </button>
+                        </span>
+                      </div>
+
+                      <div class="d-flex gap-2">
+                        <input
+                          type="tel"
+                          class="form-control form-control-sm"
+                          :placeholder="field.phoneRecipientsPlaceholder || '0599123456'"
+                          v-model="tagsInput[getMatrixPhoneRecipientsKey(field, ev.key)]"
+                          @keydown.enter.prevent="addTag(getMatrixPhoneRecipientsKey(field, ev.key))"
+                          @blur="addTag(getMatrixPhoneRecipientsKey(field, ev.key))"
+                        />
+                        <button
+                          type="button"
+                          class="btn btn-outline-warning btn-sm px-3"
+                          @click="addTag(getMatrixPhoneRecipientsKey(field, ev.key))"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
@@ -569,6 +621,17 @@ const toggleMatrixCell = (field, evKey, chKey) => {
     const recipientsKey = getMatrixEmailRecipientsKey(field, evKey);
     formData[recipientsKey] = [];
   }
+
+  // ✅ When disabling sms AND whatsapp, clear phone recipients
+  if (field.enablePhoneRecipients && (chKey === "sms" || chKey === "whatsapp") && nextVal === 0) {
+    const stillHasPhone =
+      (chKey === "sms" && formData[`${field.prefix || "notify_"}${evKey}_whatsapp`] == 1) ||
+      (chKey === "whatsapp" && formData[`${field.prefix || "notify_"}${evKey}_sms`] == 1);
+    if (!stillHasPhone) {
+      const phoneKey = getMatrixPhoneRecipientsKey(field, evKey);
+      formData[phoneKey] = [];
+    }
+  }
 };
 
 // ── Notification Matrix accordion state ──
@@ -581,6 +644,12 @@ const isMatrixEventExpanded = (field, evKey) => {
 const getMatrixEmailRecipientsKey = (field, evKey) => {
   const prefix = field.prefix || "notify_";
   return `${prefix}${evKey}_email_recipients`;
+};
+
+// ✅ NEW: phone recipients key helper
+const getMatrixPhoneRecipientsKey = (field, evKey) => {
+  const prefix = field.prefix || "notify_";
+  return `${prefix}${evKey}_phone_recipients`;
 };
 
 const getMatrixCellKey = (field, evKey, chKey) => {
@@ -608,6 +677,12 @@ const toggleMatrixEvent = (field, evKey) => {
     if (field.enableEmailRecipients) {
       formData[getMatrixEmailRecipientsKey(field, evKey)] = [];
     }
+
+    // ✅ Also clear phone recipients when matrix collapses
+    if (field.enablePhoneRecipients) {
+      formData[getMatrixPhoneRecipientsKey(field, evKey)] = [];
+    }
+
     matrixExpandedEvents[key] = false;
   } else {
     matrixExpandedEvents[key] = true;
@@ -627,13 +702,11 @@ const togglePasswordVisibility = (fieldName) => {
 const getSelectOptions = (field) => {
   if (!field.options) return [];
   
-  // Check if it's a Vue ref/computed (has value property)
   if (typeof field.options === 'object' && 'value' in field.options) {
     const options = unref(field.options);
     return Array.isArray(options) ? options : [];
   }
   
-  // If it's already an array, return it
   if (Array.isArray(field.options)) {
     return field.options;
   }
@@ -643,26 +716,21 @@ const getSelectOptions = (field) => {
 
 // Get order options for a field
 const getOrderOptionsForField = (field) => {
-  // If field has a function to get order options, use it
   if (field.getOrderOptions && typeof field.getOrderOptions === 'function') {
     return field.getOrderOptions() || [];
   }
   
-  // If field has orderOptions
   if (field.orderOptions) {
-    // Check if it's a Vue ref/computed (has value property)
     if (typeof field.orderOptions === 'object' && 'value' in field.orderOptions) {
       const options = unref(field.orderOptions);
       return Array.isArray(options) ? options : [];
     }
 
-    // If it's already an array, return it
     if (Array.isArray(field.orderOptions)) {
       return field.orderOptions;
     }
   }
 
-  // Otherwise, return empty array
   return [];
 };
 
@@ -672,12 +740,10 @@ const getItemsOptions = (field, selectedOrder) => {
     return [];
   }
   
-  // If field has a function to get items options, use it
   if (field.getItemsOptions && typeof field.getItemsOptions === 'function') {
     return field.getItemsOptions(selectedOrder) || [];
   }
   
-  // Otherwise, use static itemsOptions
   return field.itemsOptions || [];
 };
 
@@ -863,6 +929,13 @@ const initializeForm = () => {
           const recipientsKey = `${prefix}${ev.key}_email_recipients`;
           formData[recipientsKey] = field.defaultValues?.[recipientsKey] ?? [];
         }
+
+        // ✅ Initialize phone recipients
+        if (field.enablePhoneRecipients) {
+          const phoneKey = `${prefix}${ev.key}_phone_recipients`;
+          formData[phoneKey] = field.defaultValues?.[phoneKey] ?? [];
+        }
+
         // Auto-expand events that already have an active channel (edit mode)
         const expandKey = `${prefix}_${ev.key}`;
         const hasActive = (field.channels || []).some(
@@ -925,6 +998,12 @@ const resetForm = () => {
         if (field.enableEmailRecipients) {
           formData[`${prefix}${ev.key}_email_recipients`] = [];
         }
+
+        // ✅ Reset phone recipients
+        if (field.enablePhoneRecipients) {
+          formData[`${prefix}${ev.key}_phone_recipients`] = [];
+        }
+
         // Collapse all events on reset
         matrixExpandedEvents[`${prefix}_${ev.key}`] = false;
       });
@@ -1362,16 +1441,13 @@ onMounted(() => {
   initializeForm();
 });
 
-// Watch for modal open/close with smooth handling and scrollbar compensation
 watch(
   () => props.isOpen,
   (newVal) => {
     if (newVal) {
       initializeForm();
-      // Calculate scrollbar width BEFORE hiding overflow to prevent layout shift
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
 
-      // Apply both styles simultaneously in one operation to minimize reflow
       requestAnimationFrame(() => {
         document.body.style.overflow = "hidden";
         if (scrollbarWidth > 0) {
@@ -1380,7 +1456,6 @@ watch(
       });
     } else {
       resetForm();
-      // Remove styles in one operation
       requestAnimationFrame(() => {
         document.body.style.overflow = "";
         document.body.style.paddingRight = "";
@@ -1389,7 +1464,6 @@ watch(
   }
 );
 
-// Watch for fields change
 watch(
   () => props.fields,
   () => {
@@ -1718,7 +1792,7 @@ const handleFieldChange = (field, event) => {
 
 /* ── Checkbox / toggle switch ── */
 .checkbox-field {
-  min-height: 38px; /* matches form-control height so the row stays aligned */
+  min-height: 38px;
 }
 .form-check-input[type="checkbox"] {
   cursor: pointer;
@@ -1807,4 +1881,16 @@ const handleFieldChange = (field, event) => {
   transition: color 0.15s;
 }
 .nm-ch-item--active .nm-ch-label { color: rgba(255,255,255,0.9); }
+
+/* ── Email / Phone recipients ── */
+.nm-email-recipients {
+  padding: 10px 16px 14px;
+  background: #f9fafb;
+  border-top: 1px dashed #e5e7eb;
+}
+.nm-email-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
 </style>
