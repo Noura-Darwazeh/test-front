@@ -1333,6 +1333,13 @@ async createWorkPlanSteps({ workPlanOrdersId, status, notes } = {}) {
   async deleteEvent(id) {
     return this.deleteEntity("events", id);
   }
+
+  async saveFCMToken(token) {
+  return this.post('/subscribe-fcm', { 
+    fcm_token: token,
+    device_type: 'browser'
+  });
+}
 }
 
 // Create and freeze the singleton instance

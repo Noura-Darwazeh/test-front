@@ -2,6 +2,8 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import api from "@/services/api.js";
 import { setItem, getItem, removeItem } from "@/utils/shared/storageUtils.js";
+import { requestFCMToken } from "@/services/firebase.js";
+import apiServices from "@/services/apiServices.js";
 
 // API Base URL
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/api\/?$/, "");
@@ -28,7 +30,6 @@ export const useAuthStore = defineStore("auth", () => {
 
   const userRole = computed(() => {
     const role = user.value?.role;
-    // Handle if backend returns role as array
     if (Array.isArray(role)) {
       return role[0] || null;
     }
@@ -92,196 +93,199 @@ export const useAuthStore = defineStore("auth", () => {
 
   const userCurrencyName = computed(() => userCurrency.value.name || "");
 
+  // ===== FCM Helper =====
+const subscribeFCM = async () => {
+  try {
+    const fcmToken = await requestFCMToken();
+    if (fcmToken) {
+      console.log("🔔 FCM Token:", fcmToken);
+      await apiServices.saveFCMToken(fcmToken);
+      console.log("✅ FCM Token sent to API successfully");
+    } else {
+      console.warn("⚠️ No FCM Token received");
+    }
+  } catch (fcmErr) {
+    console.warn("⚠️ FCM subscription failed:", fcmErr);
+  }
+};
+
   // ===== Actions =====
+  async function login(credentials) {
+    isLoading.value = true;
+    error.value = null;
 
-  /**
-   * Login user with username or email
-   * @param {Object} credentials - Login credentials {login, password}
-   * @returns {Promise<Object>} User data
-   */
- async function login(credentials) {
-  isLoading.value = true;
-  error.value = null;
-
-  try {
-    if (!credentials.login || !credentials.login.trim()) {
-      throw new Error("Email or username is required");
-    }
-
-    if (!credentials.password) {
-      throw new Error("Password is required");
-    }
-
-    const response = await api.post("/login", {
-      login: credentials.login.trim(),
-      password: credentials.password,
-    });
-
-    const data = response.data;
-
-    if (data.success === true || data.status === 'success') {
-      // ✅ Convert image path to full URL
-      if (data.user?.image) {
-        data.user.image = getFullImageUrl(data.user.image);
+    try {
+      if (!credentials.login || !credentials.login.trim()) {
+        throw new Error("Email or username is required");
       }
 
-      const savedUser = getItem("auth_user");
-      if (savedUser?.default_page && data.user.id === savedUser.id) {
-        data.user.default_page = savedUser.default_page;
+      if (!credentials.password) {
+        throw new Error("Password is required");
+      }
+
+      const response = await api.post("/login", {
+        login: credentials.login.trim(),
+        password: credentials.password,
+      });
+
+      const data = response.data;
+
+      if (data.success === true || data.status === 'success') {
+        if (data.user?.image) {
+          data.user.image = getFullImageUrl(data.user.image);
+        }
+
+        const savedUser = getItem("auth_user");
+        if (savedUser?.default_page && data.user.id === savedUser.id) {
+          data.user.default_page = savedUser.default_page;
+        } else {
+          data.user.default_page = data.user.landing_page || '/statistics';
+        }
+
+        user.value = data.user;
+        token.value = data.token;
+        device.value = data.device;
+        isSwitchedUser.value = false;
+
+        setItem("auth_token", data.token);
+        setItem("auth_user", data.user);
+        setItem("auth_device", data.device);
+        
+        if (data.permissions) {
+          permissions.value = data.permissions;
+          setItem("auth_permissions", data.permissions);
+        } else {
+          permissions.value = [];
+          removeItem("auth_permissions");
+        }
+
+        if (data.user?.language) {
+          const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
+          setItem("user_language", uiLang);
+        }
+
+        // 🔔 FCM subscription
+        await subscribeFCM();
+
+        return data;
       } else {
-data.user.default_page = data.user.landing_page || '/statistics';
+        throw new Error(data.message || "Login failed");
       }
-
-      // Save auth data
-      user.value = data.user;
-      token.value = data.token;
-      device.value = data.device;
-      isSwitchedUser.value = false;
-
-      // Persist to localStorage
-      setItem("auth_token", data.token);
-      setItem("auth_user", data.user);
-      setItem("auth_device", data.device);
-      
-      if (data.permissions) {
-        permissions.value = data.permissions;
-        setItem("auth_permissions", data.permissions);
+    } catch (err) {
+      if (err.response?.data?.success === false) {
+        error.value = err.response.data.message || "Invalid credentials";
+      } else if (err.response?.status === 401) {
+        error.value = "Invalid username/email or password";
+      } else if (err.response?.status === 422) {
+        error.value = "Please check your input and try again";
       } else {
-        permissions.value = [];
-        removeItem("auth_permissions");
+        error.value = err.message || "Login failed. Please try again.";
       }
 
-      // Set user's preferred language
-      if (data.user?.language) {
-        const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
-        setItem("user_language", uiLang);
-      }
-
-      return data;
-    } else {
-      throw new Error(data.message || "Login failed");
+      console.error("❌ Login error:", err);
+      throw err;
+    } finally {
+      isLoading.value = false;
     }
-  } catch (err) {
-    if (err.response?.data?.success === false) {
-      error.value = err.response.data.message || "Invalid credentials";
-    } else if (err.response?.status === 401) {
-      error.value = "Invalid username/email or password";
-    } else if (err.response?.status === 422) {
-      error.value = "Please check your input and try again";
-    } else {
-      error.value = err.message || "Login failed. Please try again.";
-    }
-
-    console.error("❌ Login error:", err);
-    throw err;
-  } finally {
-    isLoading.value = false;
   }
-}
 
-async function loginAsDriver(credentials) {
-  isLoading.value = true;
-  error.value = null;
+  async function loginAsDriver(credentials) {
+    isLoading.value = true;
+    error.value = null;
 
-  try {
-    const loginValue = String(
-      credentials?.login ?? credentials?.username ?? ""
-    ).trim();
+    try {
+      const loginValue = String(
+        credentials?.login ?? credentials?.username ?? ""
+      ).trim();
 
-    if (!loginValue) {
-      throw new Error("Username is required");
-    }
-
-    if (!credentials.password) {
-      throw new Error("Password is required");
-    }
-
-    const response = await api.post("/login", {
-      login: loginValue,
-      username: loginValue,
-      password: credentials.password,
-    }, 
-    {
-      headers: {
-        'X-Client': 'mobile-app',
-        // 'User-Agent': 'iphone',
-      }
-    }
-  );
-
-    const data = response.data;
-console.log('🔍 Login response:', data); 
-
-    if (data.success === true || data.status === 'success') {
-
-      if (data.user?.image) {
-        data.user.image = getFullImageUrl(data.user.image);
+      if (!loginValue) {
+        throw new Error("Username is required");
       }
 
-      const savedUser = getItem("auth_user");
-      if (savedUser?.default_page && data.user.id === savedUser.id) {
-        data.user.default_page = savedUser.default_page;
+      if (!credentials.password) {
+        throw new Error("Password is required");
+      }
+
+      const response = await api.post("/login", {
+        login: loginValue,
+        username: loginValue,
+        password: credentials.password,
+      }, 
+      {
+        headers: {
+          'X-Client': 'mobile-app',
+        }
+      });
+
+      const data = response.data;
+      console.log('🔍 Login response:', data); 
+
+      if (data.success === true || data.status === 'success') {
+
+        if (data.user?.image) {
+          data.user.image = getFullImageUrl(data.user.image);
+        }
+
+        const savedUser = getItem("auth_user");
+        if (savedUser?.default_page && data.user.id === savedUser.id) {
+          data.user.default_page = savedUser.default_page;
+        } else {
+          data.user.default_page = data.user.landing_page || "/driver-steps";
+        }
+
+        user.value = data.user;
+        token.value = data.token;
+        device.value = data.device;
+        isSwitchedUser.value = false;
+
+        setItem("auth_token", data.token);
+        setItem("auth_user", data.user);
+        setItem("auth_device", data.device);
+
+        if (data.permissions) {
+          permissions.value = data.permissions;
+          setItem("auth_permissions", data.permissions);
+        } else {
+          permissions.value = [];
+          removeItem("auth_permissions");
+        }
+
+        if (data.user?.language) {
+          const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
+          setItem("user_language", uiLang);
+        }
+
+        // 🔔 FCM subscription
+        await subscribeFCM();
+
+        return data;
       } else {
-        data.user.default_page = data.user.landing_page || "/driver-steps";
+        throw new Error(data.message || "Login failed");
       }
-
-      user.value = data.user;
-      token.value = data.token;
-      device.value = data.device;
-      isSwitchedUser.value = false;
-
-      setItem("auth_token", data.token);
-      setItem("auth_user", data.user);
-      setItem("auth_device", data.device);
-
-      if (data.permissions) {
-        permissions.value = data.permissions;
-        setItem("auth_permissions", data.permissions);
+    } catch (err) {
+      if (err.response?.data?.success === false) {
+        error.value = err.response.data.message || "Invalid credentials";
+      } else if (err.response?.status === 401) {
+        error.value = "Invalid username or password";
+      } else if (err.response?.status === 422) {
+        error.value = "Please check your input and try again";
       } else {
-        permissions.value = [];
-        removeItem("auth_permissions");
+        error.value = err.message || "Login failed. Please try again.";
       }
 
-      if (data.user?.language) {
-        const uiLang = data.user.language === 'arabic' ? 'ar' : 'en';
-        setItem("user_language", uiLang);
-      }
-
-      return data;
-    } else {
-      throw new Error(data.message || "Login failed");
+      console.error("❌ Driver login error:", err);
+      throw err;
+    } finally {
+      isLoading.value = false;
     }
-  } catch (err) {
-    if (err.response?.data?.success === false) {
-      error.value = err.response.data.message || "Invalid credentials";
-    } else if (err.response?.status === 401) {
-      error.value = "Invalid username or password";
-    } else if (err.response?.status === 422) {
-      error.value = "Please check your input and try again";
-    } else {
-      error.value = err.message || "Login failed. Please try again.";
-    }
-
-    console.error("❌ Driver login error:", err);
-    throw err;
-  } finally {
-    isLoading.value = false;
   }
-}
-
-    
-   
-
-    
-   
-
 
   async function logout() {
-    clearAuthData(); // Clear local state immediately — no error possible from here
+    clearAuthData();
     try {
-      await api.post("/logout"); // Best-effort backend session cleanup
+      await api.post("/logout");
     } catch {
-      // Ignore — expired token, network error, etc. We're already logged out locally.
+      // ignore
     }
     return { success: true };
   }
@@ -293,13 +297,12 @@ console.log('🔍 Login response:', data);
     const savedIsSwitched = getItem("is_switched_user");  
 
     if (savedToken && savedUser) {
-      // ✅ Convert image path to full URL if needed
       if (savedUser.image && !savedUser.image.startsWith('http')) {
         savedUser.image = getFullImageUrl(savedUser.image);
       }
-  if (!savedUser.default_page) {
-      savedUser.default_page = '/user';
-    }
+      if (!savedUser.default_page) {
+        savedUser.default_page = '/user';
+      }
       token.value = savedToken;
       user.value = savedUser;
       device.value = savedDevice;
@@ -333,23 +336,14 @@ console.log('🔍 Login response:', data);
     error.value = null;
   }
 
-
-function updateUser(userData) {
-  // ✅ Convert image path to full URL if needed
-  if (userData.image && !userData.image.startsWith('http')) {
-    userData.image = getFullImageUrl(userData.image);
+  function updateUser(userData) {
+    if (userData.image && !userData.image.startsWith('http')) {
+      userData.image = getFullImageUrl(userData.image);
+    }
+    user.value = { ...user.value, ...userData };
+    setItem("auth_user", user.value);
   }
 
-  user.value = { ...user.value, ...userData };
-
-  setItem("auth_user", user.value);
-}
-
-  /**
-   * Update user language in backend and locally
-   * @param {string} language - Language to set (english or arabic)
-   * @returns {Promise<Object>} Updated user data
-   */
   async function updateUserLanguage(language) {
     try {
       if (!user.value?.id) {
@@ -375,57 +369,39 @@ function updateUser(userData) {
     }
   }
 
-  /**
-   * Check if user has specific role
-   * @param {string} role - Role to check
-   * @returns {boolean}
-   */
   function hasRole(role) {
     return userRole.value === role;
   }
 
-  /**
-   * Check if user has any of the specified roles
-   * @param {Array<string>} roles - Array of roles to check
-   * @returns {boolean}
-   */
   function hasAnyRole(roles) {
     return roles.includes(userRole.value);
   }
-function hasPermission(permission) {
-  return permissions.value?.some(
-    (p) => p.toLowerCase() === permission.toLowerCase()
-  ) ?? false;
-}
+
+  function hasPermission(permission) {
+    return permissions.value?.some(
+      (p) => p.toLowerCase() === permission.toLowerCase()
+    ) ?? false;
+  }
+
   function getDefaultPageByRole(role) {
     if (role === "Driver") return "/driver-steps";
     if (role === "Admin" || role === "SuperAdmin") return "/statistics";
     return "/statistics";
   }
 
-  /**
-   * Switch to another user (SuperAdmin only)
-   * @param {Object} userData - New user data
-   * @param {string} loginAsToken - Login-as token
-   * @param {string} originalToken - Original SuperAdmin token
-   */
   function switchUser(userData, loginAsToken, originalToken) {
-    // Save original token to return later
     if (!getItem("original_admin_token")) {
       setItem("original_admin_token", token.value);
       setItem("original_admin_user", user.value);
     }
 
-    // Convert image path to full URL
     if (userData.image) {
       userData.image = getFullImageUrl(userData.image);
     }
 
-    // Update current session with switched user
     user.value = userData;
     token.value = loginAsToken;
 
-    // Save to localStorage
     setItem("auth_token", loginAsToken);
     setItem("auth_user", userData);
     setItem("is_switched_user", true);
@@ -433,9 +409,6 @@ function hasPermission(permission) {
     isSwitchedUser.value = true; 
   }
 
-  /**
-   * Return to original SuperAdmin account
-   */
   async function returnToAdmin() {
     const originalToken = getItem("original_admin_token");
     const originalUser = getItem("original_admin_user");
@@ -446,22 +419,17 @@ function hasPermission(permission) {
     }
 
     try {
-      const currentToken = token.value;
-      
       token.value = originalToken;
       
       const response = await api.post("/return_to_original");
       
       if (response.data?.status === 'success') {
-        // Restore original admin session
         user.value = originalUser;
         token.value = originalToken;
 
-        // Update localStorage
         setItem("auth_token", originalToken);
         setItem("auth_user", originalUser);
 
-        // Clear switch session data
         removeItem("original_admin_token");
         removeItem("original_admin_user");
         removeItem("is_switched_user");
@@ -528,6 +496,5 @@ function hasPermission(permission) {
     returnToAdmin,
     loginAsDriver,
     hasPermission,
-
   };
 });
