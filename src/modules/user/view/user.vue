@@ -335,12 +335,7 @@ watch(currentPage, async (newPage) => {
 
 const notificationMatrixDefaultValues = computed(() => {
   if (!isEditMode.value) return {};
-  const defaults = { ...(selectedUser.value || {}) };
-  const prefix = "notify_";
-  (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
-    defaults[`${prefix}${ev.key}_email_recipients`] = [];
-  });
-  return defaults;
+  return { ...(selectedUser.value || {}) };
 });
 
 const userFields = computed(() => [
@@ -672,7 +667,7 @@ const openModal = () => {
   isModalOpen.value = true;
 };
 
-const openEditModal = (user) => {
+const openEditModal = async (user) => {
   clearFormErrors();
   isEditMode.value = true;
   const normalizedUser = {
@@ -683,6 +678,48 @@ const openEditModal = (user) => {
   if (selectedUser.value.image) {
     selectedUser.value.imagePreview = getFullImageUrl(selectedUser.value.image);
   }
+
+  // تحميل notification channels قبل فتح الـ modal
+  try {
+    const response = await apiServices.getUserNotificationEvents(user.id);
+    let data = [];
+    const rData = response?.data;
+    if (Array.isArray(rData)) data = rData;
+    else if (Array.isArray(rData?.data)) data = rData.data;
+
+    const channelKeys = ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'];
+
+    data.forEach((item) => {
+      const ev = notificationEventsStore.events.find(
+        (e) => e.id === item.event_id || e.id === item.event?.id
+      );
+      if (!ev) return;
+
+      let ch = item.channel || {};
+      if (typeof ch === 'string') { try { ch = JSON.parse(ch); } catch { ch = {}; } }
+
+      channelKeys.forEach((chKey) => {
+        const val = ch[`${chKey}_alert`];
+        const isActive = val === true || val === 1 || val === '1' || val === 'true' ? 1 : 0;
+        selectedUser.value[`notify_${ev.key}_${chKey}`] = isActive;
+      });
+
+      if (Array.isArray(ch.email) && ch.email.length) {
+        selectedUser.value[`notify_${ev.key}_email_recipients`] = [...ch.email];
+      } else {
+        selectedUser.value[`notify_${ev.key}_email_recipients`] = [];
+      }
+
+      if (Array.isArray(ch.phone) && ch.phone.length) {
+        selectedUser.value[`notify_${ev.key}_phone_recipients`] = [...ch.phone];
+      } else {
+        selectedUser.value[`notify_${ev.key}_phone_recipients`] = [];
+      }
+    });
+  } catch (err) {
+    console.error('Failed to load notification events for edit:', err);
+  }
+
   isModalOpen.value = true;
 };
 
