@@ -236,18 +236,21 @@
                     </div>
 
                     <!-- Channel strip — visible only when expanded -->
-                    <div v-if="isMatrixEventExpanded(field, ev.key)" class="nm-channels-strip">
-                      <div
-                        v-for="ch in field.channels"
-                        :key="ch.key"
-                        class="nm-ch-item"
-                        :class="{ 'nm-ch-item--active': formData[`${field.prefix || 'notify_'}${ev.key}_${ch.key}`] == 1 }"
-                        @click="toggleMatrixCell(field, ev.key, ch.key)"
-                      >
-                        <i :class="ch.icon" class="nm-ch-icon"></i>
-                        <small class="nm-ch-label">{{ ch.label }}</small>
-                      </div>
-                    </div>
+<div v-if="isMatrixEventExpanded(field, ev.key)" class="nm-channels-strip">
+  <div
+    v-for="ch in field.channels"
+    :key="ch.key"
+    class="nm-ch-item"
+    :class="{ 
+      'nm-ch-item--active': formData[`${field.prefix || 'notify_'}${ev.key}_${ch.key}`] == 1,
+      'nm-ch-item--locked': ch.requiresPermission && !hasChannelPermission(ch.requiresPermission)
+    }"
+    @click="handleChannelClick(field, ev.key, ch.key, ch)"
+  >
+    <i :class="ch.icon" class="nm-ch-icon"></i>
+    <small class="nm-ch-label">{{ ch.label }}</small>
+  </div>
+</div>
 
                     <!-- Email recipients — visible only when expanded and email channel active -->
                     <div
@@ -572,7 +575,18 @@ import { Feature } from "ol";
 import { Point } from "ol/geom";
 import { Icon, Style } from "ol/style";
 import companyIconSvg from "@/assets/map/company.svg";
+import { useAuthStore } from "@/stores/auth.js";
+const authStore = useAuthStore();
 
+const hasChannelPermission = (permission) => {
+  if (!permission) return true;
+  return authStore.hasPermission(permission);
+};
+
+const handleChannelClick = (field, evKey, chKey, ch) => {
+  if (ch.requiresPermission && !hasChannelPermission(ch.requiresPermission)) return;
+  toggleMatrixCell(field, evKey, chKey);
+};
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
   title: { type: String, default: "Add New" },
@@ -1892,5 +1906,13 @@ const handleFieldChange = (field, event) => {
   font-size: 0.75rem;
   font-weight: 600;
   margin-bottom: 8px;
+}
+.nm-ch-item--locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.nm-ch-item--locked:hover {
+  border-color: #e5e7eb;
+  background: #f9fafb;
 }
 </style>

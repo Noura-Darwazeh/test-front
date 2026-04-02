@@ -503,8 +503,12 @@ const userFields = computed(() => [
       { key: "email", label: t("user.form.emailAlert"), icon: "fas fa-envelope" },
       { key: "mobile", label: t("user.form.mobileAlert"), icon: "fas fa-mobile-alt" },
       { key: "telegram", label: t("user.form.telegramAlert"), icon: "fab fa-telegram-plane" },
-      { key: "whatsapp", label: t("user.form.whatsappAlert"), icon: "fab fa-whatsapp" },
-    ],
+  { 
+    key: "whatsapp", 
+    label: t("user.form.whatsappAlert"), 
+    icon: "fab fa-whatsapp",
+    requiresPermission: 'whatsapp channel'
+  },    ],
   },
 ]);
 
