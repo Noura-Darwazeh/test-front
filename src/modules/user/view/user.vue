@@ -77,35 +77,25 @@
       :serverErrors="formErrors" @close="closeModal" @submit="handleSubmitUser" />
 
     <!-- Details Modal -->
-  <DetailsModal 
-  :isOpen="isDetailsModalOpen" 
-  :title="$t('user.details')" 
-  :data="selectedUser" 
-  :fields="detailsFields"
-  @close="closeDetailsModal"
->
-  <template #after-details>
-    <div v-if="selectedUser.notification_channels_data?.length" class="mt-3">
-      <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
-        {{ $t('user.form.notificationEventsSection') }}
-      </label>
-      <div v-for="item in selectedUser.notification_channels_data" :key="item.eventName" class="mb-3">
-        <div class="fw-semibold small mb-1 text-dark">{{ item.eventName }}</div>
-        <div class="d-flex flex-wrap gap-2">
-          <span
-            v-for="ch in item.channelStates"
-            :key="ch.key"
-            class="badge px-3 py-2"
-            :class="ch.active ? 'bg-primary text-white' : 'bg-light text-muted border'"
-            style="font-size: 0.75rem;"
-          >
-            {{ ch.label }}
-          </span>
+    <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('user.details')" :data="selectedUser" :fields="detailsFields"
+      @close="closeDetailsModal">
+      <template #after-details>
+        <div v-if="selectedUser.notification_channels_data?.length" class="mt-3">
+          <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+            {{ $t('user.form.notificationEventsSection') }}
+          </label>
+          <div v-for="item in selectedUser.notification_channels_data" :key="item.eventName" class="mb-3">
+            <div class="fw-semibold small mb-1 text-dark">{{ item.eventName }}</div>
+            <div class="d-flex flex-wrap gap-2">
+              <span v-for="ch in item.channelStates" :key="ch.key" class="badge px-3 py-2"
+                :class="ch.active ? 'bg-primary text-white' : 'bg-light text-muted border'" style="font-size: 0.75rem;">
+                {{ ch.label }}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </template>
-</DetailsModal>
+      </template>
+    </DetailsModal>
 
     <!-- Delete Confirmation Modal -->
     <ConfirmationModal :isOpen="isDeleteModalOpen" :title="$t('user.confirmDeleteTitle')"
@@ -264,7 +254,11 @@ const fetchDropdownData = async () => {
     const results = await Promise.allSettled(requests);
     const [regionsResponse, currenciesResponse, companiesResponse] = results;
 
-    if (regionsResponse.status === "fulfilled") {
+    console.log("🔍 Regions Response:", regionsResponse);
+    console.log("🔍 Currencies Response:", currenciesResponse);
+    console.log("🔍 Companies Response:", companiesResponse);
+
+    if (regionsResponse.status === "fulfilled" && regionsResponse.value?.data?.data) {
       regions.value = regionsResponse.value.data.data.map((region) => ({
         value: String(region.id),
         label: region.name,
@@ -273,7 +267,7 @@ const fetchDropdownData = async () => {
       regions.value = [];
     }
 
-    if (currenciesResponse.status === "fulfilled") {
+    if (currenciesResponse.status === "fulfilled" && currenciesResponse.value?.data?.data) {
       currencies.value = currenciesResponse.value.data.data.map((currency) => ({
         value: String(currency.id),
         label: (() => {
@@ -300,7 +294,7 @@ const fetchDropdownData = async () => {
     }
 
     if (shouldFetchCompanies) {
-      if (companiesResponse && companiesResponse.status === "fulfilled") {
+      if (companiesResponse && companiesResponse.status === "fulfilled" && companiesResponse.value?.data?.data) {
         companies.value = companiesResponse.value.data.data.map((company) => ({
           value: String(company.id),
           label: company.name,
@@ -738,11 +732,11 @@ const openDetailsModal = async (user) => {
     }).filter(item => item.channelStates.some(ch => ch.active));
 
     // fallback text version
-    selectedUser.value.notification_matrix_details = 
+    selectedUser.value.notification_matrix_details =
       selectedUser.value.notification_channels_data.length
         ? selectedUser.value.notification_channels_data
-            .map(item => `${item.eventName}: ${item.channelStates.filter(c=>c.active).map(c=>c.label).join(', ')}`)
-            .join(' | ')
+          .map(item => `${item.eventName}: ${item.channelStates.filter(c => c.active).map(c => c.label).join(', ')}`)
+          .join(' | ')
         : t('common.none') || 'N/A';
 
   } catch (error) {
@@ -885,7 +879,7 @@ const handleSubmitUser = async (userData) => {
       if (userData.image && userData.image instanceof File) updatedData.image = userData.image;
 
       await usersStore.updateUser(selectedUser.value.id, updatedData);
-      
+
       // ✅ Update notification events via dedicated endpoint
       await apiServices.updateUserNotificationEvents({
         user_id: selectedUser.value.id,
