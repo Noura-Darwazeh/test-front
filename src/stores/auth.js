@@ -280,15 +280,24 @@ const subscribeFCM = async () => {
     }
   }
 
-  async function logout() {
-    clearAuthData();
-    try {
-      await api.post("/logout");
-    } catch {
-      // ignore
-    }
-    return { success: true };
+ async function logout() {
+  const { useNotificationStore } = await import('@/stores/notificationStore.js');
+  const notificationStore = useNotificationStore();
+  
+  try {
+    await api.post("/logout", { 
+      fcm_token: notificationStore.fcmToken 
+    });
+        console.log("✅ Logout successful - FCM token sent:", notificationStore.fcmToken);
+
+  } catch {
+    // ignore
   }
+  
+  notificationStore.clearNotifications();
+  clearAuthData();
+  return { success: true };
+}
 
   function initializeAuth() {
     const savedToken = getItem("auth_token");
