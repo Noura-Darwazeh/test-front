@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="user-page-container bg-light">
         <!-- Floating Validation Error Alert -->
         <div v-if="validationError" class="position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 9999;">
@@ -159,7 +159,24 @@
             :data="selectedDriver"
             :fields="detailsFields" 
             @close="closeDetailsModal" 
-        />
+        >
+            <template #after-details>
+                <div v-if="selectedDriver.notification_channels_data?.length" class="mt-3">
+                    <label class="detail-label text-muted small fw-semibold text-uppercase mb-2 d-block">
+                        {{ $t('driver.form.notificationSection') }}
+                    </label>
+                    <div v-for="item in selectedDriver.notification_channels_data" :key="item.eventName" class="mb-3">
+                        <div class="fw-semibold small mb-1 text-dark">{{ item.eventName }}</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span v-for="ch in item.channelStates" :key="ch.key" class="badge px-3 py-2"
+                                :class="ch.active ? 'bg-primary text-white' : 'bg-light text-muted border'" style="font-size: 0.75rem;">
+                                {{ ch.label }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </DetailsModal>
 
         <!-- ✅ NEW: Driver Reassign Modal -->
         <DriverReassignModal
@@ -490,7 +507,8 @@ const driverFields = computed(() => [
         type: 'notification-matrix',
         colClass: 'col-12',
         prefix: 'notify_',
-        defaultValues: isEditMode.value ? selectedDriver.value : {},
+        enableEmailRecipients: true,
+        defaultValues: isEditMode.value ? (selectedDriver.value || {}) : {},
         events: (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).map((ev) => ({
             key: ev.key,
             label: locale.value === 'ar' ? ev.ar_name : ev.en_name,
@@ -502,7 +520,7 @@ const driverFields = computed(() => [
             { key: 'email',    label: t('driver.form.emailAlert'),    icon: 'fas fa-envelope' },
             { key: 'mobile',   label: t('driver.form.mobileAlert'),   icon: 'fas fa-mobile-alt' },
             { key: 'telegram', label: t('driver.form.telegramAlert'), icon: 'fab fa-telegram-plane' },
-            { key: 'whatsapp', label: t('driver.form.whatsappAlert'), icon: 'fab fa-whatsapp' },
+            { key: 'whatsapp', label: t('driver.form.whatsappAlert'), icon: 'fab fa-whatsapp', requiresPermission: 'whatsapp channel' },
         ],
     },
 ]);
@@ -632,17 +650,112 @@ const openAddModal = () => {
 };
 
 // Edit Modal
-const openEditModal = (driver) => {
+const openEditModal = async (driver) => {
     clearFormErrors();
     isEditMode.value = true;
     selectedDriver.value = normalizeDriverForEdit(driver);
+    
+    try {
+        const targetUserId = driver.user_id || driver.user?.id || driver.id;
+        const response = await apiServices.getUserNotificationEvents(targetUserId);
+        let data = [];
+        const rData = response?.data;
+        if (Array.isArray(rData)) data = rData;
+        else if (Array.isArray(rData?.data)) data = rData.data;
+
+        const channelKeys = ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'];
+
+        data.forEach((item) => {
+            const ev = notificationEventsStore.events.find(
+                (e) => e.id === item.event_id || e.id === item.event?.id
+            );
+            if (!ev) return;
+
+            let ch = item.channel || {};
+            if (typeof ch === 'string') { try { ch = JSON.parse(ch); } catch { ch = {}; } }
+
+            channelKeys.forEach((chKey) => {
+                const val = ch[`${chKey}_alert`];
+                const isActive = val === true || val === 1 || val === '1' || val === 'true' ? 1 : 0;
+                selectedDriver.value[`notify_${ev.key}_${chKey}`] = isActive;
+            });
+
+            if (Array.isArray(ch.email) && ch.email.length) {
+                selectedDriver.value[`notify_${ev.key}_email_recipients`] = [...ch.email];
+            } else {
+                selectedDriver.value[`notify_${ev.key}_email_recipients`] = [];
+            }
+
+            if (Array.isArray(ch.phone) && ch.phone.length) {
+                selectedDriver.value[`notify_${ev.key}_phone_recipients`] = [...ch.phone];
+            } else {
+                selectedDriver.value[`notify_${ev.key}_phone_recipients`] = [];
+            }
+        });
+    } catch (err) {
+        console.error('Failed to load notification events for driver edit:', err);
+    }
+    
     isFormModalOpen.value = true;
 };
 
 // Details Modal
-const openDetailsModal = (driver) => {
+const openDetailsModal = async (driver) => {
     selectedDriver.value = { ...driver };
     isDetailsModalOpen.value = true;
+    selectedDriver.value.notification_matrix_details = t('common.loading') || 'Loading...';
+    selectedDriver.value.notification_channels_data = [];
+
+    try {
+        const targetUserId = driver.user_id || driver.user?.id || driver.id;
+        const response = await apiServices.getUserNotificationEvents(targetUserId);
+        let notificationsData = [];
+        const rData = response?.data;
+
+        if (Array.isArray(rData)) notificationsData = rData;
+        else if (Array.isArray(rData?.data)) notificationsData = rData.data;
+        else if (Array.isArray(rData?.data?.data)) notificationsData = rData.data.data;
+
+        const channelDefs = [
+            { key: "sms", label: t("driver.form.smsAlert", "SMS Alert") },
+            { key: "web", label: t("driver.form.webAlert", "Web Alert") },
+            { key: "email", label: t("driver.form.emailAlert", "Email Alert") },
+            { key: "mobile", label: t("driver.form.mobileAlert", "Mobile Alert") },
+            { key: "telegram", label: t("driver.form.telegramAlert", "Telegram Alert") },
+            { key: "whatsapp", label: t("driver.form.whatsappAlert", "Whatsapp Alert") },
+        ];
+
+        selectedDriver.value.notification_channels_data = notificationsData.map((item) => {
+            const eventName = item.event?.name || t("common.unknownEvent", "Unknown Event");
+            let channels = item.channel || {};
+            if (typeof channels === 'string') {
+                try { channels = JSON.parse(channels); } catch { channels = {}; }
+            }
+
+            const channelStates = channelDefs.map((ch) => {
+                const val = channels[`${ch.key}_alert`];
+                return {
+                    key: ch.key,
+                    label: ch.label,
+                    active: val === true || val === 1 || val === "1" || val === "true",
+                };
+            });
+
+            return { eventName, channelStates };
+        }).filter(item => item.channelStates.some(ch => ch.active));
+        
+        selectedDriver.value.notification_matrix_details = 
+            selectedDriver.value.notification_channels_data.length
+                ? selectedDriver.value.notification_channels_data
+                  .map(item => `${item.eventName}: ${item.channelStates.filter(c => c.active).map(c => c.label).join(', ')}`)
+                  .join(' | ')
+                : t('common.none', 'N/A');
+
+    } catch (error) {
+        console.error("Failed to load generic notification events for driver", error);
+        selectedDriver.value.notification_matrix_details = t('common.error') || 'Error loading details';
+        selectedDriver.value.notification_channels_data = [];
+    }
 };
 
 const closeFormModal = () => {
@@ -783,18 +896,137 @@ const handleSubmitDriver = async (driverData) => {
     validationError.value = null;
     
     try {
-        const payload = {
-            ...driverData,
-            company_id: companyId.value || driverData.company_id,
+        const buildEventsPayload = (data) => {
+            const globalEmails = Array.isArray(data?.notification_emails) ? data.notification_emails : [];
+            const eventsPayload = [];
+            const missing = [];
+
+            (Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : []).forEach((ev) => {
+                const channels = ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'];
+                const eventConfig = { event_id: ev.id };
+                let hasAnyChannel = false;
+
+                channels.forEach((ch) => {
+                    const isEnabled = Number(data?.[`notify_${ev.key}_${ch}`] ?? 0) === 1;
+                    if (isEnabled) {
+                        eventConfig[`${ch}_alert`] = 1;
+                        hasAnyChannel = true;
+                    }
+                });
+
+                if (!hasAnyChannel) return;
+
+                if (eventConfig.email_alert === 1) {
+                    const recipientsKey = `notify_${ev.key}_email_recipients`;
+                    const eventEmails = Array.isArray(data?.[recipientsKey]) ? data[recipientsKey] : [];
+                    const emailsToSend = eventEmails.length ? eventEmails : globalEmails;
+
+                    if (!emailsToSend.length) {
+                        missing.push(locale.value === "ar" ? ev.ar_name : ev.en_name || ev.key || String(ev.id));
+                        return;
+                    }
+                    eventConfig.email = emailsToSend;
+                }
+
+                eventsPayload.push(eventConfig);
+            });
+
+            return { eventsPayload, missing };
         };
+
+        const computeGlobalChannelAlerts = (data) => {
+            const eventList = Array.isArray(notificationEventsStore.events) ? notificationEventsStore.events : [];
+            const isAnyChannelActive = (chKey) =>
+                eventList.some((ev) => Number(data?.[`notify_${ev.key}_${chKey}`] ?? 0) === 1);
+
+            return {
+                sms_alert: isAnyChannelActive("sms") ? 1 : 0,
+                web_alert: isAnyChannelActive("web") ? 1 : 0,
+                email_alert: isAnyChannelActive("email") ? 1 : 0,
+                mobile_alert: isAnyChannelActive("mobile") ? 1 : 0,
+                telegram_alert: isAnyChannelActive("telegram") ? 1 : 0,
+                whatsapp_alert: isAnyChannelActive("whatsapp") ? 1 : 0,
+            };
+        };
+
+        const { eventsPayload, missing } = buildEventsPayload(driverData);
+        if (missing.length) {
+            showError(`${t("driver.form.notificationEmails") || 'Missing Emails'}: ${missing.join(", ")} missing at least one email.`);
+            return;
+        }
+
+        const alerts = computeGlobalChannelAlerts(driverData);
+        alerts.email_alert = eventsPayload.some((e) => Array.isArray(e.email) && e.email.length > 0) ? 1 : 0;
+        
         if (isEditMode.value) {
-            // Update existing driver
-            await driverStore.updateDriver(selectedDriver.value.id, payload);
+            const updatedData = {};
+
+            const fields = ["name", "username", "email", "phone_number", "role", "company_id", "branch_id", "type", "status", "vehicle_number"];
+            fields.forEach(f => {
+                if (driverData[f] !== selectedDriver.value[f]) {
+                    updatedData[f] = driverData[f];
+                }
+            });
+            
+            if (driverData.password) {
+                updatedData.password = driverData.password;
+            }
+
+            Object.assign(updatedData, alerts);
+
+            notificationEventsStore.events.forEach((ev) => {
+                ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
+                    const key = `notify_${ev.key}_${ch}`;
+                    if ((driverData[key] ?? 0) !== (selectedDriver.value[key] ?? 0)) {
+                        updatedData[key] = driverData[key] ?? 0;
+                    }
+                });
+            });
+
+            if (driverData.image && driverData.image instanceof File) updatedData.image = driverData.image;
+
+            await driverStore.updateDriver(selectedDriver.value.id, updatedData);
+
+            // User ID should rigorously be taken from the connected User object
+            const targetUserId = selectedDriver.value.user?.id || selectedDriver.value.user_id;
+            console.log('🔄 Extracted user_id for updateUserNotificationEvents:', targetUserId, 'from driver:', selectedDriver.value);
+            console.log('🔄 Events Payload to update via API:', eventsPayload);
+            
+            await apiServices.updateUserNotificationEvents({
+                user_id: targetUserId,
+                events: eventsPayload
+            });
+
             console.log('✅ Driver updated successfully!');
             showSuccess(t('driver.updateSuccess'));
         } else {
-            // Add new driver
-            await driverStore.addDriver(payload);
+            const newDriver = {
+                ...driverData,
+                role: "Driver",
+                company_id: companyId.value || driverData.company_id,
+            };
+
+            if (eventsPayload.length) newDriver.events = eventsPayload;
+
+            Object.assign(newDriver, alerts);
+
+            notificationEventsStore.events.forEach((ev) => {
+                ['sms', 'web', 'email', 'mobile', 'telegram', 'whatsapp'].forEach((ch) => {
+                    const k = `notify_${ev.key}_${ch}`;
+                    newDriver[k] = driverData[k] ?? 0;
+                });
+            });
+
+            if ((!newDriver.events || newDriver.events.length === 0) && driverData.notification_emails?.length) {
+                newDriver.notification_emails = driverData.notification_emails;
+            }
+
+            if (driverData.image && driverData.image instanceof File) newDriver.image = driverData.image;
+
+            console.log('📦 Sending POST to Add Driver with payload:', newDriver);
+            console.log('📦 Events array attached:', newDriver.events);
+            
+            await driverStore.addDriver(newDriver);
             console.log('✅ Driver added successfully!');
             showSuccess(t('driver.addSuccess'));
         }
