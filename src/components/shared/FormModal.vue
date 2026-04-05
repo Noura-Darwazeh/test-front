@@ -72,7 +72,7 @@
                   </label>
 
                 <!-- Text/Email/Tel/Password/Number/Date Input -->
-                <div v-if="['text', 'email', 'tel', 'password', 'number', 'datetime-local', 'date'].includes(field.type)" 
+                <div v-if="['text', 'email', 'tel', 'password', 'number', 'datetime-local', 'date'].includes(field.type) && field.type !== 'phone-prefix'"
                      class="position-relative">
                   <input
                     :id="field.name" 
@@ -119,7 +119,29 @@
                     />
                   </button>
                 </div>
-
+<!-- Phone with country prefix -->
+<div v-else-if="field.type === 'phone-prefix'" class="d-flex gap-2">
+  <select
+    class="form-select"
+    style="width: 140px; flex-shrink: 0;"
+    :id="`${field.name}_prefix`"
+    v-model="formData[`${field.name}_prefix`]"
+  >
+    <option v-for="c in countryCodesData" :key="c.code" :value="c.code">
+      {{ c.label }}
+    </option>
+  </select>
+  <input
+    type="tel"
+    class="form-control"
+    :id="field.name"
+    :placeholder="field.placeholder || field.label"
+    :required="field.required"
+    v-model="formData[field.name]"
+    @input="handleFieldInput(field)"
+    @blur="handleFieldBlur(field)"
+  />
+</div>
                 <!-- Select Dropdown -->
                 <select v-else-if="field.type === 'select'" :id="field.name" class="form-select"
                   v-model="formData[field.name]" :required="field.required"
@@ -576,6 +598,8 @@ import { Point } from "ol/geom";
 import { Icon, Style } from "ol/style";
 import companyIconSvg from "@/assets/map/company.svg";
 import { useAuthStore } from "@/stores/auth.js";
+import { countryCodes as countryCodesData } from "@/utils/countryCodes.js";
+
 const authStore = useAuthStore();
 
 const hasChannelPermission = (permission) => {
@@ -982,6 +1006,9 @@ const initializeForm = () => {
         tagsInput[field.name] = "";
       } else {
         formData[field.name] = resolveDefaultValue(field);
+         if (field.type === 'phone-prefix') {
+    formData[`${field.name}_prefix`] = field.defaultPrefix || '+970';
+  }
       }
       errors[field.name] = "";
     }
@@ -1043,6 +1070,9 @@ const resetForm = () => {
         }));
       } else {
         formData[field.name] = resolveDefaultValue(field);
+         if (field.type === 'phone-prefix') {
+    formData[`${field.name}_prefix`] = field.defaultPrefix || '+970';
+  }
       }
       errors[field.name] = "";
     }

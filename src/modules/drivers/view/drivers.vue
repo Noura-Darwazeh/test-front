@@ -419,19 +419,20 @@ const driverFields = computed(() => [
         colClass: 'col-md-6',
         defaultValue: ''
     },
-    {
-        name: 'phone_number',
-        label: t('driver.form.phoneNumber'),
-        type: 'tel',
-        required: true,
-        placeholder: t('driver.form.phoneNumberPlaceholder'),
-        colClass: 'col-md-6',
-        defaultValue: isEditMode.value ? selectedDriver.value.phone_number : '',
-        validate: (value) => {
-            if (value.length > 20) return t('driver.validation.phoneMax');
-            return null;
-        }
-    },
+{
+  name: 'phone_number',
+  label: t('driver.form.phoneNumber'),
+  type: 'phone-prefix',           
+  defaultPrefix: "+970",
+  required: true,
+  placeholder: t('driver.form.phoneNumberPlaceholder'),
+  colClass: 'col-md-6',
+  defaultValue: isEditMode.value ? selectedDriver.value.phone_number : '',
+  validate: (value) => {
+    if (value && value.length > 20) return t('driver.validation.phoneMax');
+    return null;
+  }
+},
     {
         name: 'type',
         label: t('driver.form.type'),
@@ -984,7 +985,7 @@ const handleSubmitDriver = async (driverData) => {
             });
 
             if (driverData.image && driverData.image instanceof File) updatedData.image = driverData.image;
-
+if (driverData.phone_number) apiData.phone_number = (driverData.phone_number_prefix || '+970') + driverData.phone_number;
             await driverStore.updateDriver(selectedDriver.value.id, updatedData);
 
             // User ID should rigorously be taken from the connected User object
@@ -1004,6 +1005,8 @@ const handleSubmitDriver = async (driverData) => {
                 ...driverData,
                 role: "Driver",
                 company_id: companyId.value || driverData.company_id,
+                  phone_number: (driverData.phone_number_prefix || '+970') + driverData.phone_number,
+
             };
 
             if (eventsPayload.length) newDriver.events = eventsPayload;

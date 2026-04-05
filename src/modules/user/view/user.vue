@@ -397,20 +397,21 @@ const userFields = computed(() => [
     colClass: "col-md-6",
     defaultValue: "",
   },
-  {
-    name: "phone_number",
-    label: t("user.form.phoneNumber"),
-    type: "tel",
-    required: true,
-    placeholder: t("user.form.phoneNumberPlaceholder"),
-    colClass: "col-md-6",
-    defaultValue: isEditMode.value ? selectedUser.value.phone_number : "",
-    validate: (value) => {
-      if (value.length > VALIDATION_LIMITS.PHONE_MAX_LENGTH)
-        return t("user.validation.phoneMax");
-      return null;
-    },
+{
+  name: "phone_number",
+  label: t("user.form.phoneNumber"),
+  type: "phone-prefix",           // ← غيري من "tel" لـ "phone-prefix"
+  defaultPrefix: "+970",
+  required: true,
+  placeholder: t("user.form.phoneNumberPlaceholder"),
+  colClass: "col-md-6",
+  defaultValue: isEditMode.value ? selectedUser.value.phone_number : "",
+  validate: (value) => {
+    if (value && value.length > VALIDATION_LIMITS.PHONE_MAX_LENGTH)
+      return t("user.validation.phoneMax");
+    return null;
   },
+},
   {
     name: "role",
     label: t("user.form.role"),
@@ -888,8 +889,8 @@ const handleSubmitUser = async (userData) => {
       if (userData.name !== selectedUser.value.name) updatedData.name = userData.name;
       if (userData.username !== selectedUser.value.username) updatedData.username = userData.username;
       if (userData.email !== selectedUser.value.email) updatedData.email = userData.email || "";
-      if (userData.phone_number !== selectedUser.value.phone_number) updatedData.phone_number = userData.phone_number;
-      if (normalizedRole !== selectedRole) updatedData.role = normalizedRole;
+const fullPhone = (userData.phone_number_prefix || '+970') + userData.phone_number;
+if (fullPhone !== selectedUser.value.phone_number) updatedData.phone_number = fullPhone;      if (normalizedRole !== selectedRole) updatedData.role = normalizedRole;
 
       if (isSuperAdmin.value && userData.company_id !== selectedUser.value.company_id) {
         updatedData.company_id = userData.company_id || null;
@@ -936,7 +937,7 @@ const handleSubmitUser = async (userData) => {
         name: userData.name,
         username: userData.username,
         password: userData.password,
-        phone_number: userData.phone_number,
+        phone_number: (userData.phone_number_prefix || '+970') + userData.phone_number,
         role: normalizedRole,
         company_id: isAdmin.value ? companyId.value : (userData.company_id || null),
         region_id: userData.region_id || null,
