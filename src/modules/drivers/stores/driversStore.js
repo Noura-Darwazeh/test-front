@@ -52,6 +52,7 @@ export const useDriverStore = defineStore("driver", () => {
   };
 
   const normalizeDriver = (driver) => {
+    
     const companyInfo = extractIdName(driver.company ?? driver.company_id);
     const branchInfo = extractIdName(driver.branch ?? driver.branch_id);
     const companyId = companyInfo.id;
@@ -59,6 +60,8 @@ export const useDriverStore = defineStore("driver", () => {
 
     return {
       id: driver.id,
+            user_id: driver.user?.id || driver.id || null, 
+
       name: driver.user?.name || driver.name || "",
       username:
         driver.user?.username || driver.user?.same17 || driver.username || "",

@@ -1026,9 +1026,19 @@ const handleSubmitDriver = async (driverData) => {
             console.log('📦 Sending POST to Add Driver with payload:', newDriver);
             console.log('📦 Events array attached:', newDriver.events);
             
-            await driverStore.addDriver(newDriver);
-            console.log('✅ Driver added successfully!');
-            showSuccess(t('driver.addSuccess'));
+         const createdDriver = await driverStore.addDriver(newDriver);
+console.log('✅ Driver added successfully!');
+
+const targetUserId = createdDriver?.user?.id || createdDriver?.user_id || createdDriver?.id;
+if (eventsPayload.length && targetUserId) {
+    await apiServices.updateUserNotificationEvents({
+        user_id: targetUserId,
+        events: eventsPayload
+    });
+    console.log('✅ Notification events saved for new driver');
+}
+
+showSuccess(t('driver.addSuccess'));;
         }
         closeFormModal();
     } catch (error) {
