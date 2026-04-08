@@ -25,7 +25,9 @@ import workPlans from "../modules/workPlans/view/workPlans.vue";
 import Profile from "../modules/profile/view/profile.vue";
 import collections from "../modules/payment/view/collections.vue";
 import invoices from "../modules/invoices/view/invoices.vue";
-import permissions from "../modules/permissions/view/permissions.vue";
+import permissionsManagment from "../modules/permissionsManagment/view/permissionsManagment.vue";
+import permission from "../modules/permission/view/permission.vue";
+
 import statistics from "../modules/statistics/view/statistics.vue";
 import driverSteps from "../modules/driver/view/driverSteps.vue";
 import notificationEvents from "../modules/events/view/events.vue";
@@ -370,16 +372,30 @@ const router = createRouter({
       },
     },
     {
-      path: "/permissions",
-      name: "Permissions",
-      component: permissions,
+      path: "/permissionsManagment",
+      name: "permissionsManagment",
+      component: permissionsManagment,
+      meta: {
+        titleKey: "permission.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: permissionIcon,
+        order: 20,
+        roles: ["SuperAdmin", "Admin"],
+      },
+    },
+
+        {
+      path: "/permission",
+      name: "permission",
+      component: permission,
       meta: {
         titleKey: "permissions.title",
         requireAuth: true,
         showInSidebar: true,
         icon: permissionIcon,
         order: 20,
-        roles: ["SuperAdmin", "Admin"],
+        roles: ["SuperAdmin"],
       },
     },
     {

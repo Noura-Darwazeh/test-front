@@ -1170,6 +1170,18 @@ class ApiServices {
     return this.get(`/permissions?page=${page}&per_page=${perPage}`);
   }
 
+  async createPermission(data) {
+    return this.post("/permissions", data);
+  }
+
+  async updatePermission(id, data) {
+    return this.patch(`/permissions/${id}`, data);
+  }
+
+  async deletePermission(id) {
+    return this.delete(`/permissions/${id}`);
+  }
+
   async getUsersWithPermissions({ page = 1, perPage = 10 } = {}) {
     return this.get(`/user_permissions?page=${page}&per_page=${perPage}`);
   }

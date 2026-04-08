@@ -2277,6 +2277,8 @@ driverPortal: 'بوابة السائقين',
 
   // الترجمات المشتركة
   common: {
+    add:"اضافة",
+
     none:"لا يوجد",
     create: "انشاء",
 
@@ -2496,6 +2498,10 @@ driverPortal: 'بوابة السائقين',
     userPermissions: "صلاحيات المستخدم",
     noPermissionsAvailable: "لا توجد صلاحيات متاحة",
     noUsersFound: "لم يتم العثور على مستخدمين",
+    name:"الاسم"
+  },
+      permission: {
+    title: "الصلاحيات",
   },
 
   events: {

@@ -2077,6 +2077,7 @@ driverPortal: 'Driver Portal',
 
   // Common Translations
   common: {
+    add:"Add",
     none:"None",
     create: "Create",
     actions: "Actions",
@@ -2440,7 +2441,7 @@ driverPortal: 'Driver Portal',
   },
   // Permissions Management
   permissions: {
-    title: "Permissions Management",
+    title: "Permissions",
     subtitle: "Manage user permissions and access control",
     searchUsers: "Search users...",
     availablePermissions: "Available Permissions",
@@ -2448,6 +2449,10 @@ driverPortal: 'Driver Portal',
     userPermissions: "User Permissions",
     noPermissionsAvailable: "No permissions available",
     noUsersFound: "No users found",
+    name:"name"
+  },
+    permission: {
+    title: "Permissions Management",
   },
 
   payment: {
