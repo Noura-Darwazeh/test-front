@@ -143,7 +143,7 @@
           </div>
         </div>
 
-        <!-- ✅ Notification Preferences — Inline Editable -->
+        <!-- Notification Preferences -->
         <div class="row g-4 mt-0">
           <div class="col-12">
             <div class="card border-0 shadow-sm">
@@ -191,14 +191,13 @@
                     class="notif-event-card mb-3"
                     :class="{ 'notif-event-card--open': isEventExpanded(ev.id) }"
                   >
-                    <!-- Event Header (clickable to expand/collapse) -->
+                    <!-- Event Header -->
                     <div class="notif-event-header" @click="toggleEvent(ev.id)">
                       <div class="d-flex align-items-center gap-2 flex-wrap">
                         <i class="fas fa-bell notif-ev-icon"></i>
                         <span class="notif-ev-label">
                           {{ $i18n.locale === 'ar' ? ev.ar_name : ev.en_name }}
                         </span>
-                        <!-- Active channel badges summary (shown when collapsed) -->
                         <div v-if="!isEventExpanded(ev.id)" class="d-flex gap-1 flex-wrap">
                           <template v-for="ch in channelDefs" :key="ch.key">
                             <span
@@ -226,38 +225,35 @@
                       ></i>
                     </div>
 
-                    <!-- Event Body (expanded) -->
+                    <!-- Event Body -->
                     <div v-if="isEventExpanded(ev.id)" class="notif-event-body">
-
-                      <!-- Channel toggle tiles -->
                       <p class="text-muted small mb-2 fw-semibold">
                         {{ $t('user.form.selectChannels') || 'Select channels:' }}
                       </p>
                       <div class="notif-channels-strip mb-3">
                         <div
-  v-for="ch in channelDefs"
-  :key="ch.key"
-  class="notif-ch-item"
-  :class="{ 
-    'notif-ch-item--active': notifFormData[`${ev.key}_${ch.key}`] == 1,
-    'notif-ch-item--locked': ch.requiresPermission && !hasWhatsappPermission
-  }"
-  :title="ch.requiresPermission && !hasWhatsappPermission ? 'WhatsApp is a paid feature' : ''"
-  @click="toggleChannel(ev.key, ch.key)"
->
+                          v-for="ch in channelDefs"
+                          :key="ch.key"
+                          class="notif-ch-item"
+                          :class="{
+                            'notif-ch-item--active': notifFormData[`${ev.key}_${ch.key}`] == 1,
+                            'notif-ch-item--locked': ch.requiresPermission && !hasWhatsappPermission
+                          }"
+                          :title="ch.requiresPermission && !hasWhatsappPermission ? 'WhatsApp is a paid feature' : ''"
+                          @click="toggleChannel(ev.key, ch.key)"
+                        >
                           <i :class="ch.icon" class="notif-ch-icon"></i>
                           <small class="notif-ch-label">{{ ch.label }}</small>
                         </div>
                       </div>
 
-                      <!-- Email recipients (shown when email channel is ON) -->
+                      <!-- Email recipients -->
                       <div v-if="notifFormData[`${ev.key}_email`] == 1" class="notif-recipients-block mb-2">
                         <div class="notif-recipients-title">
                           <i class="fas fa-envelope me-1 text-primary"></i>
                           {{ $t('user.form.notificationEmails') || 'Email Recipients' }}
                           <span class="text-danger">*</span>
                         </div>
-                        <!-- Email tags -->
                         <div class="d-flex flex-wrap gap-1 mb-2" v-if="notifFormData[`${ev.key}_email_list`]?.length">
                           <span
                             v-for="(email, idx) in notifFormData[`${ev.key}_email_list`]"
@@ -266,14 +262,9 @@
                             style="font-size:0.78rem;padding:0.3rem 0.55rem;border-radius:999px"
                           >
                             {{ email }}
-                            <button
-                              type="button"
-                              class="tag-remove-btn"
-                              @click.stop="removeRecipient(ev.key, 'email_list', idx)"
-                            >&times;</button>
+                            <button type="button" class="tag-remove-btn" @click.stop="removeRecipient(ev.key, 'email_list', idx)">&times;</button>
                           </span>
                         </div>
-                        <!-- Email input -->
                         <div class="d-flex gap-2">
                           <input
                             type="email"
@@ -283,15 +274,11 @@
                             @keydown.enter.prevent="addRecipient(ev.key, 'email_list', emailInputs[ev.key], 'email')"
                             @blur="addRecipient(ev.key, 'email_list', emailInputs[ev.key], 'email')"
                           />
-                          <button
-                            type="button"
-                            class="btn btn-outline-primary btn-sm px-3"
-                            @click="addRecipient(ev.key, 'email_list', emailInputs[ev.key], 'email')"
-                          >+</button>
+                          <button type="button" class="btn btn-outline-primary btn-sm px-3" @click="addRecipient(ev.key, 'email_list', emailInputs[ev.key], 'email')">+</button>
                         </div>
                       </div>
 
-                      <!-- Phone recipients (shown when SMS or WhatsApp is ON) -->
+                      <!-- Phone recipients -->
                       <div
                         v-if="notifFormData[`${ev.key}_sms`] == 1 || notifFormData[`${ev.key}_whatsapp`] == 1"
                         class="notif-recipients-block"
@@ -300,7 +287,6 @@
                           <i class="fas fa-phone me-1 text-warning"></i>
                           {{ $t('user.form.notificationPhones') || 'Phone Numbers (SMS / WhatsApp)' }}
                         </div>
-                        <!-- Phone tags -->
                         <div class="d-flex flex-wrap gap-1 mb-2" v-if="notifFormData[`${ev.key}_phone_list`]?.length">
                           <span
                             v-for="(phone, idx) in notifFormData[`${ev.key}_phone_list`]"
@@ -309,14 +295,9 @@
                             style="font-size:0.78rem;padding:0.3rem 0.55rem;border-radius:999px"
                           >
                             {{ phone }}
-                            <button
-                              type="button"
-                              class="tag-remove-btn tag-remove-btn--dark"
-                              @click.stop="removeRecipient(ev.key, 'phone_list', idx)"
-                            >&times;</button>
+                            <button type="button" class="tag-remove-btn tag-remove-btn--dark" @click.stop="removeRecipient(ev.key, 'phone_list', idx)">&times;</button>
                           </span>
                         </div>
-                        <!-- Phone input -->
                         <div class="d-flex gap-2">
                           <input
                             type="tel"
@@ -326,24 +307,54 @@
                             @keydown.enter.prevent="addRecipient(ev.key, 'phone_list', phoneInputs[ev.key], 'phone')"
                             @blur="addRecipient(ev.key, 'phone_list', phoneInputs[ev.key], 'phone')"
                           />
-                          <button
-                            type="button"
-                            class="btn btn-outline-warning btn-sm px-3"
-                            @click="addRecipient(ev.key, 'phone_list', phoneInputs[ev.key], 'phone')"
-                          >+</button>
+                          <button type="button" class="btn btn-outline-warning btn-sm px-3" @click="addRecipient(ev.key, 'phone_list', phoneInputs[ev.key], 'phone')">+</button>
                         </div>
                       </div>
-
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Action Buttons (profile save) -->
+        <!-- ── Telegram Bot Card ── -->
+        <div class="row g-4 mt-0">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm tg-card">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                  <div class="tg-icon-wrap">
+                    <i class="fab fa-telegram-plane"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-0 fw-bold">Telegram Bot</h5>
+                    <p class="mb-0 text-muted small">
+                      Connect with our bot for instant notifications
+                    </p>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                  <div class="tg-bot-name">
+                    <i class="fab fa-telegram-plane me-2"></i>
+                    <span class="fw-semibold">{{ TELEGRAM_BOT }}</span>
+                  </div>
+                  <a
+                    :href="TELEGRAM_LINK"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="tg-join-btn d-inline-flex align-items-center gap-2"
+                  >
+                    <i class="fab fa-telegram-plane"></i>
+                    Open in Telegram
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
         <Transition name="slide-up">
           <div v-if="hasChanges" class="fixed-action-bar bg-white border-top shadow-lg">
             <div class="container-fluid">
@@ -402,6 +413,10 @@ import cameraIcon from '@/assets/profile/camera.svg';
 import settingIcon from '@/assets/profile/setting.svg';
 import userIcon from '@/assets/sidebar/userIcon.svg';
 
+// ── Telegram constants ──────────────────────────────────────────────────────
+const TELEGRAM_BOT = '@pitsTrackingBot';
+const TELEGRAM_LINK = 'https://t.me/pitsTrackingBot';
+
 const API_BASE_URL = api.defaults.baseURL;
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -439,10 +454,9 @@ const notifSaving          = ref(false);
 const notifSaveSuccess     = ref(false);
 const notifHasChanges      = ref(false);
 
-// Flat reactive store: `${ev.key}_${ch.key}` → 0|1, `${ev.key}_email_list` → [], `${ev.key}_phone_list` → []
 const notifFormData = reactive({});
-const emailInputs   = reactive({});  // temp input per event key
-const phoneInputs   = reactive({});  // temp input per event key
+const emailInputs   = reactive({});
+const phoneInputs   = reactive({});
 const expandedEvents = ref(new Set());
 
 // ─── Channel definitions ────────────────────────────────────────────────────
@@ -452,17 +466,16 @@ const channelDefs = [
   { key: 'email',    label: t('user.form.emailAlert')    || 'Email',    icon: 'fas fa-envelope',       badgeClass: 'bg-primary'           },
   { key: 'mobile',   label: t('user.form.mobileAlert')   || 'Mobile',   icon: 'fas fa-mobile-alt',     badgeClass: 'bg-success'           },
   { key: 'telegram', label: t('user.form.telegramAlert') || 'Telegram', icon: 'fab fa-telegram-plane', badgeClass: 'bg-primary'           },
-{ 
-  key: 'whatsapp', 
-  label: t('user.form.whatsappAlert') || 'WhatsApp', 
-  icon: 'fab fa-whatsapp', 
-  badgeClass: 'bg-success',
-  requiresPermission: 'whatsapp channel'
-},];
-const hasWhatsappPermission = computed(() => 
-  authStore.hasPermission('whatsapp channel')
-)
+  {
+    key: 'whatsapp',
+    label: t('user.form.whatsappAlert') || 'WhatsApp',
+    icon: 'fab fa-whatsapp',
+    badgeClass: 'bg-success',
+    requiresPermission: 'whatsapp channel'
+  },
+];
 
+const hasWhatsappPermission = computed(() => authStore.hasPermission('whatsapp channel'));
 
 // ─── Expand / collapse ──────────────────────────────────────────────────────
 const isEventExpanded = (evId) => expandedEvents.value.has(evId);
@@ -475,22 +488,17 @@ const toggleEvent = (evId) => {
 
 // ─── Toggle channel ─────────────────────────────────────────────────────────
 const toggleChannel = (evKey, chKey) => {
-    if (chKey === 'whatsapp' && !hasWhatsappPermission.value) return;
-
+  if (chKey === 'whatsapp' && !hasWhatsappPermission.value) return;
   const k = `${evKey}_${chKey}`;
   notifFormData[k] = notifFormData[k] == 1 ? 0 : 1;
-
-  // Clear email list when email turned OFF
   if (chKey === 'email' && notifFormData[k] == 0) {
     notifFormData[`${evKey}_email_list`] = [];
   }
-  // Clear phone list when BOTH sms and whatsapp are OFF
   if (chKey === 'sms' || chKey === 'whatsapp') {
     if (!notifFormData[`${evKey}_sms`] && !notifFormData[`${evKey}_whatsapp`]) {
       notifFormData[`${evKey}_phone_list`] = [];
     }
   }
-
   notifHasChanges.value = true;
 };
 
@@ -516,7 +524,7 @@ const removeRecipient = (evKey, listKey, idx) => {
   }
 };
 
-// ─── Init notif form (zeros + empty lists) ──────────────────────────────────
+// ─── Init notif form ────────────────────────────────────────────────────────
 const initNotifFormData = () => {
   notificationEventsStore.events.forEach((ev) => {
     channelDefs.forEach((ch) => { notifFormData[`${ev.key}_${ch.key}`] = 0; });
@@ -527,7 +535,7 @@ const initNotifFormData = () => {
   });
 };
 
-// ─── Load existing notifications from API ───────────────────────────────────
+// ─── Load notifications ──────────────────────────────────────────────────────
 const loadUserNotifications = async (userId) => {
   notificationsLoading.value = true;
   try {
@@ -546,24 +554,19 @@ const loadUserNotifications = async (userId) => {
       let ch = item.channel || {};
       if (typeof ch === 'string') { try { ch = JSON.parse(ch); } catch { ch = {}; } }
 
-      // Channel toggles
       channelDefs.forEach((chDef) => {
         const val = ch[`${chDef.key}_alert`];
         notifFormData[`${ev.key}_${chDef.key}`] =
           val === true || val === 1 || val === '1' || val === 'true' ? 1 : 0;
       });
 
-      // Email list
       if (Array.isArray(ch.email) && ch.email.length) {
         notifFormData[`${ev.key}_email_list`] = [...ch.email];
       }
-
-      // Phone list
       if (Array.isArray(ch.phone) && ch.phone.length) {
         notifFormData[`${ev.key}_phone_list`] = [...ch.phone];
       }
 
-      // Auto-expand if any channel active
       if (channelDefs.some((chDef) => notifFormData[`${ev.key}_${chDef.key}`] == 1)) {
         expandedEvents.value = new Set([...expandedEvents.value, ev.id]);
       }
@@ -577,7 +580,7 @@ const loadUserNotifications = async (userId) => {
   }
 };
 
-// ─── Save notification preferences ──────────────────────────────────────────
+// ─── Save notifications ──────────────────────────────────────────────────────
 const saveNotificationPreferences = async () => {
   notifSaving.value = true;
   notifSaveSuccess.value = false;
@@ -597,9 +600,8 @@ const saveNotificationPreferences = async () => {
         }
       });
 
-      if (!hasAnyChannel) return; // skip events with no active channels
+      if (!hasAnyChannel) return;
 
-      // Email recipients required when email channel is ON
       if (eventConfig.email_alert === 1) {
         const emails = notifFormData[`${ev.key}_email_list`] || [];
         if (!emails.length) {
@@ -609,7 +611,6 @@ const saveNotificationPreferences = async () => {
         eventConfig.email = emails;
       }
 
-      // Phone recipients (optional, included when sms or whatsapp ON)
       if (eventConfig.sms_alert === 1 || eventConfig.whatsapp_alert === 1) {
         const phones = notifFormData[`${ev.key}_phone_list`] || [];
         if (phones.length) eventConfig.phone = phones;
@@ -823,11 +824,11 @@ const getRoleBadgeClass = (role) => ({
 // ─── Mount ──────────────────────────────────────────────────────────────────
 onMounted(async () => {
   await notificationEventsStore.fetchEvents();
-  initNotifFormData();                          // zeros first
+  initNotifFormData();
   await fetchDropdownData();
   await fetchUserProfile();
   if (userProfile.value?.id) {
-    await loadUserNotifications(userProfile.value.id);   // then fill from API
+    await loadUserNotifications(userProfile.value.id);
   }
 });
 </script>
@@ -894,7 +895,6 @@ onMounted(async () => {
   padding: 14px 16px 18px;
 }
 
-/* Channel strip */
 .notif-channels-strip {
   display: flex;
   flex-wrap: wrap;
@@ -926,7 +926,6 @@ onMounted(async () => {
 }
 .notif-ch-item--active .notif-ch-label { color: rgba(255,255,255,0.9); }
 
-/* Recipients block */
 .notif-recipients-block {
   background: #f9fafb;
   border: 1px dashed #d1d5db;
@@ -939,7 +938,6 @@ onMounted(async () => {
   color: #6b7280;
   margin-bottom: 8px;
 }
-/* Tag remove button */
 .tag-remove-btn {
   background: none; border: none;
   color: rgba(255,255,255,0.85);
@@ -948,7 +946,6 @@ onMounted(async () => {
 .notif-ch-item--locked {
   opacity: 0.4;
   cursor: not-allowed;
-  position: relative;
 }
 .notif-ch-item--locked:hover {
   border-color: #e5e7eb;
@@ -958,12 +955,57 @@ onMounted(async () => {
 .tag-remove-btn--dark { color: rgba(0,0,0,0.5); }
 .tag-remove-btn--dark:hover { color: #000; }
 
+/* ── Telegram Card ── */
+.tg-card {
+  background: linear-gradient(135deg, #e3f6fd 0%, #f0fbff 100%);
+  border: 1.5px solid #b3e5fc !important;
+  border-radius: 16px;
+}
+.tg-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #0088cc;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.tg-bot-name {
+  font-size: 1rem;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  display: inline-flex;
+  align-items: center;
+}
+.tg-join-btn {
+  background: #0088cc;
+  color: white;
+  border-radius: 999px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0,136,204,0.3);
+}
+.tg-join-btn:hover {
+  background: #006fa6;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,136,204,0.4);
+}
+
 /* Fixed action bar */
 .fixed-action-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000; }
 .slide-up-enter-active, .slide-up-leave-active { transition: all 0.3s ease; }
 .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); opacity: 0; }
 
-/* Fade for "Saved!" text */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.4s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
