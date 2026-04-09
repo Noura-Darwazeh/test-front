@@ -67,11 +67,9 @@
             <label class="switch">
               <input
                 type="checkbox"
-                :checked="
-                  permissionsStore.hasPermission(user.id, permission.id)
-                "
+                :checked="hasPermission(user, permission.name)"
                 :disabled="toggleLoading[`${user.id}-${permission.id}`]"
-                @change="togglePermission(user.id, permission.id, $event)"
+                @change="togglePermission(user, permission, $event)"
               />
               <span class="slider"></span>
             </label>
@@ -143,17 +141,28 @@ const filteredUsers = computed(() => {
   );
 });
 
+// Check if user has permission
+const hasPermission = (user, permissionName) => {
+  return user.permissions && user.permissions.includes(permissionName);
+};
+
 // Toggle permission for user
-const togglePermission = async (userId, permissionId, event) => {
-  const key = `${userId}-${permissionId}`;
+const togglePermission = async (user, permission, event) => {
+  const key = `${user.id}-${permission.id}`;
   const isChecked = event.target.checked;
 
   toggleLoading[key] = true;
   try {
+    if (!user.permissions) user.permissions = [];
+    
     if (isChecked) {
-      await permissionsStore.assignPermission(userId, permissionId);
+      await permissionsStore.assignPermission(user.id, permission.id);
+      if (!user.permissions.includes(permission.name)) {
+        user.permissions.push(permission.name);
+      }
     } else {
-      await permissionsStore.removePermission(userId, permissionId);
+      await permissionsStore.removePermission(user.id, permission.id);
+      user.permissions = user.permissions.filter((p) => p !== permission.name);
     }
   } catch (err) {
     // Revert checkbox state on error
@@ -172,7 +181,6 @@ const handleRefresh = async () => {
       page: currentPage.value,
       perPage: itemsPerPage.value,
     }),
-    permissionsStore.fetchUserPermissionsMap(),
   ]);
 };
 
@@ -192,7 +200,6 @@ onMounted(async () => {
     await Promise.all([
       permissionsStore.fetchPermissions(),
       usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value }),
-      permissionsStore.fetchUserPermissionsMap(),
     ]);
   } catch (err) {
     console.error("Failed to load permissions data:", err);
