@@ -2077,6 +2077,7 @@ driverPortal: 'Driver Portal',
 
   // Common Translations
   common: {
+    search:"Search",
     add:"Add",
     none:"None",
     create: "Create",

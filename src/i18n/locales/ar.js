@@ -2277,11 +2277,10 @@ driverPortal: 'بوابة السائقين',
 
   // الترجمات المشتركة
   common: {
+    search:"بحث",
     add:"اضافة",
-
     none:"لا يوجد",
     create: "انشاء",
-
     actions: "الإجراءات",
     noDataAvailable: "لا توجد بيانات",
     uploadImage: "رفع صورة",

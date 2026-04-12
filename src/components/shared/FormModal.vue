@@ -604,6 +604,14 @@ const authStore = useAuthStore();
 
 const hasChannelPermission = (permission) => {
   if (!permission) return true;
+  if (props.userPermissions !== null) {
+    if (Array.isArray(props.userPermissions)) {
+      return props.userPermissions.some(
+        (p) => p?.toLowerCase() === permission.toLowerCase()
+      );
+    }
+    return false;
+  }
   return authStore.hasPermission(permission);
 };
 
@@ -620,6 +628,7 @@ const props = defineProps({
   imageRequired: { type: Boolean, default: false },
   initialImage: { type: String, default: "" },
   serverErrors: { type: Object, default: () => ({}) },
+  userPermissions: { type: Array, default: null },
 });
 
 const emit = defineEmits(["close", "submit"]);

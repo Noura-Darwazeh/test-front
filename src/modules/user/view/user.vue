@@ -74,7 +74,8 @@
     <!-- Form Modal for Add/Edit User -->
     <FormModal :isOpen="isModalOpen" :title="isEditMode ? $t('user.edit') : $t('user.addNew')" :fields="userFields"
       :showImageUpload="true" :imageRequired="false" :imageUploadLabel="$t('user.form.uploadImage')"
-      :serverErrors="formErrors" @close="closeModal" @submit="handleSubmitUser" />
+      :serverErrors="formErrors" :userPermissions="isEditMode ? selectedUser.permissions : null"
+      @close="closeModal" @submit="handleSubmitUser" />
 
     <!-- Details Modal -->
     <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('user.details')" :data="selectedUser" :fields="detailsFields"

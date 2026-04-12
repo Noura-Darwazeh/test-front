@@ -714,6 +714,13 @@ const fetchUserProfile = async () => {
     if (!userId) return;
     const response = await apiServices.getUserProfile(userId);
     userProfile.value = response.data.data;
+    
+    // Update authStore permissions if provided by the API
+    if (userProfile.value.permissions) {
+      authStore.permissions = userProfile.value.permissions;
+      localStorage.setItem('auth_permissions', JSON.stringify(userProfile.value.permissions));
+    }
+
     populateDropdownsFromProfile();
     initializeFormData();
   } catch (e) {

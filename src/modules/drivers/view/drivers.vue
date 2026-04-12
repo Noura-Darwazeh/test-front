@@ -148,6 +148,7 @@
             :imageUploadLabel="$t('driver.form.uploadImage')"
             :initialImage="selectedDriverImage"
             :serverErrors="formErrors"
+            :userPermissions="isEditMode ? selectedDriver.permissions : null"
             @close="closeFormModal" 
             @submit="handleSubmitDriver" 
         />
