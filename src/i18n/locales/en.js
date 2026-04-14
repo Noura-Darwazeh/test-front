@@ -2225,6 +2225,7 @@ driverPortal: 'Driver Portal',
     tabs: {
       calendar: "Calendar",
       table: "Table",
+      done: "Done",
     },
 
     // Actions
@@ -2380,6 +2381,9 @@ driverPortal: 'Driver Portal',
     Supervisor: "Supervisor",
     Driver: "Driver",
   },
+    notifications: {
+      title:"Notifications"
+    },
   invoice: {
     title: "Invoices",
     searchPlaceholder: "Search for invoice...",

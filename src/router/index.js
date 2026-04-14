@@ -27,7 +27,7 @@ import collections from "../modules/payment/view/collections.vue";
 import invoices from "../modules/invoices/view/invoices.vue";
 import permissionsManagment from "../modules/permissionsManagment/view/permissionsManagment.vue";
 import permission from "../modules/permission/view/permission.vue";
-
+import notifications from "@/modules/notifications/view/notifications.vue";
 import statistics from "../modules/statistics/view/statistics.vue";
 import driverSteps from "../modules/driver/view/driverSteps.vue";
 import notificationEvents from "../modules/events/view/events.vue";
@@ -355,7 +355,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: priceIcon,
         order: 8,
-        roles: ["Admin"],
+        roles: ["SuperAdmin", "Admin"],
       },
     },
     {
@@ -381,7 +381,7 @@ const router = createRouter({
         showInSidebar: true,
         icon: permissionIcon,
         order: 20,
-        roles: ["SuperAdmin", "Admin"],
+        roles: ["SuperAdmin"],
       },
     },
 
@@ -409,6 +409,19 @@ const router = createRouter({
         icon: permissionIcon,
         order: 22,
         roles: ["SuperAdmin"],
+      },
+    },
+        {
+      path: "/notifications",
+      name: "Notifications",
+      component: notifications,
+      meta: {
+        titleKey: "notifications.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: permissionIcon,
+        order: 23,
+        roles: ["SuperAdmin","Admin"],
       },
     },
     {

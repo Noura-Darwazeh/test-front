@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   navbar: {
     notifications: "الإشعار",
     noNotifications: "لا يوجد إشعار بعد",
@@ -2112,6 +2112,7 @@ driverPortal: 'بوابة السائقين',
     tabs: {
       calendar: "التقويم",
       table: "الجدول",
+      done: "المكتملة",
     },
 
     // الإجراءات
@@ -2420,6 +2421,10 @@ driverPortal: 'بوابة السائقين',
     createInvoiceConfirm: "هل أنت متأكد من إنشاء فاتورة لـ {count} تحصيل؟",
     invoiceCreatedSuccess: "تم إنشاء الفاتورة بنجاح!",
   },
+
+      notifications: {
+      title:"الاشعارات"
+    },
   invoice: {
     title: "الفواتير",
     searchPlaceholder: "ابحث عن فاتورة...",

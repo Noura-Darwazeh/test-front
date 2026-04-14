@@ -128,11 +128,16 @@ const toggleLoading = reactive({});
 
 // Filter users by search text
 const filteredUsers = computed(() => {
+  let users = usersStore.users.filter(user => {
+    const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
+    return roleValue?.toLowerCase() === "admin";
+  });
+
   if (!searchText.value.trim()) {
-    return usersStore.users;
+    return users;
   }
   const search = searchText.value.toLowerCase();
-  return usersStore.users.filter(
+  return users.filter(
     (user) =>
       user.name?.toLowerCase().includes(search) ||
       user.username?.toLowerCase().includes(search) ||
@@ -180,13 +185,14 @@ const handleRefresh = async () => {
     usersStore.fetchUsers({
       page: currentPage.value,
       perPage: itemsPerPage.value,
+      filters: { role: "Admin" },
     }),
   ]);
 };
 
 // Watch for page changes
 watch(currentPage, async (newPage) => {
-  await usersStore.fetchUsers({ page: newPage, perPage: itemsPerPage.value });
+  await usersStore.fetchUsers({ page: newPage, perPage: itemsPerPage.value, filters: { role: "Admin" } });
 });
 
 // Watch search to reset page
@@ -199,7 +205,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       permissionsStore.fetchPermissions(),
-      usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value }),
+      usersStore.fetchUsers({ page: 1, perPage: itemsPerPage.value, filters: { role: "Admin" } }),
     ]);
   } catch (err) {
     console.error("Failed to load permissions data:", err);

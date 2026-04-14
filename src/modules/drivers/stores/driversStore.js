@@ -60,7 +60,7 @@ export const useDriverStore = defineStore("driver", () => {
 
     return {
       id: driver.id,
-            user_id: driver.user?.id || driver.id || null, 
+      user_id: driver.user?.id || driver.user_id || driver.id || null, 
 
       name: driver.user?.name || driver.name || "",
       username:

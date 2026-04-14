@@ -42,6 +42,7 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
   };
 
   const normalizeUser = (user) => {
+    if (!user) return {};
     const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
     const companyInfo = extractIdName(user.company ?? user.company_id);
     const regionInfo = extractIdName(user.region ?? user.region_id);
@@ -155,11 +156,8 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
     error.value = null;
     try {
       const response = await apiServices.createUser(userData);
-
-      // Add new user directly from backend response
-      const newUser = normalizeUser(response.data.data);
-      users.value.push(newUser);
-      return newUser;
+      const responseData = response.data?.data || response.data?.user || response.data;
+      return responseData;
     } catch (err) {
       error.value = err.message || "Failed to add user";
       console.error("Error adding user:", err);
@@ -178,7 +176,9 @@ export const useUsersManagementStore = defineStore("usersManagement", () => {
       // Update local state directly with backend response
       const index = users.value.findIndex((u) => u.id === userId);
       if (index > -1) {
-        users.value[index] = normalizeUser(response.data.data);
+        const responseData = response.data?.data || response.data?.user || response.data;
+        const mergedData = { ...users.value[index], ...(responseData && responseData.id ? responseData : {}) };
+        users.value[index] = normalizeUser(mergedData);
       }
       return users.value[index];
     } catch (err) {

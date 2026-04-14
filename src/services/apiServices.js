@@ -959,17 +959,9 @@ class ApiServices {
 }
   // Add new function for filtered orders
   async getOrdersWithItems(filters = {}) {
-    const params = new URLSearchParams();
-    const normalizedFilters = normalizeQueryParams(filters);
-
-    Object.entries(normalizedFilters).forEach(([key, value]) => {
-      params.append(key, value);
+    return this.get("/orders_with_items", {
+      params: normalizeQueryParams(filters),
     });
-
-    const queryString = params.toString();
-    const url = queryString ? `/orders_with_items?${queryString}` : '/orders_with_items';
-
-    return api.get(url);
   }
 
   // ===== Line Work Services =====
@@ -1017,8 +1009,8 @@ class ApiServices {
   }
 
   // ===== Work Plans Services =====
-  async getWorkPlans({ page = 1, perPage = 10 } = {}) {
-    return this.getEntities("work_plans", { page, perPage });
+  async getWorkPlans({ page = 1, perPage = 10, cancelKey } = {}) {
+    return this.getEntities("work_plans", { page, perPage, cancelKey });
   }
 
   async getTrashedWorkPlans({ page = 1, perPage = 10 } = {}) {
@@ -1027,6 +1019,16 @@ class ApiServices {
 
   async getDriverWorkPlans(driverId) {
     return this.get(`/work_plans`);
+  }
+
+  async getWorkPlansCalendar() {
+    return this.get("/calendar");
+  }
+
+  async getWorkPlansDone({ page = 1, perPage = 10 } = {}) {
+    return this.get("/calendar_done", {
+      params: { page, per_page: perPage }
+    });
   }
 
   async reassignDriverWorkPlans(workplanIds, oldDriverId, newDriverId) {
@@ -1187,14 +1189,17 @@ class ApiServices {
   }
 
   async assignPermissionToUser(userId, permissionId) {
-    return this.post("/user_permissions", {
+    return this.post("/assign_permission_user", {
       user_id: userId,
       permission_id: permissionId,
     });
   }
 
   async removePermissionFromUser(userId, permissionId) {
-    return this.delete(`/user_permissions/${userId}/${permissionId}`);
+     return this.post("/revoke_permission", {
+      user_id: userId,
+      permission_id: permissionId,
+    });
   }
 
   // ===== Switch User Service (SuperAdmin only) =====
@@ -1344,6 +1349,14 @@ async createWorkPlanSteps({ workPlanOrdersId, status, notes } = {}) {
 
   async deleteEvent(id) {
     return this.deleteEntity("events", id);
+  }
+
+  // ===== Notifications Services =====
+  async getNotifications({ page = 1, perPage = 10, cancelKey, history = 1 } = {}) {
+    return this.get("/notifications", {
+      params: normalizeQueryParams({ page, per_page: perPage, history }),
+      cancelKey: cancelKey ?? "notifications:list",
+    });
   }
 
   async saveFCMToken(token) {

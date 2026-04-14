@@ -21,7 +21,8 @@
     :showImageUpload="false"
     :serverErrors="formErrors"
     @close="$emit('close-form')"
-    @submit="(payload) => $emit('submit-edit', payload)"
+    
+    @submit="handleEditSubmit"
   />
 
   <DetailsModal
@@ -197,6 +198,27 @@ const discounts = ref([]);
 const branches = ref([]);
 const companyPrices = ref([]);
 const fetchedCompanies = ref([]);
+
+const handleEditSubmit = (payload) => {
+  // If lineprice_id is selected but line_id is not in payload (since it's hidden in UI),
+  // try to find the associated line_id for the server.
+  if (payload.lineprice_id && !payload.line_id) {
+    const selectedLinePrice = linePrices.value.find(
+      (lp) => String(Array.isArray(lp) ? lp[0] : lp.id) === String(payload.lineprice_id)
+    );
+    if (selectedLinePrice) {
+      const derivedLineId =
+        selectedLinePrice.line_id?.id ||
+        selectedLinePrice.line_id ||
+        selectedLinePrice.line?.id;
+      if (derivedLineId) {
+        payload.line_id = derivedLineId;
+      }
+    }
+  }
+  console.log("Submitting Edit Order Payload:", payload);
+  emit("submit-order", payload);
+};
 
 const isSuperAdmin = computed(
   () => String(authStore.userRole || "").toLowerCase() === "superadmin"
@@ -430,6 +452,12 @@ const orderFieldsWithDefaults = computed(() => {
     }
     if (field.name === "currency_id") {
       unwrappedField.options = currencyOptions.value;
+    }
+    if (field.name === "line_id") {
+      unwrappedField.options = lines.value.map((line) => ({
+        value: String(Array.isArray(line) ? line[0] : line.id),
+        label: Array.isArray(line) ? line[1] : line.name || line.line_name || `Line ${line.id}`,
+      }));
     }
     if (field.name === "lineprice_id") {
       unwrappedField.options = linePriceOptions.value;

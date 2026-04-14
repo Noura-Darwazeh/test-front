@@ -456,7 +456,7 @@ const userFields = computed(() => [
     label: t("user.form.region"),
     type: "select",
     required: true,
-    options: [{ value: "", label: t("user.form.noRegion") }, ...regions.value],
+    options: [ ...regions.value],
     colClass: "col-md-6",
     defaultValue: isEditMode.value ? selectedUser.value.region_id : "",
     validate: (value) => {
@@ -470,7 +470,7 @@ const userFields = computed(() => [
     type: "select",
     required: false,
     options: [
-      { value: "", label: t("user.form.noCurrency") },
+    
       ...currencies.value,
     ],
     colClass: "col-md-6",
@@ -974,6 +974,7 @@ if (fullPhone !== selectedUser.value.phone_number) updatedData.phone_number = fu
       await usersStore.addUser(newUser);
       showSuccess(t('user.addSuccess'));
       closeModal();
+      await fetchUsersPage(currentPage.value);
     }
   } catch (error) {
     console.error("❌ Failed to save user:", error);

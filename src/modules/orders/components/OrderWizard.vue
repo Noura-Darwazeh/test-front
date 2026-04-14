@@ -733,7 +733,7 @@
                     class="form-select"
                     :class="{ 'is-invalid': getFieldError('lineprice_id') }"
                     required
-                    @change="clearFieldError('lineprice_id')"
+                    @change="handleLinePriceChange"
                   >
                     <option value="">
                       {{ $t("orders.form.selectLinePrice") }}
@@ -760,7 +760,7 @@
                     class="form-select"
                     :class="{ 'is-invalid': getFieldError('line_id') }"
                     required
-                    @change="clearFieldError('line_id')"
+                    @change="handleLineChange"
                   >
                     <option value="">
                       {{ $t("orders.form.selectLine") }}
@@ -1602,6 +1602,34 @@ const steps = computed(() => {
   ];
 });
 
+const filteredLinePrices = computed(() => {
+  if (!formData.value.line_id) return [];
+  const selectedLineId = String(formData.value.line_id);
+  return props.linePrices.filter((lp) => {
+    const lpLineId = lp.line_id?.id || lp.line_id || lp.line?.id;
+    return String(lpLineId) === selectedLineId;
+  });
+});
+
+const handleLineChange = () => {
+  clearFieldError("line_id");
+  formData.value.lineprice_id = "";
+  clearFieldError("lineprice_id");
+};
+
+const handleLinePriceChange = () => {
+  clearFieldError("lineprice_id");
+  const selectedLinePrice = props.linePrices.find(
+    (lp) => String(getLinePriceValue(lp)) === String(formData.value.lineprice_id)
+  );
+  if (selectedLinePrice) {
+    const lpLineId = selectedLinePrice.line_id?.id || selectedLinePrice.line_id || selectedLinePrice.line?.id;
+    if (lpLineId && !formData.value.line_id) {
+      formData.value.line_id = String(lpLineId);
+    }
+  }
+};
+
 const getModeIcon = computed(() => {
   if (wizardMode.value === "delivery") return "fas fa-truck";
   if (wizardMode.value === "return") return "fas fa-undo";
@@ -1845,6 +1873,13 @@ const validateStepPricing = () => {
       setFieldError("price", requiredFieldMessage(t("orders.form.price")));
       isValid = false;
     }
+    if (isEmptyValue(formData.value.line_id)) {
+      setFieldError(
+        "line_id",
+        requiredFieldMessage(t("orders.form.lineId"))
+      );
+      isValid = false;
+    }
     if (isEmptyValue(formData.value.lineprice_id)) {
       setFieldError(
         "lineprice_id",
@@ -1885,6 +1920,13 @@ const validateStepPricing = () => {
     } else {
       if (isEmptyValue(formData.value.price)) {
         setFieldError("price", requiredFieldMessage(t("orders.form.price")));
+        isValid = false;
+      }
+      if (isEmptyValue(formData.value.line_id)) {
+        setFieldError(
+          "line_id",
+          requiredFieldMessage(t("orders.form.lineId"))
+        );
         isValid = false;
       }
       if (isEmptyValue(formData.value.lineprice_id)) {
@@ -2064,10 +2106,10 @@ const submitOrder = () => {
       ? parseFloat(formData.value.delivery_price)
       : undefined,
     currency_id: resolvedCurrencyId,
-    line_id: isTotalPricing && !isEmptyValue(formData.value.line_id)
+    line_id: !isEmptyValue(formData.value.line_id)
       ? parseInt(formData.value.line_id)
       : undefined,
-    lineprice_id: !isTotalPricing && !isEmptyValue(formData.value.lineprice_id)
+    lineprice_id: !isEmptyValue(formData.value.lineprice_id)
       ? parseInt(formData.value.lineprice_id)
       : undefined,
     discount_id: !isTotalPricing && formData.value.discount_id
@@ -2100,9 +2142,16 @@ const submitOrder = () => {
 
   if (isExchange.value) {
     const exchangePayload = {
-    price: parseFloat(formData.value.price),
-    lineprice_id: parseInt(formData.value.lineprice_id),
-      company_item_price_id: parseInt(formData.value.company_item_price_id),
+      price: !isEmptyValue(formData.value.price) ? parseFloat(formData.value.price) : 0,
+      line_id: !isEmptyValue(formData.value.line_id)
+        ? parseInt(formData.value.line_id)
+        : undefined,
+      lineprice_id: !isEmptyValue(formData.value.lineprice_id)
+        ? parseInt(formData.value.lineprice_id)
+        : undefined,
+      company_item_price_id: !isEmptyValue(formData.value.company_item_price_id)
+        ? parseInt(formData.value.company_item_price_id)
+        : undefined,
       case_delivery: formData.value.case,
       case_return: formData.value.case_return || formData.value.case,
       is_delivery_price_from_customer: (() => {
@@ -2119,6 +2168,7 @@ const submitOrder = () => {
       order_items: transformedOrderItems,
     };
 
+    console.log("Submitting Exchange Order Payload:", exchangePayload);
     emit("submit", {
       exchange: true,
       parentOrderId: parseInt(formData.value.parent_order_id),
@@ -2131,6 +2181,7 @@ const submitOrder = () => {
   if (formData.value.type === "return") {
     baseOrderData.is_extra_price_for_customer = 0; // Default to 0, can be made configurable later
   }
+  console.log("Submitting Standard Order Payload:", baseOrderData);
   emit("submit", baseOrderData);
 };
 

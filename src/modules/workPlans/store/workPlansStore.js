@@ -4,11 +4,20 @@ import apiServices from "@/services/apiServices.js";
 
 export const useWorkPlansStore = defineStore("workPlans", () => {
   const workPlans = ref([]);
+  const calendarWorkPlans = ref([]);
+  const workPlansDone = ref([]);
   const loading = ref(false);
   const error = ref(null);
 
   // Pagination state
   const workPlansPagination = ref({
+    currentPage: 1,
+    perPage: 10,
+    total: 0,
+    lastPage: 1,
+  });
+  
+  const workPlansDonePagination = ref({
     currentPage: 1,
     perPage: 10,
     total: 0,
@@ -116,6 +125,93 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
     }
   };
 
+  /** Loads every page from the API so calendar (and filters) see all plans, not just one page. */
+  const fetchAllWorkPlans = async ({ drivers = [], perPage = 100 } = {}) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      let page = 1;
+      let lastPage = 1;
+      const allRaw = [];
+
+      do {
+        const response = await apiServices.getWorkPlans({ page, perPage, cancelKey: `work_plans:all:page:${page}` });
+        const chunk = Array.isArray(response.data.data) ? response.data.data : [];
+        allRaw.push(...chunk);
+        lastPage = response.data.meta?.last_page ?? 1;
+        page += 1;
+      } while (page <= lastPage);
+
+      workPlans.value = allRaw.map((plan) => normalizeWorkPlan(plan, drivers));
+
+      workPlansPagination.value = {
+        currentPage: 1,
+        perPage,
+        total: allRaw.length,
+        lastPage: lastPage || 1,
+      };
+
+      return { data: workPlans.value };
+    } catch (err) {
+      error.value = err.message || "Failed to fetch work plans";
+      console.error("Error fetching all work plans:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchWorkPlansCalendar = async ({ drivers = [] } = {}) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getWorkPlansCalendar();
+      // The API returns { date, success, workplans: { data: [...] } }
+      const rawData = response.data.workplans?.data || [];
+      
+      // Normalize each plan from the calendar API
+      calendarWorkPlans.value = rawData.map(plan => normalizeWorkPlan(plan, drivers));
+      
+      return calendarWorkPlans.value;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch calendar work plans";
+      console.error("Error fetching calendar work plans:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchWorkPlansDone = async ({ page = 1, perPage = 10, drivers = [] } = {}) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await apiServices.getWorkPlansDone({ page, perPage });
+      // The API returns { success: true, workplans: { data: [...], meta: {...} } }
+      const workplansData = response.data.workplans || {};
+      const rawData = workplansData.data || [];
+      
+      workPlansDone.value = rawData.map(plan => normalizeWorkPlan(plan, drivers));
+      
+      if (workplansData.meta) {
+        workPlansDonePagination.value = {
+          currentPage: workplansData.meta.current_page,
+          perPage: workplansData.meta.per_page,
+          total: workplansData.meta.total,
+          lastPage: workplansData.meta.last_page,
+        };
+      }
+      
+      return workPlansDone.value;
+    } catch (err) {
+      error.value = err.message || "Failed to fetch done work plans";
+      console.error("Error fetching done work plans:", err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const addWorkPlan = async (workPlanData, drivers = []) => {
     loading.value = true;
     error.value = null;
@@ -206,11 +302,17 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
   return {
     // State
     workPlans,
+    calendarWorkPlans,
+    workPlansDone,
     loading,
     error,
     workPlansPagination,
+    workPlansDonePagination,
     // Actions
     fetchWorkPlans,
+    fetchAllWorkPlans,
+    fetchWorkPlansCalendar,
+    fetchWorkPlansDone,
     addWorkPlan,
     updateWorkPlan,
     deleteWorkPlan,

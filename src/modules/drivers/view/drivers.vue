@@ -986,7 +986,7 @@ const handleSubmitDriver = async (driverData) => {
             });
 
             if (driverData.image && driverData.image instanceof File) updatedData.image = driverData.image;
-if (driverData.phone_number) apiData.phone_number = (driverData.phone_number_prefix || '+970') + driverData.phone_number;
+            if (driverData.phone_number) updatedData.phone_number = (driverData.phone_number_prefix || '+970') + driverData.phone_number;
             await driverStore.updateDriver(selectedDriver.value.id, updatedData);
 
             // User ID should rigorously be taken from the connected User object
@@ -1042,9 +1042,10 @@ if (eventsPayload.length && targetUserId) {
     console.log('✅ Notification events saved for new driver');
 }
 
-showSuccess(t('driver.addSuccess'));;
+            showSuccess(t('driver.addSuccess'));
         }
         closeFormModal();
+        await handleRefresh();
     } catch (error) {
         console.error('❌ Failed to save driver:', error);
 

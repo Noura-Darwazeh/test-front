@@ -4,9 +4,7 @@
             v-model="searchText" 
             :searchPlaceholder="$t('workPlan.searchPlaceholder')" 
             :data="workPlans"
-            groupKey="company_name" 
-            v-model:groupModelValue="selectedGroups"
-            :groupLabel="$t('workPlan.filterByCompany')" 
+
             translationKey="" 
             :columns="workPlanColumns"
             v-model:visibleColumns="visibleColumns" 
@@ -14,7 +12,7 @@
             :addButtonText="$t('workPlan.addNew')" 
             :showTrashedButton="false" 
             @add-click="openAddModal"
-            @refresh-click="handleRefresh" 
+            @refresh-click="handleRefresh" 00
         />
 
         <!-- Tabs Navigation -->
@@ -32,6 +30,11 @@
                             <i class="bi bi-table me-2"></i> {{ $t('workPlan.tabs.table') }}
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link" :class="{ active: activeTab === 'done' }" @click="switchTab('done')">
+                            <i class="bi bi-check-circle me-2"></i> {{ $t('workPlan.tabs.done') }}
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -41,7 +44,7 @@
             <!-- Calendar Tab -->
             <div v-show="activeTab === 'calendar'" class="tab-pane fade"
                 :class="{ 'show active': activeTab === 'calendar' }">
-                <WorkPlanCalendar :workPlans="workPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
+                <WorkPlanCalendar :workPlans="calendarWorkPlans" @edit-plan="openEditModal" @view-details="openDetailsModal" />
             </div>
 
             <!-- Table Tab -->
@@ -91,6 +94,40 @@
                                 :itemsPerPage="itemsPerPage"
                                 :currentPage="currentPage" 
                                 :totalPages="currentPagination.lastPage"
+                                @update:currentPage="(page) => currentPage = page" 
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Done Tab -->
+            <div v-show="activeTab === 'done'" class="tab-pane fade" :class="{ 'show active': activeTab === 'done' }">
+                <div class="card border-0">
+                    <div class="card-body p-0">
+                        <DataTable 
+                            :columns="filteredColumns" 
+                            :data="doneWorkPlans"
+                            :actionsLabel="$t('workPlan.actions')" 
+                            v-model="selectedRows"
+                            :showCheckbox="false">
+                            <template #actions="{ row }">
+                                <ActionsDropdown 
+                                    :row="row" 
+                                    :detailsLabel="$t('workPlan.details')" 
+                                    :showEdit="false"
+                                    :showDelete="false"
+                                    :showDetails="true"
+                                    @details="openDetailsModal"
+                                />
+                            </template>
+                        </DataTable>
+                        <div class="px-3 pt-1 pb-2 bg-light">
+                            <Pagination 
+                                :totalItems="workPlansStore.workPlansDonePagination.total" 
+                                :itemsPerPage="itemsPerPage"
+                                :currentPage="currentPage" 
+                                :totalPages="workPlansStore.workPlansDonePagination.lastPage"
                                 @update:currentPage="(page) => currentPage = page" 
                             />
                         </div>
@@ -266,6 +303,48 @@ const workPlans = computed(() => {
     return [];
 });
 
+const calendarWorkPlans = computed(() => {
+    const allPlans = workPlansStore.calendarWorkPlans;
+
+    if (isSuperAdmin.value) {
+        return allPlans;
+    }
+
+    if (isAdmin.value) {
+        if (companyId.value) {
+            return allPlans.filter(plan => {
+                const planCompanyId = String(plan.company_id);
+                return planCompanyId === String(companyId.value);
+            });
+        } else {
+            return allPlans;
+        }
+    }
+
+    return [];
+});
+
+const doneWorkPlans = computed(() => {
+    const allPlans = workPlansStore.workPlansDone;
+
+    if (isSuperAdmin.value) {
+        return allPlans;
+    }
+
+    if (isAdmin.value) {
+        if (companyId.value) {
+            return allPlans.filter(plan => {
+                const planCompanyId = String(plan.company_id);
+                return planCompanyId === String(companyId.value);
+            });
+        } else {
+            return allPlans;
+        }
+    }
+
+    return [];
+});
+
 const orderOptions = computed(() => {
     const options = ordersWithItems.value.map(order => ({
         value: order.order_code,
@@ -299,11 +378,16 @@ const driverOptions = computed(() => {
     }));
 });
 
+
 onMounted(async () => {
     try {
         await driverStore.fetchDrivers();
-        await workPlansStore.fetchWorkPlans({ page: 1, perPage: itemsPerPage.value, drivers: driverStore.drivers });
-        await fetchOrdersWithItems();
+        // Default tab is calendar: load data from the calendar endpoint
+        await Promise.all([
+            workPlansStore.fetchWorkPlansCalendar({ drivers: driverStore.drivers }),
+            fetchOrdersWithItems(), 
+            fetchLines()
+        ]);
     } catch (error) {
         console.error("Failed to load initial data:", error);
     }
@@ -314,12 +398,21 @@ watch(currentPage, async (newPage) => {
         skipNextPageWatch.value = false;
         return;
     }
+    
     try {
-        await workPlansStore.fetchWorkPlans({
-            page: newPage,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-        });
+        if (activeTab.value === "table") {
+            await workPlansStore.fetchWorkPlans({
+                page: newPage,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        } else if (activeTab.value === "done") {
+            await workPlansStore.fetchWorkPlansDone({
+                page: newPage,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        }
     } catch (err) {
         console.error("Failed to load page:", err);
     }
@@ -332,11 +425,21 @@ const switchTab = async (tab) => {
     selectedRows.value = [];
 
     try {
-        await workPlansStore.fetchWorkPlans({
-            page: 1,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-        });
+        if (tab === "calendar") {
+            await workPlansStore.fetchWorkPlansCalendar({ drivers: driverStore.drivers });
+        } else if (tab === "done") {
+            await workPlansStore.fetchWorkPlansDone({ 
+                page: 1, 
+                perPage: itemsPerPage.value, 
+                drivers: driverStore.drivers 
+            });
+        } else {
+            await workPlansStore.fetchWorkPlans({
+                page: 1,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        }
     } catch (error) {
         console.error("Failed to switch tabs:", error);
     }
@@ -345,11 +448,21 @@ const switchTab = async (tab) => {
 const handleRefresh = async () => {
     selectedRows.value = [];
     try {
-        await workPlansStore.fetchWorkPlans({
-            page: currentPage.value,
-            perPage: itemsPerPage.value,
-            drivers: driverStore.drivers,
-        });
+        if (activeTab.value === "calendar") {
+            await workPlansStore.fetchWorkPlansCalendar({ drivers: driverStore.drivers });
+        } else if (activeTab.value === "done") {
+            await workPlansStore.fetchWorkPlansDone({ 
+                page: currentPage.value, 
+                perPage: itemsPerPage.value, 
+                drivers: driverStore.drivers 
+            });
+        } else {
+            await workPlansStore.fetchWorkPlans({
+                page: currentPage.value,
+                perPage: itemsPerPage.value,
+                drivers: driverStore.drivers,
+            });
+        }
     } catch (error) {
         console.error("Failed to refresh work plans:", error);
     }
@@ -409,9 +522,6 @@ const workPlanFields = computed(() => {
             validate: (value) => {
                 if (!value || value.trim().length === 0) {
                     return t('workPlan.validation.nameRequired');
-                }
-                if (value.length > 255) {
-                    return t('workPlan.validation.nameMax');
                 }
                 return null;
             }
@@ -583,25 +693,43 @@ watch([searchText, selectedGroups], () => {
     currentPage.value = 1;
 });
 
+const fetchLines = async () => {
+    try {
+        const filters = {};
+        if (companyId.value) {
+            filters.company_id = companyId.value;
+        }
+        const response = await apiServices.getLines({ perPage: 100, filters });
+        let data = [];
+        if (Array.isArray(response.data?.data)) {
+            data = response.data.data;
+        } else if (Array.isArray(response.data?.data?.data)) {
+            data = response.data.data.data;
+        } else if (Array.isArray(response.data)) {
+            data = response.data;
+        }
+        lineOptions.value = data.map(line => ({
+            value: line.name || line.id,
+            label: line.name || `Line ${line.id}`
+        }));
+    } catch (error) {
+        console.error("❌ Failed to fetch lines:", error);
+        lineOptions.value = [];
+    }
+};
+
 const fetchOrdersWithItems = async (filters = {}) => {
     loadingOrders.value = true;
     try {
+        console.log("🚀 Fetching orders with filters:", filters);
         const response = await apiServices.getOrdersWithItems(filters);
-
         let data = [];
         if (Array.isArray(response.data)) {
             data = response.data;
         } else if (Array.isArray(response.data?.data)) {
             data = response.data.data;
         }
-
         ordersWithItems.value = data;
-
-        const uniqueLines = [...new Set(data.map(order => order.line_name).filter(Boolean))];
-        lineOptions.value = uniqueLines.map(line => ({
-            value: line,
-            label: line
-        }));
     } catch (error) {
         console.error("❌ Failed to fetch orders with items:", error);
         ordersWithItems.value = [];
@@ -621,6 +749,7 @@ const handleFilterOrders = async () => {
         filters.case = selectedCase.value;
     }
     
+    console.log("🔍 Filtering orders by:", filters);
     await fetchOrdersWithItems(filters);
 };
 
@@ -640,7 +769,7 @@ const openAddModal = async () => {
         date: ''
     };
     
-    await fetchOrdersWithItems();
+    await Promise.all([fetchOrdersWithItems(), fetchLines()]);
     isFormModalOpen.value = true;
 };
 
@@ -663,7 +792,7 @@ const openEditModal = async (workPlan) => {
     selectedLine.value = '';
     selectedCase.value = '';
     
-    await fetchOrdersWithItems();
+    await Promise.all([fetchOrdersWithItems(), fetchLines()]);
     isFormModalOpen.value = true;
 };
 
