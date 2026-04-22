@@ -5,6 +5,8 @@
       :columns="userColumns" v-model:visibleColumns="visibleColumns" :showActiveFilter="true"
       :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="canAddUser" :addButtonText="$t('user.addNew')" @add-click="openModal"
+      :showSecondaryAddButton="isSuperAdmin" secondaryAddButtonText="Add Customer Company" @secondary-add-click="openCustomerCompanyModal"
+      :showTertiaryAddButton="isAdmin || isSuperAdmin" tertiaryAddButtonText="Create Account" @tertiary-add-click="openAccountModal"
       @refresh-click="handleRefresh" />
 
     <div class="card border-0">
@@ -76,6 +78,17 @@
       :showImageUpload="true" :imageRequired="false" :imageUploadLabel="$t('user.form.uploadImage')"
       :serverErrors="formErrors" :userPermissions="isEditMode ? selectedUser.permissions : null"
       @close="closeModal" @submit="handleSubmitUser" />
+
+    <!-- Form Modal for Add Customer Company User -->
+    <FormModal :isOpen="isCustomerCompanyModalOpen" title="Add Customer Company" :fields="customerCompanyFields"
+      :showImageUpload="true" :imageRequired="false" :imageUploadLabel="$t('user.form.uploadImage')"
+      :serverErrors="customerCompanyFormErrors"
+      @close="closeCustomerCompanyModal" @submit="handleSubmitCustomerCompanyUser" />
+
+    <!-- Form Modal for Create Account -->
+    <FormModal :isOpen="isAccountModalOpen" title="Create Account" :fields="accountFields"
+      :showImageUpload="false" :serverErrors="accountFormErrors"
+      @close="closeAccountModal" @submit="handleSubmitAccount" />
 
     <!-- Details Modal -->
     <DetailsModal :isOpen="isDetailsModalOpen" :title="$t('user.details')" :data="selectedUser" :fields="detailsFields"
@@ -173,6 +186,8 @@ const activeStatusFilter = ref("");
 const currentPage = ref(1);
 const skipNextPageWatch = ref(false);
 const isModalOpen = ref(false);
+const isCustomerCompanyModalOpen = ref(false);
+const isAccountModalOpen = ref(false);
 const isDetailsModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const isEditMode = ref(false);
@@ -181,6 +196,9 @@ const userToDelete = ref(null);
 const activeTab = ref("active");
 const selectedRows = ref([]);
 const formErrors = ref({});
+const customerCompanyFormErrors = ref({});
+const accountFormErrors = ref({});
+const accountUsers = ref([]);
 
 const refreshUsers = () => fetchUsersPage(currentPage.value);
 const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("users", refreshUsers, { showSuccess, showError });
@@ -509,6 +527,89 @@ const userFields = computed(() => [
   },
 ]);
 
+const customerCompanyFields = computed(() => [
+  {
+    name: "name",
+    label: t("user.form.name"),
+    type: "text",
+    required: true,
+    placeholder: t("user.form.namePlaceholder"),
+    colClass: "col-md-6",
+    defaultValue: "",
+  },
+  {
+    name: "username",
+    label: t("user.form.username"),
+    type: "text",
+    required: true,
+    placeholder: t("user.form.usernamePlaceholder"),
+    colClass: "col-md-6",
+    defaultValue: "",
+  },
+  {
+    name: "email",
+    label: t("user.form.email"),
+    type: "email",
+    required: false,
+    placeholder: t("user.form.emailPlaceholder"),
+    colClass: "col-md-6",
+    defaultValue: "",
+  },
+  {
+    name: "password",
+    label: t("user.form.password"),
+    type: "password",
+    required: true,
+    minlength: VALIDATION_LIMITS.PASSWORD_MIN_LENGTH,
+    placeholder: t("user.form.passwordPlaceholder"),
+    colClass: "col-md-6",
+    defaultValue: "",
+  },
+  {
+    name: "phone_number",
+    label: t("user.form.phoneNumber"),
+    type: "phone-prefix",
+    defaultPrefix: "+970",
+    required: true,
+    placeholder: t("user.form.phoneNumberPlaceholder"),
+    colClass: "col-md-6",
+    defaultValue: "",
+  },
+  {
+    name: "region_id",
+    label: t("user.form.region"),
+    type: "select",
+    required: true,
+    options: [...regions.value],
+    colClass: "col-md-6",
+    defaultValue: "",
+  },
+  {
+    name: "currency_id",
+    label: t("user.form.currency"),
+    type: "select",
+    required: false,
+    options: [...currencies.value],
+    colClass: "col-md-6",
+    defaultValue: currencyId.value,
+  },
+]);
+
+const accountFields = computed(() => [
+  {
+    name: "user_id",
+    label: "Select User",
+    type: "select",
+    required: true,
+    options: accountUsers.value.map((u) => ({
+      value: String(u.id),
+      label: `${u.name} (${u.username})`,
+    })),
+    colClass: "col-12",
+    defaultValue: "",
+  },
+]);
+
 const detailsFields = computed(() => [
   { key: "id", label: t("user.id"), colClass: "col-md-6" },
   { key: "name", label: t("user.fullName"), colClass: "col-md-6" },
@@ -660,6 +761,68 @@ const applyServerErrors = (error) => {
 
 const clearFormErrors = () => {
   formErrors.value = {};
+};
+
+const openCustomerCompanyModal = () => {
+  customerCompanyFormErrors.value = {};
+  isCustomerCompanyModalOpen.value = true;
+};
+
+const closeCustomerCompanyModal = () => {
+  isCustomerCompanyModalOpen.value = false;
+  customerCompanyFormErrors.value = {};
+};
+
+const openAccountModal = async () => {
+  accountFormErrors.value = {};
+  try {
+    const response = await apiServices.getCustomerCompanyUsers();
+    accountUsers.value = response.data?.data || response.data || [];
+    isAccountModalOpen.value = true;
+  } catch (error) {
+    showError("Failed to fetch users");
+  }
+};
+
+const closeAccountModal = () => {
+  isAccountModalOpen.value = false;
+  accountFormErrors.value = {};
+};
+
+const handleSubmitAccount = async (formData) => {
+  try {
+    const response = await apiServices.createCustomerCompanyAccount(formData.user_id);
+    if (response.data && response.data.success === false) {
+      showError(response.data.message || t('common.error'));
+      return;
+    }
+    showSuccess("Account created successfully");
+    closeAccountModal();
+    refreshUsers();
+  } catch (error) {
+    if (error.response?.status === 422) {
+      const normalized = normalizeServerErrors(error);
+      accountFormErrors.value = normalized;
+    } else {
+      showError(error.response?.data?.message || t('common.error'));
+    }
+  }
+};
+
+const handleSubmitCustomerCompanyUser = async (formData) => {
+  try {
+    await apiServices.createCustomerCompanyUser(formData);
+    showSuccess("Customer company user created successfully");
+    closeCustomerCompanyModal();
+    refreshUsers();
+  } catch (error) {
+    if (error.response?.status === 422) {
+      const normalized = normalizeServerErrors(error);
+      customerCompanyFormErrors.value = normalized;
+    } else {
+      showError(error.response?.data?.message || t('common.error'));
+    }
+  }
 };
 
 const openModal = () => {

@@ -1,393 +1,326 @@
 <template>
-  <div class="notifications-page">
-    <!-- Page Header -->
-    <div class="page-header mb-4">
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <!-- <h4 class="mb-0">{{ $t('notifications.title', 'Notifications') }}</h4> -->
+  <div class="container-fluid py-4 fb-like-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="h4 mb-0 fw-bold text-dark">
+        {{ $t('notifications.historyTitle', 'Notifications History') }}
+      </h2>
+      <button 
+        class="btn btn-sm btn-light text-primary fw-medium rounded-pill px-3 shadow-sm transition-all custom-hover-btn"
+        @click="markAllAsRead"
+        v-if="hasUnread"
+      >
+        <i class="fas fa-check-double me-1"></i>
+        {{ $t('notifications.markAllAsRead', 'Mark all as read') }}
+      </button>
+    </div>
+
+    <!-- Main List Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden history-card mx-auto">
+      <!-- Loading State -->
+      <div v-if="store.loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
         </div>
-        
-        <div class="d-flex gap-2 align-items-center">
-          <!-- Sort Dropdown -->
-          <div class="sort-dropdown custom-select-wrapper">
-            <select v-model="sortOrder" class="form-select custom-select shadow-sm border-0">
-              <option value="desc">{{ $t('common.newestFirst', 'Newest First') }}</option>
-              <option value="asc">{{ $t('common.oldestFirst', 'Oldest First') }}</option>
-            </select>
-          </div>
-
-          <button
-            class="btn-refresh shadow-sm border-0"
-            :disabled="notificationsStore.loading"
-            @click="handleRefresh"
-          >
-            <i
-              class="fas fa-sync-alt refresh-icon text-secondary"
-              :class="{ rotating: notificationsStore.loading }"
-            ></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="notificationsStore.loading && notificationsStore.notifications.length === 0" class="loading-state">
-      <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-2 text-muted">{{ $t("common.loading", "Loading...") }}</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="notificationsStore.error" class="alert alert-danger shadow-sm border-0 rounded-3">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      {{ notificationsStore.error }}
-    </div>
-
-    <!-- Notifications List -->
-    <div v-else class="notifications-container">
-      <div v-if="sortedNotifications.length === 0" class="no-results">
-        <i class="fas fa-bell-slash fa-3x text-muted mb-3 opacity-50"></i>
-        <p class="text-muted mb-0 fs-5">{{ $t("notifications.noNotifications", "No notifications found.") }}</p>
+        <div class="mt-2 text-muted fw-medium">{{ $t('notifications.loading', 'Loading history...') }}</div>
       </div>
 
-      <transition-group name="list" tag="div" class="notifications-list">
-        <div
-          v-for="notification in sortedNotifications"
-          :key="notification.id"
-          class="notification-card"
+      <!-- Empty State -->
+      <div v-else-if="store.notifications.length === 0" class="text-center py-5 text-muted">
+        <div class="mb-3 empty-bell-wrap d-flex justify-content-center align-items-center mx-auto rounded-circle bg-light" style="width: 80px; height: 80px;">
+          <i class="fas fa-bell-slash fa-2x text-secondary"></i>
+        </div>
+        <h5 class="fw-bold">{{ $t('notifications.noHistory', 'No notifications history found') }}</h5>
+        <p class="small">{{ $t('notifications.checkLater', 'We\'ll let you know when we have news for you.') }}</p>
+      </div>
+
+      <!-- Notifications List -->
+      <div v-else class="list-group list-group-flush pt-2 pb-2">
+        <div 
+          v-for="notif in store.notifications" 
+          :key="notif.id" 
+          class="list-group-item list-group-item-action border-0 px-3 py-3 d-flex align-items-center fb-notif-item transition-all"
+          :class="{'unread-notif': notif.read_at === null}"
+          @click="handleNotifClick(notif)"
         >
-          <div class="notification-icon-wrapper" :class="getIconClass(notification)">
-            <i :class="getIcon(notification)"></i>
-          </div>
-
-          <div class="notification-content">
-            <h6 class="notification-title mb-1">
-              {{ getNotificationData(notification).title || formatType(notification.type) }}
-            </h6>
-            <p class="notification-message mb-2 text-secondary">
-              {{ getNotificationData(notification).message || $t('notifications.noMessage', 'No message content.') }}
-            </p>
-            
-            <div class="notification-meta d-flex align-items-center gap-3">
-              <span v-if="notification.notifiable" class="meta-item">
-                <i class="fas fa-user-circle me-1 opacity-75"></i> 
-                {{ notification.notifiable.name }}
-              </span>
-              <span v-if="getNotificationData(notification).order_id" class="meta-item badge bg-light text-dark border">
-                Order #{{ getNotificationData(notification).order_id }}
-              </span>
+          <!-- Icon Context -->
+          <div class="icon-wrapper flex-shrink-0 me-3 position-relative rounded-circle d-flex align-items-center justify-content-center shadow-sm" :class="getBgClass(notif.type)">
+            <i :class="['fas', getIconForType(notif.type)]" class="text-white fs-5"></i>
+            <!-- Small floating badge if you want another layer like FB -->
+            <div class="position-absolute bottom-0 end-0 bg-white rounded-circle d-flex align-items-center justify-content-center border border-white" style="width: 16px; height: 16px; transform: translate(10%, 10%);">
+              <i class="fas fa-circle text-primary" style="font-size: 8px;"></i>
             </div>
           </div>
-        </div>
-      </transition-group>
 
-      <!-- Pagination -->
-      <div v-if="notificationsStore.notifications.length > 0" class="pagination-wrapper">
-        <Pagination
-          :totalItems="notificationsStore.notificationsPagination?.total || 0"
-          :itemsPerPage="itemsPerPage"
-          :currentPage="currentPage"
-          :totalPages="notificationsStore.notificationsPagination?.lastPage || 1"
-          @update:currentPage="(page) => (currentPage = page)"
-        />
+          <!-- Notification Content -->
+          <div class="flex-grow-1 min-width-0">
+            <div class="mb-1 text-wrap text-break">
+              <span class="fw-bold text-dark me-1">{{ getTitle(notif) }}</span>
+              <span class="text-secondary opacity-75 fs-6" :class="{'fw-semibold text-dark opacity-100': notif.read_at === null}">{{ getMessage(notif) }}</span>
+            </div>
+            
+            <div class="d-flex align-items-center mt-1">
+              <span class="text-primary fw-semibold small type-badge">{{ formatType(notif.type) }}</span>
+              
+              <!-- If created_at exists, show time -->
+              <template v-if="notif.created_at">
+                <span class="mx-2 text-muted fw-light" style="font-size: 6px;"><i class="fas fa-circle"></i></span>
+                <span class="text-muted small time-ago">{{ formatTime(notif.created_at) }}</span>
+              </template>
+            </div>
+          </div>
+          
+          <!-- Unread Dot -->
+          <div v-if="notif.read_at === null" class="ms-3 flex-shrink-0 d-flex align-items-center">
+            <div class="bg-primary rounded-circle" style="width: 12px; height: 12px;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- FB-like Pagination Area -->
+      <div class="card-footer bg-white border-top-0 py-3 px-3 d-flex flex-column flex-md-row justify-content-between align-items-center" v-if="store.pagination.lastPage > 1">
+        <span class="text-muted small fw-medium mb-2 mb-md-0">
+          {{ store.pagination.total }} {{ $t('pagination.totalNotifications', 'Notifications total') }}
+        </span>
+        <nav aria-label="Page navigation">
+          <ul class="pagination pagination-sm mb-0 rounded pagination-fb shadow-inner">
+            <li class="page-item" :class="{ disabled: store.pagination.currentPage === 1 }">
+              <button class="page-link px-3" @click="changePage(store.pagination.currentPage - 1)">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+            </li>
+            <li class="page-item" v-for="page in visiblePages" :key="page" :class="{ active: page === store.pagination.currentPage }">
+              <button class="page-link fw-bold px-3" @click="changePage(page)">
+                <span v-if="page === '...'">...</span>
+                <span v-else>{{ page }}</span>
+              </button>
+            </li>
+            <li class="page-item" :class="{ disabled: store.pagination.currentPage === store.pagination.lastPage }">
+              <button class="page-link px-3" @click="changePage(store.pagination.currentPage + 1)">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
-import { useNotificationsStore } from "../store/notificationsStore.js";
-import Pagination from "../../../components/shared/Pagination.vue";
+import { onMounted, computed } from 'vue';
+import { useNotificationsHistoryStore } from '../store/notificationsStore.js';
+import { useI18n } from 'vue-i18n';
 
-const notificationsStore = useNotificationsStore();
-
-const currentPage = ref(1);
-const sortOrder = ref("desc"); // 'asc' or 'desc'
-const itemsPerPage = computed(() => notificationsStore.notificationsPagination?.perPage || 5);
-
-// Fetch notifications logic
-const fetchNotifications = async (page = 1) => {
-  try {
-    await notificationsStore.fetchNotifications({
-      page,
-      perPage: 5,
-      history: 1,
-    });
-  } catch (error) {
-    console.error("Failed to fetch notifications", error);
-  }
-};
-
-// handle refresh button click
-const handleRefresh = () => {
-  fetchNotifications(currentPage.value);
-};
-
-// sort the local notifications
-const sortedNotifications = computed(() => {
-  const notifications = [...notificationsStore.notifications];
-  
-  if (sortOrder.value === "desc") {
-    return notifications; // Assuming API returns desc by default
-  } else {
-    return notifications.reverse(); // simple reverse for asc
-  }
-});
-
-// Helper to get payload data safely
-const getNotificationData = (notification) => {
-  if (!notification) return {};
-  
-  let payload = notification.items || notification.data;
-  
-  if (!payload) return {};
-
-  if (typeof payload === 'string') {
-    try {
-      payload = JSON.parse(payload);
-    } catch (e) {
-      console.error("Failed to parse items:", e);
-    }
-  }
-  
-  // Verify one more time in case of double encoding
-  if (typeof payload === 'string') {
-    try {
-      payload = JSON.parse(payload);
-    } catch (e) {}
-  }
-
-  // Handle cases where the parsed JSON might still have a nested object
-  if (payload && typeof payload === 'object' && payload.items) {
-    payload = payload.items;
-  }
-
-  return payload || {};
-};
-
-// Format class based on notification type
-const getIconClass = (notification) => {
-  const data = getNotificationData(notification);
-  const type = data.type || notification.type || '';
-  if (type.includes('new_order') || type.includes('OrderAssigned')) return 'bg-primary-soft text-primary';
-  if (type.includes('update_order') || type.includes('status')) return 'bg-warning-soft text-warning';
-  if (type.includes('alert') || type.includes('error')) return 'bg-danger-soft text-danger';
-  if (type.includes('success')) return 'bg-success-soft text-success';
-  return 'bg-info-soft text-info';
-};
-
-// Format icon based on notification type
-const getIcon = (notification) => {
-  const data = getNotificationData(notification);
-  const type = data.type || notification.type || '';
-  if (type.includes('new_order') || type.includes('OrderAssigned')) return 'fas fa-box-open';
-  if (type.includes('update_order')) return 'fas fa-sync-alt';
-  if (type.includes('alert')) return 'fas fa-exclamation-circle';
-  return 'fas fa-bell';
-};
-
-// Helper to format raw class name if title is missing
-const formatType = (type) => {
-  if (!type) return 'Notification';
-  const parts = type.split('\\');
-  const name = parts[parts.length - 1];
-  return name.replace(/([A-Z])/g, ' $1').trim();
-};
-
-watch(currentPage, (newPage) => {
-  fetchNotifications(newPage);
-});
+const store = useNotificationsHistoryStore();
+const { t } = useI18n();
 
 onMounted(() => {
-  fetchNotifications(currentPage.value);
+  store.getNotificationsHistory();
 });
+
+const changePage = (page) => {
+  if (page === '...') return;
+  if (page >= 1 && page <= store.pagination.lastPage) {
+    store.getNotificationsHistory(page);
+  }
+};
+
+const hasUnread = computed(() => {
+  return store.notifications.some(n => n.read_at === null);
+});
+
+const handleNotifClick = (notif) => {
+  if (notif.read_at === null) {
+    store.markAsRead([notif.id]);
+  }
+};
+
+const markAllAsRead = () => {
+  const unreadIds = store.notifications
+    .filter(n => n.read_at === null)
+    .map(n => n.id);
+    
+  if (unreadIds.length > 0) {
+    store.markAsRead(unreadIds);
+  }
+};
+
+const visiblePages = computed(() => {
+  const current = store.pagination.currentPage;
+  const last = store.pagination.lastPage;
+  const delta = 2;
+  const range = [];
+
+  for (let i = Math.max(2, current - delta); i <= Math.min(last - 1, current + delta); i++) {
+    range.push(i);
+  }
+
+  if (current - delta > 2) {
+    range.unshift('...');
+  }
+  if (current + delta < last - 1) {
+    range.push('...');
+  }
+
+  range.unshift(1);
+  if (last > 1) {
+    range.push(last);
+  }
+
+  return range;
+});
+
+const formatType = (type) => {
+  if (!type) return 'System';
+  let label = type.includes('\\') ? type.split('\\').pop() : type;
+  label = label.replace(/_/g, ' ');
+  label = label.replace(/([a-z])([A-Z])/g, '$1 $2');
+  return label.replace(/\b\w/g, c => c.toUpperCase()).trim();
+};
+
+const getIconForType = (type) => {
+  const t = (type || '').toLowerCase();
+  if (t.includes('work_plan')) return 'fa-clipboard-list';
+  if (t.includes('order')) return 'fa-box-open';
+  if (t.includes('warning') || t.includes('alert')) return 'fa-exclamation-triangle';
+  if (t.includes('user') || t.includes('account')) return 'fa-user';
+  return 'fa-bell';
+};
+
+const getBgClass = (type) => {
+  const t = (type || '').toLowerCase();
+  if (t.includes('work_plan')) return 'bg-info bg-gradient';
+  if (t.includes('order')) return 'bg-success bg-gradient';
+  if (t.includes('warning') || t.includes('alert')) return 'bg-warning bg-gradient';
+  if (t.includes('error') || t.includes('fail')) return 'bg-danger bg-gradient';
+  return 'bg-primary bg-gradient';
+};
+
+const getTitle = (notif) => {
+  if (notif.items) {
+    if (typeof notif.items === 'string') {
+      try {
+        const parsed = JSON.parse(notif.items);
+        return parsed.title || formatType(notif.type);
+      } catch (e) {
+        return formatType(notif.type);
+      }
+    }
+    return notif.items.title || formatType(notif.type);
+  }
+  return formatType(notif.type);
+};
+
+const getMessage = (notif) => {
+  if (notif.items) {
+    if (typeof notif.items === 'string') {
+      try {
+        const parsed = JSON.parse(notif.items);
+        return parsed.message || t('notifications.noMessage', 'No message content.');
+      } catch (e) {
+        return notif.items;
+      }
+    }
+    return notif.items.message || t('notifications.noMessage', 'No message content.');
+  }
+  return t('notifications.noMessage', 'No message content.');
+};
+
+const formatTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+  
+  if (diff < 60) return t('time.justNow', 'Just now');
+  if (diff < 3600) return `${Math.floor(diff / 60)} ${t('time.minutesAgo', 'm')}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} ${t('time.hoursAgo', 'h')}`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} ${t('time.daysAgo', 'd')}`;
+  
+  return date.toLocaleDateString();
+};
 </script>
 
 <style scoped>
-.notifications-page {
-  max-width: 1200px;
+.fb-like-container {
+  max-width: 900px;
   margin: 0 auto;
-  padding: 1.5rem;
 }
 
-.page-header h4 {
-  font-weight: 700;
-  color: #2c3e50;
-  letter-spacing: -0.5px;
+.history-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0px 4px rgba(0, 0, 0, 0.05) !important;
 }
 
-.custom-select {
+.fb-notif-item {
+  margin: 0 8px;
   border-radius: 8px;
-  padding: 0.6rem 2.5rem 0.6rem 1rem;
-  font-weight: 500;
-  color: #4b5563;
-  background-color: #fff;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 140px;
+  color: #050505;
+  background-color: transparent;
 }
 
-.custom-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+.fb-notif-item.unread-notif {
+  background-color: #e7f3ff;
 }
 
-.btn-refresh {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.fb-notif-item:hover {
+  background-color: #f0f2f5;
+  color: #050505;
 }
 
-.btn-refresh:hover:not(:disabled) {
-  background: #f8f9fa;
-  transform: translateY(-1px);
+.fb-notif-item.unread-notif:hover {
+  background-color: #dbe7f4;
 }
 
-.refresh-icon {
-  font-size: 1.1rem;
-  transition: transform 0.4s ease;
+.icon-wrapper {
+  width: 56px;
+  height: 56px;
+  font-size: 24px;
 }
 
-.refresh-icon.rotating {
-  animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.loading-state {
-  text-align: center;
-  padding: 80px 20px;
-  background: white;
+.type-badge {
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  padding: 2px 8px;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  font-size: 0.75rem;
 }
 
-.notifications-container {
-  background: transparent;
+.min-width-0 {
+  min-width: 0; 
 }
 
-.no-results {
-  text-align: center;
-  padding: 80px 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
-}
-
-.notifications-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.notification-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 20px 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-  border: 1px solid rgba(0,0,0,0.04);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.notification-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: transparent;
-  transition: all 0.3s ease;
-}
-
-.notification-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-}
-
-.notification-card:hover::before {
-  background: var(--bs-primary, #0d6efd);
-}
-
-.notification-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.bg-primary-soft { background-color: rgba(13, 110, 253, 0.1); }
-.bg-warning-soft { background-color: rgba(255, 193, 7, 0.15); color: #b28900; }
-.bg-danger-soft { background-color: rgba(220, 53, 69, 0.1); }
-.bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
-.bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
-
-.notification-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.notification-title {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: 1.05rem;
-}
-
-.notification-message {
-  font-size: 0.95rem;
-  color: #4b5563;
-  line-height: 1.5;
-}
-
-.notification-meta {
-  font-size: 0.85rem;
-}
-
-.meta-item {
-  color: #6b7280;
+.time-ago {
+  color: #65676b !important;
   font-weight: 500;
 }
 
-.pagination-wrapper {
-  margin-top: 24px;
-  padding: 16px 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+.shadow-inner {
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 }
 
-/* List Transitions */
-.list-move,
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.5s ease;
+.pagination-fb .page-link {
+  color: #1c1e21;
+  border: none;
+  background-color: #f0f2f5;
+  margin: 0 2px;
+  border-radius: 6px;
 }
 
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
+.pagination-fb .page-item.active .page-link {
+  background-color: #e7f3ff;
+  color: #1877f2;
 }
 
-.list-leave-active {
-  position: absolute;
+.pagination-fb .page-link:hover {
+  background-color: #e4e6eb;
+}
+
+.pagination-fb .page-item.disabled .page-link {
+  background-color: transparent;
+  color: #bcc0c4;
+}
+
+.custom-hover-btn:hover {
+  background-color: #e4e6eb !important;
+  color: #050505 !important;
 }
 </style>

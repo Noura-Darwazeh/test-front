@@ -183,6 +183,7 @@ import { useRegionsManagementStore } from "@/modules/regions/store/regionsManage
 import { useLinesStore } from "@/modules/lines/stores/linesStore.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 import { useActiveToggle } from "../../../composables/useActiveToggle.js";
+import apiServices from "@/services/apiServices.js";
 
 const { t } = useI18n();
 const { companyId } = useAuthDefaults();
@@ -196,6 +197,7 @@ const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorM
 const customers = computed(() => customerStore.customers);
 const regions = computed(() => regionsStore.regions);
 const lines = computed(() => linesStore.lines);
+const customerCompanies = ref([]);
 
 const customerOptions = computed(() =>
   customers.value
@@ -224,8 +226,18 @@ const lineOptions = computed(() =>
     .filter((option) => option.value && option.label)
 );
 
+const customerCompanyOptions = computed(() =>
+  customerCompanies.value
+    .map((company) => ({
+      value: String(company.company_id ?? ""),
+      label: company.company_name || "",
+    }))
+    .filter((option) => option.value && option.label)
+);
+
 const getValueOptions = (type) => {
   if (type === "Customer") return customerOptions.value;
+  if (type === "CustomerCompany") return customerCompanyOptions.value;
   if (type === "Region") return regionOptions.value;
   if (type === "Line") return lineOptions.value;
   return [];
@@ -269,6 +281,18 @@ const trashedDiscounts = computed(() => discountStore.trashedDiscounts);
 const refreshDiscounts = () => discountStore.fetchDiscounts({ page: currentPage.value, perPage: itemsPerPage.value, filters: activeStatusFilter.value !== '' ? { is_active: activeStatusFilter.value } : {} });
 const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("discounts", refreshDiscounts, { showSuccess, showError });
 
+const fetchCustomerCompanies = async () => {
+  try {
+    const response = await apiServices.getMyCustomerCompanies();
+    console.log("🔍 My Customer Companies Raw Response:", response);
+    const data = response.data?.data || response.data || [];
+    console.log("🔍 Extracted Customer Companies Data:", data);
+    customerCompanies.value = data;
+  } catch (error) {
+    console.error("❌ Failed to fetch customer companies:", error);
+  }
+};
+
 onMounted(async () => {
   try {
     await Promise.all([
@@ -276,6 +300,7 @@ onMounted(async () => {
       customers.value.length ? Promise.resolve() : customerStore.fetchCustomers(),
       regions.value.length ? Promise.resolve() : regionsStore.fetchRegions(),
       lines.value.length ? Promise.resolve() : linesStore.fetchLines(),
+      fetchCustomerCompanies(),
     ]);
     console.log("✅ Discounts loaded successfully");
   } catch (error) {
@@ -533,7 +558,7 @@ const handleAddDiscount = async (discountData) => {
       const parsed = parseFloat(value);
       return Number.isFinite(parsed) ? parsed : value;
     }
-    if (["Customer", "Region", "Line"].includes(type)) {
+    if (["Customer", "CustomerCompany", "Region", "Line"].includes(type)) {
       const parsed = parseInt(value, 10);
       return Number.isFinite(parsed) ? parsed : value;
     }

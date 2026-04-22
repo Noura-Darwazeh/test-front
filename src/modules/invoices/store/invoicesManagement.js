@@ -69,7 +69,7 @@ export const useInvoicesManagementStore = defineStore("invoicesManagement", () =
                     lastPage: response.data.meta.last_page,
                 };
             }
-
+console.log("ddd,",response.data);
             return response.data;
         } catch (err) {
             error.value = err.message || "Failed to fetch invoices";

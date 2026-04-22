@@ -22,6 +22,8 @@
       <div class="d-flex gap-2">
         <ColumnSelector :columns="columns" :modelValue="visibleColumns"
           @update:modelValue="$emit('update:visibleColumns', $event)" />
+        <PrimaryButton v-if="showSecondaryAddButton" bgColor="var(--color-success)" :text="secondaryAddButtonText" :iconBefore="addIcon" @click="handleSecondaryAddClick" />
+        <PrimaryButton v-if="showTertiaryAddButton" bgColor="var(--color-success)" :text="tertiaryAddButtonText" :iconBefore="tertiaryAddIcon || addIcon" @click="handleTertiaryAddClick" />
         <PrimaryButton v-if="showAddButton" bgColor="var(--color-success)" :text="addButtonText" :iconBefore="addIcon" @click="handleAddClick" />
         <PrimaryButton v-if="showTrashedButton" bgColor="var(--color-danger)" :iconBefore="trashIcon"
           @click="handleTrashedClick" />
@@ -103,6 +105,11 @@ const props = defineProps({
   visibleColumns: Array,
   showAddButton: { type: Boolean, default: true },
   addButtonText: { type: String, default: "Add New" },
+  showSecondaryAddButton: { type: Boolean, default: false },
+  secondaryAddButtonText: { type: String, default: "Add Secondary" },
+  showTertiaryAddButton: { type: Boolean, default: false },
+  tertiaryAddButtonText: { type: String, default: "Add Tertiary" },
+  tertiaryAddIcon: { type: String, default: "" },
   showTrashedButton: { type: Boolean, default: false },
 });
 
@@ -115,6 +122,8 @@ const emit = defineEmits([
   "update:extraFilterValues",
   "update:visibleColumns",
   "add-click",
+  "secondary-add-click",
+  "tertiary-add-click",
   "trashed-click",
   "refresh-click",
 ]);
@@ -180,6 +189,8 @@ watch(() => props.extraFilterValues, (v) => {
 }, { deep: true });
 
 const handleAddClick = () => emit("add-click");
+const handleSecondaryAddClick = () => emit("secondary-add-click");
+const handleTertiaryAddClick = () => emit("tertiary-add-click");
 const handleTrashedClick = () => emit("trashed-click");
 const handleRefreshClick = () => emit("refresh-click");
 

@@ -7,7 +7,12 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
     const collections = ref([]);
     const loading = ref(false);
     const error = ref(null);
-
+    const collectionsPagination = ref({
+        currentPage: 1,
+        perPage: 20,
+        total: 0,
+        lastPage: 1,
+    });
     const normalizeCollection = (collection) => {
         const driver = collection.received_by_driver;
         const invoice = collection.invoice_id;
@@ -35,13 +40,24 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
     );
 
     // Actions
-    const fetchCollections = async () => {
+    const fetchCollections = async (page = 1) => {
         loading.value = true;
         error.value = null;
         try {
-            const response = await apiServices.getCollections();
+            const response = await apiServices.getCollections({ page, perPage: collectionsPagination.value.perPage });
             collections.value = response.data.data.map(normalizeCollection);
+
+                 // Update pagination
+            if (response.data.meta) {
+                collectionsPagination.value = {
+                    currentPage: response.data.meta.current_page,
+                    perPage: response.data.meta.per_page,
+                    total: response.data.meta.total,
+                    lastPage: response.data.meta.last_page,
+                };
+            }
             return response.data;
+            console.log("nono",response.data);
         } catch (err) {
             error.value = err.message || "Failed to fetch collections";
             console.error("❌ Error fetching collections:", err);
@@ -56,6 +72,7 @@ export const useCollectionsManagementStore = defineStore("collectionsManagement"
         collections,
         loading,
         error,
+        collectionsPagination,
         // Getters
         completedCollections,
         pendingCollections,

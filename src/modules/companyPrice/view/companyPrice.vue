@@ -165,11 +165,13 @@ import { useAuthDefaults } from "@/composables/useAuthDefaults.js";
 import { useCompanyPriceStore } from "../store/companyPriceStore.js";
 import { normalizeServerErrors } from "@/utils/formErrors.js";
 import { useActiveToggle } from "../../../composables/useActiveToggle.js";
+import { useCurrenciesManagementStore } from "../../currency/store/currenciesManagement.js";
 
 const { t } = useI18n();
 const { companyPriceFields } = useCompanyPriceFormFields();
 const { companyId, currencyId, currencyName } = useAuthDefaults();
 const companyPriceStore = useCompanyPriceStore();
+const currenciesStore = useCurrenciesManagementStore();
 const { isSuccessModalOpen, successMessage, showSuccess, closeSuccessModal } = useSuccessModal();
 const { isErrorModalOpen, errorMessage, showError, closeErrorModal } = useErrorModal();
 
@@ -195,6 +197,7 @@ const activeTab = ref('active');
 // Store data
 const companyPrices = computed(() => companyPriceStore.companyPrices);
 const trashedCompanyPrices = computed(() => companyPriceStore.trashedCompanyPrices);
+const currencies = computed(() => currenciesStore.currencies);
 
 // Active Toggle
 const refreshCompanyPrices = () => companyPriceStore.fetchCompanyPrices();
@@ -202,10 +205,13 @@ const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactiva
 
 onMounted(async () => {
   try {
-    await companyPriceStore.fetchCompanyPrices();
-    console.log("✅ Company prices loaded successfully");
+    await Promise.all([
+      companyPriceStore.fetchCompanyPrices(),
+      currenciesStore.fetchCurrencies({ perPage: 1000 })
+    ]);
+    console.log("✅ Company prices and currencies loaded successfully");
   } catch (error) {
-    console.error("❌ Failed to load company prices:", error);
+    console.error("❌ Failed to load data:", error);
   }
 });
 
@@ -216,10 +222,17 @@ const companyPricesWithLocalizedData = computed(() => {
       item.currency_symbol || item.currency_name || currencyName.value || "$";
     return {
       ...item,
-      itemTypeDisplay: t(
-        `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
-      ),
-      priceDisplay: formatPrice(item.price, symbol),
+      itemTypeDisplay: item.itemType
+        ? t(`companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`)
+        : "-",
+      calculation_typeDisplay: item.calculation_type ? item.calculation_type : "-",
+      volumeDisplay: item.volume !== null && item.volume !== "" && item.volume !== undefined ? item.volume : "-",
+      price_volumeDisplay: item.price_volume !== null && item.price_volume !== "" && item.price_volume !== undefined 
+        ? formatPrice(item.price_volume, symbol) 
+        : "-",
+      priceDisplay: item.itemType && item.price !== null && item.price !== "" && item.price !== undefined 
+        ? formatPrice(item.price, symbol) 
+        : "-",
     };
   });
 });
@@ -230,10 +243,17 @@ const trashedCompanyPricesWithLocalizedData = computed(() => {
       item.currency_symbol || item.currency_name || currencyName.value || "$";
     return {
       ...item,
-      itemTypeDisplay: t(
-        `companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`
-      ),
-      priceDisplay: formatPrice(item.price, symbol),
+      itemTypeDisplay: item.itemType
+        ? t(`companyPrice.itemTypes.${item.itemType.replace(/\s&\s/g, "&")}`)
+        : "-",
+      calculation_typeDisplay: item.calculation_type ? item.calculation_type : "-",
+      volumeDisplay: item.volume !== null && item.volume !== "" && item.volume !== undefined ? item.volume : "-",
+      price_volumeDisplay: item.price_volume !== null && item.price_volume !== "" && item.price_volume !== undefined 
+        ? formatPrice(item.price_volume, symbol) 
+        : "-",
+      priceDisplay: item.itemType && item.price !== null && item.price !== "" && item.price !== undefined 
+        ? formatPrice(item.price, symbol) 
+        : "-",
     };
   });
 });
@@ -257,6 +277,21 @@ const companyPriceColumns = computed(() => [
     sortable: true,
   },
   {
+    key: "calculation_typeDisplay",
+    label: t("companyPrice.table.calculationType", "Calculation Type"),
+    sortable: true,
+  },
+  {
+    key: "volumeDisplay",
+    label: t("companyPrice.table.volume", "Volume"),
+    sortable: true,
+  },
+  {
+    key: "price_volumeDisplay",
+    label: t("companyPrice.table.priceVolume", "Price Volume"),
+    sortable: true,
+  },
+  {
     key: "created_at",
     label: t("companyPrice.table.createdAt"),
     sortable: true,
@@ -271,6 +306,18 @@ const trashedColumns = computed(() => [
   {
     key: "priceDisplay",
     label: t("companyPrice.table.price"),
+  },
+  {
+    key: "calculation_typeDisplay",
+    label: t("companyPrice.table.calculationType", "Calculation Type"),
+  },
+  {
+    key: "volumeDisplay",
+    label: t("companyPrice.table.volume", "Volume"),
+  },
+  {
+    key: "price_volumeDisplay",
+    label: t("companyPrice.table.priceVolume", "Price Volume"),
   },
 ]);
 
@@ -370,6 +417,13 @@ const bulkConfirmMessage = computed(() => {
 
 const applyServerErrors = (error) => {
   const normalized = normalizeServerErrors(error);
+  
+  // Map calculation_type error to calculation_type_option so it shows inline under the dropdown
+  if (normalized.calculation_type) {
+    normalized.calculation_type_option = normalized.calculation_type;
+    delete normalized.calculation_type;
+  }
+  
   formErrors.value = normalized;
   return Object.keys(normalized).length > 0;
 };
@@ -382,7 +436,9 @@ const clearFormErrors = () => {
 const openModal = () => {
   clearFormErrors();
   isEditMode.value = false;
-  selectedPrice.value = {};
+  selectedPrice.value = {
+    calculation_type_option: "volume_weight"
+  };
   isModalOpen.value = true;
 };
 
@@ -431,21 +487,27 @@ const handleAddCompanyPrice = async (priceData) => {
     : priceData.company_id
       ? parseInt(priceData.company_id, 10)
       : null;
-  const resolvedCurrencyId = currencyId.value
-    ? parseInt(currencyId.value, 10)
-    : priceData.currency_id
-      ? parseInt(priceData.currency_id, 10)
+  const resolvedCurrencyId = priceData.currency_id
+    ? parseInt(priceData.currency_id, 10)
+    : currencyId.value
+      ? parseInt(currencyId.value, 10)
       : null;
 
-  const price = parseFloat(priceData.price);
-
   try {
-    const payload = {
-      price,
-      itemType: priceData.itemType,
+    let payload = {
       company_id: resolvedCompanyId,
       currency_id: resolvedCurrencyId,
     };
+
+    if (priceData.calculation_type_option === 'per_order_volume' || priceData.calculation_type_option === 'per_item_volume') {
+      payload.volume = parseFloat(priceData.volume || 0);
+      payload.price_volume = parseFloat(priceData.price_volume || 0);
+      payload.calculation_type = priceData.calculation_type_option;
+      payload.price = payload.price_volume;
+    } else {
+      payload.price = parseFloat(priceData.price || 0);
+      payload.itemType = priceData.itemType;
+    }
 
     if (isEditMode.value) {
       await companyPriceStore.updateCompanyPrice(selectedPrice.value.id, payload);
@@ -548,7 +610,15 @@ const handleEdit = (price) => {
   isEditMode.value = true;
   // Use original price data, not the computed version
   const originalPrice = companyPrices.value.find((p) => p.id === price.id);
-  selectedPrice.value = { ...originalPrice };
+  
+  const calcOption = originalPrice.calculation_type === 'per_order_volume' || originalPrice.calculation_type === 'per_item_volume' 
+    ? originalPrice.calculation_type 
+    : 'volume_weight';
+
+  selectedPrice.value = { 
+    ...originalPrice,
+    calculation_type_option: calcOption
+  };
   isModalOpen.value = true;
 };
 
@@ -564,12 +634,28 @@ const closeDetailsModal = () => {
 
 // Update form fields to support edit mode
 const companyPriceFieldsWithDefaults = computed(() => {
-  return companyPriceFields.value.map((field) => ({
-    ...field,
-    defaultValue: isEditMode.value
-      ? selectedPrice.value[field.name]
-      : field.defaultValue || "",
+  const currencyOptions = currencies.value.map(c => ({
+    value: c.id,
+    label: c.name || c.symbol || c.id
   }));
+
+  return companyPriceFields.value.map((field) => {
+    let newField = {
+      ...field,
+      defaultValue: isEditMode.value
+        ? selectedPrice.value[field.name]
+        : (selectedPrice.value[field.name] !== undefined ? selectedPrice.value[field.name] : field.defaultValue || "")
+    };
+    
+    if (newField.name === 'currency_id') {
+      newField.options = currencyOptions;
+      if (!newField.defaultValue && currencyId.value) {
+        newField.defaultValue = currencyId.value;
+      }
+    }
+    
+    return newField;
+  });
 });
 
 // Details fields configuration
@@ -581,13 +667,28 @@ const detailsFields = computed(() => [
     colClass: "col-md-6",
   },
   {
+    key: "calculation_typeDisplay",
+    label: t("companyPrice.table.calculationType", "Calculation Type"),
+    colClass: "col-md-6",
+  },
+  {
     key: "itemTypeDisplay",
     label: t("companyPrice.table.itemType"),
     colClass: "col-md-6",
   },
   {
+    key: "volumeDisplay",
+    label: t("companyPrice.table.volume", "Volume"),
+    colClass: "col-md-6",
+  },
+  {
     key: "priceDisplay",
     label: t("companyPrice.table.price"),
+    colClass: "col-md-6",
+  },
+  {
+    key: "price_volumeDisplay",
+    label: t("companyPrice.table.priceVolume", "Price Volume"),
     colClass: "col-md-6",
   },
   {

@@ -8,15 +8,32 @@ export function useCompanyPriceFormFields() {
 
   const companyPriceFields = computed(() => [
     {
-      name: "price",
-      label: t("companyPrice.form.price"),
-      type: "number",
-      placeholder: t("companyPrice.form.pricePlaceholder"),
+      name: "calculation_type_option",
+      label: t("companyPrice.form.calculationTypeOption", "Pricing Method"),
+      type: "select",
+      defaultValue: "volume_weight",
       required: true,
+      options: [
+        { value: "volume_weight", label: "volume&weight" },
+        { value: "per_order_volume", label: "volume order" },
+        { value: "per_item_volume", label: "volume item" },
+      ],
+      colClass: "col-12",
       validation: {
         required: true,
-        min: 0.01,
-        message: t("companyPrice.validation.priceRequired"),
+        message: t("common.validation.requiredField", { field: "Pricing Method" }),
+      },
+    },
+    {
+      name: "currency_id",
+      label: t("companyPrice.form.currency", "Currency"),
+      type: "select",
+      placeholder: t("companyPrice.form.currencyPlaceholder", "Select Currency"),
+      required: true,
+      options: [], // Will be populated dynamically in view
+      validation: {
+        required: true,
+        message: t("common.validation.requiredField", { field: "Currency" }),
       },
     },
     {
@@ -25,6 +42,7 @@ export function useCompanyPriceFormFields() {
       type: "select",
       placeholder: t("companyPrice.form.itemTypePlaceholder"),
       required: true,
+      hidden: (formData) => formData.calculation_type_option !== "volume_weight",
       options: [
         {
           value: "small_size & light_weight",
@@ -46,6 +64,45 @@ export function useCompanyPriceFormFields() {
       validation: {
         required: true,
         message: t("companyPrice.validation.itemTypeRequired"),
+      },
+    },
+    {
+      name: "price",
+      label: t("companyPrice.form.price"),
+      type: "number",
+      placeholder: t("companyPrice.form.pricePlaceholder"),
+      required: true,
+      hidden: (formData) => formData.calculation_type_option !== "volume_weight",
+      validation: {
+        required: true,
+        min: 0.01,
+        message: t("companyPrice.validation.priceRequired"),
+      },
+    },
+    {
+      name: "volume",
+      label: t("companyPrice.form.volume", "Volume"),
+      type: "number",
+      placeholder: t("companyPrice.form.volumePlaceholder", "Enter volume"),
+      required: true,
+      hidden: (formData) => formData.calculation_type_option !== "per_order_volume" && formData.calculation_type_option !== "per_item_volume",
+      validation: {
+        required: true,
+        min: 0.01,
+        message: t("common.validation.requiredField", { field: "Volume" }),
+      },
+    },
+    {
+      name: "price_volume",
+      label: t("companyPrice.form.priceVolume", "Price"),
+      type: "number",
+      placeholder: t("companyPrice.form.pricePlaceholder", "Enter price"),
+      required: true,
+      hidden: (formData) => formData.calculation_type_option !== "per_order_volume" && formData.calculation_type_option !== "per_item_volume",
+      validation: {
+        required: true,
+        min: 0.01,
+        message: t("companyPrice.validation.priceRequired"),
       },
     },
     {

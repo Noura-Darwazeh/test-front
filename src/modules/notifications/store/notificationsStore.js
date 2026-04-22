@@ -1,54 +1,63 @@
-import { defineStore } from "pinia";
-import { ref } from "vue";
-import apiServices from "@/services/apiServices.js";
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import apiServices from '@/services/apiServices.js';
 
-export const useNotificationsStore = defineStore("notifications", () => {
+export const useNotificationsHistoryStore = defineStore('notificationsHistory', () => {
   const notifications = ref([]);
   const loading = ref(false);
-  const error = ref(null);
-
-  const notificationsPagination = ref({
+  const pagination = ref({
     currentPage: 1,
-    perPage: 10,
-    total: 0,
     lastPage: 1,
+    total: 0,
+    perPage: 10
   });
 
-  const fetchNotifications = async ({ page = 1, perPage = 10, history = 1 } = {}) => {
+  const getNotificationsHistory = async (page = 1) => {
     loading.value = true;
-    error.value = null;
     try {
-      const response = await apiServices.getNotifications({ page, perPage, history });
-
-      if (response && response.data && response.data.data) {
-        notifications.value = response.data.data;
-      } else {
-        notifications.value = [];
+      const response = await apiServices.get('/notifications', {
+        params: { history: 1, page, sort_column: 'created_at', sort_type: 'desc' }
+      });
+      // Handle the nested data structure based on the API response provided
+      let responseData = response.data;
+      if (responseData) {
+        notifications.value = responseData.data || [];
+        if (responseData.meta) {
+          pagination.value = {
+            currentPage: responseData.meta.current_page,
+            lastPage: responseData.meta.last_page,
+            total: responseData.meta.total,
+            perPage: responseData.meta.per_page,
+          };
+        }
       }
-
-      if (response && response.data && response.data.meta) {
-        notificationsPagination.value = {
-          currentPage: response.data.meta.current_page,
-          perPage: response.data.meta.per_page,
-          total: response.data.meta.total,
-          lastPage: response.data.meta.last_page,
-        };
-      }
-      return response.data;
-    } catch (err) {
-      error.value = err.message || "Failed to fetch notifications";
-      console.error("Error fetching notifications:", err);
-      throw err;
+    } catch (error) {
+      console.error('Error fetching notifications history:', error);
     } finally {
       loading.value = false;
+    }
+  };
+
+  const markAsRead = async (ids) => {
+    try {
+      // Optimistic update
+      notifications.value = notifications.value.map(notif => {
+        if (ids.includes(notif.id)) {
+          return { ...notif, read_at: new Date().toISOString() };
+        }
+        return notif;
+      });
+      await apiServices.post('/notifications/make_as_read', { ids });
+    } catch (error) {
+      console.error('Error marking as read:', error);
     }
   };
 
   return {
     notifications,
     loading,
-    error,
-    notificationsPagination,
-    fetchNotifications,
+    pagination,
+    getNotificationsHistory,
+    markAsRead
   };
 });

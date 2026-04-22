@@ -42,8 +42,11 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
 
     return {
       id: price.id,
-      price: parseFloat(price.price ?? 0),
-      itemType: price.itemType || price.item_type || "",
+      price: price.price !== null && price.price !== undefined && price.price !== "" ? parseFloat(price.price) : null,
+      itemType: price.itemType || price.item_type || null,
+      volume: price.volume || null,
+      calculation_type: price.calculation_type || null,
+      price_volume: price.price_volume !== null && price.price_volume !== undefined && price.price_volume !== "" ? parseFloat(price.price_volume) : null,
       company_id: companyId,
       company_name: companyName,
       currency_id: currencyId,
@@ -95,27 +98,31 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
   };
 
   const addCompanyPrice = async (priceData) => {
-    loading.value = true;
-    error.value = null;
     try {
       const response = await apiServices.createCompanyPrice(priceData);
+      if (response.data && response.data.success === false) {
+        const err = new Error(response.data.message || "Request failed");
+        err.response = { data: response.data };
+        throw err;
+      }
+      // Depending on the API structure, the new record might be in data.data or data
       const newPrice = normalizeCompanyPrice(response.data.data || response.data);
       companyPrices.value.push(newPrice);
       return newPrice;
     } catch (err) {
-      error.value = err.message || "Failed to add company price";
       console.error("Error adding company price:", err);
       throw err;
-    } finally {
-      loading.value = false;
     }
   };
 
   const updateCompanyPrice = async (priceId, priceData) => {
-    loading.value = true;
-    error.value = null;
     try {
       const response = await apiServices.updateCompanyPrice(priceId, priceData);
+      if (response.data && response.data.success === false) {
+        const err = new Error(response.data.message || "Request failed");
+        err.response = { data: response.data };
+        throw err;
+      }
       const updated = normalizeCompanyPrice(response.data.data || response.data);
       const index = companyPrices.value.findIndex((p) => p.id === priceId);
       if (index > -1) {
@@ -123,11 +130,8 @@ export const useCompanyPriceStore = defineStore("companyPrices", () => {
       }
       return companyPrices.value[index];
     } catch (err) {
-      error.value = err.message || "Failed to update company price";
       console.error("Error updating company price:", err);
       throw err;
-    } finally {
-      loading.value = false;
     }
   };
 

@@ -14,6 +14,7 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
 
   const getTargetLabel = (type) => {
     if (type === "Customer") return t("discount.form.customer");
+    if (type === "CustomerCompany") return "Customer Company";
     if (type === "Region") return t("discount.form.region");
     if (type === "Line") return t("discount.form.line");
     return t("discount.form.value");
@@ -21,6 +22,7 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
 
   const getTargetPlaceholder = (type) => {
     if (type === "Customer") return t("discount.form.selectCustomer");
+    if (type === "CustomerCompany") return "Select Customer Company";
     if (type === "Region") return t("discount.form.selectRegion");
     if (type === "Line") return t("discount.form.selectLine");
     return t("discount.form.valuePlaceholder");
@@ -34,6 +36,7 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
       required: true,
       options: [
         { value: "Customer", label: t("discountTypes.Customer") },
+        { value: "CustomerCompany", label: "Customer Company" },
         { value: "Region", label: t("discountTypes.Region") },
         { value: "Line", label: t("discountTypes.Line") },
         { value: "Price", label: t("discountTypes.Price") },
@@ -45,7 +48,7 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
         formData.value = "";
       },
       validate: (value) => {
-        const validTypes = ["Customer", "Region", "Line", "Price"];
+        const validTypes = ["Customer", "CustomerCompany", "Region", "Line", "Price"];
         if (!validTypes.includes(value)) {
           return t("discount.validation.typeInvalid");
         }
@@ -133,14 +136,14 @@ export function useDiscountFormFields({ getValueOptions } = {}) {
       label: (formData) => getTargetLabel(formData?.type),
       type: "select",
       required: (formData) =>
-        ["Customer", "Region", "Line"].includes(formData?.type),
+        ["Customer", "CustomerCompany", "Region", "Line"].includes(formData?.type),
       placeholder: (formData) => getTargetPlaceholder(formData?.type),
       options: (formData) => resolveValueOptions(formData),
       colClass: "col-md-6",
       hidden: (formData) =>
-        !["Customer", "Region", "Line"].includes(formData?.type),
+        !["Customer", "CustomerCompany", "Region", "Line"].includes(formData?.type),
       validate: (value, formData) => {
-        if (!["Customer", "Region", "Line"].includes(formData?.type)) return null;
+        if (!["Customer", "CustomerCompany", "Region", "Line"].includes(formData?.type)) return null;
         if (!value) return t("discount.validation.valueRequired");
         const options = resolveValueOptions(formData);
         const hasMatch = options.some(

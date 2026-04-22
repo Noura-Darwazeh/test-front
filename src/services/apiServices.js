@@ -334,9 +334,28 @@ class ApiServices {
     return this.bulkRestoreEntities("user", "users", userIds);
   }
 
+  async createCustomerCompanyUser(userData) {
+    return this.createEntity("customer-company-users", userData);
+  }
+
   async getUserNotificationEvents(userId) {
   return this.get("/notification_events", { params: { user_id: userId } });
 }
+
+  async getCustomerCompanyUsers() {
+    return this.get("/customer-company-users");
+  }
+
+  async createCustomerCompanyAccount(userId) {
+    return this.post("/customer-company-accounts", { user_id: userId });
+  }
+
+  async getCustomerCompanyAccounts({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
+    return this.get("/customer-company-accounts", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "customer-company-accounts:list",
+    });
+  }
 
   async updateUserNotificationEvents(data) {
     return this.post("/notification_events", data);
@@ -518,6 +537,10 @@ class ApiServices {
       params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
       cancelKey: cancelKey ?? "companies:list",
     });
+  }
+
+  async getMyCustomerCompanies() {
+    return this.get("/my_customer_company");
   }
 
   async getTrashedCompanies({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
@@ -1355,7 +1378,7 @@ async createWorkPlanSteps({ workPlanOrdersId, status, notes } = {}) {
   async getNotifications({ page = 1, perPage = 10, cancelKey, history = 1 } = {}) {
     return this.get("/notifications", {
       params: normalizeQueryParams({ page, per_page: perPage, history }),
-      cancelKey: cancelKey ?? "notifications:list",
+      // cancelKey: cancelKey ?? "notifications:list",
     });
   }
 

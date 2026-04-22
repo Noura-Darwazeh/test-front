@@ -3,6 +3,7 @@ import { useAuthStore } from "../stores/auth.js";
 import apiServices from "../services/apiServices.js";
 
 import user from "../modules/user/view/user.vue";
+import customerCompanyAccounts from "../modules/user/view/customerCompanyAccounts.vue";
 import driver from "../modules/drivers/view/drivers.vue";
 import customer from "../modules/customer/view/customer.vue";
 import company from "../modules/company/view/company.vue";
@@ -122,6 +123,19 @@ const router = createRouter({
         icon: userIcon,
         order: 1,
         roles: ["SuperAdmin", "Admin"],
+      },
+    },
+    {
+      path: "/customer-company-accounts",
+      name: "CustomerCompanyAccounts",
+      component: customerCompanyAccounts,
+      meta: {
+        titleKey: "customerCompanyAccounts.title",
+        requireAuth: true,
+        showInSidebar: true,
+        icon: userIcon,
+        order: 1.5,
+        roles: ["Admin", "SuperAdmin"],
       },
     },
     {
