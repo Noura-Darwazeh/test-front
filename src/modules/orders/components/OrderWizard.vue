@@ -780,8 +780,7 @@
 
                 <div
                   v-if="
-                    wizardMode === 'exchange' ||
-                    (wizardMode !== 'exchange' && formData.pricing_mode === 'detailed')
+                    wizardMode === 'exchange'
                   "
                   class="col-md-6"
                 >
@@ -854,6 +853,61 @@
               <h6 class="mb-3">{{ $t("orders.wizard.orderItems") }}</h6>
               <div v-if="getFieldError('order_items')" class="text-danger small mb-2">
                 {{ getFieldError("order_items") }}
+              </div>
+
+              <!-- Volume Type Selection -->
+              <div v-if="wizardMode !== 'exchange' && wizardMode !== 'return'" class="mb-4">
+                <label class="form-label fw-bold">{{ $t("orders.wizard.volumeType", "Volume Type") }}</label>
+                <select v-model="formData.volume_type" class="form-select mb-3">
+                  <option value="volume_and_weight">{{ $t("orders.wizard.volumeAndWeight", "Volume and Weight") }}</option>
+                  <option value="volume_order">{{ $t("orders.wizard.volumeOrder", "Volume Order") }}</option>
+                  <option value="volume_item">{{ $t("orders.wizard.volumeItem", "Volume Item") }}</option>
+                </select>
+
+                <!-- Volume and Weight dropdown -->
+                <div v-if="formData.volume_type === 'volume_and_weight'" class="mb-3">
+                  <label class="form-label"
+                    >{{ $t("orders.form.companyItemPriceId") }}
+                    <span class="text-danger">*</span></label
+                  >
+                  <select
+                    v-model="formData.company_item_price_id"
+                    class="form-select"
+                    :class="{ 'is-invalid': getFieldError('company_item_price_id') }"
+                    required
+                    @change="clearFieldError('company_item_price_id')"
+                  >
+                    <option value="">
+                      {{ $t("orders.form.selectCompanyPrice") }}
+                    </option>
+                    <option
+                      v-for="(price, index) in props.companyPrices"
+                      :key="getCompanyPriceValue(price) || index"
+                      :value="getCompanyPriceValue(price)"
+                    >
+                      {{ getCompanyPriceLabel(price) }}
+                    </option>
+                  </select>
+                  <div v-if="getFieldError('company_item_price_id')" class="invalid-feedback d-block">
+                    {{ getFieldError("company_item_price_id") }}
+                  </div>
+                </div>
+
+                <!-- Order Volume input -->
+                <div v-if="formData.volume_type === 'volume_order'" class="mb-3">
+                  <label class="form-label">{{ $t("orders.wizard.orderVolume", "Order Volume") }} <span class="text-danger">*</span></label>
+                  <input
+                    v-model="formData.order_volume"
+                    type="number"
+                    class="form-control"
+                    :class="{ 'is-invalid': getFieldError('order_volume') }"
+                    placeholder="Enter order volume"
+                    @input="clearFieldError('order_volume')"
+                  />
+                  <div v-if="getFieldError('order_volume')" class="invalid-feedback d-block">
+                    {{ getFieldError("order_volume") }}
+                  </div>
+                </div>
               </div>
 
               <!-- Order Items List -->
@@ -980,6 +1034,28 @@
                             class="invalid-feedback d-block"
                           >
                             {{ getItemError(index, "branch_delivery_company_id") }}
+                          </div>
+                        </div>
+
+                        <!-- Volume Item Input -->
+                        <div v-if="wizardMode !== 'exchange' && wizardMode !== 'return' && formData.volume_type === 'volume_item'" class="col-md-12">
+                          <label class="form-label">
+                            {{ $t("orders.wizard.itemVolume", "Volume") }}
+                            <span class="text-danger">*</span>
+                          </label>
+                          <input
+                            v-model="item.volume"
+                            type="number"
+                            class="form-control"
+                            :class="{ 'is-invalid': getItemError(index, 'volume') }"
+                            placeholder="Enter item volume"
+                            @input="clearItemError(index, 'volume')"
+                          />
+                          <div
+                            v-if="getItemError(index, 'volume')"
+                            class="invalid-feedback d-block"
+                          >
+                            {{ getItemError(index, "volume") }}
                           </div>
                         </div>
 
@@ -1668,6 +1744,8 @@ const buildDefaultFormData = () => ({
   company_id: toSelectValue(companyId.value),
   is_delivery_price_from_customer: 0,
   is_price_from_customer: 0,
+  volume_type: "volume_and_weight",
+  order_volume: "",
 });
 
 const formData = ref(buildDefaultFormData());
@@ -1781,6 +1859,7 @@ const addOrderItem = () => {
   orderItems.value.push({
     branch_customer_company_id: "",
     branch_delivery_company_id: "",
+    volume: "",
     items: [], // For multi-package nested items
     itemsDelivery: [],
     itemsReturn: [],
@@ -1936,13 +2015,6 @@ const validateStepPricing = () => {
         );
         isValid = false;
       }
-      if (isEmptyValue(formData.value.company_item_price_id)) {
-        setFieldError(
-          "company_item_price_id",
-          requiredFieldMessage(t("orders.form.companyItemPriceId"))
-        );
-        isValid = false;
-      }
     }
   }
 
@@ -1964,6 +2036,26 @@ const validateOrderItems = () => {
   if (orderItems.value.length === 0) {
     setFieldError("order_items", t("orders.validation.noOrderItems"));
     return false;
+  }
+
+  if (wizardMode.value !== 'exchange' && wizardMode.value !== 'return') {
+    if (formData.value.volume_type === 'volume_and_weight') {
+      if (isEmptyValue(formData.value.company_item_price_id)) {
+        setFieldError(
+          "company_item_price_id",
+          requiredFieldMessage(t("orders.form.companyItemPriceId"))
+        );
+        isValid = false;
+      }
+    } else if (formData.value.volume_type === 'volume_order') {
+      if (isEmptyValue(formData.value.order_volume)) {
+        setFieldError(
+          "order_volume",
+          requiredFieldMessage(t("orders.wizard.orderVolume", "Order Volume"))
+        );
+        isValid = false;
+      }
+    }
   }
 
   orderItems.value.forEach((item, index) => {
@@ -1997,6 +2089,17 @@ const validateOrderItems = () => {
         t("orders.validation.sameBranchNotAllowed", { index: index + 1 })
       );
       isValid = false;
+    }
+
+    if (wizardMode.value !== 'exchange' && wizardMode.value !== 'return' && formData.value.volume_type === 'volume_item') {
+      if (isEmptyValue(item.volume)) {
+        setItemError(
+          index,
+          "volume",
+          requiredFieldMessage(t("orders.wizard.itemVolume", "Volume"))
+        );
+        isValid = false;
+      }
     }
   });
 
@@ -2068,6 +2171,10 @@ const submitOrder = () => {
       branch_delivery_company_id: parseInt(item.branch_delivery_company_id),
     };
 
+    if (wizardMode.value !== 'exchange' && wizardMode.value !== 'return' && formData.value.volume_type === 'volume_item' && item.volume) {
+      apiItem.volume = parseFloat(item.volume);
+    }
+
     if (isExchange.value) {
       apiItem.itemsDelivery = buildNestedItems(item.itemsDelivery);
       apiItem.itemsReturn = buildNestedItems(item.itemsReturn);
@@ -2096,6 +2203,21 @@ const submitOrder = () => {
   const isTotalPricing =
     !isExchange.value && formData.value.pricing_mode === "total";
 
+  let finalCompanyItemPriceId = !isTotalPricing && formData.value.company_item_price_id
+      ? parseInt(formData.value.company_item_price_id)
+      : undefined;
+  let finalPackage = requiresSinglePackage.value ? "one" : formData.value.package;
+
+  if (wizardMode.value !== 'exchange' && wizardMode.value !== 'return') {
+    if (formData.value.volume_type === "volume_order") {
+      finalCompanyItemPriceId = 15;
+      finalPackage = "one";
+    } else if (formData.value.volume_type === "volume_item") {
+      finalCompanyItemPriceId = 14;
+      finalPackage = "multi";
+    }
+  }
+
   const baseOrderData = {
     to_id: parseInt(formData.value.to_id),
     total_price: isTotalPricing
@@ -2115,17 +2237,16 @@ const submitOrder = () => {
     discount_id: !isTotalPricing && formData.value.discount_id
       ? parseInt(formData.value.discount_id)
       : undefined,
-    company_item_price_id: !isTotalPricing
-      ? parseInt(formData.value.company_item_price_id)
-      : undefined,
+    company_item_price_id: finalCompanyItemPriceId,
     case: formData.value.case,
     type: formData.value.type,
-    package: requiresSinglePackage.value ? "one" : formData.value.package,
+    package: finalPackage,
     parent_order_id: formData.value.parent_order_id
       ? parseInt(formData.value.parent_order_id)
       : null,
     company_id: resolvedCompanyId,
     order_items: transformedOrderItems,
+    order_volume: formData.value.volume_type === 'volume_order' ? formData.value.order_volume : undefined,
     is_delivery_price_from_customer: (() => {
       const parsed = Number.parseInt(
         formData.value.is_delivery_price_from_customer,

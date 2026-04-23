@@ -6,7 +6,7 @@
       :activeFilterValue="activeStatusFilter" @update:activeFilterValue="activeStatusFilter = $event"
       :showAddButton="canAddUser" :addButtonText="$t('user.addNew')" @add-click="openModal"
       :showSecondaryAddButton="isSuperAdmin" secondaryAddButtonText="Add Customer Company" @secondary-add-click="openCustomerCompanyModal"
-      :showTertiaryAddButton="isAdmin || isSuperAdmin" tertiaryAddButtonText="Create Account" @tertiary-add-click="openAccountModal"
+      :showTertiaryAddButton="isAdmin " tertiaryAddButtonText="Create Account" @tertiary-add-click="openAccountModal"
       @refresh-click="handleRefresh" />
 
     <div class="card border-0">
