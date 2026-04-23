@@ -116,6 +116,18 @@ export const useWorkPlansStore = defineStore("workPlans", () => {
       }
 
       return response.data;
+
+
+
+
+
+
+
+
+
+
+
+
     } catch (err) {
       error.value = err.message || "Failed to fetch work plans";
       console.error("Error fetching work plans:", err);

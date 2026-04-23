@@ -198,7 +198,6 @@ const selectedRows = ref([]);
 const formErrors = ref({});
 const customerCompanyFormErrors = ref({});
 const accountFormErrors = ref({});
-const accountUsers = ref([]);
 
 const refreshUsers = () => fetchUsersPage(currentPage.value);
 const { handleActivate, handleDeactivate, handleBulkActivate, handleBulkDeactivate } = useActiveToggle("users", refreshUsers, { showSuccess, showError });
@@ -597,14 +596,11 @@ const customerCompanyFields = computed(() => [
 
 const accountFields = computed(() => [
   {
-    name: "user_id",
-    label: "Select User",
-    type: "select",
+    name: "username",
+    label: "Username",
+    type: "text",
     required: true,
-    options: accountUsers.value.map((u) => ({
-      value: String(u.id),
-      label: `${u.name} (${u.username})`,
-    })),
+    placeholder: "Enter username",
     colClass: "col-12",
     defaultValue: "",
   },
@@ -773,15 +769,9 @@ const closeCustomerCompanyModal = () => {
   customerCompanyFormErrors.value = {};
 };
 
-const openAccountModal = async () => {
+const openAccountModal = () => {
   accountFormErrors.value = {};
-  try {
-    const response = await apiServices.getCustomerCompanyUsers();
-    accountUsers.value = response.data?.data || response.data || [];
-    isAccountModalOpen.value = true;
-  } catch (error) {
-    showError("Failed to fetch users");
-  }
+  isAccountModalOpen.value = true;
 };
 
 const closeAccountModal = () => {
@@ -791,7 +781,7 @@ const closeAccountModal = () => {
 
 const handleSubmitAccount = async (formData) => {
   try {
-    const response = await apiServices.createCustomerCompanyAccount(formData.user_id);
+    const response = await apiServices.createCustomerCompanyAccount(formData.username);
     if (response.data && response.data.success === false) {
       showError(response.data.message || t('common.error'));
       return;

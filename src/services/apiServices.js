@@ -342,12 +342,19 @@ class ApiServices {
   return this.get("/notification_events", { params: { user_id: userId } });
 }
 
-  async getCustomerCompanyUsers() {
-    return this.get("/customer-company-users");
+  async getCustomerCompanyUsers(options) {
+    if (!options) {
+      return this.get("/customer-company-users");
+    }
+    const { page = 1, perPage = 10, filters = {}, cancelKey } = options;
+    return this.get("/customer-company-users", {
+      params: normalizeQueryParams({ page, per_page: perPage, ...filters }),
+      cancelKey: cancelKey ?? "customer-company-users:list",
+    });
   }
  
-  async createCustomerCompanyAccount(userId) {
-    return this.post("/customer-company-accounts", { user_id: userId });
+  async createCustomerCompanyAccount(username) {
+    return this.post("/customer-company-accounts", { username });
   }
 
   async getCustomerCompanyAccounts({ page = 1, perPage = 10, filters = {}, cancelKey } = {}) {
